@@ -33,6 +33,19 @@ Every change to this repo lands through a pull request. The maintainer only ever
 - Skills live at `plugins/dag/skills/<name>/SKILL.md` and are **auto-discovered** — a new
   skill needs no manifest entry, just the directory + `SKILL.md`.
 
+## Hard-won learnings (when changing the dag skill / its proof-carrying FSM)
+Promoted from a dag self-evaluation run of the self-learning loops. Apply when proposing or
+making changes to the pipeline's formal machinery.
+- **Flag guarantee-touching changes; never make them silently.** When a change touches a formal
+  guarantee (the correction-loop termination proof, an AO-1..7 invariant, an I1..I13 invariant),
+  explicitly classify it as *preserves* vs *revises* the guarantee, and carry a migration argument
+  for any revision. A silently-made guarantee change is a defect, not a bonus.
+- **Enforce loop invariants post-hoc, never as a live guard on the only back-edge.** Added
+  invariants (e.g. mechanizing the discipline-only AO-2 / AO-6) must be *offline* validator
+  predicates over emitted artifacts, with violations routed to `ESCALATE`. A *live* guard on the
+  correction loop's sole back-edge `LT7 (RETRY→EXECUTE)` can leave `RETRY` with no enabled
+  out-edge → deadlock, breaking Claim D of the termination proof.
+
 ## Versioning / releases — keep every mirror in sync
 The plugin version is mirrored in **six** places; a bump must update all of them together
 (precedent: commit 4b19c47):
