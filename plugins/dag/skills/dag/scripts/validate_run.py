@@ -806,27 +806,63 @@ def main(argv=None):
         if unit_dirs_with_debrief:
             rep.ok(f"I10 synthesis completeness checked at phase {phase}")
 
-    # I11 tag vocabulary — every unit/brief tag must be a member of V_tag (graph.v_tag)
+    # I11 tag vocabulary — every unit/brief tag must be a member of V_tag_eff
     # I12 learnings propagation predicate + admission gate
     if graph_doc is not None:
         v_tag = set(graph_doc.get("v_tag", []))
+
+        # ---- G1 FLAG: global tag registry — WIDENS the I11/I12 tag DOMAIN ----
+        # (guarantee-domain change; delivered as its own commit — see 04-global.md / CARTOGRAPHY R3.)
+        # V_tag_eff = global ∪ project ∪ run_local. Read the global registry `~/.claude/dag/tags.json`
+        # (validated against schemas/tags.schema.json) if present; its `tags[]` UNION with the run-local
+        # `graph.json.v_tag`. There is NO project tag registry today: U03 added a project *learnings*
+        # store (.dag/learnings/), not a project *tag* store — so V_tag_eff = global ∪ run_local here;
+        # the union is written so a project tier drops in trivially if one is ever added.
+        #   * ABSENT FILE  => global_tags == ∅ => V_tag_eff == v_tag  (today's behavior; ZERO change
+        #     when no registry exists — the backward-compat anchor).
+        #   * I11 STAYS literally `T ∈ V_tag_eff`: a FINITE enumerated set, decidable set-membership,
+        #     NO free-text/NLP (the anti-NLP property is preserved — the domain grows, the test's KIND
+        #     does not). I12 propagation stays run-local `T ∈ U.tags`, evaluating False (decidable, not
+        #     undefined) when no unit carries T.
+        # Malformed/invalid registry is REPORTED (rep.fail) — never a silent widening, never a crash.
+        global_tags = set()
+        _tagstore = os.path.expanduser(os.path.join("~", ".claude", "dag", "tags.json"))
+        if os.path.exists(_tagstore):
+            _traw = None
+            try:
+                _traw = load_json(_tagstore)
+            except Exception as e:
+                rep.fail("I11 global tag registry (G1)", f"~/.claude/dag/tags.json not valid JSON: {e}")
+            if _traw is not None:
+                _tschema = schemas.get("tags.schema.json")
+                errs = validate(_traw, _tschema) if _tschema is not None else []
+                if errs:
+                    for e in errs:
+                        rep.fail("I11 global tag registry (G1)", f"~/.claude/dag/tags.json: {e}")
+                else:
+                    global_tags = {t for t in _traw.get("tags", []) if isinstance(t, str)}
+                    rep.ok(f"I11 global tag registry (G1) loaded ({len(global_tags)} tag(s) from "
+                           f"~/.claude/dag/tags.json — widening V_tag_eff)")
+        v_tag_eff = v_tag | global_tags   # V_tag_eff = global ∪ run_local (project tier admits trivially)
+
         gunits = graph_doc.get("units", [])
         unit_tags = {u.get("id"): set(u.get("tags", [])) for u in gunits}
         tag_ok = True
         for u in gunits:
-            bad = sorted(t for t in u.get("tags", []) if t not in v_tag)
+            bad = sorted(t for t in u.get("tags", []) if t not in v_tag_eff)
             if bad:
                 tag_ok = False
-                rep.fail("I11 tag vocabulary (graph)", f"{u.get('id')} tags {bad} not in V_tag {sorted(v_tag)}")
+                rep.fail("I11 tag vocabulary (graph)", f"{u.get('id')} tags {bad} not in V_tag_eff {sorted(v_tag_eff)}")
         for uid, d in unit_docs.items():
             b = d.get("brief")
             if b:
-                bad = sorted(t for t in b.get("tags", []) if t not in v_tag)
+                bad = sorted(t for t in b.get("tags", []) if t not in v_tag_eff)
                 if bad:
                     tag_ok = False
-                    rep.fail(f"I11 tag vocabulary (units/{uid}/brief)", f"tags {bad} not in V_tag {sorted(v_tag)}")
+                    rep.fail(f"I11 tag vocabulary (units/{uid}/brief)", f"tags {bad} not in V_tag_eff {sorted(v_tag_eff)}")
         if tag_ok:
-            rep.ok(f"I11 tag vocabulary (all tags drawn from V_tag, |V_tag|={len(v_tag)})")
+            rep.ok(f"I11 tag vocabulary (all tags drawn from V_tag_eff, |V_tag_eff|={len(v_tag_eff)}"
+                   f"{f', +{len(global_tags)} global' if global_tags else ''})")
 
         if learnings:
             def units_with_tag(T):
@@ -846,16 +882,36 @@ def main(argv=None):
                              f"{eid} since_wave={since!r} is not an integer >= 1 — "
                              "cannot evaluate propagation")
                     continue
+                # G1 FLAG: authored-vs-imported admission carve-out (widens I11/I12 domain — see
+                # 04-global.md/roadmap §d). The >=2-current-run-carrier admission gate below is a
+                # RE-GENERALIZATION test: it rejects a one-off authored THIS run before it can bind
+                # later units. An IMPORTED/GLOBAL entry is ALREADY generalized (it survived a prior
+                # run's admission and was persisted), so re-imposing the >=2-run re-proof would
+                # WRONGLY reject it. An entry is imported/global iff its id was loaded from the
+                # project/global store rather than authored in-run (`eid in store_ids`), OR it bears
+                # the global-scoped `G#` id marker (learnings.schema: L# = run/project, G# = global).
+                # Such entries are EXEMPT from the >=2-run re-proof — but are STILL FULLY governed by
+                # the propagation predicate below (force-inject only where the tag actually appears).
+                # The exemption is EXPLICIT (reported as a PASS-level carve-out line), NEVER silent.
+                _is_imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
                 for sel in (E.get("scope", {}) or {}).get("applies_to", []):
                     if not (isinstance(sel, str) and sel.startswith("tag:")):
                         continue
                     T = sel[4:]
                     carriers = units_with_tag(T)
-                    if len(carriers) < 2:               # admission gate
-                        prop_ok = False
-                        rep.fail("I12 learnings admission gate",
-                                 f"{eid} scope tag:{T} inadmissible — only {len(carriers)} unit(s) carry it {carriers} (need >=2)")
-                    for uid, d in unit_docs.items():    # propagation predicate
+                    if len(carriers) < 2:               # admission gate (>=2 current-run carriers)
+                        if _is_imported:
+                            # G1 FLAG carve-out: already-generalized imported/global entry — EXEMPT
+                            # from the >=2-run re-proof, still propagation-governed (never silent).
+                            rep.ok(f"I12 admission carve-out (G1): {eid} scope tag:{T} is imported/global "
+                                   f"({'store-loaded' if eid in store_ids else 'G#-id'}) — exempt from the "
+                                   f">=2-carrier re-proof ({len(carriers)} current-run carrier(s)); still "
+                                   "governed by the propagation predicate")
+                        else:
+                            prop_ok = False
+                            rep.fail("I12 learnings admission gate",
+                                     f"{eid} scope tag:{T} inadmissible — only {len(carriers)} unit(s) carry it {carriers} (need >=2)")
+                    for uid, d in unit_docs.items():    # propagation predicate (runs for ALL entries, imported or not)
                         b = d.get("brief")
                         if not b:
                             continue
