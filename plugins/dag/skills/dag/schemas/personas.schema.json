@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/personas.schema.json",
+  "title": "Personas roster (machine-checkable extract)",
+  "description": "JSON sidecar for PERSONAS.md. The confirmed persona roster + propose/critique pairings. Enables the maker!=checker invariant to be checked structurally at the graph level.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["roster"],
+  "properties": {
+    "run_label": { "type": "string" },
+    "confirmed_by_user": { "type": "boolean" },
+    "roster": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["persona", "mandate"],
+        "properties": {
+          "persona": { "type": "string", "minLength": 1 },
+          "mandate": { "type": "string", "minLength": 1 },
+          "optimizes_for": { "type": "string" },
+          "skeptical_of": { "type": "string" },
+          "critic_pair": { "type": "string" },
+          "phases": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "pairings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["producer", "critic"],
+        "properties": {
+          "producer": { "type": "string", "minLength": 1 },
+          "critic": { "type": "string", "minLength": 1 },
+          "contest": { "type": "string" }
+        }
+      }
+    }
+  }
+}

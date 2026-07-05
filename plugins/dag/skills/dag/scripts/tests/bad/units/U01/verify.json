@@ -1,0 +1,10 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Auditor",
+  "verdict": "FAIL",
+  "iteration": 1,
+  "executor_reasoning_seen": true,
+  "inputs_reviewed": ["debrief.json"],
+  "feedback": { "summary": "rejected but no concrete defect and no actionable_changes listed" },
+  "defects": []
+}

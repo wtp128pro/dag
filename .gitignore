@@ -1,0 +1,7 @@
+# Python build artifacts (bytecode caches — never committed)
+__pycache__/
+*.pyc
+*.pyo
+
+# dag run directories (working state, never committed)
+/.wip/

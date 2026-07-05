@@ -1,0 +1,9 @@
+{
+  "subject": "U01",
+  "question": "Which option?",
+  "origin": "executor-verifier",
+  "options": [
+    { "name": "A", "recommended": true, "what_it_is": "first" },
+    { "name": "B", "recommended": true, "what_it_is": "second" }
+  ]
+}

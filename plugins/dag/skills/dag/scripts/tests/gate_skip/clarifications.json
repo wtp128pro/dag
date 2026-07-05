@@ -1,0 +1,18 @@
+{
+  "run_label": "gate_skip-fixture",
+  "ambiguity_register": [
+    { "id": 1, "ambiguity": "which phase gate is under test", "materiality": "material",
+      "resolved": true, "resolution": "the Phase-4 decomposition_approved gate" }
+  ],
+  "scope": {
+    "in_scope": ["gate-ordering enforcement"],
+    "out_of_scope": ["everything else"]
+  },
+  "open_items": [],
+  "definition_of_done": [
+    "validate_run.py rejects this run with a gate-ordering violation naming decomposition_approved"
+  ],
+  "non_goals": [
+    "do NOT trip any check other than gate ordering"
+  ]
+}

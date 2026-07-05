@@ -1,0 +1,8 @@
+{
+  "run_dir": "tests/bad_learnings",
+  "phase": "P2_CLARIFICATION",
+  "updated_at": "2026-07-03T09:30:00-0400",
+  "gates": {
+    "personas_confirmed": true
+  }
+}

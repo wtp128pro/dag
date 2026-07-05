@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/verify.schema.json",
+  "title": "Verify report (machine-checkable extract)",
+  "description": "The units/<UID>/verify.json artifact (JSON-only; no verify.md). Encodes the executor<->verifier LOOP contract + the verifier-independence invariant + the premise-check (the independent COUNTER re-run). verdict/iteration/feedback/defects/socratic/premise_check are required. executor_reasoning_seen MUST be false (independence). FAIL is schema-INVALID unless it carries >=1 defect (each naming a criterion) AND feedback.actionable_changes is non-empty; PASS requires defects==[]; DISAGREE requires a disagreement object. The defect.criterion in brief.acceptance_criteria membership is cross-checked in validate_run.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["unit_id", "verifier_persona", "verdict", "iteration", "executor_reasoning_seen", "feedback", "defects", "socratic", "premise_check"],
+  "properties": {
+    "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+    "verifier_persona": { "type": "string", "minLength": 1 },
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL", "DISAGREE"] },
+    "iteration": { "type": "integer", "minimum": 1 },
+    "executor_reasoning_seen": {
+      "type": "boolean",
+      "const": false,
+      "description": "Independence invariant: the verifier saw brief+debrief+artifacts only, never the executor's chain-of-thought. MUST be false (maker!=checker). Self-attestation, not a platform guarantee (see state-machine Limitation A)."
+    },
+    "inputs_reviewed": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "audit_notes": {
+      "type": "string",
+      "description": "Optional free-form record of the verifier's adversarial work (per-criterion independent check, evidence audit, hallucination sweep, budget check) that formerly lived in verify.md prose. Not required — the load-bearing outputs are verdict/feedback/defects/premise_check."
+    },
+    "feedback": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Feedback object. actionable_changes = concrete edits for the next iteration (must be non-empty on FAIL); do_not_touch = what was correct and must be preserved.",
+      "required": ["actionable_changes"],
+      "properties": {
+        "summary": { "type": "string" },
+        "actionable_changes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "do_not_touch": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "defects": {
+      "type": "array",
+      "description": "Top-level defect list. PASS => []; FAIL => >=1, each citing a brief acceptance criterion (membership cross-checked by the validator).",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["severity", "criterion"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["blocker", "major", "minor"] },
+          "criterion": { "type": "string", "minLength": 1 },
+          "minimal_repro": { "type": "string" },
+          "fix_direction": { "type": "string" }
+        }
+      }
+    },
+    "socratic": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "The VERIFIER's own CANONICAL 4-key socratic block on its verdict. Same shape + rules as the debrief block.",
+      "required": ["premise", "counter", "pivot", "confidence"],
+      "properties": {
+        "premise": { "type": "string", "minLength": 1 },
+        "counter": { "type": "string", "minLength": 1 },
+        "pivot": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
+      }
+    },
+    "premise_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Backstop against premise deflection (the independent COUNTER re-run): the verifier attests it first confirmed the executor's stated premise is the deliverable's LOAD-BEARING claim, then RE-RAN COUNTER on it independently (decoupled, from evidence, never by reading executor reasoning). Provides the field; the templates wire the prose.",
+      "required": ["executor_premise_quoted", "is_load_bearing", "counter_reran_independently", "outcome"],
+      "properties": {
+        "executor_premise_quoted": { "type": "string", "minLength": 1 },
+        "is_load_bearing": { "type": "boolean" },
+        "counter_reran_independently": { "type": "boolean" },
+        "outcome": { "type": "string", "minLength": 1 }
+      }
+    },
+    "disagreement": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Present iff verdict==DISAGREE: why evidence cannot settle it (routes to Phase 7).",
+      "properties": {
+        "why_unresolvable": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "FAIL => >=1 defect AND non-empty feedback.actionable_changes (evidence-bound critique).",
+      "if": {
+        "required": ["verdict"],
+        "properties": { "verdict": { "const": "FAIL" } }
+      },
+      "then": {
+        "properties": {
+          "defects": { "type": "array", "minItems": 1 },
+          "feedback": {
+            "properties": { "actionable_changes": { "type": "array", "minItems": 1 } }
+          }
+        }
+      }
+    },
+    {
+      "description": "PASS => defects == [] (no phantom defects on an accepted unit).",
+      "if": {
+        "required": ["verdict"],
+        "properties": { "verdict": { "const": "PASS" } }
+      },
+      "then": {
+        "required": ["defects"],
+        "properties": { "defects": { "type": "array", "maxItems": 0 } }
+      }
+    },
+    {
+      "description": "DISAGREE => a disagreement object is present AND complete (why_unresolvable set) (routes to the Phase-7 gate).",
+      "if": {
+        "required": ["verdict"],
+        "properties": { "verdict": { "const": "DISAGREE" } }
+      },
+      "then": {
+        "required": ["disagreement"],
+        "properties": { "disagreement": { "required": ["why_unresolvable"] } }
+      }
+    }
+  ]
+}

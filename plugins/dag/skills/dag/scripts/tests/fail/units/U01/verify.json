@@ -1,0 +1,32 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Adversarial Reproducibility Auditor",
+  "verdict": "FAIL",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": ["brief.md", "debrief.json", "cited sources"],
+  "feedback": {
+    "actionable_changes": ["Add the 3 missing dated primary sources for findings 8, 11, 12 before resubmitting."],
+    "do_not_touch": ["the maker!=checker mandate framing"]
+  },
+  "defects": [
+    {
+      "severity": "major",
+      "criterion": "each with >=1 dated primary source",
+      "minimal_repro": "Findings 8, 11, 12 cite only an undated search-summary snippet; no dated primary source resolves.",
+      "fix_direction": "Locate and cite a dated primary source (paper/PDF/official page) for each of the 3 findings."
+    }
+  ],
+  "socratic": {
+    "premise": "The unit fails the dated-primary-source criterion because 3 of 13 findings lack a resolvable dated source.",
+    "counter": "Sought a dated primary source for findings 8/11/12 independently; none resolved, so the FAIL HOLDS.",
+    "pivot": "If a dated primary source were found for all three, the verdict would flip to PASS.",
+    "confidence": "high - re-checked each of the 3 flagged findings against its cited locator."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER on the premise from the sources directly: it BREAKS - 3 findings have no dated primary source."
+  }
+}

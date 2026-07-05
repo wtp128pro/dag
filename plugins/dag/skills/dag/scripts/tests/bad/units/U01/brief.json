@@ -1,0 +1,11 @@
+{
+  "unit_id": "U01",
+  "title": "Missing-socratic-protocol + missing-tags + over-budget brief",
+  "wave": 1,
+  "depends_on": [],
+  "persona": "Researcher",
+  "budget_tokens": 50000,
+  "acceptance_criteria": ["something"],
+  "context_pointers": ["INPUT.md"],
+  "outputs": ["units/U01/debrief.json"]
+}

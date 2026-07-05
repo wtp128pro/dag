@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/debrief.schema.json",
+  "title": "Debrief (machine-checkable extract)",
+  "description": "The units/<UID>/debrief.json artifact (JSON-only; no debrief.md). Gates the evidence-table plumbing (claim types drawn from references/evidence-standards.md), the budget report, and the ANSWERED 4-key socratic block (result of the pre-output self-interrogation). The executor reasons free-form in its reply, then writes this JSON; the narrative lands in the `result`/`handoff_notes` string fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["unit_id", "persona", "iteration", "result", "evidence_table", "socratic", "confidence", "footprint"],
+  "properties": {
+    "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+    "persona": { "type": "string", "minLength": 1 },
+    "iteration": { "type": "integer", "minimum": 1 },
+    "result": { "type": "string", "minLength": 1 },
+    "evidence_table": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "type", "evidence", "reproducible"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": [
+              "empirical-world-fact", "code-behavior", "api-tool-contract",
+              "numeric-quantitative", "causal", "design-judgment", "provenance-quote"
+            ]
+          },
+          "evidence": { "type": "string", "minLength": 1 },
+          "reproducible": { "type": "boolean" }
+        }
+      }
+    },
+    "socratic": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "CANONICAL 4-key socratic block. Result of the free-form FORK.COUNTER.ADMIT.PIVOT.RESIDUAL self-interrogation, never the dialogue itself. counter must record an OUTCOME (validator rejects blank/'n/a'; mechanical-unit sentinel = 'unit is mechanical; no material premise to break'). confidence starts high|medium|low (same vocabulary as the top-level `confidence` enum; the socratic value may add a trailing '— <uncertainty>').",
+      "required": ["premise", "counter", "pivot", "confidence"],
+      "properties": {
+        "premise": { "type": "string", "minLength": 1 },
+        "counter": { "type": "string", "minLength": 1 },
+        "pivot": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
+      }
+    },
+    "acceptance_self_check": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "met"],
+        "properties": {
+          "criterion": { "type": "string", "minLength": 1 },
+          "met": { "type": "boolean" },
+          "evidence_ref": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "residual_risks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "footprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tokens_consumed", "within_budget"],
+      "properties": {
+        "tokens_consumed": { "type": "integer", "minimum": 0, "maximum": 32000 },
+        "within_budget": { "type": "boolean" }
+      }
+    },
+    "handoff_notes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "prior_feedback": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Retries only (iteration>1): verbatim echo of iteration n-1's verify.feedback (actionable_changes + do_not_touch) plus >=1 concrete change made in response (AO-6). Home for what was formerly the debrief.md 'Prior feedback' section under JSON-only artifacts.",
+      "properties": {
+        "actionable_changes": { "type": "array", "items": { "type": "string" } },
+        "do_not_touch": { "type": "array", "items": { "type": "string" } },
+        "changes_made": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+# Code owners for wtp128pro/dag.
+# @wtp128pro owns everything and is auto-requested as a reviewer on every PR.
+# (Enforcement is advisory unless the branch ruleset enables "require code owner review".)
+* @wtp128pro

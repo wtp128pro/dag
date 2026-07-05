@@ -1,0 +1,15 @@
+{
+  "run_dir": "tests/bad",
+  "phase": "P6_EXECUTE_VERIFY",
+  "updated_at": "2026-07-03T09:31:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": false
+  },
+  "loop": { "unit_id": "U01", "state": "RETRY", "retries": 5, "iteration": 6 },
+  "units": [
+    { "unit_id": "U01", "status": "executing" }
+  ]
+}

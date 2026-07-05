@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/fsm-state.schema.json",
+  "title": "FSM state (pipeline current-state file)",
+  "description": "fsm-state.json at run root. Durable current state of the pipeline FSM (see references/state-machine.md). Models the phase, the executor<->verifier loop substate (Q = EXECUTE|VERIFY|ADJUDICATE|RETRY|ESCALATE|DONE), the bounded retries counter (max 2), gate flags, and per-unit status. Loop cross-check iteration<=retries+1 is enforced in validate_run.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_dir", "phase", "updated_at"],
+  "properties": {
+    "run_dir": { "type": "string", "minLength": 1 },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "P0_BOOTSTRAP", "P1_PERSONAS", "P2_CLARIFICATION", "P3_CARTOGRAPHY",
+        "P4_DECOMPOSITION", "P5_BRIEFING", "P6_EXECUTE_VERIFY",
+        "P7_DISAGREEMENT_GATE", "P8_SYNTHESIS", "DONE"
+      ]
+    },
+    "updated_at": { "type": "string", "minLength": 1 },
+    "gates": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "personas_confirmed": { "type": "boolean" },
+        "clarification_resolved": { "type": "boolean" },
+        "cartography_done": { "type": "boolean" },
+        "decomposition_approved": { "type": "boolean" }
+      }
+    },
+    "loop": {
+      "type": "object",
+      "description": "Executor<->verifier loop substate for the unit currently in Phase 6. retries is HARD-BOUNDED at 2 (termination invariant; variant V=2-retries). state uses the loop's Q vocabulary.",
+      "additionalProperties": false,
+      "required": ["unit_id", "state", "retries", "iteration"],
+      "properties": {
+        "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+        "state": {
+          "type": "string",
+          "enum": ["EXECUTE", "VERIFY", "ADJUDICATE", "RETRY", "ESCALATE", "DONE"]
+        },
+        "retries": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "iteration": { "type": "integer", "minimum": 1 },
+        "last_verdict": { "type": "string", "enum": ["PASS", "FAIL", "DISAGREE"] },
+        "last_feedback_ref": { "type": "string" }
+      }
+    },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "status"],
+        "properties": {
+          "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "briefed", "executing", "verifying", "passed", "failed", "blocked", "escalated"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/graph.schema.json",
+  "title": "Work graph (machine-checkable extract)",
+  "description": "JSON sidecar for GRAPH.md and the AUTHORITATIVE DAG. Units + dependency edges + wave ordering + the enumerated tag vocabulary V_tag. Edge {from,to} means 'to consumes from'. The validator treats this graph.json as authoritative (fail-closed): if GRAPH.md exists it MUST be present, and cycles are detected on the union of `edges` and edges derived from each unit's `deps`. V_tag = the `v_tag` registry; every unit tag (and every brief tag) MUST be a member (enforced by validate_run.py, since JSON Schema cannot constrain one property's items to another data-provided array).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["units", "edges", "v_tag"],
+  "properties": {
+    "run_label": { "type": "string" },
+    "v_tag": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "The enumerated tag vocabulary V_tag for this run. Functions as the enum for every unit/brief `tags` value; membership is enforced mechanically by validate_run.py."
+    },
+    "units": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "goal", "executor_persona", "verifier_persona", "deps", "est_footprint_tokens", "acceptance_criteria", "tags"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "title": { "type": "string", "minLength": 1 },
+          "goal": { "type": "string", "minLength": 1 },
+          "executor_persona": { "type": "string", "minLength": 1 },
+          "verifier_persona": { "type": "string", "minLength": 1 },
+          "deps": { "type": "array", "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } },
+          "outputs": { "type": "array", "items": { "type": "string" } },
+          "est_footprint_tokens": { "type": "integer", "minimum": 1, "maximum": 32000 },
+          "acceptance_criteria": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "This unit's tags, each a member of v_tag (V_tag). Basis for tag-scoped learnings propagation."
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "to": { "type": "string", "pattern": "^U[0-9]{2,}$" }
+        }
+      }
+    },
+    "waves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["wave", "units"],
+        "properties": {
+          "wave": { "type": "integer", "minimum": 1 },
+          "units": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } }
+        }
+      }
+    }
+  }
+}

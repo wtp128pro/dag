@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/learnings.schema.json",
+  "title": "Learnings ledger (machine-readable sidecar)",
+  "description": "Schema for learnings.json — the machine-readable sidecar for LEARNINGS.md. Top-level shape is an object { \"entries\": [ <entry>, ... ] }; validate_run.py ALSO accepts a bare top-level array of entries (that tolerance lives in the loader, not the schema). Each entry is schema-validated in validate_run.py against $defs.entry; a malformed entry is REPORTED (rep.fail) and DROPPED so it can never reach the I12 since_wave propagation comparison. Emitted in Phase 6 when a generalizable lesson is admitted (NOT seeded at bootstrap). Canonical field set incl. since_wave (int>=1, the wave from which the entry binds later briefs): id, trigger, lesson, how_to_apply, scope{applies_to,excludes,expiry}, evidence, since_wave; promotable optional.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "run_label": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "trigger", "lesson", "how_to_apply", "scope", "evidence", "since_wave"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^L[0-9]+$",
+          "description": "LEARNINGS entry id, e.g. L1, L2. Referenced from brief.learnings_applied."
+        },
+        "trigger": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The situation/signal that surfaced the lesson (what went wrong or was observed)."
+        },
+        "lesson": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The generalizable lesson admitted."
+        },
+        "how_to_apply": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Concrete guidance for applying the lesson in a later unit."
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["applies_to"],
+          "description": "Where the lesson binds. applies_to selectors (e.g. 'tag:core') drive the tag-scoped propagation predicate in validate_run.py.",
+          "properties": {
+            "applies_to": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "excludes": { "type": "array", "items": { "type": "string" } },
+            "expiry": { "type": "string" }
+          }
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Evidence grounding the lesson (a reference, quote, or observed outcome)."
+        },
+        "since_wave": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The wave from which this entry binds later briefs; the propagation predicate is U.wave >= since_wave."
+        },
+        "promotable": {
+          "type": "boolean",
+          "description": "Optional: whether the lesson is a candidate for promotion to a durable rule."
+        }
+      }
+    }
+  }
+}

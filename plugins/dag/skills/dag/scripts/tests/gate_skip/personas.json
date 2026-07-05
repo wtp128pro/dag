@@ -1,0 +1,9 @@
+{
+  "run_label": "gate-skip-fixture",
+  "confirmed_by_user": true,
+  "roster": [
+    { "persona": "Formal-Methods & Schema Engineer", "mandate": "make rules machine-checked",
+      "optimizes_for": "real runtime rejection", "skeptical_of": "formal theater",
+      "critic_pair": "Pragmatist", "phases": ["U03"] }
+  ]
+}

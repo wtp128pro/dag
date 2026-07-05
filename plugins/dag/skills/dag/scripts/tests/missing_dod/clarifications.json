@@ -1,0 +1,14 @@
+{
+  "run_label": "missing-dod-fixture",
+  "ambiguity_register": [
+    { "id": 1, "ambiguity": "which schema toolchain is available", "materiality": "material",
+      "resolved": true, "resolution": "require python3 (stdlib-only, no Node.js)" },
+    { "id": 2, "ambiguity": "TLA+ vs FSM table", "materiality": "minor",
+      "resolved": true, "resolution": "FSM table is the model of record" }
+  ],
+  "scope": {
+    "in_scope": ["schemas", "validator", "fsm spec"],
+    "out_of_scope": ["editing the live skill"]
+  },
+  "open_items": []
+}

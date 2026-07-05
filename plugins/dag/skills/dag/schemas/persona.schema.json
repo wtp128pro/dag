@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/persona.schema.json",
+  "title": "Persona (single catalog / library entry)",
+  "description": "The ONE uniform schema for a single persona, shared by all three sources: the curated catalog (`references/personas/<name>.json`), user personas (`~/.claude/dag/personas/*.json`), and project personas (`.dag/personas/*.json`). Required `name`, `role`, `description` (non-empty strings); optional `mandate`, `optimizes_for`, `skeptical_of`, `phase`, `pair_with` (strings), `qualifications` and `tags` (string arrays). `additionalProperties:false`. All optional fields are backward-compatible: a lean persona carrying only the three required fields still validates. Phase 1 discovers and merges files from all three sources into the candidate pool (override order: project > user > curated). This validates persona INPUT and is deliberately NOT a run artifact: it is meta-validated by `validate_run.py --self-check` but never required by a run (not in TOP_ARTIFACTS). Distinct from personas.schema.json, which validates the confirmed-roster OUTPUT sidecar. See templates/persona.json for a conforming example and references/personas/GUIDE.md for the discovery/merge conventions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "role", "description"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "description": "Concrete persona name, e.g. 'Java Backend Architect' — rename generic archetypes to be task-concrete." },
+    "role": { "type": "string", "minLength": 1, "description": "Short role label, e.g. 'Architect', 'Verifier'." },
+    "description": { "type": "string", "minLength": 1, "description": "What this persona is and the lens it brings." },
+    "mandate": { "type": "string", "description": "Optional. The decision this persona owns." },
+    "optimizes_for": { "type": "string", "description": "Optional. What this persona optimizes for." },
+    "skeptical_of": { "type": "string", "description": "Optional. What this persona is skeptical of." },
+    "tags": { "type": "array", "items": { "type": "string" }, "description": "Optional. Free-form tags for filtering/discovery." },
+    "phase": { "type": "string", "description": "Optional. The typical Dag phase/unit at which this persona is invoked, verbatim or faithfully trimmed from the catalog's Phase field (e.g. '6', '3/6')." },
+    "qualifications": { "type": "array", "items": { "type": "string" }, "description": "Optional. Each element carries one distinct qualification claim (and its cited source) from the catalog's Qualifications block. Omit entirely for lean personas that have no Qualifications block." },
+    "pair_with": { "type": "string", "description": "Optional. The critic/verifier persona this entry names as its productive counterpart, when the source entry names a pairing." }
+  }
+}

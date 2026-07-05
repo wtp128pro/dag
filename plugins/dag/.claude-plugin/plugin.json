@@ -1,0 +1,21 @@
+{
+  "name": "dag",
+  "displayName": "Dag",
+  "version": "1.0.0",
+  "description": "Gated, multi-phase task-execution pipeline with FORMALLY-ENFORCED invariants (JSON Schemas + FSM spec + runnable validator), a universal Socratic protocol referenced by every prompt and applied selectively, budget-capped subagents, independent adversarial verification, and formalized bounded self-learning loops with a TLC-machine-checked termination proof. Invoked as /dag:dag.",
+  "author": {
+    "name": "wtp128pro"
+  },
+  "homepage": "https://github.com/wtp128pro/dag/tree/main/plugins/dag",
+  "repository": "https://github.com/wtp128pro/dag",
+  "license": "MIT",
+  "keywords": [
+    "coordination",
+    "workflow",
+    "subagents",
+    "verification",
+    "anti-hallucination",
+    "socratic",
+    "planning"
+  ]
+}

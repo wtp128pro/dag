@@ -1,0 +1,9 @@
+{
+  "name": "Implementer / Executor",
+  "role": "Producer",
+  "description": "Producer: produce the artifact the unit specifies (code, doc, data, config)",
+  "mandate": "produce the artifact the unit specifies (code, doc, data, config).",
+  "optimizes_for": "meeting acceptance criteria simply and correctly, within budget.",
+  "skeptical_of": "scope creep, cleverness that isn't asked for.",
+  "phase": "6."
+}
