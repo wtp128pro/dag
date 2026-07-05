@@ -1008,8 +1008,44 @@ def main(argv=None):
                 return sorted(uid for uid, ts in unit_tags.items() if T in ts)
             # G4 (04-global): the run's model, used by the scope.model NARROWING conjunct below.
             run_model = fsm.get("model") if isinstance(fsm, dict) else None
-            prop_ok = True
+
+            # ---- 03/P4: ADVISORY tier for imported cross-run learnings (re-grounding gate) ----
+            # PARTITION the propagation set the I12 REQUIREMENT consumes into two tiers:
+            #   * ACTIVE   = run-local authored entries  ∪  imported entries that have been
+            #                RE-GROUNDED to a local signal in THIS run (top-level
+            #                grounding == "re-grounded").
+            #   * ADVISORY = imported entries (loaded from the project/user store → `eid in
+            #                store_ids`, or bearing the global-scoped `G#` id marker) that have
+            #                NOT been re-grounded.
+            # The I12 required-propagation predicate below runs over the ACTIVE set ONLY. An
+            # advisory entry is still LOADED + REPORTED (the rep.ok line below) so a brief author
+            # may cite it VOLUNTARILY — but its omission from any brief's learnings_applied NEVER
+            # FAILs. This treats an un-re-grounded import as NOT an external signal that binds
+            # briefs (AO-4): a lesson carried over from another run is ADVISORY until re-confirmed
+            # against a local signal here — the exact 03/P4 intent. Re-grounded imports and every
+            # run-local entry stay fully I12-enforced (and a re-grounded/active import keeps the
+            # U04/G1 >=2-carrier admission carve-out — it is already generalized). ABSENT STORE =>
+            # no imported entries => ACTIVE == today's set => ZERO behavior change (no store => the
+            # `good` fixture and every existing fixture are byte-for-byte identical).
+            def _is_regrounded(E):
+                g = E.get("grounding") if isinstance(E, dict) else None
+                return isinstance(g, str) and g.strip() == "re-grounded"
+            active, advisory = [], []
             for E in learnings:
+                eid = E.get("id") if isinstance(E, dict) else None
+                _imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
+                if isinstance(E, dict) and _imported and not _is_regrounded(E):
+                    advisory.append(E)
+                else:
+                    active.append(E)
+            for E in advisory:
+                rep.ok(f"advisory import (not force-injected): {E.get('id')} — imported cross-run "
+                       f"learning NOT re-grounded to a local signal (no grounding==\"re-grounded\"); "
+                       f"loaded + citable but its omission from a brief never FAILs I12 (AO-4: an "
+                       f"un-re-grounded import is not an external signal that binds briefs)")
+
+            prop_ok = True
+            for E in active:
                 if not isinstance(E, dict):
                     continue
                 eid = E.get("id")
@@ -1077,7 +1113,8 @@ def main(argv=None):
                                      f">= since_wave {since}: MUST list {eid} in learnings_applied "
                                      f"(has {b.get('learnings_applied')})")
             if prop_ok:
-                rep.ok(f"I12 learnings propagation ({len(learnings)} entr(y/ies): admission + tag-scope propagation hold)")
+                rep.ok(f"I12 learnings propagation ({len(active)} active entr(y/ies): admission + tag-scope "
+                       f"propagation hold{f'; {len(advisory)} advisory import(s) not force-injected (03/P4)' if advisory else ''})")
         elif not args.quiet:
             print("  SKIP  I12 learnings propagation: no learnings.json present")
 

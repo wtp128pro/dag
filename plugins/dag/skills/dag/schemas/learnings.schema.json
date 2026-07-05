@@ -92,6 +92,10 @@
         "supersedes": {
           "type": "string",
           "description": "Optional: id of an earlier learnings entry this entry replaces."
+        },
+        "grounding": {
+          "type": "string",
+          "description": "Optional (03/P4): whether an IMPORTED cross-run lesson has been re-grounded to a local signal in THIS run. The load-bearing value is \"re-grounded\": an imported entry (store-loaded or a global G# id) carrying grounding==\"re-grounded\" is re-promoted to the ACTIVE, I12-enforced set; an imported entry WITHOUT it is ADVISORY (loaded + citable but never force-injected, so its omission from a brief never FAILs I12). Absent/any-other value on an imported entry => advisory. Inert on run-local authored entries (they are ACTIVE regardless). Consistent with AO-4: an un-re-grounded import is not an external signal that binds briefs."
         }
       }
     }

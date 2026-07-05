@@ -1,0 +1,10 @@
+{
+  "id": "L7",
+  "since_wave": 1,
+  "grounding": "re-grounded",
+  "scope": { "applies_to": ["tag:core"] },
+  "trigger": "A prior run generalized a core-tagged lesson that was persisted to the across-run project store.",
+  "lesson": "Ground every gate in an INDEPENDENT external signal (imported from a prior run's store, re-grounded here).",
+  "how_to_apply": "A core-tagged unit in THIS run MUST list L7 in learnings_applied: L7 is an imported entry that has been RE-GROUNDED to a local signal this run (grounding=='re-grounded'), so 03/P4 re-promotes it to the ACTIVE, I12-enforced set.",
+  "evidence": "staged project-store entry (imported from a prior run; grounding=='re-grounded' => re-confirmed against a local signal => active/enforced)"
+}

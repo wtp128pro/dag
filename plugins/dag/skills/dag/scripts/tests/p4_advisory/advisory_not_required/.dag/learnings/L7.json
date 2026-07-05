@@ -1,0 +1,9 @@
+{
+  "id": "L7",
+  "since_wave": 1,
+  "scope": { "applies_to": ["tag:core"] },
+  "trigger": "A prior run generalized a core-tagged lesson that was persisted to the across-run project store.",
+  "lesson": "Ground every gate in an INDEPENDENT external signal (imported from a prior run's store).",
+  "how_to_apply": "A core-tagged unit in THIS run would list L7 in learnings_applied — but L7 is an imported cross-run entry that has NOT been re-grounded to a local signal this run, so 03/P4 makes it ADVISORY (citable, never force-injected).",
+  "evidence": "staged project-store entry (imported from a prior run; NO grounding marker => not re-grounded => advisory)"
+}
