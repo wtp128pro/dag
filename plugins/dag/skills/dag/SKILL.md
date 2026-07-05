@@ -126,11 +126,18 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
 3. **Re-ground before injecting** (03/P1 guarantee). Re-run the §4.2 generalizability gate against
    THIS run's DAG and assign every imported entry `since_wave = 1`, so imports bind all waves and are
    never injected retroactively (forward-only by construction — everything is present before wave 1
-   runs). **Honest boundary:** the shipped validator has **no advisory / "re-grounding" demotion
-   tier** (03/P4 did not ship) — imported entries reach I12 like any other (the conservative
-   *surface-it* default). A mis-scoped import therefore trips the I12 admission gate (≥2 carriers) or
-   propagation, UNLESS it is an imported/already-generalized `G#`/store-loaded entry, which the 04/G1
-   carve-out exempts from the ≥2-carrier re-proof while still propagation-checking it.
+   runs). **Advisory until re-grounded (03/P4).** The shipped validator loads every imported cross-run
+   entry as **advisory** — reported and voluntarily citable, but **not** force-injected by I12 — until
+   you re-ground it to a THIS-run signal and mark it with the entry field `grounding: "re-grounded"`.
+   The I12 required-propagation predicate then runs over the **active** set only — run-local authored
+   entries ∪ imported entries carrying `grounding == "re-grounded"` — while an advisory (un-re-grounded)
+   import gets an `advisory import (not force-injected): <id>` report line and its omission from a brief
+   **never FAILs**. This is the **AO-4** tie: an un-re-grounded import is not an external signal that
+   binds briefs. A re-grounded/active import is then governed by I12 exactly like a run-local entry,
+   including the 04/G1 carve-out that exempts an imported/already-generalized `G#`/store-loaded entry
+   from the ≥2-carrier re-proof while still propagation-checking it. **Honest boundary:** re-grounding
+   is keyed on the local `grounding` marker — a same-project trust signal you assert, **not**
+   cryptographic provenance; a verifiable cross-party trust model is the deferred ring-05 work, not this.
 4. **Drop what has expired or decayed** (03/P3, 04/G5). The loader-side `expiry` grammar
    `run|project|runs:N|date:<iso>` and the idle-decay fields exclude stale entries from propagation;
    a false drop reverts to today's re-derive-from-scratch behavior (safe). A `supersedes` entry

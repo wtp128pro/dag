@@ -378,6 +378,23 @@ discovery/merge/promotion at *runtime* is prose the model executes.
   `scope.applies_to` collision the higher-precedence (project, then user) entry wins and the shadowed
   one is dropped (label `learnings user-store override (G2)`). Absent stores ⇒ zero change; imported
   ids join `store_ids` so they are treated as imported by the 04/G1 carve-out.
+- **Advisory imports until re-grounded (03/P4).** Where the I12 propagation loop consumes the finalized
+  learning set, the validator PARTITIONS it into an **active** set (run-local authored entries ∪
+  imported entries carrying `grounding == "re-grounded"`) and an **advisory** set (imported entries —
+  `eid ∈ store_ids` or a `G#` id — WITHOUT that marker). The I12 required-propagation predicate + the
+  §4.2 admission gate iterate the **active** set only (so the §4.3 `REQUIRE` quantifier ranges over
+  `active`, not the full merged set); an advisory entry is still LOADED and REPORTED (label
+  `advisory import (not force-injected): <id>`) but its omission from a brief NEVER `rep.fail`s, and the
+  I12 propagation summary gains an `N active … M advisory import(s) not force-injected (03/P4)` suffix.
+  This is the **AO-4** tie: an un-re-grounded import is **not** an external signal that binds briefs —
+  only a run-local authored entry, or an import you have re-grounded to a THIS-run signal, is. A
+  re-grounded import re-enters `active` and is governed by I12 (incl. the 04/G1 ≥2-carrier carve-out)
+  exactly like a run-local entry. `grounding` is an **optional** top-level `$defs/entry` field
+  (load-bearing value `"re-grounded"`; inert on run-local authored entries). Absent store ⇒ `store_ids`
+  empty, no `G#` ids ⇒ advisory empty ⇒ `active` == today's set ⇒ zero behavior change. **Honest
+  boundary:** re-grounding is keyed on this same-project `grounding` marker — a local trust signal,
+  **not** cryptographic provenance; a verifiable cross-party trust model is the deferred ring-05 work,
+  out of scope here.
 - **Promotion → persistence → re-import cycle (03/P2).** Phase-8 writes each `promotable:true`,
   non-expired entry into `.dag/learnings/<id>.json` (upsert by `id`; `run`-scoped never persisted);
   Phase-0.5 re-reads it. This is a prose step — the validator does **not** auto-write; its 04/G3 hook
