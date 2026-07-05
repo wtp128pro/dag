@@ -20,8 +20,8 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^L[0-9]+$",
-          "description": "LEARNINGS entry id, e.g. L1, L2. Referenced from brief.learnings_applied."
+          "pattern": "^[LG][0-9]+$",
+          "description": "LEARNINGS entry id, e.g. L1, L2 (run/project-scoped) or G1, G2 (global-scoped). Referenced from brief.learnings_applied."
         },
         "trigger": {
           "type": "string",
@@ -50,7 +50,11 @@
               "items": { "type": "string", "minLength": 1 }
             },
             "excludes": { "type": "array", "items": { "type": "string" } },
-            "expiry": { "type": "string" }
+            "expiry": { "type": "string" },
+            "model": {
+              "type": "string",
+              "description": "Optional: the model (run's model) this lesson is scoped to. Absent => model-agnostic."
+            }
           }
         },
         "evidence": {
@@ -66,6 +70,28 @@
         "promotable": {
           "type": "boolean",
           "description": "Optional: whether the lesson is a candidate for promotion to a durable rule."
+        },
+        "last_applied_run": {
+          "type": "string",
+          "description": "Optional (decay): run_label of the most recent run in which this lesson was applied."
+        },
+        "applied_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional (decay): number of times this lesson has been applied across runs."
+        },
+        "last_confirmed": {
+          "type": "string",
+          "description": "Optional (decay): run_label of the most recent run in which this lesson was confirmed still valid."
+        },
+        "max_idle_runs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional (decay): number of consecutive runs the lesson may go unapplied before it is a decay candidate."
+        },
+        "supersedes": {
+          "type": "string",
+          "description": "Optional: id of an earlier learnings entry this entry replaces."
         }
       }
     }

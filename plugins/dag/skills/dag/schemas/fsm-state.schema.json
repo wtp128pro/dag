@@ -17,6 +17,10 @@
       ]
     },
     "updated_at": { "type": "string", "minLength": 1 },
+    "model": {
+      "type": "string",
+      "description": "Optional: the model this run executed under (recorded so model-scoped learnings can bind). Absent => unrecorded."
+    },
     "gates": {
       "type": "object",
       "additionalProperties": true,

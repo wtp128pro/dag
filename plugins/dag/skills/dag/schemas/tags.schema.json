@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/tags.schema.json",
+  "title": "Global tag registry",
+  "description": "Schema for the global tag registry file (tags.json) — the enumerated vocabulary of tags available to briefs/units and to the V_tag membership / learnings-propagation predicates. Shape is an object { \"tags\": [ \"<tag>\", ... ] }: a required, non-empty array of unique tag strings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tags"],
+  "properties": {
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
