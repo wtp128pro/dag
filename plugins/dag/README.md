@@ -137,6 +137,11 @@ See the [marketplace README](../../README.md). In short:
 
 Then: `/dag:dag <your task>`
 
+## License
+
+[MIT](../../LICENSE) © 2026 wtp128pro. Not affiliated with or endorsed by Anthropic; "Claude" and
+"Claude Code" are Anthropic trademarks used nominatively to describe compatibility.
+
 ## Versioning
 
 Current version: **1.0.0** — initial release: the gated, multi-phase task-execution pipeline with
