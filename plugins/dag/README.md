@@ -126,6 +126,28 @@ skills/dag/
 - The ≤32K per-subagent budget is now *partly* enforceable (a token-count check on structured
   artifacts); free prose remains disciplinary. See `skills/dag/DESIGN.md §6`.
 
+## Verify the formal claims yourself
+
+The "machine-checked" claim above isn't asked to be taken on faith — you can re-run the TLC model
+check yourself in seconds. It needs a JDK; TLA+'s `tla2tools.jar` is a build tool fetched to `/tmp`,
+never vendored into the skill.
+
+```sh
+curl -L -o /tmp/tla2tools.jar \
+  https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar
+cd skills/dag        # the directory that holds formal/
+export JAVA_HOME=$(/usr/libexec/java_home)   # macOS; on Linux point JAVA_HOME at your JDK
+"$JAVA_HOME/bin/java" -cp /tmp/tla2tools.jar tlc2.TLC \
+    -config formal/Pipeline.cfg formal/Pipeline.tla
+```
+
+Expect `Model checking completed. No error has been found.` across **327 distinct states** — that
+confirms the safety invariants (gate ordering, retry bound ≤ 2, well-founded loop variant) and the
+bounded-loop **termination** property. The full annotated transcript, the invariant→property
+traceability, and the Alloy structural models (`formal/WorkGraph.als`, whose `check` commands are
+hand-run in the Alloy Analyzer) are documented in
+[`references/formal-models.md`](references/formal-models.md).
+
 ## Install
 
 See the [marketplace README](../../README.md). In short:
