@@ -245,6 +245,16 @@ Two loop types, both bounded:
 debrief); never let a loop re-open a human-decided gate; never re-verify a passed claim in
 a way that can oscillate; always bound iteration.
 
+Both anti-oscillation rules the correction loop relies on are now **post-hoc validator-checked**
+(offline reads, not live FSM guards): AO-2 (never re-open a PASSED criterion) as **I14** and AO-6
+(each retry cites a responsive change) as **I15**. They are presence-gated and self-reported, so they
+check *plumbing*, not genuineness — the honest limitation is recorded in
+references/self-learning-loops.md §5 and state-machine.md §5 (Limitation F). The learning loop also
+persists **across runs** via a project `.dag/learnings/` store and a user `~/.claude/dag/learnings/`
+store (Phase-0.5 intake + Phase-8 persist), with loader-side `expiry`/decay, `supersedes`, and
+`scope.model` narrowing, and a widened `V_tag_eff` tag domain (04/G1) — all additive/post-hoc; full
+spec in self-learning-loops.md §4.4.
+
 ---
 
 ## §Evidence & anti-hallucination

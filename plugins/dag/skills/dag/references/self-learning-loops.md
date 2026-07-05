@@ -293,6 +293,25 @@ row (mirrored into its brief). This is what makes pattern matching a mechanical 
 test a validator can enforce, instead of natural-language matching. (This requires `tags` on
 `GRAPH.md` unit rows and in `brief.schema.json`, with `V_tag` seeded in `GRAPH.md`.)
 
+**Effective tag domain `V_tag_eff` (04/G1 FLAG — a domain revision, not a pure additive check).**
+The I11/I12 tag domain is widened from the run-local `V_tag` to
+`V_tag_eff = global ∪ project ∪ run_local`. The global tier is the registry `~/.claude/dag/tags.json`
+(schema `schemas/tags.schema.json`), UNIONed into the domain when present (label
+`I11 global tag registry (G1) loaded …`); an absent/invalid file ⇒ `global_tags = ∅` ⇒
+`V_tag_eff = V_tag` (today's behavior, backward-compat anchor). No project tag registry exists yet
+(U03 shipped a project *learnings* store, not a tag store), so `V_tag_eff = global ∪ run_local` today;
+the union is written so a project tier drops in trivially. I11 stays `T ∈ V_tag_eff` — a finite
+enumerated string set, exact Python set-membership, **no NLP**: the *domain* grows, the test's *kind*
+does not. Because it revises the I11/I12 **domain** (additive), an invalid registry falls back to
+run-local `V_tag` — the domain is never widened silently or on bad data. Paired with it is the
+**authored-vs-imported admission carve-out** (04/G1): a run-local one-off (`L#` id, not store-loaded)
+still needs **≥2 current-run carriers** to admit a `tag:T` scope, but an **imported/already-generalized**
+entry (store-loaded id, or a `G#` global id) is EXEMPT from that ≥2-carrier re-proof (label
+`I12 admission carve-out (G1)`) while STILL governed by the I12 propagation predicate — so it is
+force-injected wherever its tag actually appears. `L#` = re-proved each run; `G#`/store-loaded =
+imported, exempt from re-proof only. (The exemption *trusts* the `G#`-id/store provenance as the
+"already-generalized" signal — a provenance-trust boundary, see state-machine.md §5.)
+
 **Generalizability gate (checkable admission rule).** An entry is admissible in
 `LEARNINGS.md` **only if** — checked mechanically against the DAG — its `applies_to` would
 match **≥ 2** units in the run:
@@ -344,6 +363,65 @@ Three properties make this safe, not blind:
 Needs `brief.schema.json` to require `learnings_applied: [string]` **and** a `tags: [T ∈ V_tag]`
 field per unit (mirrored from `GRAPH.md`) so the tag disjunct is checkable.
 
+### 4.4 Across-run + user/global persistence (rings 03/04 — post-hoc validator-checked)
+
+The learning loop persists **beyond one run** via two stores that mirror the persona precedent,
+loaded at **Phase-0.5 intake** (SKILL.md) as a prose step Dag executes, and independently
+re-discovered by `validate_run.py` post-hoc so the I12 propagation predicate ranges over the merged
+set. All of the below are **additive + post-hoc + offline**: none gates the FSM, so the §2 termination
+proof is untouched. Only the validator predicates named are mechanically enforced (post-hoc); store
+discovery/merge/promotion at *runtime* is prose the model executes.
+
+- **Two stores, override order project > user.** Project `.dag/learnings/*.json` (03/P1) and
+  user/global `~/.claude/dag/learnings/*.json` (04/G2), each file one `$defs/entry` object,
+  schema-validated; a malformed entry is REPORTED and DROPPED, never a crash. On an `id` **or**
+  `scope.applies_to` collision the higher-precedence (project, then user) entry wins and the shadowed
+  one is dropped (label `learnings user-store override (G2)`). Absent stores ⇒ zero change; imported
+  ids join `store_ids` so they are treated as imported by the 04/G1 carve-out.
+- **Advisory imports until re-grounded (03/P4).** Where the I12 propagation loop consumes the finalized
+  learning set, the validator PARTITIONS it into an **active** set (run-local authored entries ∪
+  imported entries carrying `grounding == "re-grounded"`) and an **advisory** set (imported entries —
+  `eid ∈ store_ids` or a `G#` id — WITHOUT that marker). The I12 required-propagation predicate + the
+  §4.2 admission gate iterate the **active** set only (so the §4.3 `REQUIRE` quantifier ranges over
+  `active`, not the full merged set); an advisory entry is still LOADED and REPORTED (label
+  `advisory import (not force-injected): <id>`) but its omission from a brief NEVER `rep.fail`s, and the
+  I12 propagation summary gains an `N active … M advisory import(s) not force-injected (03/P4)` suffix.
+  This is the **AO-4** tie: an un-re-grounded import is **not** an external signal that binds briefs —
+  only a run-local authored entry, or an import you have re-grounded to a THIS-run signal, is. A
+  re-grounded import re-enters `active` and is governed by I12 (incl. the 04/G1 ≥2-carrier carve-out)
+  exactly like a run-local entry. `grounding` is an **optional** top-level `$defs/entry` field
+  (load-bearing value `"re-grounded"`; inert on run-local authored entries). Absent store ⇒ `store_ids`
+  empty, no `G#` ids ⇒ advisory empty ⇒ `active` == today's set ⇒ zero behavior change. **Honest
+  boundary:** re-grounding is keyed on this same-project `grounding` marker — a local trust signal,
+  **not** cryptographic provenance; a verifiable cross-party trust model is the deferred ring-05 work,
+  out of scope here.
+- **Promotion → persistence → re-import cycle (03/P2).** Phase-8 writes each `promotable:true`,
+  non-expired entry into `.dag/learnings/<id>.json` (upsert by `id`; `run`-scoped never persisted);
+  Phase-0.5 re-reads it. This is a prose step — the validator does **not** auto-write; its 04/G3 hook
+  only surfaces a non-gating `NOTE  G3 promotion (advisory)` line per `promotable` entry (eligible for
+  HUMAN promotion to `~/.claude/dag/principles.md`).
+- **`expiry` — loader-side grammar, not a schema enum (03/P3).** `scope.expiry` parses as
+  `run|project|runs:N|date:<iso>`; an expired entry (a `runs:N` budget exhausted via `applied_count`,
+  a past `date:`, or a `run`-scoped entry loaded from a store) is EXCLUDED from propagation and
+  REPORTED (label `learnings expiry (03/P3): <id> EXCLUDED …`), never a hard-fail. An unparseable /
+  unrecognized `expiry` fails **OPEN** (inert) — never a crash, never a silent exclusion.
+- **Decay / GC (04/G5).** `max_idle_runs`/`last_applied_run`/`last_confirmed`/`applied_count` drive
+  idle-decay, EXTENDING the P3 traversal (one loop, not a duplicate). Today it is DECIDABLE only for
+  `max_idle_runs == 0` on a store-loaded, not-applied/confirmed-this-run entry (label
+  `learnings decay/GC (04/G5): <id> EXCLUDED … ARCHIVE-not-delete`); `max_idle_runs ≥ 1` needs a
+  cross-run idle counter a single-run validator cannot derive, so it is left INERT/fail-safe
+  (documented limitation). ARCHIVE-not-delete: the validator only *reads*, never mutates the source file.
+- **`scope.model` narrowing (04/G4).** An optional `scope.model` makes an entry bind only when the
+  run's `fsm-state.model` matches (fnmatch glob OR prefix); a model-agnostic entry = all models; an
+  absent run model with `scope.model` set ⇒ fail-closed (not injected). It can ONLY narrow (scope.model
+  was ignored before = applies-to-all), label `I12 model narrowing (04/G4): <id> … EXCLUDED …`.
+- **Contradiction / `supersedes` (03/P5).** An entry with `supersedes: ["<id>"]` EXCLUDES the
+  superseded entry from propagation (label `learnings contradiction (03/P5): <id> superseded …`). Two
+  live entries competing for the same `scope.applies_to` with no `supersedes` ordering are surfaced as
+  a NON-failing human-escalation `NOTE  contradiction (03/P5): … NOT auto-picked` (AO-5: genuine split
+  ⇒ human) — never auto-picked, never a `rep.fail`, because complementary-vs-contradictory cannot be
+  decided without NLP (G2 forbids it).
+
 ---
 
 ## 5. Anti-oscillation invariants (AO-1 … AO-7)
@@ -355,9 +433,20 @@ Each is stated so it is either mechanically checkable or a hard structural rule.
   budget. *This is the mechanical core of both termination and anti-oscillation.*
 - **AO-2 Never re-verify a PASSED claim.** A criterion once `PASS` enters
   `feedback.do_not_touch`; a retry MUST NOT re-open it and the verifier MUST NOT
-  re-litigate it. Specified as `retry-verify.defects[].criterion ∩ prior.do_not_touch = ∅` —
-  enforced where mechanizable (AO-2 is currently discipline-level, **not** validator-checked).
-  Kills pass→fail→pass ping-pong. (Even if the verifier flip-flops, AO-1 still forces halt.)
+  re-litigate it. Specified as `retry-verify.defects[].criterion ∩ prior.do_not_touch = ∅` and now
+  **validator-checked, post-hoc**, by predicate **I14** in `validate_run.py` (label
+  `I14 AO-2 do_not_touch disjointness (units/<uid>)`): for a `debrief.iteration>1` it fails **closed**
+  on a non-empty intersection of `verify.defects[].criterion` with the retry's
+  `debrief.prior_feedback.do_not_touch`. It is an offline read that **gates no transition** (a live
+  guard on LT7 would leave `RETRY` with no out-edge → deadlock, breaking §2 Claim D — the 02/P1 FLAG),
+  so AO-1 still owns halt. Kills pass→fail→pass ping-pong. (Even if the verifier flip-flops, AO-1 still
+  forces halt.) **Named Limitation — I14/I15 data-availability (L1):** I14 fires *only when the retry's
+  `prior_feedback` echo is present* (a retry omitting `do_not_touch` is skipped, not failed), and it
+  compares the executor's **self-reported** `prior_feedback.do_not_touch` echo — NOT the authoritative
+  prior verify — because the validator retains only the *latest* `verify.json` per unit (no
+  per-iteration verify history to reconstruct). So I14 checks *presence/plumbing*, not full
+  authoritative AO-2 enforcement; the independent verifier remains the semantic backstop. (02/P6
+  auto-seeds `do_not_touch` from the passed criteria to close the completeness hole — templates/verify.md.)
 - **AO-3 No vague FAIL.** Every `FAIL` defect cites a specific unmet acceptance criterion
   from the brief (§3 conditional rule). A FAIL citing no criterion is schema-invalid ⇒ the
   verifier must use `DISAGREE`. (Critics hallucinate nitpicks —
@@ -372,8 +461,15 @@ Each is stated so it is either mechanically checkable or a hard structural rule.
 - **AO-6 New-evidence requirement.** Each retry's debrief must cite ≥1 change responsive to
   the prior `feedback.actionable_changes`. A no-progress "spin in place" is thereby visible;
   and because AO-1 increments regardless, no-progress still terminates via the counter.
-  (Converge only when each pass carries a fresh verifiable signal.) Specified; enforced where
-  mechanizable — AO-6 is currently discipline-level, **not** validator-checked.
+  (Converge only when each pass carries a fresh verifiable signal.) Now **validator-checked,
+  post-hoc**, by predicate **I15** in `validate_run.py` (label `I15 AO-6 responsive change
+  (units/<uid>)`): for a `debrief.iteration>1` that carries a `prior_feedback` echo it requires
+  `prior_feedback.changes_made` present and non-empty, else FAIL. Like I14 it is offline and gates no
+  transition. **Same Named Limitation (L1):** I15 is gated on the *presence* of the `prior_feedback`
+  echo (a retry omitting the whole block is skipped, not failed), and `changes_made` is
+  **executor-self-attested** — I15 checks presence/plumbing, not genuineness (the "validity ≠
+  correctness" boundary, §6.5). A lazy executor could list a token change; the independent verifier is
+  the semantic backstop.
 - **AO-7 Verifier independence per iteration.** Every `VERIFY` (incl. retries) is a fresh
   independent verifier that does not see the executor's reasoning or identity;
   `verify.executor_reasoning_seen == false` is an invariant.

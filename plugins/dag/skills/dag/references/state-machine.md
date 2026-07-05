@@ -120,9 +120,11 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I8 No open material ambiguity past P2** | Cannot advance past clarification with an open material item. | validator (clarifications extract). |
 | **I9 Every debriefed unit is verified** | A unit dir with a debrief (`.json` or `.md`) MUST have a verify.json with a verdict. | validator presence check. **Closes D.** |
 | **I10 Synthesis completeness** | At P8/DONE, every debriefed unit has verdict=PASS (none advances unverified/failed). | validator phase-gated presence+verdict check. **Closes D.** |
-| **I11 Tag vocabulary** | Every unit/brief `tag` is a member of `V_tag` (`graph.json.v_tag`). | validator membership check. |
-| **I12 Learnings propagation** | Every unit created no earlier than a `tag:T`-scoped learning E, carrying tag T, lists E in `learnings_applied`; a `tag:T` scope is admissible only if ≥2 units carry T. | validator decidable predicate + admission gate (see `self-learning-loops.md` §4.3). |
+| **I11 Tag vocabulary** | Every unit/brief `tag` is a member of `V_tag_eff` (`graph.json.v_tag` ∪ the global registry `~/.claude/dag/tags.json` — 04/G1; absent/invalid ⇒ run-local `V_tag`). | validator membership check over `V_tag_eff`. **Domain widened by 04/G1 — Limitation G.** |
+| **I12 Learnings propagation** | Every unit created no earlier than a `tag:T`-scoped learning E, carrying tag T, lists E in `learnings_applied`; a `tag:T` scope is admissible only if ≥2 units carry T. | validator decidable predicate + admission gate (see `self-learning-loops.md` §4.3). Imported entries (`G#`/store-loaded) are EXEMPT from the ≥2-carrier re-proof via the 04/G1 carve-out but still propagation-checked. |
 | **I13 Socratic counter records an outcome** | `debrief`/`verify` `socratic.counter` states an outcome, not a blank/"n/a" (mechanical sentinel allowed). | schema (4 keys + `confidence` regex) + validator counter-outcome check. **Shape only; genuineness = the independent COUNTER re-run (Limitation B).** |
+| **I14 AO-2 do_not_touch disjointness (post-hoc)** | For a retry (`debrief.iteration>1`), `verify.defects[].criterion` is disjoint from the retry's `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit. | `validate_run.py` offline predicate (label `I14 AO-2 do_not_touch disjointness (units/<uid>)`), added ring-02/P1. Gates no transition. **Presence-gated + self-reported — Limitation F.** |
+| **I15 AO-6 responsive change (post-hoc)** | For a retry carrying a `prior_feedback` echo, `debrief.prior_feedback.changes_made` is present and non-empty; else non-zero exit. | `validate_run.py` offline predicate (label `I15 AO-6 responsive change (units/<uid>)`), added ring-02/P2. Gates no transition; `changes_made` executor-self-attested. **Limitation F.** |
 | **I-dod DoD/non-goals present** | Any post-clarification structural artifact (cartography, graph, units, or synthesis — `learnings.json` is deliberately excluded) requires a schema-valid `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is absent (methodology.md §Clarification). | validator artifact-driven presence check, fail-closed on absence — confirmed via the `missing_dod`/`postdecomp_no_dod`/`synthesis_no_dod`/`unfenced_cycle` fixtures. |
 
 **Socratic seam (canonical 4-key).** The `brief` carries only a **reference** to
@@ -141,9 +143,11 @@ DAG** (authoritative graph.json required past decomposition); **I1b maker!=check
 PASS⇒`defects==[]`); I7 (single recommended); I8 (open-material); **I-dod** (DoD/non-goals
 presence, artifact-triggered — fail-closed even when `clarifications.json` is absent);
 **I11 tag-vocabulary
-membership**; **I12 learnings-propagation predicate + admission gate**; **I13 socratic-counter
-outcome shape**; the `premise_check` attestation; gate-ordering of `fsm-state.phase`
-vs `gates`; and the `const:false` shape of I1.
+membership** (over `V_tag_eff` = run-local ∪ global registry — 04/G1); **I12 learnings-propagation
+predicate + admission gate** (with the 04/G1 authored-vs-imported carve-out); **I13 socratic-counter
+outcome shape**; **I14/I15 post-hoc anti-oscillation** (AO-2 `do_not_touch` disjointness / AO-6
+responsive-change, offline over the retry `debrief` echo — 02/P1, 02/P2); the `premise_check`
+attestation; gate-ordering of `fsm-state.phase` vs `gates`; and the `const:false` shape of I1.
 
 **It CANNOT enforce** (these remain human/verifier judgment):
 - **A.** Whether the verifier *truly* was blind to executor reasoning — `const:false` /
@@ -159,6 +163,22 @@ vs `gates`; and the `const:false` shape of I1.
   stays unobservable to the validator.
 - **E.** Whether a `tag` genuinely denotes a reusable pattern (I12 enforces ≥2 carriers +
   presence; whether the lesson is *truly* generalizable stays a verifier/human judgment).
+- **F.** Whether I14/I15 **authoritatively** enforce AO-2/AO-6. They are **post-hoc + presence-gated
+  + self-reported**: both fire only when the retry's `debrief.prior_feedback` echo is present (a retry
+  omitting it is skipped, not failed); I14 compares the executor's **self-reported** `do_not_touch`
+  echo — NOT the authoritative prior verify, since the validator retains only the *latest*
+  `verify.json` per unit (no per-iteration verify history to reconstruct); and I15's `changes_made` is
+  executor-self-attested. So they check *presence/plumbing*, not genuineness (validity ≠ correctness);
+  the independent verifier stays the semantic backstop. (Learning L1.)
+- **G.** The I11/I12 tag domain is **widened** by 04/G1 to `V_tag_eff = global ∪ project ∪ run_local`
+  (global tier `~/.claude/dag/tags.json`, schema-validated) — a **domain revision** of I11/I12, not a
+  pure additive check; an absent/invalid registry falls back to run-local `V_tag`, so the domain is
+  never widened silently or on bad data. Its **authored-vs-imported admission carve-out** EXEMPTS
+  imported/already-generalized entries (`G#` id or store-loaded) from the ≥2-carrier admission re-proof
+  while STILL enforcing I12 propagation; the carve-out **trusts** the `G#`-id / store provenance as the
+  "already-generalized" signal (a hand-authored `G#` id in a run-local file would receive the
+  exemption) — a deliberate provenance-trust boundary, not a cryptographic proof. It never weakens I12
+  propagation.
 
 ## 6. Phase→state coverage (no orphan phases)
 Every SKILL.md phase 0–8 maps to exactly one state (§1); every gate maps to a guard (§3);

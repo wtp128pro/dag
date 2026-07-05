@@ -1,7 +1,7 @@
 {
   "name": "dag",
   "displayName": "Dag",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Gated, multi-phase task-execution pipeline with FORMALLY-ENFORCED invariants (JSON Schemas + FSM spec + runnable validator), a universal Socratic protocol referenced by every prompt and applied selectively, budget-capped subagents, independent adversarial verification, and formalized bounded self-learning loops with a TLC-machine-checked termination proof. Invoked as /dag:dag.",
   "author": {
     "name": "wtp128pro"

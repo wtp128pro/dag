@@ -27,7 +27,7 @@ Exit codes:  0 ok · 1 validation/invariant violation · 2 usage error · 3 envi
 Usage:  validate_run.py <run_dir> [--schemas <dir>] [--self-check] [--quiet]
 """
 from __future__ import annotations
-import json, os, re, sys, argparse
+import json, os, re, sys, argparse, datetime, fnmatch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SCHEMAS = os.path.normpath(os.path.join(HERE, "..", "schemas"))
@@ -268,6 +268,20 @@ def load_json(p):
     with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def _model_scope_applies(entry_scope_model, run_model):
+    """G4 (04-global) scope.model NARROWING conjunct for I12 propagation.
+    A learning WITHOUT `scope.model` matches ALL models (unchanged behavior). With `scope.model`
+    set it applies to a run only if the run's model (fsm-state.model) MATCHES — glob (fnmatch, so
+    'claude-opus-*') OR prefix ('claude-opus'). If the run's model is ABSENT, a scope.model-bearing
+    entry does NOT apply (fail closed on the narrowing side). This can only NARROW propagation,
+    never broaden it: dropping the conjunct (model absent from the entry) yields today's behavior."""
+    if not isinstance(entry_scope_model, str) or not entry_scope_model.strip():
+        return True                                   # model-agnostic entry: matches every model
+    if not isinstance(run_model, str) or not run_model.strip():
+        return False                                  # scope.model set but run model unrecorded: fail closed
+    pat, rm = entry_scope_model.strip(), run_model.strip()
+    return fnmatch.fnmatch(rm, pat) or rm.startswith(pat)
+
 # ---------------------------------------------------------------------------
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Validate a dag run directory.")
@@ -422,6 +436,289 @@ def main(argv=None):
                 continue
             learnings.append(E)
 
+    # ---- across-run PROJECT learnings store (03/P1, P3 expiry, P5 contradiction) ----
+    # ADDITIVE + POST-HOC + OFFLINE: load persisted lessons from a project `.dag/learnings/`
+    # store and merge them into the SAME `learnings` propagation set the I12 predicate below
+    # consumes — this is load-time data-shaping, not an FSM gate (no live back-edge; mirrors
+    # the L2 "post-hoc, not a live LT7 guard" requirement structurally). ABSENT STORE => ZERO
+    # behavior change: the discovery loop finds no files, so `learnings` is exactly what the
+    # run-local loader produced and every existing fixture is byte-for-byte identical.
+    # Malformed store data is REPORTED (rep.fail) and DROPPED — it can never crash the run,
+    # mirroring the run-local loader tolerance directly above (L398-423).
+    _lschema = schemas.get("learnings.schema.json")
+    _store_entry_schema = (_lschema.get("$defs", {}) or {}).get("entry") if isinstance(_lschema, dict) else None
+
+    def _applies_frozenset(E):
+        sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
+        ats = sc.get("applies_to")
+        return frozenset(a for a in ats if isinstance(a, str)) if isinstance(ats, list) else frozenset()
+
+    # Discovery mirrors the persona precedent (project .dag/<kind>/*.json). Candidate roots,
+    # dedup'd by realpath: the run dir itself (where fixtures + a staged demo place the store),
+    # the run's parent (`<run_dir>/../.dag/learnings/`), and the project root two levels up
+    # (`<run_dir>/../../.dag/learnings/`) if resolvable. Each file is ONE entry object OR
+    # `{entries:[...]}` OR a bare `[...]` array — reusing the run-local loader's tolerance.
+    store_dirs, _seen_real = [], set()
+    for _cand in (os.path.join(rd, ".dag", "learnings"),
+                  os.path.join(rd, "..", ".dag", "learnings"),
+                  os.path.join(rd, "..", "..", ".dag", "learnings")):
+        if os.path.isdir(_cand):
+            _rp = os.path.realpath(_cand)
+            if _rp not in _seen_real:
+                _seen_real.add(_rp)
+                store_dirs.append(_cand)
+    store_ids = set()
+    have_ids = {E.get("id") for E in learnings if isinstance(E, dict)}
+    if store_dirs:
+        merged = 0
+        for sd in store_dirs:
+            for fn in sorted(f for f in os.listdir(sd) if f.endswith(".json")):
+                fp = os.path.join(sd, fn)
+                rel = os.path.relpath(fp, rd)
+                try:
+                    raw = load_json(fp)
+                except Exception as e:
+                    rep.fail(f"learnings-store {rel}", f"not valid JSON: {e}")
+                    continue
+                if isinstance(raw, dict):
+                    file_entries = raw["entries"] if "entries" in raw else [raw]
+                elif isinstance(raw, list):
+                    file_entries = raw
+                else:
+                    rep.fail(f"learnings-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
+                    continue
+                if not isinstance(file_entries, list):
+                    rep.fail(f"learnings-store {rel}", "'entries' must be an array")
+                    continue
+                for j, E in enumerate(file_entries):
+                    if _store_entry_schema is not None:
+                        errs = validate(E, _store_entry_schema)
+                        if errs:
+                            for e in errs:
+                                rep.fail(f"learnings-store {rel}[{j}]", e)
+                            continue  # DROP malformed store entry — never reaches I12
+                    elif not isinstance(E, dict):
+                        rep.fail(f"learnings-store {rel}[{j}]", "entry is not an object")
+                        continue
+                    eid = E.get("id")
+                    if eid in have_ids:
+                        # id already present (run-local re-derivation, or an earlier store file)
+                        # wins — do NOT force a duplicate into the propagation set.
+                        continue
+                    have_ids.add(eid)
+                    store_ids.add(eid)
+                    learnings.append(E)
+                    merged += 1
+        rep.ok(f"learnings-store discovered ({merged} project entr(y/ies) merged from {len(store_dirs)} store dir(s))")
+
+    # ---- G2 (04-global): user-global learnings store `~/.claude/dag/learnings/*.json` ----
+    # ADDITIVE + POST-HOC + OFFLINE, mirroring persona discovery (project overrides user). The
+    # project/run-local set loaded above is the HIGH-precedence tier; the user store is a LOWER
+    # tier. Override order is **project > user**: on an id collision OR a scope collision (an
+    # identical `scope.applies_to` selector set) the project/run-local entry WINS — the shadowed
+    # user entry is DROPPED from propagation and the override is REPORTED (never silent). Absent
+    # dir => ZERO behavior change (nothing to read). Same tolerant loader (one entry object,
+    # {entries:[...]}, or a bare [...] array); malformed data is REPORTED (rep.fail) and DROPPED.
+    # User-store ids join `store_ids` so they are treated as imported/already-generalized by the
+    # G1 admission carve-out and by the G5 `from_store` decay test — they are across-run entries.
+    user_dir = os.path.expanduser(os.path.join("~", ".claude", "dag", "learnings"))
+    if os.path.isdir(user_dir):
+        # HIGH-tier snapshot (run-local ∪ project) for scope-collision override detection.
+        high_scopes = {s for s in (_applies_frozenset(E) for E in learnings if isinstance(E, dict)) if s}
+        u_merged = u_over = 0
+        for fn in sorted(f for f in os.listdir(user_dir) if f.endswith(".json")):
+            fp = os.path.join(user_dir, fn)
+            rel = os.path.join("~", ".claude", "dag", "learnings", fn)
+            try:
+                raw = load_json(fp)
+            except Exception as e:
+                rep.fail(f"learnings-user-store {rel}", f"not valid JSON: {e}")
+                continue
+            if isinstance(raw, dict):
+                file_entries = raw["entries"] if "entries" in raw else [raw]
+            elif isinstance(raw, list):
+                file_entries = raw
+            else:
+                rep.fail(f"learnings-user-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
+                continue
+            if not isinstance(file_entries, list):
+                rep.fail(f"learnings-user-store {rel}", "'entries' must be an array")
+                continue
+            for j, E in enumerate(file_entries):
+                if _store_entry_schema is not None:
+                    errs = validate(E, _store_entry_schema)
+                    if errs:
+                        for e in errs:
+                            rep.fail(f"learnings-user-store {rel}[{j}]", e)
+                        continue                       # DROP malformed user-store entry — never reaches I12
+                elif not isinstance(E, dict):
+                    rep.fail(f"learnings-user-store {rel}[{j}]", "entry is not an object")
+                    continue
+                eid = E.get("id")
+                escope = _applies_frozenset(E)
+                if eid in have_ids:                    # id collision => project/run-local wins
+                    rep.ok(f"learnings user-store override (G2): user entry {eid} shadowed by a "
+                           f"higher-precedence entry of the same id — dropped from propagation (project > user)")
+                    u_over += 1
+                    continue
+                if escope and escope in high_scopes:   # scope collision => project/run-local wins
+                    rep.ok(f"learnings user-store override (G2): user entry {eid} shadowed on scope "
+                           f"{sorted(escope)} by a higher-precedence entry — dropped from propagation (project > user)")
+                    u_over += 1
+                    continue
+                have_ids.add(eid)
+                store_ids.add(eid)
+                learnings.append(E)
+                u_merged += 1
+        rep.ok(f"learnings user-store discovered (~/.claude/dag/learnings/): {u_merged} user entr(y/ies) "
+               f"merged, {u_over} overridden by project/run-local (project > user)")
+
+    # --- P3 expiry grammar (LOADER-side, per Cartography R4 — NOT a schema enum) ---
+    # Parse the bare `scope.expiry` string grammar `run | project | runs:N | date:<iso>` plus
+    # the optional decay fields. An EXPIRED entry is EXCLUDED from propagation and REPORTED as
+    # a skip — it is NEVER a hard-fail (an expired lesson simply reverts to today's
+    # re-derive-from-scratch behavior, the safe failure mode). Absent/unrecognized expiry is
+    # INERT (today's behavior), so existing entries (which carry no expiry) are untouched.
+    def _expiry_expired(E, from_store):
+        sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
+        exp = sc.get("expiry")
+        if not isinstance(exp, str) or not exp.strip():
+            return (False, None)
+        exp = exp.strip()
+        if exp == "project":
+            return (False, None)                      # persists indefinitely within the project
+        if exp == "run":
+            # run-scoped: valid only within its ORIGINATING run. A store entry's run is over =>
+            # expired. A run-local `run`-scoped entry is the current run => still valid.
+            if from_store:
+                return (True, "expiry 'run' loaded from the across-run store (its originating run has ended)")
+            return (False, None)
+        if exp.startswith("runs:"):
+            n = exp[5:].strip()
+            if n.isdigit():
+                N = int(n)
+                ac = E.get("applied_count")
+                if isinstance(ac, int) and not isinstance(ac, bool) and ac >= N:
+                    return (True, f"expiry 'runs:{N}' exhausted (applied_count={ac} >= {N})")
+            return (False, None)                      # unparsed N or no decay yet: inert
+        if exp.startswith("date:"):
+            ds = exp[5:].strip()
+            try:
+                d = datetime.date.fromisoformat(ds)
+            except Exception:
+                return (False, None)                  # unparseable date: inert, never a hard-fail
+            if datetime.date.today() > d:
+                return (True, f"expiry 'date:{ds}' is in the past")
+            return (False, None)
+        return (False, None)                          # unrecognized grammar: inert
+
+    # --- G5 (04-global) decay / GC — idle-budget exclusion, coordinated WITH the P3 expiry loop ---
+    # Honors the decay fields (`max_idle_runs`, `last_applied_run`, `last_confirmed`, `applied_count`).
+    # ARCHIVE-not-DELETE: the validator only READS and EXCLUDES a decayed entry from propagation; it
+    # NEVER mutates or removes the source file. Complements (does not duplicate) U03's P3 `runs:N`
+    # positive budget (which consumes `applied_count`); G5 is the *idle* budget. It runs in the SAME
+    # `_kept` pass below so the two GC rules share one traversal.
+    current_run_label = os.path.basename(os.path.normpath(rd)) or None
+    applied_ids_this_run = set()
+    for _d in unit_docs.values():
+        _b = _d.get("brief")
+        if _b:
+            for _x in (_b.get("learnings_applied", []) or []):
+                if isinstance(_x, str):
+                    applied_ids_this_run.add(_x)
+    def _idle_decayed(E, from_store):
+        mir = E.get("max_idle_runs")
+        if isinstance(mir, bool) or not isinstance(mir, int) or mir < 0:
+            return (False, None)                      # no idle budget declared: inert (today's behavior)
+        eid = E.get("id")
+        # Applied or confirmed IN THIS run resets the idle span (entry is within budget).
+        if eid in applied_ids_this_run:
+            return (False, None)
+        lar, lco = E.get("last_applied_run"), E.get("last_confirmed")
+        if isinstance(lar, str) and current_run_label and lar == current_run_label:
+            return (False, None)
+        if isinstance(lco, str) and current_run_label and lco == current_run_label:
+            return (False, None)
+        # DECIDABLE from a single run's view: a ZERO-tolerance idle budget on an across-run
+        # (store-loaded) entry that was neither applied nor confirmed this run has, by definition,
+        # spent its idle budget => decay candidate (excluded + reported; source file untouched).
+        if from_store and mir == 0:
+            return (True, "max_idle_runs=0 idle budget exhausted (not applied/confirmed this run)")
+        # max_idle_runs >= 1 needs a cross-run idle COUNTER the single-run validator cannot derive;
+        # left INERT (fail-safe: kept) — a real run-harness that tracks idle spans owns that tighten.
+        return (False, None)
+
+    _kept = []
+    for E in learnings:
+        if isinstance(E, dict):
+            from_store = E.get("id") in store_ids
+            expired, why = _expiry_expired(E, from_store)
+            if expired:
+                rep.ok(f"learnings expiry (03/P3): {E.get('id')} EXCLUDED from propagation ({why})")
+                continue
+            decayed, dwhy = _idle_decayed(E, from_store)
+            if decayed:
+                rep.ok(f"learnings decay/GC (04/G5): {E.get('id')} EXCLUDED from propagation — idle-decay "
+                       f"candidate ({dwhy}); ARCHIVE-not-delete (source file left untouched)")
+                continue
+        _kept.append(E)
+    learnings = _kept
+
+    # --- P5 contradiction: supersedes exclusion + genuine-split escalation ---
+    # (a) an entry declaring `supersedes:"<id>"` EXCLUDES the superseded entry from
+    #     propagation (retained on disk for audit; just not force-injected here).
+    superseded_ids = {E["supersedes"] for E in learnings
+                      if isinstance(E, dict) and isinstance(E.get("supersedes"), str) and E["supersedes"].strip()}
+    if superseded_ids:
+        _kept = []
+        for E in learnings:
+            if isinstance(E, dict) and E.get("id") in superseded_ids:
+                rep.ok(f"learnings contradiction (03/P5): {E.get('id')} superseded — excluded from propagation")
+                continue
+            _kept.append(E)
+        learnings = _kept
+    # (b) two-or-more LIVE entries sharing an IDENTICAL scope.applies_to selector set with
+    #     DIFFERENT lessons and NO supersedes ordering are competing for the same scope — I12
+    #     would force-inject all of them into the same brief. Whether that is a genuine
+    #     CONTRADICTION or merely complementary cannot be decided here without NLP (G2 forbids
+    #     it), so we do NOT auto-pick and do NOT silently drop a valid lesson. Instead we SURFACE
+    #     it as an explicit escalate-style NOTE (non-failing, like the SKIP lines) so a human
+    #     resolves it — AO-5 "genuine split => human, not loop": the resolution is to add
+    #     `supersedes` (path (a)) or narrow `scope.excludes` so the scopes stop overlapping. This
+    #     is deliberately a NOTE, not a rep.fail: a hard-fail on this heuristic would break every
+    #     legitimate multi-lesson store (e.g. two unrelated `tag:core` lessons), a false positive.
+    def _applies_set(E):
+        sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
+        ats = sc.get("applies_to")
+        return frozenset(a for a in ats if isinstance(a, str)) if isinstance(ats, list) else frozenset()
+    _by_scope = {}
+    for E in learnings:
+        if isinstance(E, dict):
+            s = _applies_set(E)
+            if s:
+                _by_scope.setdefault(s, []).append(E)
+    for s, grp in sorted(_by_scope.items(), key=lambda kv: sorted(kv[0])):
+        if len(grp) >= 2 and len({e.get("lesson") for e in grp}) >= 2:
+            ids = sorted(str(e.get("id")) for e in grp)
+            print(f"  NOTE  contradiction (03/P5): {len(grp)} live entries {ids} compete for scope "
+                  f"{sorted(s)} with no supersedes ordering — NOT auto-picked; if they conflict, a "
+                  f"human resolves it (AO-5) by adding `supersedes` or narrowing `scope.excludes`")
+
+    # ---- G3 (04-global): principles-promotion ADVISORY hook (post-hoc, NON-gating) ----
+    # Surface `promotable` entries (schema field) — especially global/imported, already-generalized
+    # ones — as candidates for HUMAN promotion to a user-local principles file
+    # (`~/.claude/dag/principles.md`). This is an ADVISORY report line ONLY: it is NOT an auto-write
+    # and NOT a hard gate — promotion stays a human decision. Post-hoc, on the finalized (post
+    # expiry/decay/supersede) propagation set; it never gates the FSM and never fails the run
+    # (a NOTE, like the P5(b) contradiction line above), so it cannot deadlock the loop (L2).
+    for E in learnings:
+        if isinstance(E, dict) and E.get("promotable") is True:
+            eid = E.get("id")
+            src = ("global/imported" if (eid in store_ids or (isinstance(eid, str) and eid.startswith("G")))
+                   else "run/project-local")
+            print(f"  NOTE  G3 promotion (advisory): {eid} is marked promotable ({src}) — eligible for HUMAN "
+                  f"promotion to a user-local principles.md (~/.claude/dag/principles.md); NOT auto-written, NOT gated")
+
     # ---- FSM invariants ----------------------------------------------------
     print("\n== FSM invariants ==")
 
@@ -535,6 +832,32 @@ def main(argv=None):
             else:
                 rep.ok(f"I6 FAIL defect criteria drawn from brief (units/{uid})")
 
+    # I14 AO-2 do_not_touch disjointness — on a RETRY (debrief.iteration>1) no defect may name a
+    # criterion the PRIOR iteration marked correct/off-limits. The validator retains only the
+    # latest verify.json per unit, so the prior-iteration do_not_touch is read from the debrief
+    # echo (debrief.prior_feedback.do_not_touch), not per-iteration verify files. POST-HOC/OFFLINE
+    # inline check: it reports on an already-produced run and NEVER gates the FSM, so it cannot
+    # deadlock LT7 or break termination (the L2 lesson) — the inline for-loop shape IS the
+    # guarantee-preservation. Fail CLOSED only when the retry data is actually present.
+    for uid, d in unit_docs.items():
+        dbf, v = d.get("debrief"), d.get("verify")
+        if not dbf or not v:
+            continue
+        if not (isinstance(dbf.get("iteration"), int) and dbf["iteration"] > 1):
+            continue
+        pf = dbf.get("prior_feedback") or {}
+        dnt = pf.get("do_not_touch")
+        if not dnt:                       # retry data absent (iteration 1 or no echo) — skip / no-op
+            continue
+        crit = {df.get("criterion") for df in v.get("defects", [])}
+        overlap = sorted(x for x in (crit & set(dnt)) if x is not None)
+        if overlap:
+            rep.fail(f"I14 AO-2 do_not_touch disjointness (units/{uid})",
+                     f"defect criteria {overlap} intersect prior_feedback.do_not_touch — a retry "
+                     "must not re-open what the prior iteration marked correct (AO-2)")
+        else:
+            rep.ok(f"I14 AO-2 do_not_touch disjointness (units/{uid})")
+
     # I13 socratic counter records an OUTCOME (debrief + verify)
     def check_counter(label, soc):
         if not isinstance(soc, dict):
@@ -571,6 +894,30 @@ def main(argv=None):
         else:
             rep.ok(f"premise-check attested (units/{uid})")
 
+    # I15 AO-6 responsive change — a RETRY (debrief.iteration>1) that records its prior-feedback
+    # context MUST also record >=1 concrete change made in response to the prior verdict
+    # (debrief.prior_feedback.changes_made present + non-empty); an empty/absent changes_made in a
+    # populated prior_feedback echo means the loop re-ran without responding (silent oscillation).
+    # Gated on the presence of the prior_feedback echo — mirroring I14's "fail CLOSED only when the
+    # retry data is actually present" principle (a run that carries no prior_feedback block has no
+    # responsive-change record for this post-hoc check to audit). POST-HOC/OFFLINE inline check: it
+    # never gates the FSM, so it cannot deadlock LT7 or break termination — it only reports on a run
+    # the loop has already produced.
+    for uid, d in unit_docs.items():
+        dbf = d.get("debrief")
+        if not dbf or not (isinstance(dbf.get("iteration"), int) and dbf["iteration"] > 1):
+            continue
+        pf = dbf.get("prior_feedback")
+        if not isinstance(pf, dict):      # retry recorded no prior_feedback echo — post-hoc no-op
+            continue
+        changes = pf.get("changes_made")
+        if isinstance(changes, list) and any(isinstance(x, str) and x.strip() for x in changes):
+            rep.ok(f"I15 AO-6 responsive change (units/{uid})")
+        else:
+            rep.fail(f"I15 AO-6 responsive change (units/{uid})",
+                     "iteration>1 with a prior_feedback echo but changes_made is absent/empty — a "
+                     "retry must record >=1 concrete change made in response to the prior verdict (AO-6)")
+
     # I9 MISSING VERIFICATION (MUST-FIX D) — a debrief without a verify is REJECTED
     for uid in sorted(unit_dirs_with_debrief):
         vpath = os.path.join(units_dir, uid, "verify.json")
@@ -598,33 +945,107 @@ def main(argv=None):
         if unit_dirs_with_debrief:
             rep.ok(f"I10 synthesis completeness checked at phase {phase}")
 
-    # I11 tag vocabulary — every unit/brief tag must be a member of V_tag (graph.v_tag)
+    # I11 tag vocabulary — every unit/brief tag must be a member of V_tag_eff
     # I12 learnings propagation predicate + admission gate
     if graph_doc is not None:
         v_tag = set(graph_doc.get("v_tag", []))
+
+        # ---- G1 FLAG: global tag registry — WIDENS the I11/I12 tag DOMAIN ----
+        # (guarantee-domain change; delivered as its own commit — see 04-global.md / CARTOGRAPHY R3.)
+        # V_tag_eff = global ∪ project ∪ run_local. Read the global registry `~/.claude/dag/tags.json`
+        # (validated against schemas/tags.schema.json) if present; its `tags[]` UNION with the run-local
+        # `graph.json.v_tag`. There is NO project tag registry today: U03 added a project *learnings*
+        # store (.dag/learnings/), not a project *tag* store — so V_tag_eff = global ∪ run_local here;
+        # the union is written so a project tier drops in trivially if one is ever added.
+        #   * ABSENT FILE  => global_tags == ∅ => V_tag_eff == v_tag  (today's behavior; ZERO change
+        #     when no registry exists — the backward-compat anchor).
+        #   * I11 STAYS literally `T ∈ V_tag_eff`: a FINITE enumerated set, decidable set-membership,
+        #     NO free-text/NLP (the anti-NLP property is preserved — the domain grows, the test's KIND
+        #     does not). I12 propagation stays run-local `T ∈ U.tags`, evaluating False (decidable, not
+        #     undefined) when no unit carries T.
+        # Malformed/invalid registry is REPORTED (rep.fail) — never a silent widening, never a crash.
+        global_tags = set()
+        _tagstore = os.path.expanduser(os.path.join("~", ".claude", "dag", "tags.json"))
+        if os.path.exists(_tagstore):
+            _traw = None
+            try:
+                _traw = load_json(_tagstore)
+            except Exception as e:
+                rep.fail("I11 global tag registry (G1)", f"~/.claude/dag/tags.json not valid JSON: {e}")
+            if _traw is not None:
+                _tschema = schemas.get("tags.schema.json")
+                errs = validate(_traw, _tschema) if _tschema is not None else []
+                if errs:
+                    for e in errs:
+                        rep.fail("I11 global tag registry (G1)", f"~/.claude/dag/tags.json: {e}")
+                else:
+                    global_tags = {t for t in _traw.get("tags", []) if isinstance(t, str)}
+                    rep.ok(f"I11 global tag registry (G1) loaded ({len(global_tags)} tag(s) from "
+                           f"~/.claude/dag/tags.json — widening V_tag_eff)")
+        v_tag_eff = v_tag | global_tags   # V_tag_eff = global ∪ run_local (project tier admits trivially)
+
         gunits = graph_doc.get("units", [])
         unit_tags = {u.get("id"): set(u.get("tags", [])) for u in gunits}
         tag_ok = True
         for u in gunits:
-            bad = sorted(t for t in u.get("tags", []) if t not in v_tag)
+            bad = sorted(t for t in u.get("tags", []) if t not in v_tag_eff)
             if bad:
                 tag_ok = False
-                rep.fail("I11 tag vocabulary (graph)", f"{u.get('id')} tags {bad} not in V_tag {sorted(v_tag)}")
+                rep.fail("I11 tag vocabulary (graph)", f"{u.get('id')} tags {bad} not in V_tag_eff {sorted(v_tag_eff)}")
         for uid, d in unit_docs.items():
             b = d.get("brief")
             if b:
-                bad = sorted(t for t in b.get("tags", []) if t not in v_tag)
+                bad = sorted(t for t in b.get("tags", []) if t not in v_tag_eff)
                 if bad:
                     tag_ok = False
-                    rep.fail(f"I11 tag vocabulary (units/{uid}/brief)", f"tags {bad} not in V_tag {sorted(v_tag)}")
+                    rep.fail(f"I11 tag vocabulary (units/{uid}/brief)", f"tags {bad} not in V_tag_eff {sorted(v_tag_eff)}")
         if tag_ok:
-            rep.ok(f"I11 tag vocabulary (all tags drawn from V_tag, |V_tag|={len(v_tag)})")
+            rep.ok(f"I11 tag vocabulary (all tags drawn from V_tag_eff, |V_tag_eff|={len(v_tag_eff)}"
+                   f"{f', +{len(global_tags)} global' if global_tags else ''})")
 
         if learnings:
             def units_with_tag(T):
                 return sorted(uid for uid, ts in unit_tags.items() if T in ts)
-            prop_ok = True
+            # G4 (04-global): the run's model, used by the scope.model NARROWING conjunct below.
+            run_model = fsm.get("model") if isinstance(fsm, dict) else None
+
+            # ---- 03/P4: ADVISORY tier for imported cross-run learnings (re-grounding gate) ----
+            # PARTITION the propagation set the I12 REQUIREMENT consumes into two tiers:
+            #   * ACTIVE   = run-local authored entries  ∪  imported entries that have been
+            #                RE-GROUNDED to a local signal in THIS run (top-level
+            #                grounding == "re-grounded").
+            #   * ADVISORY = imported entries (loaded from the project/user store → `eid in
+            #                store_ids`, or bearing the global-scoped `G#` id marker) that have
+            #                NOT been re-grounded.
+            # The I12 required-propagation predicate below runs over the ACTIVE set ONLY. An
+            # advisory entry is still LOADED + REPORTED (the rep.ok line below) so a brief author
+            # may cite it VOLUNTARILY — but its omission from any brief's learnings_applied NEVER
+            # FAILs. This treats an un-re-grounded import as NOT an external signal that binds
+            # briefs (AO-4): a lesson carried over from another run is ADVISORY until re-confirmed
+            # against a local signal here — the exact 03/P4 intent. Re-grounded imports and every
+            # run-local entry stay fully I12-enforced (and a re-grounded/active import keeps the
+            # U04/G1 >=2-carrier admission carve-out — it is already generalized). ABSENT STORE =>
+            # no imported entries => ACTIVE == today's set => ZERO behavior change (no store => the
+            # `good` fixture and every existing fixture are byte-for-byte identical).
+            def _is_regrounded(E):
+                g = E.get("grounding") if isinstance(E, dict) else None
+                return isinstance(g, str) and g.strip() == "re-grounded"
+            active, advisory = [], []
             for E in learnings:
+                eid = E.get("id") if isinstance(E, dict) else None
+                _imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
+                if isinstance(E, dict) and _imported and not _is_regrounded(E):
+                    advisory.append(E)
+                else:
+                    active.append(E)
+            for E in advisory:
+                rep.ok(f"advisory import (not force-injected): {E.get('id')} — imported cross-run "
+                       f"learning NOT re-grounded to a local signal (no grounding==\"re-grounded\"); "
+                       f"loaded + citable but its omission from a brief never FAILs I12 (AO-4: an "
+                       f"un-re-grounded import is not an external signal that binds briefs)")
+
+            prop_ok = True
+            for E in active:
                 if not isinstance(E, dict):
                     continue
                 eid = E.get("id")
@@ -638,16 +1059,46 @@ def main(argv=None):
                              f"{eid} since_wave={since!r} is not an integer >= 1 — "
                              "cannot evaluate propagation")
                     continue
+                # G4 (04-global) scope.model NARROWING conjunct: a model-scoped entry that does NOT
+                # match this run's model is entirely INAPPLICABLE this run — skip BOTH the admission
+                # gate and the propagation predicate for it (it can bind nothing here). This can only
+                # NARROW: a model-agnostic entry (no scope.model) is unaffected. Fail closed when the
+                # run's model is absent (a scope.model-bearing entry does NOT force-inject). Reported.
+                _e_model = (E.get("scope", {}) or {}).get("model")
+                if isinstance(_e_model, str) and _e_model.strip() and not _model_scope_applies(_e_model, run_model):
+                    rep.ok(f"I12 model narrowing (04/G4): {eid} scope.model={_e_model!r} does not match run "
+                           f"model {run_model!r} — EXCLUDED from propagation this run (narrowing conjunct)")
+                    continue
+                # G1 FLAG: authored-vs-imported admission carve-out (widens I11/I12 domain — see
+                # 04-global.md/roadmap §d). The >=2-current-run-carrier admission gate below is a
+                # RE-GENERALIZATION test: it rejects a one-off authored THIS run before it can bind
+                # later units. An IMPORTED/GLOBAL entry is ALREADY generalized (it survived a prior
+                # run's admission and was persisted), so re-imposing the >=2-run re-proof would
+                # WRONGLY reject it. An entry is imported/global iff its id was loaded from the
+                # project/global store rather than authored in-run (`eid in store_ids`), OR it bears
+                # the global-scoped `G#` id marker (learnings.schema: L# = run/project, G# = global).
+                # Such entries are EXEMPT from the >=2-run re-proof — but are STILL FULLY governed by
+                # the propagation predicate below (force-inject only where the tag actually appears).
+                # The exemption is EXPLICIT (reported as a PASS-level carve-out line), NEVER silent.
+                _is_imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
                 for sel in (E.get("scope", {}) or {}).get("applies_to", []):
                     if not (isinstance(sel, str) and sel.startswith("tag:")):
                         continue
                     T = sel[4:]
                     carriers = units_with_tag(T)
-                    if len(carriers) < 2:               # admission gate
-                        prop_ok = False
-                        rep.fail("I12 learnings admission gate",
-                                 f"{eid} scope tag:{T} inadmissible — only {len(carriers)} unit(s) carry it {carriers} (need >=2)")
-                    for uid, d in unit_docs.items():    # propagation predicate
+                    if len(carriers) < 2:               # admission gate (>=2 current-run carriers)
+                        if _is_imported:
+                            # G1 FLAG carve-out: already-generalized imported/global entry — EXEMPT
+                            # from the >=2-run re-proof, still propagation-governed (never silent).
+                            rep.ok(f"I12 admission carve-out (G1): {eid} scope tag:{T} is imported/global "
+                                   f"({'store-loaded' if eid in store_ids else 'G#-id'}) — exempt from the "
+                                   f">=2-carrier re-proof ({len(carriers)} current-run carrier(s)); still "
+                                   "governed by the propagation predicate")
+                        else:
+                            prop_ok = False
+                            rep.fail("I12 learnings admission gate",
+                                     f"{eid} scope tag:{T} inadmissible — only {len(carriers)} unit(s) carry it {carriers} (need >=2)")
+                    for uid, d in unit_docs.items():    # propagation predicate (runs for ALL entries, imported or not)
                         b = d.get("brief")
                         if not b:
                             continue
@@ -662,7 +1113,8 @@ def main(argv=None):
                                      f">= since_wave {since}: MUST list {eid} in learnings_applied "
                                      f"(has {b.get('learnings_applied')})")
             if prop_ok:
-                rep.ok(f"I12 learnings propagation ({len(learnings)} entr(y/ies): admission + tag-scope propagation hold)")
+                rep.ok(f"I12 learnings propagation ({len(active)} active entr(y/ies): admission + tag-scope "
+                       f"propagation hold{f'; {len(advisory)} advisory import(s) not force-injected (03/P4)' if advisory else ''})")
         elif not args.quiet:
             print("  SKIP  I12 learnings propagation: no learnings.json present")
 

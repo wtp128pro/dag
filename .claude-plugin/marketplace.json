@@ -4,13 +4,13 @@
     "name": "wtp128pro"
   },
   "description": "wtp128pro's personal Claude Code skills marketplace.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "plugins": [
     {
       "name": "dag",
       "source": "./plugins/dag",
       "description": "Gated, multi-phase task execution with FORMALLY-ENFORCED invariants (JSON Schemas + finite-state-machine spec + a runnable validator, plus a formal-model layer — TLA+ machine-checked with TLC, Alloy hand-proved): a universal Socratic move-set referenced by every prompt, applied selectively, clarification, contextual cartography, atomic work-unit DAG, budget-capped subagent executors with propose/critique personas, independent adversarial verification, formalized bounded self-learning loops, adaptive anti-hallucination evidence standards, and a durable plan/decision/progress/learnings ledger.",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "author": {
         "name": "wtp128pro"
       },

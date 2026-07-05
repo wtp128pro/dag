@@ -166,9 +166,13 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.0.1** — a docs/hardening patch over 1.0.0 (paraphrased third-party
-quotations in the persona catalog, trademark & MIT-license notes, an AI-provenance note, and a
-reproducible formal-check section); no functional change. 1.0.0 was the initial release: the
+Current version: **1.1.0** — adds the rings-02/03/04 self-learning-loop layer (post-hoc AO-2/AO-6
+checks I14/I15, across-run project + user learnings stores with expiry/decay/supersedes, a global
+tag registry with the authored-vs-imported admission carve-out, `scope.model` narrowing, an
+advisory principles-promotion NOTE, and an advisory tier for imported cross-run learnings); all
+additive and post-hoc, no FSM gating. 1.0.1 was a docs/hardening patch over 1.0.0 (paraphrased
+third-party quotations in the persona catalog, trademark & MIT-license notes, an AI-provenance
+note, and a reproducible formal-check section); no functional change. 1.0.0 was the initial release: the
 gated, multi-phase task-execution pipeline with Socratic persona selection, exhaustive
 clarification, contextual cartography, atomic work-unit decomposition + dependency DAG,
 budget-capped subagent executors, independent adversarial verification, adaptive

@@ -1,0 +1,29 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Adversarial Reproducibility Auditor",
+  "verdict": "FAIL",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": ["brief.md", "debrief.json", "cited sources"],
+  "feedback": {
+    "actionable_changes": ["add the two missing findings to reach the required count"],
+    "do_not_touch": ["the maker!=checker mandate framing"]
+  },
+  "defects": [
+    { "severity": "major", "criterion": "10-14 findings",
+      "minimal_repro": "only 8 distinct findings survive de-duplication",
+      "fix_direction": "surface 2+ additional independently-sourced findings" }
+  ],
+  "socratic": {
+    "premise": "On independent re-check the deliverable is short of the required finding count.",
+    "counter": "Re-counted the de-duplicated findings from the sources directly: 8 < 10, so the FAIL HOLDS.",
+    "pivot": "If two more independently-sourced findings resolved, the count criterion would be met and the verdict would flip to PASS.",
+    "confidence": "high - the count defect targets 'more findings', which is disjoint from every prior do_not_touch item."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER from the sources directly: the count is short; the defect does NOT re-open any accepted (do_not_touch) criterion."
+  }
+}

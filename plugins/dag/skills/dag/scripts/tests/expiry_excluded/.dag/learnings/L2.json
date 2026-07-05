@@ -1,0 +1,9 @@
+{
+  "id": "L2",
+  "since_wave": 1,
+  "scope": { "applies_to": ["tag:core"], "expiry": "date:2020-01-01" },
+  "trigger": "A stale project lesson lingered in the across-run store past its useful window.",
+  "lesson": "Time-box lessons whose relevance decays so they stop force-injecting into later runs.",
+  "how_to_apply": "A core-tagged unit in this run would otherwise have to list L2 in learnings_applied — but its expiry date has passed, so it is excluded from propagation.",
+  "evidence": "staged project-store entry for the expiry fixture (originating run is over and date:2020-01-01 is in the past)"
+}

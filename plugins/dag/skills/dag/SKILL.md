@@ -107,6 +107,47 @@ so most are dead weight until their phase arrives.
 
 ---
 
+## Phase 0.5 — Learnings intake (across-run + user stores)  (req 12)
+
+Before Phase 1, seed this run with lessons persisted by earlier runs, so a project stops
+re-deriving them from scratch. **This is a prose step *you* (Dag) execute — there is no loader
+script and the validator does not perform the intake.** The validator's role is *post-hoc*: it
+independently re-discovers the same stores and enforces the I12 propagation predicate over the
+merged learning set (references/self-learning-loops.md §4.4), reporting expiry / contradiction /
+model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phase transition.
+
+1. **Discover the stores** (mirroring the Phase-1 persona precedent). Read every `*.json` under the
+   **project** store `.dag/learnings/` and the **user** store `~/.claude/dag/learnings/`, each file
+   one entry validated against the SAME `schemas/learnings.schema.json` `$defs/entry` the run-local
+   sidecar uses (03/P1, 04/G2). Absent stores ⇒ no change (today's behavior).
+2. **Merge, override order project > user** (03/P2 read end). Dedup by `id`; on an `id` collision —
+   or a `scope.applies_to` collision — the higher-precedence entry (project, then user) wins and the
+   shadowed one is dropped (the validator reports this as `learnings user-store override (G2)`).
+3. **Re-ground before injecting** (03/P1 guarantee). Re-run the §4.2 generalizability gate against
+   THIS run's DAG and assign every imported entry `since_wave = 1`, so imports bind all waves and are
+   never injected retroactively (forward-only by construction — everything is present before wave 1
+   runs). **Advisory until re-grounded (03/P4).** The shipped validator loads every imported cross-run
+   entry as **advisory** — reported and voluntarily citable, but **not** force-injected by I12 — until
+   you re-ground it to a THIS-run signal and mark it with the entry field `grounding: "re-grounded"`.
+   The I12 required-propagation predicate then runs over the **active** set only — run-local authored
+   entries ∪ imported entries carrying `grounding == "re-grounded"` — while an advisory (un-re-grounded)
+   import gets an `advisory import (not force-injected): <id>` report line and its omission from a brief
+   **never FAILs**. This is the **AO-4** tie: an un-re-grounded import is not an external signal that
+   binds briefs. A re-grounded/active import is then governed by I12 exactly like a run-local entry,
+   including the 04/G1 carve-out that exempts an imported/already-generalized `G#`/store-loaded entry
+   from the ≥2-carrier re-proof while still propagation-checking it. **Honest boundary:** re-grounding
+   is keyed on the local `grounding` marker — a same-project trust signal you assert, **not**
+   cryptographic provenance; a verifiable cross-party trust model is the deferred ring-05 work, not this.
+4. **Drop what has expired or decayed** (03/P3, 04/G5). The loader-side `expiry` grammar
+   `run|project|runs:N|date:<iso>` and the idle-decay fields exclude stale entries from propagation;
+   a false drop reverts to today's re-derive-from-scratch behavior (safe). A `supersedes` entry
+   excludes the entry it supersedes; an unorderable split is surfaced for a human (03/P5), never
+   auto-picked.
+5. Fold the surviving imports into the run's `learnings.json` / `LEARNINGS.md` so Phase-5 briefs
+   carry them. Log the intake in `PROGRESS.md`.
+
+---
+
 ## Phase 1 — Socratic persona selection  (req 1, 8)
 
 Personas are lenses. Each names a role, a mandate, what it optimizes for, and what it
@@ -313,10 +354,35 @@ call per unit, ideally in a single message). For **each unit**:
    **Retries are capped at 2** (`fsm-state.retries`, schema `maximum: 2`); the only back-edge
    is `RETRY → EXECUTE`, guarded so the loop provably halts. Honor the anti-oscillation
    invariants (references/self-learning-loops.md §5): a criterion once PASS enters
-   `feedback.do_not_touch` and a retry MUST NOT re-open it (AO-2); a retry is authorized only
-   by the *independent* verifier's evidence-bound FAIL, never executor self-review (AO-3/AO-4);
-   each retry must cite ≥1 change responsive to the prior `feedback.actionable_changes` (AO-6).
-   Run the validator after each iteration and before the loop exits.
+   `feedback.do_not_touch` and a retry MUST NOT re-open it (AO-2, now post-hoc-checked as **I14**); a
+   retry is authorized only by the *independent* verifier's evidence-bound FAIL, never executor
+   self-review (AO-3/AO-4); each retry must cite ≥1 change responsive to the prior
+   `feedback.actionable_changes` (AO-6, now post-hoc-checked as **I15**). Run the validator after each
+   iteration and before the loop exits.
+
+6. **In-run learning discipline (prose steps — not validator-gated).** The adjudicator also runs three
+   learning-loop steps around the table above. **None gates the FSM** (they add no edge to the §1.3
+   transition table, so termination is untouched); the validator's job stays post-hoc.
+   - **Capture on FAIL/ESCALATE (02/P3).** On an `ESCALATE` (LT5/LT6) — and on any FAIL — write a
+     *candidate* learning into the unit's `debrief.handoff_notes`, keyed to
+     `trigger = "U0X verify FAIL: <criterion>"` (a first-class external signal, §4.2). It is a
+     candidate, NOT an admitted ledger entry. When the SAME `defects[].criterion` (or the same `tag:T`)
+     recurs in FAIL verdicts across **≥2 units**, promote it to a real `LEARNINGS.md` entry — that
+     ≥2-unit bar is exactly the §4.2 generalizability gate, so nothing new is justified. A one-off FAIL
+     stays a candidate and never force-injects (I12 untouched).
+   - **Data-driven panel escalation (02/P5).** Keep a per-`tag:T` FAIL tally over `verify.json` verdicts.
+     Once a tag `T ∈ V_tag` accumulates **≥2 FAILs** across earlier units, escalate the VERIFY step of
+     the *remaining not-yet-verified* units carrying `T` from a single verifier to the odd panel of 3
+     (majority verdict, methodology.md §Verification). The panel is finite work inside one VERIFY node —
+     it adds no FSM edge, so the ≤12-transition bound (self-learning-loops.md §2) is unchanged.
+   - **Guarded forward re-brief (02/P4).** When a learning `E` is admitted mid-run with `since_wave = k`,
+     regenerate the brief of any unit `U` where `applies(E.scope, U)` ∧ `U.wave ≥ k` ∧ **`U` has NO
+     `debrief.json` yet**, adding `E.id` to `learnings_applied` and quoting `E.lesson`/`E.how_to_apply`.
+     **The `has-no-debrief` guard is load-bearing, not cosmetic:** re-briefing a unit that has ALREADY
+     produced a debrief would re-open executed work and break AO-1 / the forward-only property /
+     termination. A not-yet-executed unit has `retries = 0` untouched, so re-briefing it only *adds* the
+     `learnings_applied` entry I12 would otherwise demand — it can reduce I12 violations, never create
+     one. **NEVER re-brief a unit that already has a debrief.**
 
 ---
 
@@ -353,8 +419,16 @@ Never resolve a material disagreement silently. Never hide an option because you
    elicitation mode (references/socratic-protocol.md). **Surface the req-1 tension:** confirm
    Socratic questioning was applied *selectively* (material surfaces only), not literally to
    every prompt.
-4. Offer to **promote durable LEARNINGS** to a persistent home (project `CLAUDE.md`,
-   a skill, or a notes file) so future runs inherit them.
+4. **Promote durable LEARNINGS → persist (03/P2 write end).** Close the promotion loop that the
+   Phase-0.5 intake re-reads: for every run-local entry marked `promotable: true` with a non-expired
+   `scope.expiry`, write a schema-valid file into the project store `.dag/learnings/<id>.json` (upsert
+   by `id`; `run`-scoped entries are never persisted). This replaces the old prose "offer to promote"
+   with a machine-readable persist that the next run's Phase-0.5 intake imports. `promotable` stays
+   **opt-in** — unflagged one-offs never persist (matching the §4.2 generalizability intent). This
+   write is a **prose step you execute**; the validator does NOT auto-write. Its 04/G3 hook is
+   advisory only: it surfaces each `promotable` entry as a NON-gating `NOTE  G3 promotion (advisory)`
+   line, flagging it as eligible for HUMAN promotion to a user-local `~/.claude/dag/principles.md` (or
+   project `CLAUDE.md` / a skill) — never auto-written, never gated.
 
 ---
 
@@ -385,7 +459,11 @@ admitted** (it is *not* seeded at bootstrap); the I12 propagation check is enfor
 `learnings.json` sidecar is present.** **Tags / `V_tag`:** each unit declares
 `tags: [T ∈ V_tag]` from the enumerated vocabulary `V_tag` seeded in `GRAPH.md` — tags are
 the only mechanical basis for pattern-scoped propagation. Full spec + termination + the
-checkable `applies()` predicate: references/self-learning-loops.md §4.
+checkable `applies()` predicate: references/self-learning-loops.md §4. **Across-run persistence**
+(project `.dag/learnings/` + user `~/.claude/dag/learnings/` stores, loader-side `expiry`/decay,
+`supersedes`, `scope.model` narrowing, and the `V_tag_eff = global ∪ project ∪ run_local` domain) is
+Phase-0.5 intake + Phase-8 persist as prose steps; the validator only checks it **post-hoc** — see
+references/self-learning-loops.md §4.4.
 
 ## Failure & resumption
 

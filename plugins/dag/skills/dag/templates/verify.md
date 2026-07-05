@@ -25,6 +25,13 @@ Do the adversarial work in your reply, then write `verify.json`:
 - `feedback{summary (optional), actionable_changes[] (required), do_not_touch[] (optional)}` —
   `FAIL ⇒ ≥1 actionable_change`; `do_not_touch` = already-PASSED criteria a retry must not regress
   (AO-2)
+  - **Auto-seed `do_not_touch` (02/P6 — completeness for the post-hoc I14 check).** Seed this
+    iteration's `feedback.do_not_touch` as *(brief acceptance criteria) − (criteria in this verify's
+    `defects[].criterion`)* — every criterion this verify did NOT fail is currently-passing and a
+    retry must not re-open it. You MAY *add* to this set, but seeding it guarantees completeness so the
+    offline **I14** disjointness check (AO-2; references/self-learning-loops.md §5) is meaningful for
+    *all* passed criteria, not just the ones you remembered to list. Seed only from criteria your
+    `inputs_reviewed`/audit actually covered — do not mark an untested criterion "passed".
 - `defects[]` — `PASS ⇒ []`; `FAIL ⇒ ≥1`, each `{severity (required; blocker|major|minor), criterion
   (required; verbatim from brief.acceptance_criteria — cross-checked by the validator), minimal_repro
   (optional), fix_direction (optional)}`

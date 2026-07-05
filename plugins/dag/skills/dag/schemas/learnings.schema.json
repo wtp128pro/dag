@@ -20,8 +20,8 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^L[0-9]+$",
-          "description": "LEARNINGS entry id, e.g. L1, L2. Referenced from brief.learnings_applied."
+          "pattern": "^[LG][0-9]+$",
+          "description": "LEARNINGS entry id, e.g. L1, L2 (run/project-scoped) or G1, G2 (global-scoped). Referenced from brief.learnings_applied."
         },
         "trigger": {
           "type": "string",
@@ -50,7 +50,11 @@
               "items": { "type": "string", "minLength": 1 }
             },
             "excludes": { "type": "array", "items": { "type": "string" } },
-            "expiry": { "type": "string" }
+            "expiry": { "type": "string" },
+            "model": {
+              "type": "string",
+              "description": "Optional: the model (run's model) this lesson is scoped to. Absent => model-agnostic."
+            }
           }
         },
         "evidence": {
@@ -66,6 +70,32 @@
         "promotable": {
           "type": "boolean",
           "description": "Optional: whether the lesson is a candidate for promotion to a durable rule."
+        },
+        "last_applied_run": {
+          "type": "string",
+          "description": "Optional (decay): run_label of the most recent run in which this lesson was applied."
+        },
+        "applied_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional (decay): number of times this lesson has been applied across runs."
+        },
+        "last_confirmed": {
+          "type": "string",
+          "description": "Optional (decay): run_label of the most recent run in which this lesson was confirmed still valid."
+        },
+        "max_idle_runs": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional (decay): number of consecutive runs the lesson may go unapplied before it is a decay candidate."
+        },
+        "supersedes": {
+          "type": "string",
+          "description": "Optional: id of an earlier learnings entry this entry replaces."
+        },
+        "grounding": {
+          "type": "string",
+          "description": "Optional (03/P4): whether an IMPORTED cross-run lesson has been re-grounded to a local signal in THIS run. The load-bearing value is \"re-grounded\": an imported entry (store-loaded or a global G# id) carrying grounding==\"re-grounded\" is re-promoted to the ACTIVE, I12-enforced set; an imported entry WITHOUT it is ADVISORY (loaded + citable but never force-injected, so its omission from a brief never FAILs I12). Absent/any-other value on an imported entry => advisory. Inert on run-local authored entries (they are ACTIVE regardless). Consistent with AO-4: an un-re-grounded import is not an external signal that binds briefs."
         }
       }
     }
