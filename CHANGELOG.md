@@ -3,6 +3,16 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.3] — 2026-07-05
+
+### Changed
+- **`dag` plugin → 1.1.1** — corrective audit pass: the Alloy formal model is now executable and
+  machine-checked (a partial `check` scope left `Persona` unbounded), doc↔validator drift fixed
+  (`scope.expiry` grammar, the retry consumption-contract predicate), stale invariant ranges
+  refreshed to `I1-I15`, dangling persona `pair_with` references resolved, and loose/unbacked prose
+  removed. No functional or guarantee change (all edits *preserves*). See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.2] — 2026-07-05
 
 ### Changed

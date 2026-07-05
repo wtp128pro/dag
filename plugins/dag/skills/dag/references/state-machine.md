@@ -1,9 +1,9 @@
 <!-- state-machine.md — the FORMAL model of record for the dag pipeline
      (formal-enforcement layer for reqs 1/4/7/9/12; not req 2 — req 2 is clarification).
      Phase-6 loop substates use the loop's Q vocabulary + 7-row table; the socratic seam is
-     the canonical 4-key block; invariants I9-I13 close the missing-verification and
-     fail-closed-DAG validator holes plus tags/learnings propagation and socratic-counter
-     genuineness shape.
+     the canonical 4-key block; invariants I9-I15 (+ I1b, I-dod) close the missing-verification
+     and fail-closed-DAG validator holes, tags/learnings propagation, socratic-counter
+     genuineness, the DoD/non-goals gate, and the post-hoc anti-oscillation (AO-2/AO-6) checks.
      TLA+/Alloy models ship under `formal/` (Pipeline.tla/.cfg, WorkGraph.als; see
      formal-models.md) as the machine-checked complement; this transition table + guards +
      invariants is the prose FSM of record they mirror. `scripts/validate_run.py` is the

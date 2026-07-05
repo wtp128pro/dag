@@ -12,11 +12,13 @@ module WorkGraph
  * Edge semantics: `d in u.depends`  <=>  graph edge {from = d, to = u}
  * ("u consumes d"), i.e. d must be produced before u.
  *
- * TOOL-STATUS: the TLA+ companion (Pipeline.tla) is machine-checked by TLC
- * (reproducible transcript in references/formal-models.md). This Alloy file was
- * NOT run here (no Alloy Analyzer in this environment); the properties carry
- * hand-proofs, and DAG acyclicity holds structurally via the wave-layering fact
- * (WaveLayered) — see the LayeringImpliesAcyclic theorem below.
+ * TOOL-STATUS: the TLA+ companion (Pipeline.tla) is machine-checked by TLC, and this
+ * Alloy model is machine-checked by Alloy 6 (Kodkod / bundled SAT4J, headless): all four
+ * `check`s report NO counterexample and `run WitnessGraph` finds an instance. DAG acyclicity
+ * also holds structurally via the wave-layering fact (WaveLayered) — see the
+ * LayeringImpliesAcyclic theorem below. (Reproduce: open in the Alloy Analyzer and Execute All,
+ * or drive the Alloy Java API with the default SAT4J solver. The `for 7 but 5 Int` scope on the
+ * first two checks bounds `Persona`/`Verifier`, which `Unit.executor` makes reachable.)
  */
 
 sig Persona {}                      // an executor/verifier identity (maker or checker)
@@ -81,8 +83,8 @@ assert VerifierBlind        { no reasoningSeen }
 assert DistinctMakerChecker { all v : Verifier, u : v.checked | v.persona != u.executor }
 
 // ---- checks (bounded verification; scopes chosen well above the property arity) ----
-check Acyclic                for 7 Unit, 5 Int
-check LayeringImpliesAcyclic for 7 Unit, 5 Int
+check Acyclic                for 7 but 5 Int
+check LayeringImpliesAcyclic for 7 but 5 Int
 check VerifierBlind          for 7 Unit, 5 Verifier, 5 Persona, 5 Int
 check DistinctMakerChecker   for 7 Unit, 5 Verifier, 5 Persona, 5 Int
 
