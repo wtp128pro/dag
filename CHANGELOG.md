@@ -3,6 +3,17 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.2] — 2026-07-05
+
+### Changed
+- **`dag` plugin → 1.1.0** — ships the bounded self-learning-loop layer (rings 02/03/04):
+  post-hoc AO-2/AO-6 checks (`I14`/`I15`), across-run **project + user** learnings stores with
+  expiry / decay / supersedes, a **global tag registry** (`04/G1`, flagged — guarantee-domain
+  widening with the authored-vs-imported carve-out), `scope.model` narrowing (`04/G4`), an
+  advisory principles-promotion NOTE (`04/G3`), and an advisory tier for imported cross-run
+  learnings (`03/P4`). All additive and post-hoc; no FSM gating. Ring 05 (sharable / trust) is
+  not included. See [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.1] — 2026-07-05
 
 ### Changed
