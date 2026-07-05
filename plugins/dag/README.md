@@ -166,10 +166,13 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.0.0** — initial release: the gated, multi-phase task-execution pipeline with
-Socratic persona selection, exhaustive clarification, contextual cartography, atomic work-unit
-decomposition + dependency DAG, budget-capped subagent executors, independent adversarial
-verification, adaptive anti-hallucination evidence standards, formally-enforced invariants
-(JSON Schemas + FSM spec + runnable validator; TLA+/Alloy formal-model layer), and a durable
+Current version: **1.0.1** — a docs/hardening patch over 1.0.0 (paraphrased third-party
+quotations in the persona catalog, trademark & MIT-license notes, an AI-provenance note, and a
+reproducible formal-check section); no functional change. 1.0.0 was the initial release: the
+gated, multi-phase task-execution pipeline with Socratic persona selection, exhaustive
+clarification, contextual cartography, atomic work-unit decomposition + dependency DAG,
+budget-capped subagent executors, independent adversarial verification, adaptive
+anti-hallucination evidence standards, formally-enforced invariants (JSON Schemas + FSM spec +
+runnable validator; TLA+/Alloy formal-model layer), and a durable
 plan/decision/progress/learnings ledger. See
 [CHANGELOG.md](CHANGELOG.md).
