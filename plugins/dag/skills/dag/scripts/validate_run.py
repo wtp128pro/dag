@@ -535,6 +535,32 @@ def main(argv=None):
             else:
                 rep.ok(f"I6 FAIL defect criteria drawn from brief (units/{uid})")
 
+    # I14 AO-2 do_not_touch disjointness — on a RETRY (debrief.iteration>1) no defect may name a
+    # criterion the PRIOR iteration marked correct/off-limits. The validator retains only the
+    # latest verify.json per unit, so the prior-iteration do_not_touch is read from the debrief
+    # echo (debrief.prior_feedback.do_not_touch), not per-iteration verify files. POST-HOC/OFFLINE
+    # inline check: it reports on an already-produced run and NEVER gates the FSM, so it cannot
+    # deadlock LT7 or break termination (the L2 lesson) — the inline for-loop shape IS the
+    # guarantee-preservation. Fail CLOSED only when the retry data is actually present.
+    for uid, d in unit_docs.items():
+        dbf, v = d.get("debrief"), d.get("verify")
+        if not dbf or not v:
+            continue
+        if not (isinstance(dbf.get("iteration"), int) and dbf["iteration"] > 1):
+            continue
+        pf = dbf.get("prior_feedback") or {}
+        dnt = pf.get("do_not_touch")
+        if not dnt:                       # retry data absent (iteration 1 or no echo) — skip / no-op
+            continue
+        crit = {df.get("criterion") for df in v.get("defects", [])}
+        overlap = sorted(x for x in (crit & set(dnt)) if x is not None)
+        if overlap:
+            rep.fail(f"I14 AO-2 do_not_touch disjointness (units/{uid})",
+                     f"defect criteria {overlap} intersect prior_feedback.do_not_touch — a retry "
+                     "must not re-open what the prior iteration marked correct (AO-2)")
+        else:
+            rep.ok(f"I14 AO-2 do_not_touch disjointness (units/{uid})")
+
     # I13 socratic counter records an OUTCOME (debrief + verify)
     def check_counter(label, soc):
         if not isinstance(soc, dict):
@@ -570,6 +596,30 @@ def main(argv=None):
                      "verifier attests executor premise is NOT load-bearing yet verdict=PASS")
         else:
             rep.ok(f"premise-check attested (units/{uid})")
+
+    # I15 AO-6 responsive change — a RETRY (debrief.iteration>1) that records its prior-feedback
+    # context MUST also record >=1 concrete change made in response to the prior verdict
+    # (debrief.prior_feedback.changes_made present + non-empty); an empty/absent changes_made in a
+    # populated prior_feedback echo means the loop re-ran without responding (silent oscillation).
+    # Gated on the presence of the prior_feedback echo — mirroring I14's "fail CLOSED only when the
+    # retry data is actually present" principle (a run that carries no prior_feedback block has no
+    # responsive-change record for this post-hoc check to audit). POST-HOC/OFFLINE inline check: it
+    # never gates the FSM, so it cannot deadlock LT7 or break termination — it only reports on a run
+    # the loop has already produced.
+    for uid, d in unit_docs.items():
+        dbf = d.get("debrief")
+        if not dbf or not (isinstance(dbf.get("iteration"), int) and dbf["iteration"] > 1):
+            continue
+        pf = dbf.get("prior_feedback")
+        if not isinstance(pf, dict):      # retry recorded no prior_feedback echo — post-hoc no-op
+            continue
+        changes = pf.get("changes_made")
+        if isinstance(changes, list) and any(isinstance(x, str) and x.strip() for x in changes):
+            rep.ok(f"I15 AO-6 responsive change (units/{uid})")
+        else:
+            rep.fail(f"I15 AO-6 responsive change (units/{uid})",
+                     "iteration>1 with a prior_feedback echo but changes_made is absent/empty — a "
+                     "retry must record >=1 concrete change made in response to the prior verdict (AO-6)")
 
     # I9 MISSING VERIFICATION (MUST-FIX D) — a debrief without a verify is REJECTED
     for uid in sorted(unit_dirs_with_debrief):
