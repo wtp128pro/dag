@@ -25,7 +25,7 @@ flowchart LR
     C -- yes --> D[LEARNINGS entry E]
     D --> E["applies(E, U) + I12 REQUIRE:<br/>every later matching brief<br/>must carry E.id + quote it"]
     D -.promotable.-> F[Phase-8 -> .dag/learnings store]
-    F -.Phase-0.5 re-import.-> D
+    F -.->|Phase-0.5 re-import| D
 ```
 
 ---
