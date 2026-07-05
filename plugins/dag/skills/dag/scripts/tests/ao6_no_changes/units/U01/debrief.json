@@ -4,8 +4,7 @@
   "iteration": 2,
   "prior_feedback": {
     "actionable_changes": ["tighten the wording on the single search-summary-level figure so it reads as a disclosed residual, not a primary-sourced claim"],
-    "do_not_touch": ["the maker!=checker mandate framing", "the disclosed search-summary caveat"],
-    "changes_made": ["re-resolved every cited locator to a dated primary source and explicitly disclosed the single search-summary figure as a residual risk"]
+    "do_not_touch": ["the maker!=checker mandate framing", "the disclosed search-summary caveat"]
   },
   "result": "13 findings across 5 areas, each with a dated primary source.",
   "evidence_table": [

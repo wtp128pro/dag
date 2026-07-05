@@ -1,0 +1,29 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Adversarial Reproducibility Auditor",
+  "verdict": "FAIL",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": ["brief.md", "debrief.json", "cited sources"],
+  "feedback": {
+    "actionable_changes": ["re-resolve the contested figure to a dated primary source without reopening the accepted sourcing criterion"],
+    "do_not_touch": ["the maker!=checker mandate framing"]
+  },
+  "defects": [
+    { "severity": "major", "criterion": "each with >=1 dated primary source",
+      "minimal_repro": "the retry re-opened finding 7's sourcing, which iteration 1 had already marked correct/off-limits",
+      "fix_direction": "leave the accepted sourcing alone and address only the disclosed residual" }
+  ],
+  "socratic": {
+    "premise": "On independent re-check the retry regressed a criterion the prior iteration had accepted.",
+    "counter": "Re-checked finding 7 against the prior verify: it was marked do_not_touch, yet this iteration filed a defect against the same 'each with >=1 dated primary source' criterion, so the FAIL HOLDS.",
+    "pivot": "If the flagged criterion were absent from the prior do_not_touch set the defect would be legitimate and the verdict could stand as a normal FAIL.",
+    "confidence": "high - the criterion is verbatim in prior_feedback.do_not_touch."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER from the sources directly: the sourcing the retry re-opened was previously accepted (do_not_touch)."
+  }
+}

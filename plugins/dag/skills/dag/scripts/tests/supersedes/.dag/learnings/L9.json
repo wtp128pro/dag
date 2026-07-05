@@ -1,0 +1,10 @@
+{
+  "id": "L9",
+  "since_wave": 1,
+  "scope": { "applies_to": ["tag:core"] },
+  "supersedes": "L1",
+  "trigger": "The maker!=checker lesson was refined after more evidence accumulated across runs.",
+  "lesson": "Decouple maker from checker AND ground every gate in an INDEPENDENT external signal, not merely any signal.",
+  "how_to_apply": "Every unit tagged core must apply L9 (which replaces the earlier L1) in learnings_applied.",
+  "evidence": "staged project-store entry that supersedes run-local L1"
+}
