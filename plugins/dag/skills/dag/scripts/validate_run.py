@@ -27,7 +27,7 @@ Exit codes:  0 ok · 1 validation/invariant violation · 2 usage error · 3 envi
 Usage:  validate_run.py <run_dir> [--schemas <dir>] [--self-check] [--quiet]
 """
 from __future__ import annotations
-import json, os, re, sys, argparse
+import json, os, re, sys, argparse, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SCHEMAS = os.path.normpath(os.path.join(HERE, "..", "schemas"))
@@ -421,6 +421,164 @@ def main(argv=None):
                 rep.fail(f"learnings.json[{i}]", "entry is not an object")
                 continue
             learnings.append(E)
+
+    # ---- across-run PROJECT learnings store (03/P1, P3 expiry, P5 contradiction) ----
+    # ADDITIVE + POST-HOC + OFFLINE: load persisted lessons from a project `.dag/learnings/`
+    # store and merge them into the SAME `learnings` propagation set the I12 predicate below
+    # consumes — this is load-time data-shaping, not an FSM gate (no live back-edge; mirrors
+    # the L2 "post-hoc, not a live LT7 guard" requirement structurally). ABSENT STORE => ZERO
+    # behavior change: the discovery loop finds no files, so `learnings` is exactly what the
+    # run-local loader produced and every existing fixture is byte-for-byte identical.
+    # Malformed store data is REPORTED (rep.fail) and DROPPED — it can never crash the run,
+    # mirroring the run-local loader tolerance directly above (L398-423).
+    _lschema = schemas.get("learnings.schema.json")
+    _store_entry_schema = (_lschema.get("$defs", {}) or {}).get("entry") if isinstance(_lschema, dict) else None
+
+    # Discovery mirrors the persona precedent (project .dag/<kind>/*.json). Candidate roots,
+    # dedup'd by realpath: the run dir itself (where fixtures + a staged demo place the store),
+    # the run's parent (`<run_dir>/../.dag/learnings/`), and the project root two levels up
+    # (`<run_dir>/../../.dag/learnings/`) if resolvable. Each file is ONE entry object OR
+    # `{entries:[...]}` OR a bare `[...]` array — reusing the run-local loader's tolerance.
+    store_dirs, _seen_real = [], set()
+    for _cand in (os.path.join(rd, ".dag", "learnings"),
+                  os.path.join(rd, "..", ".dag", "learnings"),
+                  os.path.join(rd, "..", "..", ".dag", "learnings")):
+        if os.path.isdir(_cand):
+            _rp = os.path.realpath(_cand)
+            if _rp not in _seen_real:
+                _seen_real.add(_rp)
+                store_dirs.append(_cand)
+    store_ids = set()
+    if store_dirs:
+        have_ids = {E.get("id") for E in learnings if isinstance(E, dict)}
+        merged = 0
+        for sd in store_dirs:
+            for fn in sorted(f for f in os.listdir(sd) if f.endswith(".json")):
+                fp = os.path.join(sd, fn)
+                rel = os.path.relpath(fp, rd)
+                try:
+                    raw = load_json(fp)
+                except Exception as e:
+                    rep.fail(f"learnings-store {rel}", f"not valid JSON: {e}")
+                    continue
+                if isinstance(raw, dict):
+                    file_entries = raw["entries"] if "entries" in raw else [raw]
+                elif isinstance(raw, list):
+                    file_entries = raw
+                else:
+                    rep.fail(f"learnings-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
+                    continue
+                if not isinstance(file_entries, list):
+                    rep.fail(f"learnings-store {rel}", "'entries' must be an array")
+                    continue
+                for j, E in enumerate(file_entries):
+                    if _store_entry_schema is not None:
+                        errs = validate(E, _store_entry_schema)
+                        if errs:
+                            for e in errs:
+                                rep.fail(f"learnings-store {rel}[{j}]", e)
+                            continue  # DROP malformed store entry — never reaches I12
+                    elif not isinstance(E, dict):
+                        rep.fail(f"learnings-store {rel}[{j}]", "entry is not an object")
+                        continue
+                    eid = E.get("id")
+                    if eid in have_ids:
+                        # id already present (run-local re-derivation, or an earlier store file)
+                        # wins — do NOT force a duplicate into the propagation set.
+                        continue
+                    have_ids.add(eid)
+                    store_ids.add(eid)
+                    learnings.append(E)
+                    merged += 1
+        rep.ok(f"learnings-store discovered ({merged} project entr(y/ies) merged from {len(store_dirs)} store dir(s))")
+
+    # --- P3 expiry grammar (LOADER-side, per Cartography R4 — NOT a schema enum) ---
+    # Parse the bare `scope.expiry` string grammar `run | project | runs:N | date:<iso>` plus
+    # the optional decay fields. An EXPIRED entry is EXCLUDED from propagation and REPORTED as
+    # a skip — it is NEVER a hard-fail (an expired lesson simply reverts to today's
+    # re-derive-from-scratch behavior, the safe failure mode). Absent/unrecognized expiry is
+    # INERT (today's behavior), so existing entries (which carry no expiry) are untouched.
+    def _expiry_expired(E, from_store):
+        sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
+        exp = sc.get("expiry")
+        if not isinstance(exp, str) or not exp.strip():
+            return (False, None)
+        exp = exp.strip()
+        if exp == "project":
+            return (False, None)                      # persists indefinitely within the project
+        if exp == "run":
+            # run-scoped: valid only within its ORIGINATING run. A store entry's run is over =>
+            # expired. A run-local `run`-scoped entry is the current run => still valid.
+            if from_store:
+                return (True, "expiry 'run' loaded from the across-run store (its originating run has ended)")
+            return (False, None)
+        if exp.startswith("runs:"):
+            n = exp[5:].strip()
+            if n.isdigit():
+                N = int(n)
+                ac = E.get("applied_count")
+                if isinstance(ac, int) and not isinstance(ac, bool) and ac >= N:
+                    return (True, f"expiry 'runs:{N}' exhausted (applied_count={ac} >= {N})")
+            return (False, None)                      # unparsed N or no decay yet: inert
+        if exp.startswith("date:"):
+            ds = exp[5:].strip()
+            try:
+                d = datetime.date.fromisoformat(ds)
+            except Exception:
+                return (False, None)                  # unparseable date: inert, never a hard-fail
+            if datetime.date.today() > d:
+                return (True, f"expiry 'date:{ds}' is in the past")
+            return (False, None)
+        return (False, None)                          # unrecognized grammar: inert
+    _kept = []
+    for E in learnings:
+        if isinstance(E, dict):
+            expired, why = _expiry_expired(E, E.get("id") in store_ids)
+            if expired:
+                rep.ok(f"learnings expiry (03/P3): {E.get('id')} EXCLUDED from propagation ({why})")
+                continue
+        _kept.append(E)
+    learnings = _kept
+
+    # --- P5 contradiction: supersedes exclusion + genuine-split escalation ---
+    # (a) an entry declaring `supersedes:"<id>"` EXCLUDES the superseded entry from
+    #     propagation (retained on disk for audit; just not force-injected here).
+    superseded_ids = {E["supersedes"] for E in learnings
+                      if isinstance(E, dict) and isinstance(E.get("supersedes"), str) and E["supersedes"].strip()}
+    if superseded_ids:
+        _kept = []
+        for E in learnings:
+            if isinstance(E, dict) and E.get("id") in superseded_ids:
+                rep.ok(f"learnings contradiction (03/P5): {E.get('id')} superseded — excluded from propagation")
+                continue
+            _kept.append(E)
+        learnings = _kept
+    # (b) two-or-more LIVE entries sharing an IDENTICAL scope.applies_to selector set with
+    #     DIFFERENT lessons and NO supersedes ordering are competing for the same scope — I12
+    #     would force-inject all of them into the same brief. Whether that is a genuine
+    #     CONTRADICTION or merely complementary cannot be decided here without NLP (G2 forbids
+    #     it), so we do NOT auto-pick and do NOT silently drop a valid lesson. Instead we SURFACE
+    #     it as an explicit escalate-style NOTE (non-failing, like the SKIP lines) so a human
+    #     resolves it — AO-5 "genuine split => human, not loop": the resolution is to add
+    #     `supersedes` (path (a)) or narrow `scope.excludes` so the scopes stop overlapping. This
+    #     is deliberately a NOTE, not a rep.fail: a hard-fail on this heuristic would break every
+    #     legitimate multi-lesson store (e.g. two unrelated `tag:core` lessons), a false positive.
+    def _applies_set(E):
+        sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
+        ats = sc.get("applies_to")
+        return frozenset(a for a in ats if isinstance(a, str)) if isinstance(ats, list) else frozenset()
+    _by_scope = {}
+    for E in learnings:
+        if isinstance(E, dict):
+            s = _applies_set(E)
+            if s:
+                _by_scope.setdefault(s, []).append(E)
+    for s, grp in sorted(_by_scope.items(), key=lambda kv: sorted(kv[0])):
+        if len(grp) >= 2 and len({e.get("lesson") for e in grp}) >= 2:
+            ids = sorted(str(e.get("id")) for e in grp)
+            print(f"  NOTE  contradiction (03/P5): {len(grp)} live entries {ids} compete for scope "
+                  f"{sorted(s)} with no supersedes ordering — NOT auto-picked; if they conflict, a "
+                  f"human resolves it (AO-5) by adding `supersedes` or narrowing `scope.excludes`")
 
     # ---- FSM invariants ----------------------------------------------------
     print("\n== FSM invariants ==")
