@@ -3,6 +3,34 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-07-05
+
+### Fixed
+Corrective audit pass over the skill. No functional or guarantee change — every edit is classified
+*preserves* (TLC and Alloy are both green before and after; the full validator fixture suite's
+verdicts are unchanged).
+
+- **Alloy model made executable and machine-checked.** `formal/WorkGraph.als`'s `check Acyclic` and
+  `check LayeringImpliesAcyclic` used a partial scope (`for 7 Unit, 5 Int`) that left `Persona`
+  (reachable via `Unit.executor`) unbounded, so the commands could not run. Changed to
+  `for 7 but 5 Int`; all four `check`s now report no counterexample and `run WitnessGraph` finds an
+  instance (Alloy 6 / Kodkod / bundled SAT4J, headless). `references/formal-models.md` tool-status
+  updated from "not run / hand-proved" to machine-checked.
+- **Doc↔validator drift corrected.** The `scope.expiry` grammar was documented as
+  `run|promote|one-off` (where `promote`/`one-off` are silently inert) → the validator's actual
+  `run|project|runs:N|date:<iso>` (`templates/graph.md`, `references/self-learning-loops.md`). The
+  retry "consumption contract" was reworded from a schema-invalid `brief.prior_feedback` equality
+  predicate to the actually-enforced, presence-gated I14/I15 checks over `debrief.prior_feedback`.
+- **Stale invariant ranges refreshed.** `I1-I13` / `I9-I13` (pre-dating I14/I15/I1b/I-dod) →
+  `I1-I15 (+ I1b, I-dod)` in `formal/Pipeline.tla`, `references/formal-models.md`, and
+  `references/state-machine.md`; the non-tight termination-bound arithmetic clarified (11 loop
+  transitions; ≤12 counting the entry edge).
+- **Persona catalog.** Three `pair_with` fields carried prose (one naming a nonexistent
+  "Critic Expert") → exact catalog persona names (`Red-Team / Devil's Advocate`, `Security
+  Architect`, `Domain Expert`); dropped an unbacked "~20%" figure in `references/personas/GUIDE.md`.
+- **SKILL.md.** Softened an over-broad claim about per-persona-file contents; Phase 1 step 5 now
+  names the required `personas.json` sidecar.
+
 ## [1.1.0] — 2026-07-05
 
 ### Added

@@ -23,12 +23,12 @@ Tags are the *only* mechanical basis for pattern-scoped learning propagation
 ## LEARNINGS entry schema (what each row of LEARNINGS.md must carry — req 12)
 `id · trigger` (external signal, e.g. a verify verdict / test / cited finding) `· lesson ·
 how_to_apply · scope{ applies_to: SelectorSet (required), excludes:[unit-id] (optional),
-expiry: run|promote|one-off (optional) } · evidence · since_wave · promotable: bool (optional)`.
+expiry: run|project|runs:N|date:<iso> (optional) } · evidence · since_wave · promotable: bool (optional)`.
 `since_wave` is an int ≥ 1 — the wave from which the entry binds later briefs (propagation
 predicate `U.wave ≥ since_wave`).
 `applies_to` selectors: `all` / `"U0X"` / `"phaseN"` / `"tag:<T>"`. **Propagation
-rule:** any brief generated after an entry whose scope matches it MUST list the `id` in
-`learnings_applied` and quote `lesson` + `how_to_apply` (validator-checked; see
+rule:** any brief for a unit the entry's scope matches **and whose `wave ≥ since_wave`** MUST
+list the `id` in `learnings_applied` and quote `lesson` + `how_to_apply` (validator-checked; see
 references/self-learning-loops.md §4.3).
 
 ## Dependency DAG (edge A→B = B consumes A)

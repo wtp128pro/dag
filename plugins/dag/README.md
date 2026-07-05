@@ -16,7 +16,7 @@ independent adversarial verification — pausing for you only at the decisions t
 > surfaces only)**, the executor↔verifier
 > **self-learning loop is bounded with a machine-checked (TLC) termination proof**, and a
 > **TLA+/Alloy** formal-model layer proves the core invariants (TLA+ machine-checked with TLC; Alloy
-> hand-proved). See the [CHANGELOG](CHANGELOG.md).
+> machine-checked with Kodkod/SAT4J). See the [CHANGELOG](CHANGELOG.md).
 
 ## What it does (Phases 0–8)
 
@@ -120,9 +120,10 @@ skills/dag/
   remain model-judged / self-attested and are caught by the independent verifier, not the schema.
 - **Explicit step, not a hook.** Enforcement runs as a Dag Bash step
   (`scripts/validate_run.sh <run-dir>`); there is no passive hook on subagent output.
-- **TLA+ machine-checked; Alloy hand-proved.** The TLA+ safety + termination properties are
-  checked with TLC (a JRE re-runs them); the Alloy DAG/independence models are hand-proved
-  with a documented `check` command, not run in-repo.
+- **TLA+ and Alloy machine-checked.** The TLA+ safety + termination properties are checked with
+  TLC (a JRE re-runs them); the Alloy DAG/independence models are machine-checked with Alloy 6
+  (Kodkod / bundled SAT4J, headless) — all `check`s report no counterexample and the witness run
+  finds an instance.
 - The ≤32K per-subagent budget is now *partly* enforceable (a token-count check on structured
   artifacts); free prose remains disciplinary. See `skills/dag/DESIGN.md §6`.
 
@@ -166,7 +167,11 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.1.0** — adds the rings-02/03/04 self-learning-loop layer (post-hoc AO-2/AO-6
+Current version: **1.1.1** — corrective audit pass (no functional/guarantee change): the Alloy
+formal model is now executable and machine-checked (a partial `check` scope left `Persona`
+unbounded), doc↔validator drift fixed (`scope.expiry` grammar, the retry consumption-contract
+predicate), stale invariant ranges refreshed to `I1-I15`, dangling persona `pair_with` references
+resolved, and loose/unbacked prose removed. **1.1.0** — adds the rings-02/03/04 self-learning-loop layer (post-hoc AO-2/AO-6
 checks I14/I15, across-run project + user learnings stores with expiry/decay/supersedes, a global
 tag registry with the authored-vs-imported admission carve-out, `scope.model` narrowing, an
 advisory principles-promotion NOTE, and an advisory tier for imported cross-run learnings); all

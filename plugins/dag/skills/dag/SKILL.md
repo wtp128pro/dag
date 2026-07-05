@@ -157,8 +157,9 @@ unchallenged.
 1. Read `references/personas/index.json` — the curated **selection index** (one entry per
    persona: `name`, `role`, `description`, `mandate`, `skeptical_of`, `phase`). Triage from the
    index; **open an individual `references/personas/<name>.json` only for a serious candidate**
-   (its full entry carries `optimizes_for`, `pair_with`, and the long `qualifications` — that is
-   adoption-time depth, not selection signal, so don't bulk-load it). Select a **task-fit
+   (its full entry adds `optimizes_for` and, where the source persona provides them, `pair_with`
+   and the long `qualifications` — adoption-time depth, not selection signal, so don't bulk-load
+   it). Select a **task-fit
    subset** AND **generate task-specific personas** the library lacks (hybrid sourcing). See
    `references/personas/GUIDE.md` for the selecting/synthesizing conventions.
 2. **Discover + merge user/project personas** (before presenting the roster). Read every
@@ -181,8 +182,9 @@ unchallenged.
    or drop personas. Present via `AskUserQuestion` with your recommended set marked.
    (Elicitation mode: references/socratic-protocol.md — surface the fork, steelman the
    alternative, elicit what the user *fears*.)
-5. Write `PERSONAS.md` (template) with each persona's mandate + phase/unit assignments.
-   Log the selection in `DECISIONS.md`.
+5. Write `PERSONAS.md` (template) **and its machine-checkable `personas.json` sidecar** with each
+   persona's mandate + phase/unit assignments — the gate below requires a schema-valid
+   `personas.json` to back `gates.personas_confirmed`. Log the selection in `DECISIONS.md`.
 
 **This is a gate that matters — do not skip the human confirmation, and do not skip it when
 "right-sizing" a small task** (see the Scope note). Surface the roster and let the human decide

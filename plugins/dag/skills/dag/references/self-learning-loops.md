@@ -149,9 +149,11 @@ must halt in `DONE` or `ESCALATE`. Both are reachable:
   hatch is genuinely reachable.
 
 **Bound.** The straight-line segments are finite, so total transitions before halt are
-bounded by `(MAX_RETRIES+1)·|EXECUTE→VERIFY→ADJUDICATE| + MAX_RETRIES·|RETRY| + 1 exit`
-= `3·3 + 2·1 + 1 = 12` transitions, i.e. **≤ 3 executions, ≤ 3 verifications, ≤ 2 retries,
-then exactly one terminal**. Each state's internal work is itself finite (executor under a
+`(MAX_RETRIES+1)·|EXECUTE→VERIFY→ADJUDICATE| + MAX_RETRIES·|RETRY|` = `3·3 + 2·1 = 11` loop
+transitions — the terminal `DONE`/`ESCALATE` edge is the last of the ≤3 `ADJUDICATE` out-edges,
+not an extra step — i.e. **≤ 3 executions, ≤ 3 verifications, ≤ 2 retries, then exactly one
+terminal**. (Counting the single entry edge into `EXECUTE`, the round figure **≤ 12** cited in
+SKILL Phase 6 holds as a valid, non-tight bound.) Each state's internal work is itself finite (executor under a
 32K budget; verifier is a single pass or a fixed odd panel of 3), so wall-clock work is
 finite too. ∎
 
@@ -222,12 +224,21 @@ preconditions and the anti-vague-fail gate):**
   target actionable.)
 - `verdict == DISAGREE` ⇒ `disagreement` present and complete.
 
-**Consumption contract (checkable).** For any retry brief with `iteration = n > 1`, the
-brief MUST contain a `prior_feedback` block equal to iteration `n−1`'s `verify.feedback`
-(`actionable_changes` + `do_not_touch`), verbatim. Predicate the validator can run:
+**Consumption contract (checkable).** On a retry (`debrief.iteration = n > 1`), the executor's
+`debrief.prior_feedback` block echoes iteration `n−1`'s `verify.feedback` — `actionable_changes`
++ `do_not_touch` — plus the `changes_made` it produced in response (this field lives on
+`debrief.schema.json`, not `brief.schema.json`, which is `additionalProperties:false`). The
+validator does **not** diff the echo against the n−1 verify (it retains only the latest
+`verify.json` per unit, so an n−1 copy is unavailable); instead it runs two **presence-gated,
+post-hoc** predicates over that echo — each a no-op when the echo is absent, so neither can gate
+the loop (I14 / I15 in state-machine.md §4; the inline I14/I15 checks in `validate_run.py`'s
+`main()`):
 
 ```
-∀ unit, ∀ n>1 : brief[unit, iter=n].prior_feedback == verify[unit, iter=n-1].feedback
+I14 (AO-2): ∀ unit, iter=n>1 with prior_feedback.do_not_touch present :
+              { verify.defects[].criterion } ∩ prior_feedback.do_not_touch == ∅
+I15 (AO-6): ∀ unit, iter=n>1 with a prior_feedback echo :
+              prior_feedback.changes_made is present and non-empty
 ```
 
 **FSM-state seam (`fsm-state.schema.json`).** Loop substate object:
@@ -264,7 +275,7 @@ off `since_wave`, never `promotable`).
 | `trigger` | string | **the verifiable outcome** that produced the lesson — e.g. `"U0X verify FAIL: <criterion>"`, a test result, or a cited finding id. MUST reference an external signal, **not** a self-assessment. |
 | `lesson` | string (1 sentence) | the generalizable rule |
 | `how_to_apply` | string | the concrete action a future brief takes |
-| `scope` | object | `{ applies_to: SelectorSet, excludes: [unit-id...], expiry: "run \| promote \| one-off" }` — the **anti-over-fit guard** (§6.2) |
+| `scope` | object | `{ applies_to: SelectorSet, excludes: [unit-id...], expiry: "run \| project \| runs:N \| date:<iso>" }` — the **anti-over-fit guard** (§6.2); the loader-side grammar `validate_run.py` enforces (`_expiry_expired`), any other value is inert |
 | `evidence` | locator | external signal: `verify.json` path / a cited finding id / command→output |
 | `promotable` *(optional)* | bool | **optional**, not in the canonical required set; marks an entry eligible to be lifted to `CLAUDE.md`/a skill at Phase-8 sign-off |
 

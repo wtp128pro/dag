@@ -2,7 +2,7 @@
      top of the runtime validator (scripts/validate_run.py). For each of 4 core
      invariants: the formal statement, a rigorous hand-proof, the exact model-check
      command, and honest tool-status. ADD-ONLY: references existing invariants
-     (state-machine.md I1-I13, self-learning-loops.md, graph/verify schemas); modifies
+     (state-machine.md I1-I15 + I1b/I-dod, self-learning-loops.md, graph/verify schemas); modifies
      no validator/schema/prose. -->
 
 # Formal Models — TLA+ / Alloy proof layer
@@ -26,16 +26,20 @@ TLC), `formal/WorkGraph.als` (Alloy).
 |------|----------|-------|
 | JDK (Oracle Java SE **25.0.3**, via `/usr/libexec/java_home`) | **yes** | yes |
 | **TLC** (`tla2tools.jar` v2.19) | fetched to `/tmp` | **yes — TLA+ properties MACHINE-CHECKED** |
-| **Alloy Analyzer** | not run | **no** — headless run not permitted in this environment; Alloy properties carry hand-proofs + exact `check` commands (see §3–§4) |
+| **Alloy** (`org.alloytools.alloy.dist.jar` v6.2) | fetched to `/tmp` | **yes — Alloy properties MACHINE-CHECKED** (Kodkod / bundled SAT4J, headless): all 4 `check`s → no counterexample, `run WitnessGraph` → instance found (see §3–§4) |
 
 > On a fresh macOS `/usr/bin/java` *may* be a stub (it prints "Unable to locate a Java
 > Runtime" when no JDK is installed); if so, reach the real JDK via
 > `JAVA_HOME=$(/usr/libexec/java_home)`. Every command below sets it — harmless even when
 > `/usr/bin/java` already resolves to a real JDK.
 >
-> **`tla2tools.jar` is a BUILD tool, not a skill file** — it is fetched to `/tmp`, never
-> vendored under `staged/skill/`. Download once:
+> **`tla2tools.jar` and the Alloy jar are BUILD tools, not skill files** — both are fetched to
+> `/tmp`, never vendored under `staged/skill/`. Download once:
 > `curl -L -o /tmp/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar`
+> `curl -L -o /tmp/alloy.jar https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar`
+> Alloy's default `java -jar alloy.jar` launches the GUI; drive it headlessly through the Alloy
+> Java API (`CompUtil.parseEverything_fromFile` → `TranslateAlloyToKodkod.execute_command`, default
+> SAT4J solver, `-Djava.awt.headless=true`), or open the file in the Analyzer and Execute All.
 
 **Proof-status legend:** *machine-checked* (a model checker explored the state space
 and reported no error) · *hand-proved* (a rigorous checkable argument; not run by a
@@ -46,8 +50,8 @@ derived).
 |---|----------|-------|----------|------------------|
 | 1 | Gate ordering | SAFETY | `Pipeline.tla` | **machine-checked** (TLC) + hand-proved |
 | 2 | Bounded-loop termination | LIVENESS | `Pipeline.tla` | **machine-checked** (TLC) + hand-proved (variant) |
-| 3 | DAG acyclicity | STRUCTURAL | `WorkGraph.als` | hand-proved + exact Alloy `check` (not run here) |
-| 4 | Verifier independence | STRUCTURAL | `WorkGraph.als` | **asserted** (structural invariant, shown consistent) + exact Alloy `check` |
+| 3 | DAG acyclicity | STRUCTURAL | `WorkGraph.als` | **machine-checked** (Alloy — no counterexample) + hand-proved |
+| 4 | Verifier independence | STRUCTURAL | `WorkGraph.als` | **machine-checked** (Alloy — no counterexample) + asserted (structural invariant, shown consistent) |
 
 ---
 
@@ -190,7 +194,7 @@ hand-proved.
 
 ---
 
-## 3. DAG acyclicity — STRUCTURAL (Alloy) · hand-proved (Alloy check not run here)
+## 3. DAG acyclicity — STRUCTURAL (Alloy) · machine-checked (no counterexample) + hand-proved
 
 **Mirrors:** `graph.schema.json` (`units`,`edges`,`waves`,`v_tag`) + validator **I3**
 (fail-closed cycle detection on `edges ∪ unit.deps`).
@@ -219,23 +223,24 @@ valid topological layering is acyclic.
 > was assumed. Without that fact `depends` is unconstrained and a self-loop (`u in u.depends`)
 > is a counterexample, so the check would *fail*: the fact is load-bearing for the check.
 
-**Check command (Alloy Analyzer, headless or GUI):**
+**Check command** (open `WorkGraph.als` in the Alloy Analyzer → Execute All, or drive the Alloy
+Java API headlessly — see the Tool-status note above):
 ```
-# GUI: Alloy Analyzer → Execute → run each `check`.
-# CLI (Alloy 6 dist jar): java -jar org.alloytools.alloy.dist.jar exec formal/WorkGraph.als
-check Acyclic                for 7 Unit, 5 Int
-check LayeringImpliesAcyclic for 7 Unit, 5 Int
+check Acyclic                for 7 but 5 Int
+check LayeringImpliesAcyclic for 7 but 5 Int
 ```
-Scope `7 Unit, 5 Int` (Int bitwidth 5 ⇒ −16..15, ample for ≥7 waves). Expected:
-*No counterexample found. Assertion may be valid.*
+Scope `7 but 5 Int` bounds every sig to 7 (Int bitwidth 5 ⇒ −16..15, ample for ≥7 waves). The
+**global** bound is required, not a bare `7 Unit, 5 Int`: `Unit.executor` makes `Persona`
+reachable, so a partial scope list leaves `Persona`/`Verifier` unbounded and the command will not
+run. Expected: *No counterexample found. Assertion may be valid.*
 
-**Tool-status:** **not machine-checked in this environment** (a headless Alloy jar run
-was not permitted here). The hand-proof is complete and the property `no (^depends &
-iden)` is trivially inspectable; the exact `check` + scope let a user verify in one step.
+**Tool-status:** **machine-checked** — both `check`s run headless (Alloy 6, bundled SAT4J) and
+report *no counterexample*; the hand-proof above is the checkable argument for *why* a valid
+layering forces a DAG.
 
 ---
 
-## 4. Verifier independence — STRUCTURAL (Alloy) · asserted (Alloy check not run here)
+## 4. Verifier independence — STRUCTURAL (Alloy) · asserted + machine-checked (no counterexample)
 
 **Mirrors:** `verify.schema.json` `executor_reasoning_seen : {const:false}` + validator
 **I1** (maker≠checker; gates grounded in an external signal, never the
@@ -271,9 +276,10 @@ run   WitnessGraph         for exactly 4 Unit, exactly 2 Verifier, exactly 3 Per
 ```
 Expected: checks → *No counterexample found*; run → *Instance found*.
 
-**Tool-status:** **not machine-checked in this environment** (Alloy not run). This is a
-*structural asserted* invariant regardless of tooling; and — importantly — even a
-green Alloy check would **not** prove the *real system* enforces it: see Residual A.
+**Tool-status:** **machine-checked** — both `check`s report *no counterexample* and `run
+WitnessGraph` finds an instance (Alloy 6, bundled SAT4J, headless). This is still a *structural
+asserted* invariant (the model encodes it by fiat and shows it consistent); and — importantly —
+even a green Alloy check would **not** prove the *real system* enforces it: see Residual A.
 
 ---
 
@@ -283,9 +289,9 @@ green Alloy check would **not** prove the *real system* enforces it: see Residua
 |-----------|--------------------------|------------------------------------------|
 | Gate ordering (I8/I10) | Prop 1 `GateOrdering` (TLC ✓) | phase-vs-gates ordering + I9/I10 presence (I9 itself is validator-only — no Prop 1 coverage; see "Covered by one layer only" below) |
 | Loop bound / termination (I4) | Prop 2 `Termination`+`LoopBound` (TLC ✓) | `retries ≤ 2`, `iteration ≤ retries+1` |
-| DAG acyclic (I3) | Prop 3 `Acyclic` (hand + Alloy `check`) | fail-closed cycle detection on `edges ∪ deps` |
+| DAG acyclic (I3) | Prop 3 `Acyclic` (hand-proved + machine-checked Alloy `check`) | fail-closed cycle detection on `edges ∪ deps` |
 | Verifier independence (I1) | Prop 4 structural `Independence` | `executor_reasoning_seen const:false` |
-| maker≠checker (**I1b maker!=checker**) | Prop 4 Alloy `DistinctMakerChecker` (asserted) | `executor_persona != verifier_persona` per graph.json unit (U04) |
+| maker≠checker (**I1b maker!=checker**) | Prop 4 Alloy `DistinctMakerChecker` (asserted + machine-checked) | `executor_persona != verifier_persona` per graph.json unit (U04) |
 
 **Covered by one layer only (noted honestly):** the validator additionally enforces
 I5–I7, I9, I11–I13, I-dod, and the premise-check attestation (the independent COUNTER re-run), which are *data-shape* checks with no

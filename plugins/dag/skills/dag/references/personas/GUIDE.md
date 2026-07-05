@@ -7,7 +7,8 @@ without loading the whole catalog every run.
 ## Layout (this directory)
 - **`index.json`** — the selection index: one object per persona with
   `{ name, role, description, mandate, skeptical_of, phase }` (phase trimmed to the assignment).
-  **Read this FIRST** in Phase 1 to triage the full roster at ~20% of the old monolithic cost.
+  **Read this FIRST** in Phase 1 to triage the full roster at a fraction of the cost of loading
+  every persona's full entry — open a per-file entry only for a serious candidate.
 - **`<kebab-name>.json`** — one file per persona, the full entry: required `name`, `role`,
   `description`; optional `mandate`, `optimizes_for`, `skeptical_of`, `phase`, `pair_with`,
   `qualifications` (array), `tags`. **Open a per-file entry only when a persona is a serious
