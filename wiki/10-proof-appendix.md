@@ -2,7 +2,52 @@
 
 **Audience:** a reproducer — someone who wants to re-run the formal checks themselves and confirm the recorded results, byte for byte.
 
-**TL;DR.** dag ships two design-time formal models — `formal/Pipeline.tla` (checked by TLC) and `formal/WorkGraph.als` (checked by Alloy) — that prove the *rules* of the pipeline can't be violated by any run in scope: gate ordering can't be bypassed, the correction loop always terminates, the work-graph is acyclic under a wave layering, and verifier independence is a structural invariant. This page gives the **exact commands** to reproduce them and the **recorded transcripts**. Every transcript below is **reproduced from `plugins/dag/skills/dag/references/formal-models.md` (recorded 2026-07-03, TLC 2.19, JDK 25.0.3)** — it is *not* freshly executed now. If you run the commands yourself, small search-order-dependent details (state ordering, the `<n>` in the counterexample) may differ; the load-bearing signals are called out.
+**TL;DR.** dag ships two design-time formal models — `formal/Pipeline.tla` (checked by TLC) and `formal/WorkGraph.als` (checked by Alloy) — that prove the *rules* of the pipeline can't be violated by any run in scope: gate ordering can't be bypassed, the correction loop always terminates, the work-graph is acyclic under a wave layering, and verifier independence is a structural invariant. This page gives the **exact commands** to reproduce them and the **recorded transcripts**. Historical transcripts in the later sections are **reproduced from `plugins/dag/skills/dag/references/formal-models.md` (recorded 2026-07-03, TLC 2.19, JDK 25.0.3)**; the **"Freshly executed" section immediately below** is a real re-run performed while this wiki was authored. If you run the commands yourself, small search-order-dependent details (state ordering, the `<n>` in the counterexample) may differ; the load-bearing signals are called out.
+
+---
+
+## Freshly executed this session (2026-07-05, JDK 25.0.3, TLC 2.19, Alloy 6.2)
+
+Unlike the historical transcripts further down (which are quoted from `references/formal-models.md`), **this section was produced by actually running the checkers** on the shipped `formal/` artifacts during authoring. Environment: `JAVA_HOME=$(/usr/libexec/java_home)` → Oracle Java SE **25.0.3**; `tla2tools.jar` v2.19 and `org.alloytools.alloy.dist.jar` v6.2 fetched to `/tmp`.
+
+**(1) TLC — both TLA+ properties, full state space.**
+```sh
+export JAVA_HOME=$(/usr/libexec/java_home)
+cd plugins/dag/skills/dag/formal
+"$JAVA_HOME/bin/java" -cp /tmp/tla2tools.jar tlc2.TLC -config Pipeline.cfg Pipeline.tla
+```
+Observed (load-bearing lines):
+```
+TLC2 Version 2.19 of 08 August 2024
+Finished computing initial states: 1 distinct state generated at 2026-07-05 18:24:30.
+Progress(28) ...: 712 states generated, 327 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 327 total distinct states ...
+Model checking completed. No error has been found.
+712 states generated, 327 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 28.
+```
+Identical to the recorded figures: **712 generated / 327 distinct / depth 28 / no error.** Every `INVARIANT` (`TypeOK`, `GateOrdering`, `LoopBound`, `VariantOK`, `BackEdgeGuarded`) held and the temporal `PROPERTY Termination` held on every fair behavior — Properties 1 and 2, *machine-checked (in scope)*.
+
+**(2) Non-vacuity — the liveness test has teeth.** A throwaway mutant `/tmp/Broken.tla` (the shipped spec with `retries' = retries + 1` changed to `retries' = retries`, so the variant `V = 2 − retries` no longer descends on the back-edge) was checked with the same config:
+```
+Error: Temporal properties were violated.
+Error: The following behavior constitutes a counter-example:
+Back to state 16: <LRetryBranch line 154 ... of module Broken>
+```
+TLC reported a liveness **counterexample** (a lasso closing on the `RETRY→EXECUTE` back-edge) — proving `Termination` is a *genuine* check and that the counter increment is load-bearing. The shipped spec (which keeps the increment) passes; the mutant fails. (No repo file was modified — the mutant lives only in `/tmp`.)
+
+**(3) Alloy — all four `check`s + the witness `run`, headless (Kodkod / SAT4J).** The jar's default `java -jar` launches a GUI, so this was driven through the Alloy Java API (`CompUtil.parseEverything_fromFile` → `TranslateAlloyToKodkod.execute_command`) with `-Djava.awt.headless=true`:
+```
+check  Acyclic                  -> no counterexample (PASS)
+check  LayeringImpliesAcyclic   -> no counterexample (PASS)
+check  VerifierBlind            -> no counterexample (PASS)
+check  DistinctMakerChecker     -> no counterexample (PASS)
+run    WitnessGraph             -> instance found (PASS)
+ALL ALLOY COMMANDS AS EXPECTED
+```
+A `check` PASSes iff **UNSAT** (no counterexample within scope); the `run` PASSes iff **SAT** (a non-vacuous instance exists). All four checks found no counterexample and the witness graph is satisfiable — Properties 3 and 4, *machine-checked (in scope)* + (for Property 4) *asserted, shown consistent*.
+
+> Honest caveat unchanged: a green Alloy check does **not** prove the *running* system obeys verifier independence — see **Residual A**. The models check the *rules*; runtime behavior is the validator's and the independent verifier's job.
 
 ---
 
