@@ -3,6 +3,20 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] — 2026-07-05
+
+### Changed
+- Paraphrased the expressive third-party **blog quotations** in the persona catalog
+  (Martin Fowler's *TestPyramid* and *Eradicating Non-Determinism in Tests*, the Testing Library
+  guiding principle, and Unosquare / em-tools.io T-shaped-engineer commentary) into original
+  wording, with their attributions preserved. The factual certification-body, standards-body,
+  official-doc, and job-posting quotes are unchanged (fair-use quotation). No behavior change.
+
+### Added
+- Plugin README: an **MIT license** line and a **"Verify the formal claims yourself"** section —
+  the one-command TLC re-run (expect 327 distinct states, no error) with a pointer to
+  `references/formal-models.md` for the full transcript and the Alloy models.
+
 ## [1.0.0] — 2026-07-05
 
 ### Added

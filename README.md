@@ -9,7 +9,7 @@ hosting reusable skills. Add it once, then install any plugin from it.
 
 | Plugin | Version | Description | Invoke |
 |--------|---------|-------------|--------|
-| [`dag`](plugins/dag) | 1.0.0 | Gated, multi-phase task execution — **formally enforced** (JSON Schemas + FSM + validator; TLA+ TLC-machine-checked, Alloy hand-proved), **universal Socratic dialogue**, atomic work-unit DAG, budget-capped subagents, independent adversarial verification, **bounded self-learning loops**, anti-hallucination evidence standards | `/dag:dag <task>` |
+| [`dag`](plugins/dag) | 1.0.1 | Gated, multi-phase task execution — **formally enforced** (JSON Schemas + FSM + validator; TLA+ TLC-machine-checked, Alloy hand-proved), **universal Socratic dialogue**, atomic work-unit DAG, budget-capped subagents, independent adversarial verification, **bounded self-learning loops**, anti-hallucination evidence standards | `/dag:dag <task>` |
 
 ### Skills in the `dag` plugin
 
@@ -129,3 +129,12 @@ Each plugin is independently versioned with [SemVer](https://semver.org) in its
 Not affiliated with, endorsed by, or sponsored by Anthropic. "Claude" and "Claude Code" are
 trademarks of Anthropic, used here nominatively only to describe compatibility. All other product
 names are the property of their respective owners.
+
+## Provenance
+
+Built with heavy AI assistance (Claude Code). Design, direction, review, and curation by
+`wtp128pro`, who is responsible for what ships here. The formal-verification claims aren't asserted
+on faith — the TLA+ model check is independently reproducible in seconds: see
+[**Verify the formal claims yourself**](plugins/dag/README.md#verify-the-formal-claims-yourself)
+in the plugin README, and [`references/formal-models.md`](plugins/dag/skills/dag/references/formal-models.md)
+for the full transcript and traceability.

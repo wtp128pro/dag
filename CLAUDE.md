@@ -11,6 +11,10 @@ Every change to this repo lands through a pull request. The maintainer only ever
 - **Never merge a PR without the maintainer's explicit approval.** Open the PR, say it's ready,
   and wait — *even when the change was explicitly requested*. Merging is the maintainer's call,
   not the assistant's.
+- **Stay on the PR's branch until it merges.** After opening a PR, leave the working tree checked
+  out on that feature branch — do **not** `git checkout main` to "tidy up." Only return to `main`
+  as part of the merge sequence below. (The maintainer's status line shows the current branch and
+  its open PR; ending a turn on `main` hides the in-flight work and makes the branch/PR look absent.)
 - **When told to merge, do all of this in one go:** merge the PR → sync `main`
   (`git checkout main && git pull --ff-only`) → delete the merged branch → verify the merge commit
   is on `main`, the change is present, and the branch (remote **and** local) is gone.
