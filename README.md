@@ -123,3 +123,9 @@ Each plugin is independently versioned with [SemVer](https://semver.org) in its
 ## License
 
 [MIT](LICENSE) © 2026 wtp128pro
+
+## Trademarks & affiliation
+
+Not affiliated with, endorsed by, or sponsored by Anthropic. "Claude" and "Claude Code" are
+trademarks of Anthropic, used here nominatively only to describe compatibility. All other product
+names are the property of their respective owners.
