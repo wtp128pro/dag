@@ -183,7 +183,19 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.2.0** — verifier hardening + reproducible-evidence + large-dataset
+Current version: **1.3.0** — five-track audit remediation. Closes validator-enforcement evasions and
+adds robustness (PR-1); fixes the learnings contract + the Phase-0.5→G-personas deadlock (PR-2) and
+the I12 selector semantics — `all`/`U0X`/`tag:` enforced, `phaseN` removed (PR-3); makes the
+formal-model docs honest (PR-4); tightens skill instructions + socratic schemas (PR-5) and the
+debrief/verify/learnings schemas (PR-6); ships a hardened **personas** skill (PR-7), an executable
+**HOME-isolated test harness** `scripts/run_tests.sh` (PR-8), and a validator/shell/docs hygiene batch
+(PR-9). Three follow-ups: durable **per-unit `fsm-state.units[]` loop state** for parallel waves
+(D-02, **REVISES** I4's cross-check surface); **blessed per-panelist `verify_p*.json`** as
+validate-if-present audit artifacts (D-04); and a **mechanical Phase-8 sign-off gate**
+`gates.signoff_confirmed` required at `DONE` (D-06, **REVISES** the gate contract). All new enforcement
+is post-hoc/offline — no live guard on the sole `RETRY→EXECUTE` back-edge — so termination is
+**PRESERVED** (the two REVISES carry migration arguments; TLC re-checks clean). **1.2.0** — verifier
+hardening + reproducible-evidence + large-dataset
 partitioning. Panel-of-3 with **distinct lenses** (correctness/reproduce/guardrail) is now the
 **default on `high-stakes` units**, aggregated by **discrete majority** (a split → DISAGREE, never
 softmax); a bounded **loop-until-dry** verify sweep and a **coverage-first** verifier mandate raise

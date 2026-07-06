@@ -3,6 +3,61 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-07-06
+
+Five-track audit remediation of the two skills (`dag`, `personas`): thirteen work units run through
+the pipeline itself, each with an independent adversarial verifier (distinct-lens panel-of-3 on the
+guarantee-touching units). Every change classifies **preserves** vs **revises** the formal machinery
+with a migration argument. All new enforcement is **post-hoc / offline** — no FSM edge is added and no
+live guard is placed on the sole `RETRY→EXECUTE` back-edge (LT7), so the termination proof is
+**PRESERVED**; the two **revises** (I4's cross-check surface, the gate contract) carry migration
+arguments and TLC re-checks clean. The validator fixture suite grew from 48 to **54** explicit
+fixtures (positive + negative, swept on both the built-in and the `jsonschema`-library backend).
+
+### Added
+- **Executable, HOME-isolated test harness** `scripts/run_tests.sh` (PR-8) — the repo CI: sweeps every
+  `scripts/tests/` fixture via `tests/expectations.tsv` on each available validator backend, stubs
+  `HOME` so fixture verdicts no longer depend on the operator's real `~/.claude/dag/` (IMP-16), and
+  checks the `manifest.schema.json` instance pair.
+- **Durable per-unit loop state (D-02 / IMP-11)** — `fsm-state.units[]` items may now carry optional
+  `retries` + `loop_state`, so a parallel wave with >1 in-flight unit is durably representable (was an
+  I2 ledger-is-truth gap); the top-level `loop` stays the back-compat most-recently-transitioned
+  snapshot. **Revises** I4's cross-check surface (the per-unit `iteration ≤ retries+1` bound now
+  applies to every unit that records `retries`, not just `loop.unit_id`) — offline, PRESERVES
+  termination. Fixtures `units_loop_ok`, `units_loop_overrun`.
+- **Blessed per-panelist verify files (D-04 / IMP-20)** — a panel MAY persist each member's full
+  verify as `units/<U>/verify_p<N>.json`; the validator now validates them if present (same
+  `verify.schema.json`, `executor_reasoning_seen: false`, `unit_id`-matching) as audit artifacts that
+  never override the aggregated `verify.json`. Additive → **preserves**. Fixtures `panelist_files_ok`,
+  `panelist_reasoning_seen`.
+- **Mechanical Phase-8 sign-off gate (D-06 / BRK-13)** — new `gates.signoff_confirmed`, added to the
+  validator's REQUIRED_GATES for `DONE`, so a run cannot reach `DONE` without recording the human
+  sign-off (previously the validator could not tell sign-off happened). **Revises** the gate contract
+  (a `DONE` run without the flag is now invalid — migration backfills every `DONE` artifact); offline
+  gate-ordering predicate, no live LT7 guard, PRESERVES termination (`Pipeline.tla` already abstracts
+  the P8 exit gate, so no TLA+ edit; TLC clean). Fixtures `signoff_ok`, `signoff_missing`.
+- A hardened **`personas`** skill (PR-7): anchored cross-skill paths, corrected collision/corrupt-file
+  flows, and index/phase-drift reconciliation.
+
+### Changed / Fixed
+- **Validator enforcement gaps closed (PR-1)** — four evasions closed plus robustness hardening
+  (fail-closed predicates over emitted artifacts).
+- **Learnings contract (PR-2 / D-01a)** — `G#` ids, `supersedes`, store hygiene, and the
+  **Phase-0.5 → G-personas deadlock** fixed by dropping `learnings.json` from the `post_p1` trigger
+  (**revises** G-personas — narrows one trigger, migration noted).
+- **I12 selector semantics (PR-3 / D-03a)** — `all`, `U0X`, and `tag:` selectors are now enforced and
+  an unknown selector kind hard-FAILs (BRK-08/09, previously a silent skip); the unimplementable
+  `phaseN` selector is removed from the docs.
+- **Formal-model truth (PR-4)** — the FAIL-origin escalation is now modeled and stale coverage claims
+  are corrected.
+- **Skill instruction completeness (PR-5 / D-07b)** and **schema tightenings (PR-6 / D-05a)** —
+  overrun honesty (`tokens_consumed` may exceed budget only while self-identifying as over-budget),
+  the retry `prior_feedback` echo is schema-required on retries (narrows Limitation F), the verify
+  `disagreement` iff is fully schema-enforced, and the `scope.expiry` grammar is pinned.
+- **Hygiene batch (PR-9)** — iterative cycle-DFS (no `RecursionError` on deep chains, byte-identical
+  output), encoding/self-check robustness, JSON-safe/symlink-safe/single-clock shell hardening,
+  gitignored TLC scratch metadir, a corrected `/plugin` update flow, and a completed DESIGN shipping list.
+
 ## [1.2.0] — 2026-07-06
 
 Verifier hardening + reproducible evidence + large-dataset partitioning. Every change is
