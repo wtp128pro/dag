@@ -5,5 +5,6 @@
   "mandate": "find the smallest change/solution that satisfies the criteria.",
   "optimizes_for": "reversibility, low blast radius, maintainability.",
   "skeptical_of": "big rewrites, premature abstraction.",
+  "phase": "any",
   "pair_with": "Domain Expert"
 }

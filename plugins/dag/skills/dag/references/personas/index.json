@@ -60,7 +60,8 @@
     "role": "Producer",
     "description": "Producer: own the correct answer within one domain",
     "mandate": "own the correct answer within one domain.",
-    "skeptical_of": "generic solutions that ignore domain constraints."
+    "skeptical_of": "generic solutions that ignore domain constraints.",
+    "phase": "any"
   },
   {
     "name": "Implementer / Executor",
@@ -83,14 +84,16 @@
     "role": "Producer",
     "description": "Producer: find the smallest change/solution that satisfies the criteria",
     "mandate": "find the smallest change/solution that satisfies the criteria.",
-    "skeptical_of": "big rewrites, premature abstraction."
+    "skeptical_of": "big rewrites, premature abstraction.",
+    "phase": "any"
   },
   {
     "name": "User Advocate",
     "role": "Advocate",
     "description": "Advocate: represent the end consumer of the deliverable",
     "mandate": "represent the end consumer of the deliverable.",
-    "skeptical_of": "technically-correct-but-unusable outcomes."
+    "skeptical_of": "technically-correct-but-unusable outcomes.",
+    "phase": "any"
   },
   {
     "name": "Enterprise / Solutions Architect",
