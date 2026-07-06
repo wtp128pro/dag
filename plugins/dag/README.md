@@ -129,6 +129,10 @@ skills/dag/
 
 ## Verify the formal claims yourself
 
+Run the commands in this section **from a checkout of this repo** (e.g. `git clone` then
+`cd dag/plugins/dag`) — the `cd skills/dag` paths are repo-relative, not paths inside an installed
+plugin.
+
 The "machine-checked" claim above isn't asked to be taken on faith — you can re-run the TLC model
 check yourself in seconds. It needs a JDK; TLA+'s `tla2tools.jar` is a build tool fetched to `/tmp`,
 never vendored into the skill.
