@@ -54,12 +54,16 @@ files. This is what makes the run resumable and keeps Dag's own context lean.
 └── SYNTHESIS.md     final rolled-up deliverable (Phase 8)
 ```
 
-The skill dir itself additionally ships `schemas/*.schema.json`, `scripts/validate_run.{sh,py}`,
-`references/{methodology,evidence-standards,state-machine,socratic-protocol,self-learning-loops,formal-models}.md`,
+The skill dir itself additionally ships `schemas/*.schema.json`,
+`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh}` (+ `tests/`), the
+machine-checked models `formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als}`,
+`references/{methodology,evidence-standards,state-machine,socratic-protocol,self-learning-loops,formal-models,data-partitioning}.md`,
 and the `references/personas/` catalog (`index.json` + per-file persona JSON + `GUIDE.md`).
-Each top-level `.md` artifact gets a machine-checkable `.json` sidecar (validity ≠ correctness); the
-per-unit **debrief and verify are JSON-only** (nothing reads a second markdown copy). The validator
-resolves schemas relative to itself, so the run dir needs no schema copy.
+Only the artifacts backed by a schema carry a machine-checkable `.json` (validity ≠ correctness):
+**`personas`, `clarifications`, `cartography`, `graph`, `fsm-state`, and `learnings`** — while
+`INPUT`/`PLAN`/`DECISIONS`/`PROGRESS`/`SYNTHESIS` are prose-only; the per-unit **debrief and verify
+are JSON-only** (nothing reads a second markdown copy). The validator resolves schemas relative to
+itself, so the run dir needs no schema copy.
 
 **Pipeline:** Bootstrap(0) → Personas(1) → Clarify(2) → Cartography(3) → Decompose+DAG(4)
 → Brief(5) → Execute+Verify per wave(6) → Disagreement gates(7, as needed) → Synthesis(8).

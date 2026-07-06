@@ -79,12 +79,15 @@ Run it with no argument and it will ask you for the task.
 
 ## Updating
 
-When a new version is published to this repo:
+When a new version is published to this repo, refresh the marketplace catalog and reload:
 
 ```
 /plugin marketplace update dag
-/plugin update dag@dag
+/reload-plugins
 ```
+
+There is no `/plugin update` command; marketplace plugins with auto-update enabled pick up the new
+version once the catalog is refreshed (otherwise re-enable/re-install from the `/plugin` menu).
 
 ## Repository layout
 
