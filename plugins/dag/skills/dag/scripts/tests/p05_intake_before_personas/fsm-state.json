@@ -1,0 +1,3 @@
+{ "run_dir": "tests/p05_intake_before_personas", "phase": "P0_BOOTSTRAP", "updated_at": "2026-07-06T00:00:00-0400",
+  "gates": { "personas_confirmed": false, "clarification_resolved": false, "cartography_done": false, "decomposition_approved": false },
+  "units": [] }

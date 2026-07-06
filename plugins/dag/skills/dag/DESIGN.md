@@ -40,7 +40,7 @@ files. This is what makes the run resumable and keeps Dag's own context lean.
 ├── PLAN.md          living master plan (phase table, objective, open questions)
 ├── DECISIONS.md     append-only decision log (choice + rationale + alternatives)
 ├── PROGRESS.md      append-only progress log (one line per state change)
-├── LEARNINGS.md     durable generalizable lessons (self-learning loop) (+ learnings.json sidecar, emitted in Phase 6)
+├── LEARNINGS.md     durable generalizable lessons (self-learning loop) (+ learnings.json sidecar, emitted in Phase 6 or seeded by the Phase-0.5 intake)
 ├── fsm-state.json   pipeline FSM state (phase + gates + loop substate) — seeded at bootstrap
 ├── PERSONAS.md      confirmed roster (Phase 1)          (+ personas.json sidecar)
 ├── CLARIFICATIONS.md ambiguity register + resolutions (Phase 2)  (+ clarifications.json)

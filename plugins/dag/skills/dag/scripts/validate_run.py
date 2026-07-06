@@ -502,10 +502,20 @@ def main(argv=None):
     # the L2 "post-hoc, not a live LT7 guard" requirement structurally). ABSENT STORE => ZERO
     # behavior change: the discovery loop finds no files, so `learnings` is exactly what the
     # run-local loader produced and every existing fixture is byte-for-byte identical.
-    # Malformed store data is REPORTED (rep.fail) and DROPPED — it can never crash the run,
-    # mirroring the run-local loader tolerance directly above (L398-423).
+    # IMP-07 / Task 2.5: malformed store data is REPORTED as a NON-GATING NOTE and DROPPED — it can
+    # never crash NOR FAIL the run. A cross-run store (project `.dag/learnings/`, user
+    # `~/.claude/dag/learnings/`) is IMPORTED CONTEXT, not this run's emitted artifact; a stale/corrupt
+    # store file must not brick every future run of the project. This matches the two shipped promises —
+    # SKILL.md Phase 0.5 "the validator's learnings role never gates a phase transition" and
+    # self-learning-loops.md "a malformed entry is REPORTED and DROPPED, never a crash". The dropped
+    # entry never reaches I12 either way, so enforcement is unchanged; only the gating is removed.
+    # (Run-local learnings.json malformation stays rep.fail above — it IS this run's artifact.)
     _lschema = schemas.get("learnings.schema.json")
     _store_entry_schema = (_lschema.get("$defs", {}) or {}).get("entry") if isinstance(_lschema, dict) else None
+
+    def _store_note(label, detail):
+        # Non-gating store-malformation report (IMP-07): prints a NOTE, records NO problem, drops the datum.
+        print(f"  NOTE  {label} MALFORMED (dropped, non-gating — imported store context): {detail}")
 
     def _applies_frozenset(E):
         sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
@@ -537,27 +547,27 @@ def main(argv=None):
                 try:
                     raw = load_json(fp)
                 except Exception as e:
-                    rep.fail(f"learnings-store {rel}", f"not valid JSON: {e}")
+                    _store_note(f"learnings-store {rel}", f"not valid JSON: {e}")
                     continue
                 if isinstance(raw, dict):
                     file_entries = raw["entries"] if "entries" in raw else [raw]
                 elif isinstance(raw, list):
                     file_entries = raw
                 else:
-                    rep.fail(f"learnings-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
+                    _store_note(f"learnings-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
                     continue
                 if not isinstance(file_entries, list):
-                    rep.fail(f"learnings-store {rel}", "'entries' must be an array")
+                    _store_note(f"learnings-store {rel}", "'entries' must be an array")
                     continue
                 for j, E in enumerate(file_entries):
                     if _store_entry_schema is not None:
                         errs = validate(E, _store_entry_schema)
                         if errs:
                             for e in errs:
-                                rep.fail(f"learnings-store {rel}[{j}]", e)
+                                _store_note(f"learnings-store {rel}[{j}]", e)
                             continue  # DROP malformed store entry — never reaches I12
                     elif not isinstance(E, dict):
-                        rep.fail(f"learnings-store {rel}[{j}]", "entry is not an object")
+                        _store_note(f"learnings-store {rel}[{j}]", "entry is not an object")
                         continue
                     eid = E.get("id")
                     if eid in have_ids:
@@ -577,7 +587,8 @@ def main(argv=None):
     # identical `scope.applies_to` selector set) the project/run-local entry WINS — the shadowed
     # user entry is DROPPED from propagation and the override is REPORTED (never silent). Absent
     # dir => ZERO behavior change (nothing to read). Same tolerant loader (one entry object,
-    # {entries:[...]}, or a bare [...] array); malformed data is REPORTED (rep.fail) and DROPPED.
+    # {entries:[...]}, or a bare [...] array); malformed data is a NON-GATING NOTE (dropped, never a
+    # FAIL — imported store context, IMP-07/Task 2.5).
     # User-store ids join `store_ids` so they are treated as imported/already-generalized by the
     # G1 admission carve-out and by the G5 `from_store` decay test — they are across-run entries.
     user_dir = os.path.expanduser(os.path.join("~", ".claude", "dag", "learnings"))
@@ -591,27 +602,27 @@ def main(argv=None):
             try:
                 raw = load_json(fp)
             except Exception as e:
-                rep.fail(f"learnings-user-store {rel}", f"not valid JSON: {e}")
+                _store_note(f"learnings-user-store {rel}", f"not valid JSON: {e}")
                 continue
             if isinstance(raw, dict):
                 file_entries = raw["entries"] if "entries" in raw else [raw]
             elif isinstance(raw, list):
                 file_entries = raw
             else:
-                rep.fail(f"learnings-user-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
+                _store_note(f"learnings-user-store {rel}", "expected an entry object, {entries:[...]}, or [entries]")
                 continue
             if not isinstance(file_entries, list):
-                rep.fail(f"learnings-user-store {rel}", "'entries' must be an array")
+                _store_note(f"learnings-user-store {rel}", "'entries' must be an array")
                 continue
             for j, E in enumerate(file_entries):
                 if _store_entry_schema is not None:
                     errs = validate(E, _store_entry_schema)
                     if errs:
                         for e in errs:
-                            rep.fail(f"learnings-user-store {rel}[{j}]", e)
+                            _store_note(f"learnings-user-store {rel}[{j}]", e)
                         continue                       # DROP malformed user-store entry — never reaches I12
                 elif not isinstance(E, dict):
-                    rep.fail(f"learnings-user-store {rel}[{j}]", "entry is not an object")
+                    _store_note(f"learnings-user-store {rel}[{j}]", "entry is not an object")
                     continue
                 eid = E.get("id")
                 escope = _applies_frozenset(E)
@@ -1458,16 +1469,33 @@ def main(argv=None):
     if graph_md_exists or graph_json_exists:                                 post_p1.append("graph")
     if unit_docs or unit_dirs_with_debrief or unit_dirs_with_work:           post_p1.append("units")
     if _exists("SYNTHESIS.md"):                                              post_p1.append("synthesis")
-    if _exists("learnings.json"):                                            post_p1.append("learnings")
+    # BRK-06 / D-01(a): learnings.json is DELIBERATELY NOT a post-Phase-1 signal. It is ledger
+    # BOOKKEEPING, not a work-graph artifact — the exact structural distinction the I-dod trigger
+    # already codifies (which excludes learnings.json for the same reason). SKILL.md Phase 0.5 folds
+    # surviving cross-run imports into learnings.json BEFORE Phase 1, so counting it as post-P1 work
+    # made G-personas FAIL on the intake write and deadlocked the run before the persona gate. Every
+    # other trigger (clarifications/cartography/graph/units/synthesis) still fires, so no run with
+    # actual downstream work can skip the gate — the two artifact-driven triggers are now consistent.
+    # SCOPE OF THIS CHANGE (guarantee bookkeeping): this REVISES ONLY the G-personas trigger. It must
+    # NOT touch I2 ledger-is-truth, which shares `post_p1` as an input — a present learnings.json is
+    # still a durable RUN ARTIFACT whose existence implies fsm-state.json must be on disk. The two
+    # consumers are therefore DELIBERATELY disentangled: I2 below re-adds learnings.json as its own
+    # signal so its fail-closed trigger is unchanged (a learnings-only dir with no fsm-state.json still
+    # FAILs I2, exactly as before this PR); only G-personas stops firing on ledger bookkeeping.
 
     # I2 ledger-is-truth (IMP-17) — fsm-state.json is the durable FSM state. If it is ABSENT but the
     # run produced ANY other artifact/unit signal, the state is not on disk — fail closed. A truly
     # EMPTY run dir stays a no-op (init_run.sh seeds fsm-state.json, so an empty dir means "not a
     # run"). Distinct from a present-but-INVALID fsm-state.json, which check_artifact already FAILed.
-    if not os.path.exists(os.path.join(rd, "fsm-state.json")) and (post_p1 or unit_subdirs):
+    # NOTE: learnings.json is an I2 signal even though it is NOT a G-personas signal (see above) — a
+    # learnings.json on disk is a real run artifact, so I2's coverage is unchanged by the D-01(a) fix.
+    _i2_signals = list(post_p1) + (sorted(unit_subdirs) if unit_subdirs else [])
+    if _exists("learnings.json"):
+        _i2_signals.append("learnings.json")
+    if not os.path.exists(os.path.join(rd, "fsm-state.json")) and _i2_signals:
         rep.fail("I2 ledger-is-truth",
                  "fsm-state.json absent but run artifacts exist "
-                 f"({post_p1 or sorted(unit_subdirs)}) — the FSM state must live on disk")
+                 f"({_i2_signals}) — the FSM state must live on disk")
 
     if post_p1:
         missing = []

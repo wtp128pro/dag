@@ -48,8 +48,8 @@
     "learnings_applied": {
       "type": "array",
       "uniqueItems": true,
-      "items": { "type": "string", "pattern": "^L[0-9]+$" },
-      "description": "Ids of LEARNINGS entries applied in this unit. MAY be empty. The validator's propagation predicate REQUIRES that any tag-scoped learning E whose tag this unit carries (and created no later than this unit's wave) appears here."
+      "items": { "type": "string", "pattern": "^[LG][0-9]+$" },
+      "description": "Ids of LEARNINGS entries applied in this unit. MAY be empty. The validator's propagation predicate REQUIRES that any tag-scoped learning E whose tag this unit carries (and created no later than this unit's wave) appears here. `L#` = a run/project-scoped entry; `G#` = a store-imported global entry, listable here once it is re-grounded/active (I12 force-injects re-grounded G# entries) — the pattern mirrors learnings.schema.json's `^[LG][0-9]+$` id."
     }
   }
 }

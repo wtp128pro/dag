@@ -296,13 +296,14 @@ outcome** (a verify verdict, a test result, a cited finding). One-off facts stay
 unit debrief (this is the over-fitting guard — see §6.2).
 
 **Entry schema.** Canonical **required** field set:
-`id, trigger, lesson, how_to_apply, scope{applies_to, excludes, expiry}, evidence, since_wave`.
-`promotable` is **optional** (not part of the required set — the §4.3 propagation predicate keys
-off `since_wave`, never `promotable`).
+`id, trigger, lesson, how_to_apply, scope{applies_to}, evidence, since_wave` — within `scope`, only
+`applies_to` is required; `excludes` and `expiry` are **optional** (matching `learnings.schema.json`
+`scope.required: ["applies_to"]` and `templates/graph.md`). `promotable` is **optional** too (not
+part of the required set — the §4.3 propagation predicate keys off `since_wave`, never `promotable`).
 
 | Field | Type | Meaning / rule |
 |-------|------|----------------|
-| `id` | `"L<n>"` | stable id |
+| `id` | `"L<n>"` (run/project) or `"G<n>"` (global import) | stable id — matches `learnings.schema.json` `^[LG][0-9]+$` |
 | `since_wave` | int ≥ 1 | the wave from which this lesson binds later briefs (used by the propagation rule §4.3) |
 | `trigger` | string | **the verifiable outcome** that produced the lesson — e.g. `"U0X verify FAIL: <criterion>"`, a test result, or a cited finding id. MUST reference an external signal, **not** a self-assessment. |
 | `lesson` | string (1 sentence) | the generalizable rule |
@@ -464,7 +465,9 @@ discovery/merge/promotion at *runtime* is prose the model executes.
   run's `fsm-state.model` matches (fnmatch glob OR prefix); a model-agnostic entry = all models; an
   absent run model with `scope.model` set ⇒ fail-closed (not injected). It can ONLY narrow (scope.model
   was ignored before = applies-to-all), label `I12 model narrowing (04/G4): <id> … EXCLUDED …`.
-- **Contradiction / `supersedes` (03/P5).** An entry with `supersedes: ["<id>"]` EXCLUDES the
+- **Contradiction / `supersedes` (03/P5).** An entry with `supersedes: "<id>"` (a single id — a
+  string, not an array; to supersede several entries, emit several superseding entries or consolidate)
+  EXCLUDES the
   superseded entry from propagation (label `learnings contradiction (03/P5): <id> superseded …`). Two
   live entries competing for the same `scope.applies_to` with no `supersedes` ordering are surfaced as
   a NON-failing human-escalation `NOTE  contradiction (03/P5): … NOT auto-picked` (AO-5: genuine split
@@ -582,10 +585,11 @@ value is a cost/benefit knob, not a correctness constant. `2` retries (3 attempt
 `SKILL.md`/`methodology.md` §Self-learning loops and MAST's "step repetition / unaware of
 termination" guardrails (arXiv:2503.13657); once external feedback is exhausted, more retries
 rarely help and intrinsic correction can *degrade* (arXiv:2310.01798). **Recommendation:** default
-`MAX_RETRIES = 2`, expose it as `max_retries` in `fsm-state.json` with **schema ceiling
-`maximum: 2`**. Crucially, the §2 proof is **parametric in any finite `N`** (variant
-`V = N − retries`), so configurability never weakens termination — a real property, not an
-assertion.
+`MAX_RETRIES = 2`. The ceiling is already exposed as the shipped constant — `fsm-state.schema.json`'s
+`loop.retries.maximum: 2` (the schema IS the exposed constant); no separate `max_retries` field is
+added, so there is no second mirror to keep in sync. Crucially, the §2 proof is **parametric in any
+finite `N`** (variant `V = N − retries`), so configurability never weakens termination — a real
+property, not an assertion.
 
 **6.5 Residual uncertainty (model-judged, not mechanically decidable).** The validator
 checks the *plumbing* — contract shape, the counter, `do_not_touch` disjointness, scope
