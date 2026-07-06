@@ -493,11 +493,14 @@ Any subagent can be pointed at these files, which is *why* nothing gets rediscov
 verify verdict, a test result, a cited finding — never self-assessment), `lesson`,
 `how_to_apply`, `scope{applies_to, excludes, expiry}`, `evidence`, and `since_wave` (the
 integer wave from which the entry binds later briefs). `applies_to` is a
-mechanical **SelectorSet** — each element is `all`, a unit-id (`"U0X"`), a phase (`"phaseN"`),
-or a tag (`"tag:<T>"`). **Generalizability gate:** an entry is admitted only if its scope
-matches **≥ 2 units** (a `tag:<T>` scope needs ≥ 2 units carrying `T`); a one-off lesson stays
-in that unit's debrief, not the ledger. **Propagation rule:** every unit brief whose scope the
-entry matches **and** whose wave satisfies `unit.wave ≥ since_wave` MUST list that entry's `id`
+mechanical **SelectorSet** — each element is `all`, a unit-id (`"U0X"`), or a tag (`"tag:<T>"`):
+the three kinds the validator enforces (an unrecognized kind is a hard `I12 selector` FAIL, never a
+silent skip; the old `"phaseN"` kind was removed as unevaluable — BRK-09). **Generalizability gate
+(selector-kind asymmetric):** a `tag:<T>` scope needs ≥ 2 units carrying `T` and an `all` scope needs
+≥ 2 units in the graph (a one-off *pattern* stays in that unit's debrief, not the ledger), while a
+deliberate unit-id (`"U0X"`) selector is a single-target binding and is always admissible.
+**Propagation rule:** every unit brief whose scope selector matches (`all` | unit-id | `tag`)
+**and** whose wave satisfies `unit.wave ≥ since_wave` MUST list that entry's `id`
 in `learnings_applied` and quote its `lesson` + `how_to_apply` (the predicate is
 `unit.wave ≥ since_wave`, not merely "authored after" the entry). `learnings.json` is the
 machine-readable sidecar for `LEARNINGS.md`, **emitted in Phase 6 when a generalizable lesson is

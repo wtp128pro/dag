@@ -30,7 +30,9 @@ how_to_apply · scope{ applies_to: SelectorSet (required), excludes:[unit-id] (o
 expiry: run|project|runs:N|date:<iso> (optional) } · evidence · since_wave · promotable: bool (optional)`.
 `since_wave` is an int ≥ 1 — the wave from which the entry binds later briefs (propagation
 predicate `U.wave ≥ since_wave`).
-`applies_to` selectors: `all` / `"U0X"` / `"phaseN"` / `"tag:<T>"`. **Propagation
+`applies_to` selectors: `all` / `"U0X"` / `"tag:<T>"` — the three validator-enforced kinds (an
+unrecognized kind is a hard `I12 selector` FAIL; the old `"phaseN"` kind was removed as unevaluable —
+BRK-09). **Propagation
 rule:** any brief for a unit the entry's scope matches **and whose `wave ≥ since_wave`** MUST
 list the `id` in `learnings_applied` and quote `lesson` + `how_to_apply` (validator-checked; see
 references/self-learning-loops.md §4.3).
