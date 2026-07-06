@@ -54,6 +54,19 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 > `disagreement.md`, marks the unit `blocked`, and hands to the same Phase-7 human gate — it does
 > **not** auto-advance to synthesis (see I10).
 
+> **Per-unit loop state under parallel waves (`fsm-state.units[]`, D-02/IMP-11).** The single
+> top-level `fsm-state.loop` object holds the substate of the **most recently transitioned** unit
+> only — with parallel waves >1 unit is in flight, so that one slot cannot durably represent every
+> unit's retry count (I2 ledger-is-truth). Each `units[]` item therefore MAY carry its own optional
+> **`retries`** (0..2) and **`loop_state`** (the same `Q` vocabulary above). Both are additive and
+> optional: an item that omits them is unchanged, and the top-level `loop` slot stays as the
+> back-compat "current unit" snapshot. When a `units[]` item records `retries`, `validate_run.py`
+> applies the **same I4 bound** to it — `verify.iteration ≤ retries+1` — extended from the single
+> `loop.unit_id` unit to every unit that records its own count (label `I4 units[] cross-check`).
+> This is a **post-hoc / offline** predicate over emitted artifacts — it gates no transition and
+> adds no guard to the sole back-edge LT7, so it **PRESERVES** the termination proof and **REVISES**
+> only I4's cross-check surface (the durable-state shape, not the loop's dynamics).
+
 ## 2. Transition table  (state × event → next state [guard])
 
 | # | From | Event | Guard (must hold) | To |
@@ -132,7 +145,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I1b maker!=checker (persona distinctness)** | Every unit's `executor_persona` must differ from its `verifier_persona` (maker ≠ checker — prime-directive #3 + Alloy `DistinctMakerChecker`). | `validate_run.py` cross-checks `executor_persona != verifier_persona` over `graph.json` units and prints the label `I1b maker!=checker (persona distinctness)` (added in U04). Closes the previously-unenforced graph-level gap. *(Labeled **I1b** as the structural counterpart of **I1 Verifier independence** — both realize prime-directive #3, "decouple the maker from the checker". Genuine model-distinctness behind the persona label stays unenforceable — Limitation D.)* |
 | **I2 Ledger-is-truth** | Current state = disk (`fsm-state.json` + markdown), never model memory only. | convention; validator confirms `fsm-state.json` parses & is valid. |
 | **I3 DAG acyclic (fail-closed)** | The work graph has no dependency cycle; graph.json is authoritative. | validator: cycle on `edges ∪ unit-deps`; **GRAPH.md-present or post-decomposition ⇒ VALID graph.json REQUIRED** (unparseable/absent ⇒ non-zero exit). Closes E. |
-| **I4 Loop bound** | `retries ≤ 2` per unit (≤3 executions); `iteration ≤ retries+1`. | schema `maximum:2` + validator cross-check. |
+| **I4 Loop bound** | `retries ≤ 2` per unit (≤3 executions); `iteration ≤ retries+1`. | schema `maximum:2` + validator cross-check — applied to the top-level `loop` slot **and** (D-02/IMP-11) to every `fsm-state.units[]` item that records its own optional per-unit `retries` (label `I4 units[] cross-check`), so parallel-wave units are each bounded, not just the most-recently-transitioned one. Both are post-hoc/offline (no LT7 guard). |
 | **I5 Budget cap** | Every brief/unit ≤ 32K tokens (PLAN-side). | schema `maximum:32000` on `budget_tokens`/`est_footprint_tokens` (the plan-side ceiling — briefs/graph units still cannot *plan* >32K). **Report-side (PR-6/IMP-04):** `debrief.footprint.tokens_consumed` has NO maximum, so a real overrun is *reported* truthfully; a schema `if/then` forces `tokens_consumed>32000 ⇒ within_budget:false`, so the re-atomization discipline consumes an honest over-budget signal instead of a forced lie. |
 | **I6 Evidence-bound verdicts** | FAIL names ≥1 defect, each citing a brief acceptance criterion; PASS ⇒ **no blocker/major defect** (REVISED for coverage-first, PR1 — was `defects==[]`; a PASS may now carry `minor` observations: "report every finding + severity, filter downstream"). | schema `if/then` (FAIL⇒defects≥1 + actionable_changes; PASS⇒every defect severity==`minor`) + validator criterion-∈-brief cross-check + an I6-PASS defense-in-depth check. Termination-preserving: verdict enum + the §2 partition are unchanged (content-rule revision only). |
 | **I7 Single recommended option** | A disagreement dossier marks exactly ONE option recommended. | validator counts `recommended==true`. |

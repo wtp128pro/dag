@@ -277,7 +277,13 @@ I15 (AO-6): ∀ unit, iter=n>1 with a prior_feedback echo :
 `{ unit_id, state ∈ Q, retries: int 0..2 (maximum:2), iteration: int ≥1 (≤ retries+1),
 last_verdict, last_feedback_ref }`. This is the `retries`-counter + loop-substate shape the
 schema encodes, with the enum `Q` and the `iteration ≤ retries+1` bound (I4; the validator
-checks the upper bound, not a hard equality).
+checks the upper bound, not a hard equality). This single top-level `loop` object snapshots the
+**most recently transitioned** unit; because waves run units in parallel, each `fsm-state.units[]`
+item additionally carries an **optional** per-unit `{ retries: int 0..2, loop_state ∈ Q }` so every
+in-flight unit's substate is durably representable (D-02/IMP-11, ledger-is-truth). The validator
+applies the same `iteration ≤ retries+1` I4 bound to any `units[]` item that records `retries`
+(state-machine.md §1a). This never changes the loop *dynamics* (§1.3 table, variant `V=2−retries`,
+the §2 termination proof) — it only widens the durable **shape** the state is recorded in.
 
 ---
 

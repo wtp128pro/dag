@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "dag/fsm-state.schema.json",
   "title": "FSM state (pipeline current-state file)",
-  "description": "fsm-state.json at run root. Durable current state of the pipeline FSM (see references/state-machine.md). Models the phase, the executor<->verifier loop substate (Q = EXECUTE|VERIFY|ADJUDICATE|RETRY|ESCALATE|DONE), the bounded retries counter (max 2), gate flags, and per-unit status. Loop cross-check iteration<=retries+1 is enforced in validate_run.py.",
+  "description": "fsm-state.json at run root. Durable current state of the pipeline FSM (see references/state-machine.md). Models the phase, the executor<->verifier loop substate (Q = EXECUTE|VERIFY|ADJUDICATE|RETRY|ESCALATE|DONE), the bounded retries counter (max 2), gate flags, and per-unit status. The single top-level `loop` object tracks the MOST RECENTLY TRANSITIONED unit; because units run in parallel waves, each `units[]` item MAY additionally carry its own durable per-unit `retries` + `loop_state` (D-02/IMP-11). Loop cross-check iteration<=retries+1 is enforced in validate_run.py for both the `loop` slot and every `units[]` item that records `retries`.",
   "type": "object",
   "additionalProperties": false,
   "required": ["run_dir", "phase", "updated_at"],
@@ -33,7 +33,7 @@
     },
     "loop": {
       "type": "object",
-      "description": "Executor<->verifier loop substate for the unit currently in Phase 6. retries is HARD-BOUNDED at 2 (termination invariant; variant V=2-retries). state uses the loop's Q vocabulary.",
+      "description": "Executor<->verifier loop substate for the MOST RECENTLY TRANSITIONED unit in Phase 6. With parallel waves >1 unit may be in-flight; this single slot is a back-compat snapshot of the last unit to transition, while each unit's durable per-unit loop state lives in its `units[]` item (`retries` + `loop_state`) — D-02/IMP-11. retries is HARD-BOUNDED at 2 (termination invariant; variant V=2-retries). state uses the loop's Q vocabulary.",
       "additionalProperties": false,
       "required": ["unit_id", "state", "retries", "iteration"],
       "properties": {
@@ -54,11 +54,17 @@
         "type": "object",
         "additionalProperties": false,
         "required": ["unit_id", "status"],
+        "description": "Per-unit durable record. `retries` + `loop_state` are OPTIONAL (D-02/IMP-11): they make each in-flight unit's correction-loop substate representable during parallel waves, instead of only the single top-level `loop` slot. When `retries` is present, validate_run.py cross-checks the unit's verify.iteration <= retries+1 (I4, same bound as the loop slot).",
         "properties": {
           "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
           "status": {
             "type": "string",
             "enum": ["pending", "briefed", "executing", "verifying", "passed", "failed", "blocked", "escalated"]
+          },
+          "retries": { "type": "integer", "minimum": 0, "maximum": 2 },
+          "loop_state": {
+            "type": "string",
+            "enum": ["EXECUTE", "VERIFY", "ADJUDICATE", "RETRY", "ESCALATE", "DONE"]
           }
         }
       }

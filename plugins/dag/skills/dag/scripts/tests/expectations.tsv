@@ -14,6 +14,7 @@ scope_model_narrow	0
 selector_all_ok	0	
 store_malformed_nongating	0	
 supersedes	0	
+units_loop_ok	0	
 p4_advisory/advisory_not_required	0	
 ao2_do_not_touch	1	I14 AO-2 do_not_touch disjointness
 ao6_no_changes	1	changes_made
@@ -24,6 +25,7 @@ disagreement_on_pass	1	present but INVALID
 done_missing_unit	1	G-brief offline (units/U02)
 expiry_bad_grammar	1	'someday' does not match
 fail	1	I4 loop cross-check
+units_loop_overrun	1	I4 units[] cross-check (units/U01)
 gate_skip	1	gate ordering: phase P5_BRIEFING
 graph_socratic_blank	1	I13 socratic counter (graph)
 learnings_bare_object	1	MUST list L1 in learnings_applied

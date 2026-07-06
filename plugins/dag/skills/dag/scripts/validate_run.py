@@ -958,9 +958,40 @@ def main(argv=None):
             else:
                 rep.ok(f"I4 loop cross-check ({luid}: iteration<=retries+1)")
 
-    # I4 iteration ceiling (universal) - the per-unit cross-check above only covers the unit
-    # named in fsm.loop.unit_id; every OTHER unit's verify.iteration is still bounded by the
-    # absolute ceiling retries.maximum(2)+1 = 3 (I4: iteration<=retries+1, retries<=2).
+    # I4 per-unit units[] loop bound + cross-check (D-02/IMP-11). Parallel waves put >1 unit in
+    # flight, but the single top-level `loop` slot can only snapshot the most-recently-transitioned
+    # unit; so each `units[]` item MAY now carry its own durable `retries` (+ `loop_state`). When an
+    # item records `retries`, apply the SAME I4 bound the loop slot enforces — extended to every unit
+    # that records its own retry count, not just fsm.loop.unit_id. POST-HOC/OFFLINE over emitted
+    # artifacts: it gates no transition and adds no live LT7 guard, so it cannot deadlock the loop
+    # (PRESERVES termination; REVISES only I4's cross-check surface — see state-machine.md §1a/§2a).
+    # The retries>2 branch mirrors the loop-slot defense-in-depth (N-17): dead when schemas load
+    # (fsm-state.schema units[].retries maximum=2 rejects it first), live only in no-schema mode.
+    if fsm and isinstance(fsm.get("units"), list):
+        for _u in fsm["units"]:
+            if not isinstance(_u, dict):
+                continue                       # malformed item — schema already FAILed it
+            _uid = _u.get("unit_id")
+            _r = _as_int(_u.get("retries"))    # BRK-04: normalize float-integral; None => not recorded
+            if _r is None:
+                continue                       # per-unit retries absent — nothing to cross-check
+            if _r > 2:
+                rep.fail(f"I4 units[] loop bound (units/{_uid})", f"fsm units[] retries={_r} > 2")
+                continue
+            _uv = unit_docs.get(_uid, {}).get("verify")
+            _uv_it = _as_int(_uv.get("iteration")) if _uv else None
+            if _uv_it is None:
+                continue                       # no verify yet (unit still in flight) — nothing to check
+            if _uv_it > _r + 1:
+                rep.fail(f"I4 units[] cross-check (units/{_uid})",
+                         f"verify.iteration={_uv_it} > retries+1={_r + 1} (fsm units[] retries={_r})")
+            else:
+                rep.ok(f"I4 units[] cross-check ({_uid}: iteration<=retries+1)")
+
+    # I4 iteration ceiling (universal) - the two per-unit cross-checks above only cover units that
+    # declare a retries count (fsm.loop.unit_id, and any units[] item carrying `retries`); every
+    # OTHER unit's verify.iteration is still bounded here by the absolute ceiling
+    # retries.maximum(2)+1 = 3 (I4: iteration<=retries+1, retries<=2).
     for _uid, _d in unit_docs.items():
         _v = _d.get("verify")
         _v_it = _as_int(_v.get("iteration")) if _v is not None else None   # BRK-04: normalize float-integral
