@@ -3,6 +3,22 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.5] — 2026-07-06
+
+### Changed
+- **`dag` plugin → 1.3.0** — five-track audit remediation of the two skills (`dag`, `personas`):
+  validator-enforcement gaps closed (PR-1), the learnings contract + Phase-0.5→G-personas deadlock
+  fixed (PR-2), I12 selector semantics enforced with `phaseN` removed (PR-3), formal-model docs made
+  honest (PR-4), skill instructions + debrief/verify/learnings schemas tightened (PR-5/PR-6), a
+  hardened `personas` skill (PR-7), an executable HOME-isolated test harness `scripts/run_tests.sh`
+  (PR-8), and a validator/shell/docs hygiene batch (PR-9). Three follow-ups add durable **per-unit
+  `fsm-state.units[]` loop state** (D-02, *revises* I4's cross-check surface), **blessed per-panelist
+  `verify_p*.json`** validate-if-present audit files (D-04), and a **mechanical Phase-8 sign-off gate**
+  `gates.signoff_confirmed` required at `DONE` (D-06, *revises* the gate contract). All new enforcement
+  is post-hoc/offline (no live guard on the sole `RETRY→EXECUTE` back-edge) → *preserves* the
+  termination proof; the two *revises* carry migration arguments and TLC re-checks clean. See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.4] — 2026-07-06
 
 ### Changed
