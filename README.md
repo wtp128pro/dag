@@ -9,7 +9,7 @@ hosting reusable skills. Add it once, then install any plugin from it.
 
 | Plugin | Version | Description | Invoke |
 |--------|---------|-------------|--------|
-| [`dag`](plugins/dag) | 1.1.1 | Gated, multi-phase task execution — **formally enforced** (JSON Schemas + FSM + validator; TLA+ TLC-machine-checked, Alloy machine-checked), **universal Socratic dialogue**, atomic work-unit DAG, budget-capped subagents, independent adversarial verification, **bounded self-learning loops**, anti-hallucination evidence standards | `/dag:dag <task>` |
+| [`dag`](plugins/dag) | 1.2.0 | Gated, multi-phase task execution — **formally enforced** (JSON Schemas + FSM + validator; TLA+ TLC-machine-checked, Alloy machine-checked), **universal Socratic dialogue**, atomic work-unit DAG, budget-capped subagents, independent adversarial verification (**default distinct-lens panel-of-3 on high-stakes units, coverage-first, loop-until-dry**), **bounded self-learning loops**, anti-hallucination evidence standards, **large-dataset map-reduce partitioning** | `/dag:dag <task>` |
 
 ### Skills in the `dag` plugin
 

@@ -14,11 +14,15 @@ propagation (a `"tag:<T>"`-scoped LEARNINGS entry force-injects into every unit 
 ## Tag vocabulary (`V_tag` — the enumerated registry; extend only by editing this list)
 ```
 V_tag = { research, schema, validator, code, template-edit, prose-edit,
-          design, verification, loop, socratic, synthesis, ops }
+          design, verification, loop, socratic, synthesis, ops, high-stakes }
 ```
 Tags are the *only* mechanical basis for pattern-scoped learning propagation
 (references/self-learning-loops.md §4.2). A `"tag:<T>"` LEARNINGS scope is admissible only if
 **≥ 2 units** carry `T` (the generalizability gate) — a tag on a single unit fails admission.
+**`high-stakes`** additionally carries an operational meaning (PR1 verifier hardening): a unit
+tagged `high-stakes` is verified by the **default odd panel of 3** with distinct lenses, and its
+`verify.json` MUST carry that `panel[]` — enforced post-hoc by validate_run.py **I16**
+(references/methodology.md §Verification; references/self-learning-loops.md §3).
 
 ## LEARNINGS entry schema (what each row of LEARNINGS.md must carry — req 12)
 `id · trigger` (external signal, e.g. a verify verdict / test / cited finding) `· lesson ·

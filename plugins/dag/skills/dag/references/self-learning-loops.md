@@ -154,8 +154,22 @@ transitions — the terminal `DONE`/`ESCALATE` edge is the last of the ≤3 `ADJ
 not an extra step — i.e. **≤ 3 executions, ≤ 3 verifications, ≤ 2 retries, then exactly one
 terminal**. (Counting the single entry edge into `EXECUTE`, the round figure **≤ 12** cited in
 SKILL Phase 6 holds as a valid, non-tight bound.) Each state's internal work is itself finite (executor under a
-32K budget; verifier is a single pass or a fixed odd panel of 3), so wall-clock work is
-finite too. ∎
+32K budget; the `VERIFY` node is a single pass, a fixed odd panel of 3 (PR1 default on `high-stakes`
+units), and/or a **loop-until-dry sweep bounded by `R_max = 3` rounds** — dry OR cap ends the node),
+so wall-clock work is finite too. ∎
+
+> **FLAG — PR1 verifier hardening, classified PRESERVES (termination + AO-1..7).** The panel-of-3
+> default and the loop-until-dry sweep are **node-internal work inside `VERIFY`**: neither adds a row
+> to the §1.3 transition table, neither introduces a second back-edge, and neither touches the
+> variant `V = 2 − retries` (only LT7 writes `retries`). The panel is a *fixed* odd fan-out (3) and
+> the sweep is *bounded* (`R_max = 3`, dry-or-cap), so `VERIFY`'s internal work stays finite — Claims
+> A–D above hold **verbatim**. Migration argument: this is the same category as the pre-existing
+> "fixed odd panel of 3" the proof already admitted; we only make it the default on `high-stakes`
+> units and add a bounded accumulation sweep, both of which the §2 finiteness argument already
+> covers. The panel verdict is aggregated by **discrete majority** (a split ⇒ `DISAGREE`, LT6) — the
+> guard table stays boolean and mutually-exclusive; **softmaxing it would REVISE (break) the proof**
+> by replacing the discrete split→DISAGREE routing with a thresholded/averaged score — collapsing the
+> exhaustive, mutually-exclusive `ADJUDICATE` guard partition — and is therefore forbidden (§3).
 
 > The load-bearing point the brief demands: the guarantee is **not** the cap. It is that
 > the *only* cycle strictly descends a well-founded, floor-bounded measure whose back-edge
@@ -171,8 +185,8 @@ The verifier **emits** this; on `RETRY` the next executor **consumes** `feedback
 the machine seam encoded as `verify.schema.json`, which is top-level
 `additionalProperties:false` with **nine required keys**: `unit_id`, `verifier_persona`,
 `verdict`, `iteration`, `executor_reasoning_seen`, `feedback`, `defects`, `socratic`,
-`premise_check` (`inputs_reviewed`, `audit_notes`, and — only for a `DISAGREE` — `disagreement`
-are the three optional keys). Free-form reasoning happens first; this is the *extracted* artifact
+`premise_check` (the optional keys are `inputs_reviewed`, `audit_notes`, the PR1 fields
+`panel`/`verify_rounds`/`converged`, and — only for a `DISAGREE` — `disagreement`). Free-form reasoning happens first; this is the *extracted* artifact
 (structure the plumbing, not the reasoning). The block below is a VALID instance (a `FAIL`);
 strip the `//` comments to parse it.
 
@@ -189,7 +203,7 @@ strip the `//` comments to parse it.
     "actionable_changes": ["<imperative change 1>", "..."],             // FAIL ⇒ ≥1 (conditional rule below)
     "do_not_touch": ["<already-PASSED criteria a retry must not regress/re-open>"]
   },
-  "defects": [                            // required array — PASS ⇒ []; FAIL ⇒ ≥1 (conditional rule below)
+  "defects": [                            // required array — PASS ⇒ no blocker/major (minor allowed, PR1); FAIL ⇒ ≥1 (conditional rule below)
     {
       "severity": "major",                       // required, enum blocker|major|minor
       "criterion": "<verbatim brief acceptance-criterion this violates>", // required, non-empty; ∈ brief.acceptance_criteria
@@ -216,13 +230,31 @@ strip the `//` comments to parse it.
 **Conditional-required rules (`verify.schema.json` encodes as `if/then`; they are the retry-validity
 preconditions and the anti-vague-fail gate):**
 
-- `verdict == PASS` ⇒ `defects == []`.
+- `verdict == PASS` ⇒ **no blocker/major defect** (REVISED for coverage-first, PR1 — was `defects == []`; a PASS MAY carry `minor` observations, but no blocker/major).
 - `verdict == FAIL` ⇒ `defects.length ≥ 1` **and** every `defects[].criterion` is non-empty
   **and** appears among the brief's acceptance criteria **and** `feedback.actionable_changes.length ≥ 1`.
   (A `FAIL` that cannot meet this bar is not a valid `FAIL` — the verifier must emit
   `DISAGREE`. This is invariant **AO-3, no vague fail**, and is exactly what makes LT4's
   target actionable.)
 - `verdict == DISAGREE` ⇒ `disagreement` present and complete.
+
+**Panel + loop-until-dry contract (PR1 — optional fields; node-internal; validator-checked by I16).**
+Three optional keys record the PR1 verifier hardening; all are node-internal to `VERIFY` (they add
+no FSM edge — §2 FLAG):
+
+- `panel: [{ lens ∈ {correctness, reproduce, guardrail}, verdict, verifier_persona?, summary? }]` —
+  the odd panel (≥3) of independent verifiers with **distinct lenses**. **DEFAULT on `high-stakes`
+  units** (I16 REQUIRES it there). The top-level `verdict` is the **DISCRETE majority** of the panel
+  verdicts (2-of-3); a split with no strict majority ⇒ `verdict == DISAGREE` (→ LT6 → ESCALATE, the
+  AO-5 genuine-split route). **No softmax** — the aggregate is a discrete mode, never an averaged
+  score (softmaxing the discrete guard partition would REVISE the §2 proof).
+- `verify_rounds: int 1..R_max` (`R_max = 3`) and `converged: bool` — the **loop-until-dry** sweep:
+  run rounds accumulating defects until a round surfaces no new defect (`converged: true`) or the cap
+  is hit (`converged: false`, coverage possibly incomplete). Bounded ⇒ finite (§2). I16 checks
+  `1 ≤ verify_rounds ≤ R_max`.
+
+I16 (state-machine.md §4) enforces these **post-hoc/offline** and gates **no** transition (never a
+live LT7 guard — the 02/P1 deadlock lesson), exactly like I14/I15.
 
 **Consumption contract (checkable).** On a retry (`debrief.iteration = n > 1`), the executor's
 `debrief.prior_feedback` block echoes iteration `n−1`'s `verify.feedback` — `actionable_changes`
@@ -296,8 +328,14 @@ registry, never by ad-hoc strings), e.g.:
 
 ```
 V_tag = { research, schema, validator, code, template-edit, prose-edit,
-          design, verification, loop, socratic, synthesis, ops }
+          design, verification, loop, socratic, synthesis, ops, high-stakes }
 ```
+
+The `high-stakes` tag additionally carries an **operational** meaning beyond learnings-scoping
+(PR1 verifier hardening): a unit tagged `high-stakes` is verified by the **default odd panel of 3**
+with distinct correctness/reproduce/guardrail lenses, and its `verify.json` MUST carry that
+`panel[]` — enforced post-hoc by validate_run.py **I16** (§3; references/methodology.md
+§Verification). It remains an ordinary `V_tag` member for tag-scoped propagation as well.
 
 Correspondingly, **every unit declares an explicit `tags: [T ∈ V_tag]` set** in its `GRAPH.md`
 row (mirrored into its brief). This is what makes pattern matching a mechanical set-membership
@@ -483,7 +521,17 @@ Each is stated so it is either mechanically checkable or a hard structural rule.
   the semantic backstop.
 - **AO-7 Verifier independence per iteration.** Every `VERIFY` (incl. retries) is a fresh
   independent verifier that does not see the executor's reasoning or identity;
-  `verify.executor_reasoning_seen == false` is an invariant.
+  `verify.executor_reasoning_seen == false` is an invariant. When the unit runs a **panel** (PR1),
+  *every* panelist is independent per this rule, and each retry re-panels afresh.
+
+**PR1 note — the I6 PASS revision interacts cleanly with AO-2/I14.** I6's PASS clause is REVISED for
+coverage-first: a PASS may now carry `minor` observations (but no blocker/major). This does **not**
+weaken AO-2: the auto-seeded `do_not_touch` (02/P6) is *(brief criteria) − (this verify's
+`defects[].criterion`)*, so a criterion carrying even a `minor` defect is (correctly) **not** sealed
+into `do_not_touch` — a later retry is still permitted to touch it, while I14 keeps a retry's defects
+disjoint from the criteria that were genuinely clean. A PASS ends the loop (LT3), so its `do_not_touch`
+binds no retry anyway. The revision is a **content-rule change on the verify artifact** (I6), not an
+FSM/guard change — it PRESERVES termination (verdict enum unchanged; the §1.3 partition is untouched).
 
 ---
 
@@ -495,7 +543,10 @@ trace requires either (a) a second cycle — none exists, §2 Claim A enumerates
 floor-bounded variant disabled at the floor (Claims B–C). The subtle oscillation risk
 (verifier flip-flops pass↔fail on the same criterion) is neutralized by **AO-2** +
 **AO-1**: even a flip-flopping verifier cannot prevent halt, because `retries` rises
-regardless of verdict content. **No non-terminating trace exists.**
+regardless of verdict content. **No non-terminating trace exists.** The PR1 panel + loop-until-dry
+sweep do not change this: both are **bounded node-internal work inside `VERIFY`** (a fixed fan-out of
+3; ≤ `R_max = 3` rounds), adding no edge and **never writing `retries`** — so Claims A–D and the
+oscillation argument hold unchanged (§2 FLAG).
 
 **6.2 Where would injected "learning" HURT a downstream brief?** A lesson over-fit from a
 one-off — e.g. *"a unit needed `python3.11` f-string syntax"* — blindly injected into a
@@ -556,5 +607,7 @@ JSON; (3) `templates/debrief.md` echoes `prior_feedback` on `iteration>1` + `lea
 learnings; (5) `LEARNINGS.md` + `GRAPH.md` hold the §4.2 entry schema + 4-kind `SelectorSet` +
 enumerated `V_tag` registry + per-unit `tags` column + generalizability gate (`scope`,
 `evidence` columns); (6) the schemas + validator encode `verify.schema.json` conditional rules
-(§3), `fsm-state.schema.json` loop substates `Q` + `retries` `maximum:2` + `iteration ≤ retries+1`,
-`brief.schema.json` `learnings_applied` + `tags`, and the §4.3 propagation predicate.
+(§3, incl. the REVISED PASS clause and the optional `panel`/`verify_rounds`/`converged` fields),
+`fsm-state.schema.json` loop substates `Q` + `retries` `maximum:2` + `iteration ≤ retries+1`,
+`brief.schema.json` `learnings_applied` + `tags`, the §4.3 propagation predicate, and the post-hoc
+**I16** panel discipline (high-stakes ⇒ panel; discrete-majority aggregation; `verify_rounds` bound).

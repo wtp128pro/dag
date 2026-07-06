@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/manifest.schema.json",
+  "title": "Shard manifest (large-dataset partitioning — Workstream B)",
+  "description": "The manifest a DETERMINISTIC sharder (a script, not an LLM) emits for a judgment-heavy pass over a dataset far larger than one unit's 32K budget (references/data-partitioning.md). Each shard is a shard_id -> LOCATOR (a by-reference handle: path/glob/query/key-range/URL — NEVER the raw data), so map units touch data by reference and verifiers re-run+diff on the same locator. Optional results_index + sampling_log form the aggregate ledger that replaces 10k linear units/<id>/ dirs while preserving 'everything is written down' (data-partitioning.md §7 migration note). NOT auto-run against a run by validate_run.py; it is the schema a partitioned run validates its manifest against.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["grain", "shards"],
+  "properties": {
+    "run_label": { "type": "string" },
+    "grain": {
+      "type": "string",
+      "enum": ["rows", "hash", "range", "key_range", "document", "group", "time_window", "category", "other"],
+      "description": "The natural partition grain the sharder used (rows->hash/range, docs->per-doc/group, logs->time windows, categories->by class)."
+    },
+    "sharder": {
+      "type": "string",
+      "description": "The deterministic (non-LLM) script/command that produced this manifest. Deterministic so the partition is reproducible and a verifier can re-derive which locator a shard id points at."
+    },
+    "shards": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One entry per shard. The map wave is ONE brief template applied over this array (parametric wave), not N hand-written briefs.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["shard_id", "locator"],
+        "properties": {
+          "shard_id": { "type": "string", "minLength": 1, "description": "Stable, verifier-addressable id." },
+          "locator": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["kind", "ref"],
+            "description": "The by-reference handle to the shard's data. NEVER the data itself — that stays on disk/DB.",
+            "properties": {
+              "kind": { "type": "string", "enum": ["file", "glob", "byte_range", "sql", "key_range", "url", "other"] },
+              "ref": { "type": "string", "minLength": 1, "description": "The handle: a path, glob, SQL query, key range, or URL a map unit reads and a verifier re-reads." }
+            }
+          },
+          "count": { "type": "integer", "minimum": 0, "description": "Optional: number of records in this shard." },
+          "stratum": { "type": "string", "description": "Optional: stratification label used by stratified sample-verify." }
+        }
+      }
+    },
+    "results_index": {
+      "type": "array",
+      "description": "Optional AGGREGATE results table (the aggregate-ledger index): one row per shard, replacing 10k linear units/<id>/ dirs. Addressable as manifest.shards[shard_id] -> results_index[shard_id].",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["shard_id"],
+        "properties": {
+          "shard_id": { "type": "string", "minLength": 1 },
+          "partial_ref": { "type": "string", "description": "Locator of the COMPRESSED partial the map unit emitted (a reduction, not a copy)." },
+          "verified": { "type": "boolean", "description": "true iff a verifier re-ran the bounded op on this shard's locator and diffed the partial." }
+        }
+      }
+    },
+    "sampling_log": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Honesty record: what was verified exhaustively vs sampled vs dropped. No silent truncation — a partial pass that reads as 'covered everything' is the failure mode.",
+      "required": ["strategy"],
+      "properties": {
+        "strategy": { "type": "string", "enum": ["exhaustive", "stratified", "random", "none"] },
+        "sample_size": { "type": "integer", "minimum": 0 },
+        "strata": { "type": "array", "items": { "type": "string" } },
+        "excluded": { "type": "array", "items": { "type": "string" }, "description": "shard_ids NOT individually verified — surfaced, never hidden." },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

@@ -33,6 +33,11 @@ so most are dead weight until their phase arrives.
   at human gates; self-interrogation mode in subagent briefs).
 - **Phases 2–3:** [references/methodology.md](references/methodology.md) — read only the §section
   for the phase you are in (how each phase actually works).
+- **Phase 4 (only when the objective is a pass over a dataset larger than a unit's 32K budget):**
+  [references/data-partitioning.md](references/data-partitioning.md) — map-reduce onto the DAG:
+  partition the *work* not the *context*, the mechanical-uniform-vs-judgment-heavy fork, parametric
+  map waves + a reduce tree, verify-by-re-run+diff, the aggregate-ledger index, and the
+  non-independent-shard hard case.
 - **Phases 5–6 (evidence-bearing units):** [references/evidence-standards.md](references/evidence-standards.md)
   — the anti-hallucination rulebook.
 - **Phase 6, only if a unit enters the correction/learning loop:**
@@ -260,8 +265,13 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 ## Phase 4 — Decomposition & dependency graph  (req 4)
 
 1. Adopt the **Planner/Architect** persona. Decompose the objective into **atomic work
-   units**. *Atomic* = single responsibility, independently verifiable, and briefable
-   within the 32K budget (small, bounded inputs). Split anything larger.
+   units**. *Atomic* = single responsibility, **independently verifiable within the 32K budget**,
+   and briefable within it (small, bounded inputs). The 32K budget is a **reasoning/instruction
+   budget, not a data budget** — a unit should touch bulk data **by reference** (a path, a query, a
+   shard locator), not by pulling it into context. The tightest test of atomicity: *can an
+   independent verifier reach PASS/FAIL from this unit's brief + artifacts alone, within 32K, without
+   running the rest of the task?* If not — too big, or its evidence isn't reproducible — **split it**
+   (smaller units need less model IQ per unit and verify better; PR2).
 2. For each unit record: `id`, title, goal, **inputs** (which prior debriefs/artifacts),
    outputs, **acceptance criteria** — each of which **MUST trace to a Definition-of-Done
    item** (a unit whose criteria map to no DoD item is either scope creep or a DoD gap — fix
@@ -275,6 +285,26 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
 5. Write `GRAPH.md` (template) with the unit table, the DAG, and the wave ordering.
    Register each unit as a task via `TaskCreate` for live tracking.
+
+> **Large datasets — partition the *work*, not the *context* (see
+> [references/data-partitioning.md](references/data-partitioning.md)).** When the objective is a pass
+> over a dataset far larger than one unit's 32K budget, **first fork**: *mechanical-uniform* work
+> ("extract field X from 10M rows") is ETL/SQL/Spark — dag **orchestrates + verifies a script** (one
+> unit writes the transform, one verifier re-runs it on a sample and diffs); do **NOT** shard it into
+> units. Only *judgment-heavy per-slice* work ("assess 500 contracts") partitions into units, via
+> **map-reduce onto the DAG**: a deterministic sharder script emits a schema-valid
+> `manifest.json` (`shard_id → locator`, [schemas/manifest.schema.json](schemas/manifest.schema.json));
+> a **parametric map wave** applies ONE brief *template* over the manifest (each unit reads its
+> locator by reference and emits a *compressed* partial); a **reduce tree** fans in the partials in
+> bounded groups. **Verify by re-run + diff on the locator, never by re-reading raw data** (this is
+> why PR2's reproducible-evidence standard is a prerequisite). A massive map wave uses an
+> **aggregate-ledger index** (manifest + results table + sampling log) instead of 10k linear
+> `units/<id>/` dirs — this *preserves* "ledger is truth" but swaps linear files for an index (a
+> **migration note**, not a silent change; data-partitioning.md §7). Sample honestly (stratified) and
+> **log what was not verified** — no silent truncation. Flag the **non-independent-shard** case
+> (joins, cross-shard entity resolution) early: it breaks map-reduce independence and needs
+> locality-aware partitioning or a two-pass boundary-resolution wave. Structurally this is **more
+> units + more waves, the same FSM edge set → PRESERVES** the termination proof.
 
 ---
 
@@ -336,10 +366,18 @@ call per unit, ideally in a single message). For **each unit**:
    It writes `verify.json` (JSON-only)
    with a verdict `PASS | FAIL | DISAGREE`, `iteration`, `executor_reasoning_seen: false`,
    and structured `feedback{summary, actionable_changes[], do_not_touch[]}` +
-   `defects[{severity, criterion, minimal_repro, fix_direction}]`. A `FAIL` MUST cite a
-   specific brief acceptance criterion and ≥1 actionable change, else emit `DISAGREE`
-   (references/self-learning-loops.md §3). Prefer 1 verifier; for high-stakes units use an
-   odd panel (3) and take majority (methodology.md §Verification).
+   `defects[{severity, criterion, minimal_repro, fix_direction}]`. Report **coverage-first**: every
+   finding with its `severity` (blocker|major|minor) — never an "only high-severity" filter that
+   suppresses recall; a `PASS` MAY carry `minor` observations but **no blocker/major** defect (the I6
+   PASS clause was revised for exactly this). A `FAIL` MUST cite a specific brief acceptance criterion
+   and ≥1 actionable change, else emit `DISAGREE` (references/self-learning-loops.md §3). Run a
+   **bounded loop-until-dry sweep** — accumulate defects until a round surfaces none ("dry") or the
+   `R_max = 3` cap; record `verify_rounds`/`converged`. **Panel-of-3 is the DEFAULT on `high-stakes`
+   units** — an odd panel of independent verifiers with **distinct lenses** (correctness / reproduce /
+   guardrail), aggregated by **discrete majority** (a no-majority split ⇒ `DISAGREE`; **never**
+   softmax); routine units may use a single verifier. The panel, the loop-until-dry sweep, and the
+   discrete-majority rule are **node-internal** (no FSM edge — termination proof untouched) and
+   enforced post-hoc by `validate_run.py` **I16** (methodology.md §Verification).
 5. **Adjudicate — the bounded correction loop** (req 12). The loop is a state machine
    `EXECUTE → VERIFY → ADJUDICATE → {DONE | RETRY | ESCALATE}` with an exhaustive,
    mutually-exclusive guard table (full spec + termination proof + invariants:

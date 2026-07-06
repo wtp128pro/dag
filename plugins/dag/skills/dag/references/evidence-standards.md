@@ -7,6 +7,27 @@ have no web-researchable facts at all — code claims are proven by code, not ci
 Executors attach an **evidence table** to every debrief. Verifiers reject any row whose
 evidence is missing, inadmissible, or unreproducible.
 
+## Evidence preference ordering — executable/reproducible **over** asserted (PR2)
+
+Not all admissible evidence is equal. **Prefer evidence the verifier can *mechanically
+regenerate* over evidence it must take on faith**, in this order:
+
+1. **Executable / reproducible** — a command + its output, a re-run test, a diff of expected vs
+   actual, a re-derived number (with the derivation). The verifier *re-runs it* and compares.
+2. **Located but static** — a `file:line`, a dated URL + quoted section, an observed
+   request/response captured earlier. The verifier *re-opens* it.
+3. **Asserted** — "I checked and it holds." Admissible only when 1–2 are genuinely infeasible,
+   and then it must be labeled `ASSUMPTION:` with its blast radius (rule 2).
+
+Why this ordering is **load-bearing** (not stylistic): a re-run's correctness does **not depend on
+the checker's reasoning depth** — the machine settles it. That makes reproducible evidence
+*model-independent*: a modest verifier re-running a test reaches the same verdict a stronger one
+would, so structure (reproducibility) substitutes for raw model IQ. It is also the **prerequisite
+for data-parallel verification** (references/data-partitioning.md): a verifier that re-runs a
+bounded op on a shard locator and diffs the result never needs the raw data in context. When a
+claim *can* be made executable, an asserted-only version of it is a weaker debrief and the verifier
+should down-rank or reject it.
+
 ## Claim taxonomy → admissible evidence
 
 | Claim type | Example | Admissible evidence (ground truth) | Inadmissible (reject) |
@@ -35,8 +56,11 @@ evidence is missing, inadmissible, or unreproducible.
    citations/APIs are the highest-severity hallucination — verifiers hunt these first.
 5. **Two sources for contested world-facts.** If a fact could be wrong or is version-
    sensitive, corroborate independently and note the date (facts expire).
-6. **Reproduce where feasible.** Prefer evidence a verifier can regenerate (run the test,
-   fetch the page, re-derive the number) over evidence taken on faith.
+6. **Reproduce where feasible — and prefer the reproducible form.** Follow the evidence
+   preference ordering above: when a claim *can* be backed by an executable/reproducible signal
+   (run the test, diff the output, re-derive the number), that form is required over an asserted
+   one; a verifier can regenerate it, and its correctness is model-independent. Reserve asserted
+   evidence for claims where reproduction is genuinely infeasible.
 7. **Absence of evidence is a finding.** "I could not verify X" is a legitimate, required
    output — surface it, don't paper over it. This is the single most important anti-
    hallucination behavior: say "unknown" out loud.
@@ -45,8 +69,10 @@ evidence is missing, inadmissible, or unreproducible.
 
 - [ ] Claim is tagged with a type.
 - [ ] Evidence is admissible for that type (table above).
+- [ ] Evidence is in its **most reproducible feasible form** (executable > located > asserted);
+      an asserted claim that could have been made executable is down-ranked.
 - [ ] Locator is present and resolves (the file/line/URL/command actually exists).
-- [ ] For reproducible claims: the verifier reproduced it independently.
+- [ ] For reproducible claims: the verifier reproduced it independently (re-ran + diffed).
 - [ ] Quotes/citations/APIs/paths were confirmed real, not plausible.
 - [ ] Assumptions are labeled as such and their risk assessed.
 - [ ] Any "could not verify" is surfaced, not hidden.
