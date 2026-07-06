@@ -186,9 +186,12 @@ def make_validator():
         import jsonschema  # type: ignore
         from jsonschema import Draft202012Validator
         def _v(inst, schema):
-            return [f"$.{'/'.join(map(str, e.path))}: {e.message}" if e.path else f"$: {e.message}"
-                    for e in sorted(Draft202012Validator(schema).iter_errors(inst),
-                                    key=lambda e: [str(p) for p in e.path])]
+            try:
+                return [f"$.{'/'.join(map(str, e.path))}: {e.message}" if e.path else f"$: {e.message}"
+                        for e in sorted(Draft202012Validator(schema).iter_errors(inst),
+                                        key=lambda e: [str(p) for p in e.path])]
+            except Exception as e:   # IMP-18: a malformed schema raises INSIDE iter_errors (only the
+                return [f"schema backend error: {e}"]   # import was guarded) — fail cleanly, not with a traceback
         return _v, "jsonschema library (Draft202012Validator)"
     except Exception:
         return _mini_validate, "built-in minimal validator (stdlib only)"
@@ -273,6 +276,21 @@ class Report:
 def load_json(p):
     with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
+
+def _as_int(v):
+    """Normalize a JSON number to int for an INTEGER-typed artifact field (BRK-04).
+    JSON Schema `"type":"integer"` ACCEPTS a float-integral like 1.0 (both backends, per _type_ok),
+    so an integer-typed field can legitimately arrive as 1.0 — treat it as the int it denotes rather
+    than SKIPPING the check (the wave-as-float evasion). Returns None for a bool or a non-integral
+    value (those are schema-rejected shapes the schema layer already FAILed); a caller that wants
+    fail-closed semantics on None does so explicitly at its site."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float) and v.is_integer():
+        return int(v)
+    return None
 
 def _model_scope_applies(entry_scope_model, run_model):
     """G4 (04-global) scope.model NARROWING conjunct for I12 propagation.
@@ -402,13 +420,17 @@ def main(argv=None):
                     for e in errs:
                         rep.fail(f"units/{uid}/{rel}", e)
                 else:
-                    unit_docs.setdefault(uid, {})[rel.replace(".json", "")] = inst
-                    rep.ok(f"units/{uid}/{rel} valid against {sf}")
-                    # D21: an artifact's declared unit_id MUST match its containing directory.
+                    # D21: an artifact's declared unit_id MUST match its containing directory. Check
+                    # BEFORE recording the ok / inserting into unit_docs (N-10): a mismatched doc must
+                    # not both print "valid against ..." AND feed downstream per-unit checks under the
+                    # wrong directory key.
                     aid = inst.get("unit_id")
                     if aid is not None and aid != uid:
                         rep.fail(f"units/{uid}/{rel} unit_id mismatch",
                                  f"artifact declares unit_id {aid!r} but lives in directory {uid!r}")
+                    else:
+                        unit_docs.setdefault(uid, {})[rel.replace(".json", "")] = inst
+                        rep.ok(f"units/{uid}/{rel} valid against {sf}")
 
     # optional machine-readable learnings ledger — schema'd sidecar (D01). Each entry is
     # validated against learnings.schema.json ($defs/entry). A malformed entry is REPORTED
@@ -419,16 +441,47 @@ def main(argv=None):
     lp = os.path.join(rd, "learnings.json")
     if os.path.exists(lp):
         raw_entries = []
+        top_level_obj = None   # the {entries:[...]} object when that canonical form is used (N-24 shape-check)
         try:
             raw = load_json(lp)
-            raw_entries = raw.get("entries", []) if isinstance(raw, dict) else raw
+            # BRK-05: mirror the across-run store loader's tolerance EXACTLY (see ~L500 below), instead
+            # of the old `raw.get("entries", []) if dict else raw` which silently mapped a bare
+            # single-entry OBJECT to [] (dropping the entry + printing a bogus "no learnings.json
+            # present" SKIP) while the store loader treated the identical shape as [raw].
+            if isinstance(raw, dict):
+                if "entries" in raw:
+                    raw_entries = raw["entries"]
+                    top_level_obj = raw
+                elif "id" in raw:
+                    raw_entries = [raw]           # bare single-entry object — tolerated, wrapped as [entry]
+                    rep.ok("learnings.json non-canonical shape tolerated (bare single-entry object wrapped as [entry])")
+                else:
+                    rep.fail("learnings.json", "object is neither {entries:[...]} nor a single entry (no 'id')")
+                    raw_entries = []
+            elif isinstance(raw, list):
+                raw_entries = raw                 # bare top-level array — tolerated (documented in learnings.schema)
+            else:
+                rep.fail("learnings.json", "expected an entry object, {entries:[...]}, or a bare [entries] array")
+                raw_entries = []
             if not isinstance(raw_entries, list):
-                rep.fail("learnings.json", "expected an array (or {entries:[...]})")
+                rep.fail("learnings.json", "'entries' must be an array")
                 raw_entries = []
         except Exception as e:
             rep.fail("learnings.json", f"not valid JSON: {e}")
             raw_entries = []
         _ls = schemas.get("learnings.schema.json")
+        # N-24: for the canonical {entries:[...]} object form, enforce the TOP-LEVEL shape too — the
+        # per-entry loop below validates + drops malformed ENTRIES but never saw the top-level object,
+        # so unknown top-level keys passed despite learnings.schema being additionalProperties:false.
+        # (A bare top-level array has no object to shape-check; that tolerance is intentional.)
+        if top_level_obj is not None:
+            for _k in top_level_obj:
+                if _k not in ("run_label", "entries"):
+                    rep.fail("learnings.json",
+                             f"unknown top-level key {_k!r} — learnings.schema allows only "
+                             "run_label + entries (additionalProperties:false)")
+            if "run_label" in top_level_obj and not isinstance(top_level_obj["run_label"], str):
+                rep.fail("learnings.json", "top-level run_label must be a string")
         entry_schema = (_ls.get("$defs", {}) or {}).get("entry") if isinstance(_ls, dict) else None
         for i, E in enumerate(raw_entries):
             if entry_schema is not None:
@@ -791,16 +844,20 @@ def main(argv=None):
     # I4 loop bound + cross-check
     if fsm and isinstance(fsm.get("loop"), dict):
         loop = fsm["loop"]
-        retries, luid = loop.get("retries"), loop.get("unit_id")
-        if isinstance(retries, int) and retries > 2:
+        retries, luid = _as_int(loop.get("retries")), loop.get("unit_id")   # BRK-04: normalize float-integral
+        if retries is not None and retries > 2:
+            # N-17: schema `maximum:2` normally rejects retries>2 before this runs, so this FAIL
+            # branch is dead when schemas load; it exists for the no-schema degraded mode (mirroring
+            # the defense-in-depth comments at I1 / I6-PASS / I16c).
             rep.fail("I4 loop bound", f"fsm loop.retries={retries} > 2")
-        elif isinstance(retries, int):
+        elif retries is not None:
             rep.ok(f"I4 loop bound (retries={retries} <= 2)")
         vd = unit_docs.get(luid, {}).get("verify")
-        if vd and isinstance(retries, int) and isinstance(vd.get("iteration"), int):
-            if vd["iteration"] > retries + 1:
+        vd_it = _as_int(vd.get("iteration")) if vd else None
+        if vd and retries is not None and vd_it is not None:
+            if vd_it > retries + 1:
                 rep.fail("I4 loop cross-check",
-                         f"{luid} verify.iteration={vd['iteration']} > retries+1={retries+1}")
+                         f"{luid} verify.iteration={vd_it} > retries+1={retries + 1}")
             else:
                 rep.ok(f"I4 loop cross-check ({luid}: iteration<=retries+1)")
 
@@ -809,9 +866,10 @@ def main(argv=None):
     # absolute ceiling retries.maximum(2)+1 = 3 (I4: iteration<=retries+1, retries<=2).
     for _uid, _d in unit_docs.items():
         _v = _d.get("verify")
-        if _v is not None and isinstance(_v.get("iteration"), int) and _v["iteration"] > 3:
+        _v_it = _as_int(_v.get("iteration")) if _v is not None else None   # BRK-04: normalize float-integral
+        if _v_it is not None and _v_it > 3:
             rep.fail(f"I4 iteration ceiling (units/{_uid})",
-                     f"verify.iteration={_v['iteration']} > 3 (retries<=2 => iteration<=retries+1<=3)")
+                     f"verify.iteration={_v_it} > 3 (retries<=2 => iteration<=retries+1<=3)")
 
     # I1 verifier independence (shape). Defense-in-depth (D28): verify.schema pins
     # executor_reasoning_seen to const:false, so a violating doc is already schema-INVALID and
@@ -866,7 +924,8 @@ def main(argv=None):
         dbf, v = d.get("debrief"), d.get("verify")
         if not dbf or not v:
             continue
-        if not (isinstance(dbf.get("iteration"), int) and dbf["iteration"] > 1):
+        _dbf_it = _as_int(dbf.get("iteration"))   # BRK-04: normalize float-integral
+        if not (_dbf_it is not None and _dbf_it > 1):
             continue
         pf = dbf.get("prior_feedback") or {}
         dnt = pf.get("do_not_touch")
@@ -1001,8 +1060,8 @@ def main(argv=None):
                 rep.ok(f"I16 panel discipline (units/{uid}: {len(members)}-member panel, "
                        f"lenses cover trio, verdict={maj if maj else 'split->DISAGREE'})")
         # (c) loop-until-dry finiteness (schema also bounds it; belt-and-suspenders)
-        vr = v.get("verify_rounds")
-        if isinstance(vr, int) and not isinstance(vr, bool):
+        vr = _as_int(v.get("verify_rounds"))   # BRK-04: normalize float-integral
+        if vr is not None:
             if vr < 1 or vr > R_MAX:
                 rep.fail(f"I16 loop-until-dry bound (units/{uid})",
                          f"verify_rounds={vr} outside [1,{R_MAX}] — the loop-until-dry sweep is bounded")
@@ -1020,7 +1079,8 @@ def main(argv=None):
     # the loop has already produced.
     for uid, d in unit_docs.items():
         dbf = d.get("debrief")
-        if not dbf or not (isinstance(dbf.get("iteration"), int) and dbf["iteration"] > 1):
+        _dbf_it = _as_int(dbf.get("iteration")) if dbf else None   # BRK-04: normalize float-integral
+        if not dbf or not (_dbf_it is not None and _dbf_it > 1):
             continue
         pf = dbf.get("prior_feedback")
         if not isinstance(pf, dict):      # retry recorded no prior_feedback echo — post-hoc no-op
@@ -1049,16 +1109,91 @@ def main(argv=None):
             else:
                 rep.ok(f"I9 verification present (units/{uid}: verdict={vd['verdict']})")
 
-    # I10 synthesis/DONE completeness — no unit may reach P8/DONE without a PASS
-    if phase in ("P8_SYNTHESIS", "DONE"):
-        for uid in sorted(unit_dirs_with_debrief):
+    # I9 verify-without-debrief (IMP-17) — the CONVERSE of the missing-verification check above: a
+    # unit dir carrying a verify.json but NO debrief is incoherent (a verifier attested to a unit that
+    # produced no debrief to verify). Fail closed. Offline/post-hoc.
+    for uid in sorted(unit_subdirs):
+        udir = os.path.join(units_dir, uid)
+        if (os.path.exists(os.path.join(udir, "verify.json")) or os.path.exists(os.path.join(udir, "verify.md"))) \
+           and uid not in unit_dirs_with_debrief:
+            rep.fail(f"I9 verify-without-debrief (units/{uid})",
+                     "verify present but no debrief — a verifier output with nothing verified is incoherent")
+
+    # G-brief offline presence (BRK-03; T8/G-brief offline counterpart). A missing
+    # units/<U>/brief.json silently DISABLES I5 (budget) / I6-FAIL criterion binding / I11 brief-tag
+    # membership / I12 propagation / I16's brief-tag high-stakes trigger for that unit — every one of
+    # those keys off d.get("brief") and no-ops when it is None. Two layers, both offline/post-hoc
+    # (never a live guard, never touches LT7):
+    #   Layer 1 (any phase): any unit dir carrying a debrief OR verify primary (either extension) MUST
+    #     have a brief.json on disk — catches out-of-graph unit dirs and earlier-phase tampering.
+    #   Layer 2 (P8/DONE only, scoped to a materialized sidecar tree): EVERY graph unit needs a
+    #     present, schema-valid brief.json. Layer 2 is P8/DONE-only — NOT "P6+" — because mid-P6 a
+    #     later-wave graph unit is legitimately un-briefed (see tests/good: P6 with graph U02 having no
+    #     dir); briefs are all present only once synthesis is reached.
+    for uid in sorted(unit_dirs_with_work):
+        udir = os.path.join(units_dir, uid)
+        has_dv = any(os.path.exists(os.path.join(udir, f"{n}.{e}"))
+                     for n in ("debrief", "verify") for e in ("md", "json"))
+        if has_dv and not os.path.exists(os.path.join(udir, "brief.json")):
+            rep.fail(f"G-brief offline (units/{uid})",
+                     "unit has a debrief/verify but NO brief.json — I5/I6/I11/I12/I16 all key off the "
+                     "brief and SILENTLY skip this unit without it (T8: every ready unit has a "
+                     "schema-valid brief.json)")
+    if phase in ("P8_SYNTHESIS", "DONE") and graph_doc is not None and unit_subdirs:
+        for u in graph_doc.get("units", []):
+            uid = u.get("id")
+            if not os.path.exists(os.path.join(units_dir, uid, "brief.json")):
+                rep.fail(f"G-brief offline (units/{uid})",
+                         f"phase {phase}: graph unit has no brief.json — briefs are a Phase-5 "
+                         "obligation, present for every unit by synthesis (T8)")
+            elif unit_docs.get(uid, {}).get("brief") is None:
+                rep.fail(f"G-brief offline (units/{uid})",
+                         "brief.json present but schema-invalid (see the schema FAIL above) — "
+                         "I5/I6/I11/I12/I16 skip this unit until it validates")
+
+    # I10 synthesis/DONE completeness (BRK-02) — no unit may reach P8/DONE unexecuted.
+    # T12 "all units accounted for": iterate the GRAPH's declared units, not just the dirs that
+    # happen to carry a debrief — else deleting a unit's debrief.json+verify.json made it INVISIBLE
+    # (unit_dirs_with_debrief shrank) and a run reached DONE with an unexecuted unit. Every graph
+    # unit needs a units/<id>/ dir + a debrief (either extension) + a verify.json with verdict==PASS;
+    # a unit blocked at ESCALATE (no PASS) therefore cannot reach DONE without human resolution — the
+    # intended semantics, no bypass. SCOPED to runs that MATERIALIZED the per-unit sidecar tree
+    # (unit_subdirs non-empty): a run that emits ZERO unit sidecars is the inline-execution shape
+    # (units run in-conversation; only the top-level ledger + SYNTHESIS.md persisted — see the archived
+    # P8 runs under .wip/), so this per-unit predicate SKIPS just like every other per-unit check
+    # (I6/I9/I12/...) already does on absent artifacts. When graph.json is absent at P8/DONE, I3
+    # fail-closed (E) already fires above — not duplicated here. Offline/post-hoc; gates no transition.
+    if phase in ("P8_SYNTHESIS", "DONE") and unit_subdirs:
+        graph_unit_ids = ([u.get("id") for u in graph_doc.get("units", [])]
+                          if graph_doc is not None else [])
+        for uid in graph_unit_ids:
+            if not os.path.isdir(os.path.join(units_dir, uid)):
+                rep.fail(f"I10 synthesis completeness (units/{uid})",
+                         f"phase {phase}: no units/{uid}/ directory — graph unit never executed "
+                         "(T12: all units accounted for)")
+                continue
+            missing = []
+            if uid not in unit_dirs_with_debrief:
+                missing.append("no debrief")
+            vd = unit_docs.get(uid, {}).get("verify")
+            if vd is None:
+                missing.append("no valid verify.json")
+            elif vd.get("verdict") != "PASS":
+                missing.append(f"verify verdict={vd.get('verdict', 'MISSING')} (need PASS)")
+            if missing:
+                rep.fail(f"I10 synthesis completeness (units/{uid})",
+                         f"phase {phase}: {', '.join(missing)} — every graph unit must be "
+                         "debriefed and PASS-verified before DONE (T12)")
+            else:
+                rep.ok(f"I10 synthesis completeness (units/{uid}: debriefed + PASS)")
+        # Out-of-graph unit dirs (extra work not declared in graph.json) — keep the existing
+        # debrief-keyed completeness check so a stray non-PASS unit can't slip through at DONE.
+        for uid in sorted(unit_dirs_with_debrief - set(graph_unit_ids)):
             vd = unit_docs.get(uid, {}).get("verify")
             if not vd or vd.get("verdict") != "PASS":
                 got = (vd or {}).get("verdict", "MISSING")
-                rep.fail("I10 synthesis completeness",
-                         f"phase {phase} but units/{uid} verdict={got} (need PASS)")
-        if unit_dirs_with_debrief:
-            rep.ok(f"I10 synthesis completeness checked at phase {phase}")
+                rep.fail(f"I10 synthesis completeness (units/{uid})",
+                         f"phase {phase} but out-of-graph unit verdict={got} (need PASS)")
 
     # I11 tag vocabulary — every unit/brief tag must be a member of V_tag_eff
     # I12 learnings propagation predicate + admission gate
@@ -1164,14 +1299,14 @@ def main(argv=None):
                 if not isinstance(E, dict):
                     continue
                 eid = E.get("id")
-                since = E.get("since_wave", 1)
+                since = _as_int(E.get("since_wave", 1))   # BRK-04: normalize float-integral (schema type=integer accepts 1.0)
                 # D01 crash-guard: `since` MUST be an int before the `wave >= since` comparison
                 # below (a bad value would raise TypeError). Load-time schema validation already
                 # drops malformed entries; this is belt-and-suspenders so no value can crash us.
-                if isinstance(since, bool) or not isinstance(since, int):
+                if since is None:
                     prop_ok = False
                     rep.fail("I12 learnings since_wave",
-                             f"{eid} since_wave={since!r} is not an integer >= 1 — "
+                             f"{eid} since_wave={E.get('since_wave')!r} is not an integer >= 1 — "
                              "cannot evaluate propagation")
                     continue
                 # G4 (04-global) scope.model NARROWING conjunct: a model-scoped entry that does NOT
@@ -1217,9 +1352,9 @@ def main(argv=None):
                         b = d.get("brief")
                         if not b:
                             continue
-                        w = b.get("wave", 0)
-                        if isinstance(w, bool) or not isinstance(w, int):
-                            continue                     # non-int wave: skip (schema requires int)
+                        w = _as_int(b.get("wave", 0))    # BRK-04: normalize float-integral — 1.0 is a schema-valid
+                        if w is None:                    # integer that MUST NOT skip the predicate (was the evasion);
+                            continue                     # bool/non-integral only — schema layer already FAILed non-int shapes
                         if T in set(b.get("tags", [])) and w >= since \
                            and eid not in b.get("learnings_applied", []):
                             prop_ok = False
@@ -1324,6 +1459,16 @@ def main(argv=None):
     if unit_docs or unit_dirs_with_debrief or unit_dirs_with_work:           post_p1.append("units")
     if _exists("SYNTHESIS.md"):                                              post_p1.append("synthesis")
     if _exists("learnings.json"):                                            post_p1.append("learnings")
+
+    # I2 ledger-is-truth (IMP-17) — fsm-state.json is the durable FSM state. If it is ABSENT but the
+    # run produced ANY other artifact/unit signal, the state is not on disk — fail closed. A truly
+    # EMPTY run dir stays a no-op (init_run.sh seeds fsm-state.json, so an empty dir means "not a
+    # run"). Distinct from a present-but-INVALID fsm-state.json, which check_artifact already FAILed.
+    if not os.path.exists(os.path.join(rd, "fsm-state.json")) and (post_p1 or unit_subdirs):
+        rep.fail("I2 ledger-is-truth",
+                 "fsm-state.json absent but run artifacts exist "
+                 f"({post_p1 or sorted(unit_subdirs)}) — the FSM state must live on disk")
+
     if post_p1:
         missing = []
         if docs.get("personas") is None:
