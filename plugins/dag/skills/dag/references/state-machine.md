@@ -140,7 +140,13 @@ validator requires `counter_reran_independently==true` and rejects a PASS whose
 `validate_run.py` mechanically enforces: schema-validity of every artifact; **I3 fail-closed
 DAG** (authoritative graph.json required past decomposition); **I1b maker!=checker**
 (persona-distinctness: `executor_persona != verifier_persona` per graph.json unit);
-**I9/I10 missing-verification rejection**; I4 (loop bound + cross-check); I5 (budget); I6 (FAIL⇒defect∈brief-criteria,
+**I9/I10 missing-verification + synthesis-completeness rejection** (I10 iterates the graph.json
+units at P8/DONE so a unit cannot be hidden by deleting its debrief — BRK-02, scoped to runs that
+materialized the `units/` tree; I9 also rejects a verify-without-debrief — IMP-17); **G-brief offline
+presence** (a unit dir carrying a debrief/verify but no `brief.json` fails at any phase, and — for a
+run that materialized the `units/` tree — every graph unit needs a `brief.json` at P8/DONE — BRK-03;
+these are the offline counterpart of T8/G-brief); **I2
+ledger-is-truth** (an absent `fsm-state.json` alongside other run artifacts fails — IMP-17); I4 (loop bound + cross-check); I5 (budget); I6 (FAIL⇒defect∈brief-criteria,
 PASS⇒no blocker/major defect — the coverage-first REVISION, PR1); I7 (single recommended); I8 (open-material); **I-dod** (DoD/non-goals
 presence, artifact-triggered — fail-closed even when `clarifications.json` is absent);
 **I11 tag-vocabulary
