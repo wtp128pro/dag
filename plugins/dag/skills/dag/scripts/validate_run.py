@@ -1343,22 +1343,54 @@ def main(argv=None):
                 # The exemption is EXPLICIT (reported as a PASS-level carve-out line), NEVER silent.
                 _is_imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
                 for sel in (E.get("scope", {}) or {}).get("applies_to", []):
-                    if not (isinstance(sel, str) and sel.startswith("tag:")):
+                    # BRK-08 / D-03(a): the I12 predicate enforces the THREE documented SelectorSet
+                    # kinds — `all` | unit-id (`U0X`) | `tag:T` — not `tag:` alone. An UNKNOWN selector
+                    # shape is a HARD FAIL (was silently `continue`d — precisely how the doc/code drift
+                    # stayed invisible). `phaseN` is DELETED from the contract (BRK-09: no unit carries a
+                    # `phase` field to match against). Per selector we compute (a) a `match(uid, b)`
+                    # predicate, (b) a human `match_desc` (kept byte-identical to the old tag message so
+                    # fixture NOTEs stay accurate), and (c) an `admissible` flag + `adm_desc`.
+                    if not isinstance(sel, str):
+                        prop_ok = False
+                        rep.fail("I12 selector", f"{eid} scope.applies_to has a non-string selector {sel!r}")
                         continue
-                    T = sel[4:]
-                    carriers = units_with_tag(T)
-                    if len(carriers) < 2:               # admission gate (>=2 current-run carriers)
+                    if sel == "all":
+                        match = lambda uid, b: True
+                        match_desc = "matches selector all"
+                        # `all` is a generalization over the whole graph — admissible iff >=2 units
+                        # (an `all` scope on a 1-unit graph is not a pattern). Asymmetric with tag: on
+                        # purpose (see self-learning-loops.md §4.2).
+                        admissible, adm_desc = (len(gunits) >= 2), f"graph has {len(gunits)} unit(s) (need >=2)"
+                    elif re.fullmatch(r"U[0-9]{2,}", sel):
+                        match = (lambda uid, b, _s=sel: uid == _s)
+                        match_desc = f"is unit {sel}"
+                        # a unit-id selector is a DELIBERATE single-target application, not a
+                        # generalization claim — it cannot force-inject beyond its one unit, so it is
+                        # ALWAYS admissible (no >=2-carrier re-proof; that rule is tag-specific).
+                        admissible, adm_desc = True, "unit-id selector (single-target, always admissible)"
+                    elif sel.startswith("tag:"):
+                        T = sel[4:]
+                        match = (lambda uid, b, _T=T: _T in set(b.get("tags", [])))
+                        match_desc = f"carries {sel}"
+                        carriers = units_with_tag(T)
+                        admissible, adm_desc = (len(carriers) >= 2), f"only {len(carriers)} unit(s) carry it {carriers} (need >=2)"
+                    else:
+                        prop_ok = False
+                        rep.fail("I12 selector",
+                                 f"{eid} scope.applies_to selector {sel!r} is not a recognized kind "
+                                 "(all | U0X | tag:T) — `phaseN` was removed as unevaluable (BRK-09)")
+                        continue
+                    if not admissible:                  # admission gate (generalizability re-proof)
                         if _is_imported:
                             # G1 FLAG carve-out: already-generalized imported/global entry — EXEMPT
-                            # from the >=2-run re-proof, still propagation-governed (never silent).
-                            rep.ok(f"I12 admission carve-out (G1): {eid} scope tag:{T} is imported/global "
+                            # from the re-proof, still propagation-governed (never silent).
+                            rep.ok(f"I12 admission carve-out (G1): {eid} scope {sel} is imported/global "
                                    f"({'store-loaded' if eid in store_ids else 'G#-id'}) — exempt from the "
-                                   f">=2-carrier re-proof ({len(carriers)} current-run carrier(s)); still "
-                                   "governed by the propagation predicate")
+                                   f"generalizability re-proof ({adm_desc}); still governed by the propagation predicate")
                         else:
                             prop_ok = False
                             rep.fail("I12 learnings admission gate",
-                                     f"{eid} scope tag:{T} inadmissible — only {len(carriers)} unit(s) carry it {carriers} (need >=2)")
+                                     f"{eid} scope {sel} inadmissible — {adm_desc}")
                     for uid, d in unit_docs.items():    # propagation predicate (runs for ALL entries, imported or not)
                         b = d.get("brief")
                         if not b:
@@ -1366,16 +1398,16 @@ def main(argv=None):
                         w = _as_int(b.get("wave", 0))    # BRK-04: normalize float-integral — 1.0 is a schema-valid
                         if w is None:                    # integer that MUST NOT skip the predicate (was the evasion);
                             continue                     # bool/non-integral only — schema layer already FAILed non-int shapes
-                        if T in set(b.get("tags", [])) and w >= since \
+                        if match(uid, b) and w >= since \
                            and eid not in b.get("learnings_applied", []):
                             prop_ok = False
                             rep.fail("I12 learnings propagation",
-                                     f"units/{uid} carries tag:{T} at wave {w} "
+                                     f"units/{uid} {match_desc} at wave {w} "
                                      f">= since_wave {since}: MUST list {eid} in learnings_applied "
                                      f"(has {b.get('learnings_applied')})")
             if prop_ok:
-                rep.ok(f"I12 learnings propagation ({len(active)} active entr(y/ies): admission + tag-scope "
-                       f"propagation hold{f'; {len(advisory)} advisory import(s) not force-injected (03/P4)' if advisory else ''})")
+                rep.ok(f"I12 learnings propagation ({len(active)} active entr(y/ies): admission + selector-scope "
+                       f"(all|U0X|tag) propagation hold{f'; {len(advisory)} advisory import(s) not force-injected (03/P4)' if advisory else ''})")
         elif not args.quiet:
             print("  SKIP  I12 learnings propagation: no learnings.json present")
 

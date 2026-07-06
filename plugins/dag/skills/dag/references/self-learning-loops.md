@@ -312,15 +312,18 @@ part of the required set — the §4.3 propagation predicate keys off `since_wav
 | `evidence` | locator | external signal: `verify.json` path / a cited finding id / command→output |
 | `promotable` *(optional)* | bool | **optional**, not in the canonical required set; marks an entry eligible to be lifted to `CLAUDE.md`/a skill at Phase-8 sign-off |
 
-**`SelectorSet` — the four selector kinds (all mechanical, no free-text NLP).** Each element
-of `applies_to` is exactly one of:
+**`SelectorSet` — the three selector kinds (all mechanical, no free-text NLP).** Each element
+of `applies_to` is exactly one of the three the validator ENFORCES (an unknown kind is a hard
+`I12 selector` FAIL, never a silent skip):
 
 | Selector | Written as | Matches unit `U` when |
 |----------|-----------|-----------------------|
 | unit-id | `"U0X"` | `U.id == "U0X"` |
-| phase | `"phaseN"` | `U.phase == "phaseN"` |
 | **pattern (tag)** | `"tag:<T>"` | `T ∈ U.tags` — set membership; `T` drawn from the **enumerated tag vocabulary `V_tag`** below |
 | all | `"all"` | always (subject to `excludes`) |
+
+(A `"phaseN"` selector was **removed** from the vocabulary — no unit carries a `phase` field in
+`graph.schema.json`/`brief.schema.json`, so it was mechanically unevaluable; BRK-09.)
 
 **Pattern scope is a tag, not prose.** A `pattern`-scoped lesson is expressed as one or more
 `"tag:<T>"` selectors. Free-text patterns are inadmissible — `T` MUST come from `V_tag`, a
@@ -362,17 +365,21 @@ force-injected wherever its tag actually appears. `L#` = re-proved each run; `G#
 imported, exempt from re-proof only. (The exemption *trusts* the `G#`-id/store provenance as the
 "already-generalized" signal — a provenance-trust boundary, see state-machine.md §5.)
 
-**Generalizability gate (checkable admission rule).** An entry is admissible in
-`LEARNINGS.md` **only if** — checked mechanically against the DAG — its `applies_to` would
-match **≥ 2** units in the run:
-- an `"all"` or `"phaseN"` selector trivially can (a phase holds ≥2 units in a non-trivial run);
+**Generalizability gate (checkable admission rule) — the gate is selector-kind ASYMMETRIC**
+(the validator enforces exactly this; it is not one uniform ≥2 rule):
+- an `"all"` selector is admissible **iff the graph has ≥ 2 units** (an `all` scope on a 1-unit
+  graph is not a pattern);
 - a **`"tag:<T>"`** selector is admissible **only if ≥ 2 units in `GRAPH.md` carry tag `T`**
-  (so a one-off cannot masquerade as a pattern — a tag borne by a single unit fails the gate);
-- a bare unit-id set is admissible only if it lists ≥ 2 unit-ids.
+  (so a one-off cannot masquerade as a pattern — a tag borne by a single unit fails the gate),
+  subject to the 04/G1 imported-entry carve-out above;
+- a **unit-id `"U0X"`** selector is a DELIBERATE single-target application, not a generalization
+  claim — it cannot force-inject beyond its one unit, so it is **always admissible** (no ≥2-carrier
+  re-proof). A lesson that should bind two units names them as two `U0X` selectors (or a `tag:`).
 
-A lesson that matches a single unit is **rejected** → it belongs in that unit's `debrief.json`,
-not the ledger. (Keeps the ledger generalizable: reflections keyed to outcomes,
-not free-floating self-assessment.)
+A **pattern (`tag:`) or `all`** lesson that would match only a single unit is **rejected** → it
+belongs in that unit's `debrief.json`, not the ledger. (Keeps patterns generalizable: reflections
+keyed to outcomes, not free-floating self-assessment.) A `U0X` selector is the explicit exception —
+it *is* a deliberate single-unit binding chosen by the author, so it is admitted as such.
 
 ### 4.3 The propagation rule — "downstream briefs must include applicable learnings"
 
@@ -388,13 +395,16 @@ brief MUST list `E.id` in a `learnings_applied` field **and** quote `E.lesson` +
 applies(E.scope, U) ≡
       (    "all"     ∈ E.scope.applies_to                      // all-selector
         ∨  U.id      ∈ E.scope.applies_to                      // unit-id selector
-        ∨  U.phase   ∈ E.scope.applies_to                      // phase selector
         ∨  ∃ "tag:T" ∈ E.scope.applies_to :  T ∈ U.tags )      // pattern/tag selector — set membership
    ∧ ¬( U.id ∈ E.scope.excludes )
 
 REQUIRE  ∀ E ∈ LEARNINGS, ∀ U ∈ briefs with U.wave >= E.since_wave :
              applies(E.scope, U)  ⇒  E.id ∈ U.brief.learnings_applied
 ```
+
+The validator enforces ALL THREE disjuncts (`all` | unit-id | `tag:T`); an `applies_to` element that
+is none of them is a hard `I12 selector` FAIL (never a silent skip). There is no `phase` disjunct —
+`"phaseN"` was removed (BRK-09), since no unit carries a `phase` field to match.
 
 The **pattern/tag** disjunct is the fix: a generalizable `"tag:<T>"`-scoped lesson now
 matches exactly the units whose declared `U.tags` (§4.2) contain `T` — so it *is* force-
@@ -407,8 +417,9 @@ Three properties make this safe, not blind:
    one-off (or a mis-scoped lesson caught by the gate in §4.2) is **not** force-injected into
    unrelated units. The counterexample defense of §6.2.
 3. **No silent drop (pattern completeness):** every selector kind admissible in §4.2 —
-   `all`, `unit-id`, `phase`, **and `tag`** — has a matching disjunct here, so no admitted
-   learning can pass the gate yet match zero units. (This closes the pattern-completeness gap.)
+   `all`, `unit-id`, **and `tag`** (the three enforced kinds; no `phase`) — has a matching disjunct
+   here, so no admitted learning can pass the gate yet match zero units, and an UNRECOGNIZED
+   selector is a hard `I12 selector` FAIL. (This closes the pattern-completeness gap.)
 
 Needs `brief.schema.json` to require `learnings_applied: [string]` **and** a `tags: [T ∈ V_tag]`
 field per unit (mirrored from `GRAPH.md`) so the tag disjunct is checkable.
@@ -561,10 +572,11 @@ the "keep entries generalizable" principle.
 
 **COUNTER: can a pattern-scoped learning still be silently dropped,
 or a one-off wrongly force-injected?** Both no.
-- *Silent drop — closed.* §4.2 now admits exactly four selector kinds (`all`,`unit-id`,
-  `phase`,`tag`) and §4.3's `applies()` has a matching disjunct for **each** (property 3,
-  "pattern completeness"). A `"tag:<T>"` lesson matches every later unit with `T ∈ U.tags`
-  and its omission is flagged. Repro trace from the defect now *fails loudly*: the learning
+- *Silent drop — closed.* §4.2 admits exactly three selector kinds (`all`,`unit-id`,`tag`) and
+  §4.3's `applies()` has a matching disjunct for **each**, all three ENFORCED by validate_run.py
+  (BRK-08); an `applies_to` element that is none of the three is a hard `I12 selector` FAIL, not a
+  silent skip (property 3, "pattern completeness"). A `"tag:<T>"` lesson matches every later unit
+  with `T ∈ U.tags` and its omission is flagged. Repro trace from the defect now *fails loudly*: the learning
   `scope.applies_to = {"tag:schema"}` matches every unit carrying `schema` in `GRAPH.md.tags`;
   any such brief lacking it in `learnings_applied` ⇒ validator non-zero exit. No admitted
   learning can match zero units.
@@ -608,7 +620,7 @@ adjudication uses the exhaustive guard table §1.3 + AO invariants; (2) `templat
 carries `iteration` + structured `feedback{actionable_changes,do_not_touch}` + emits the §3
 JSON; (3) `templates/debrief.md` echoes `prior_feedback` on `iteration>1` + `learnings_applied`;
 (4) `templates/brief.md` carries `learnings_applied` + `tags:[T ∈ V_tag]` + quotes applicable
-learnings; (5) `LEARNINGS.md` + `GRAPH.md` hold the §4.2 entry schema + 4-kind `SelectorSet` +
+learnings; (5) `LEARNINGS.md` + `GRAPH.md` hold the §4.2 entry schema + 3-kind `SelectorSet` +
 enumerated `V_tag` registry + per-unit `tags` column + generalizability gate (`scope`,
 `evidence` columns); (6) the schemas + validator encode `verify.schema.json` conditional rules
 (§3, incl. the REVISED PASS clause and the optional `panel`/`verify_rounds`/`converged` fields),
