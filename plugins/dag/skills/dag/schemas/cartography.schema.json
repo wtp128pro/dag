@@ -26,6 +26,18 @@
     },
     "invariants": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
     "risks": { "type": "array", "items": { "type": "string" } },
-    "unknowns": { "type": "array", "items": { "type": "string" } }
+    "unknowns": { "type": "array", "items": { "type": "string" } },
+    "socratic": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "OPTIONAL. The cartographer's canonical 4-key socratic block (result of the FORK.COUNTER.ADMIT.PIVOT.RESIDUAL self-interrogation over the map's load-bearing claim), same shape as debrief/verify. When present, validate_run.py's I13 check requires `counter` to record an OUTCOME (rejects blank/'n/a'). This is the schema-enforced landing place for the cartographer's socratic residue (D-07): the cartographer produces no debrief.json, so the block lives here.",
+      "required": ["premise", "counter", "pivot", "confidence"],
+      "properties": {
+        "premise": { "type": "string", "minLength": 1 },
+        "counter": { "type": "string", "minLength": 1 },
+        "pivot": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
+      }
+    }
   }
 }

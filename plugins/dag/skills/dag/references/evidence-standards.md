@@ -47,8 +47,10 @@ should down-rank or reject it.
    deliverable relies on is material.
 2. **Assumptions are labeled, never laundered into facts.** If you must proceed without
    evidence, write "ASSUMPTION:" + why it's reasonable + its blast radius if wrong. The
-   verifier decides whether it needs to become a clarification (Phase 2 loop) or a
-   dedicated verification unit.
+   verifier **flags** a material unverifiable assumption — in `verify.json` `feedback`/`defects`,
+   or a `DISAGREE` verdict when it blocks adjudication — and the **adjudicator/human** decides the
+   re-route (a clarification via Phase 2, or a dedicated verification unit, via the Phase-7 rollback
+   options). The verifier's job is to refuse to pass it silently, not to pick the re-route.
 3. **Cite locators, not vibes.** `file.py:42`, a URL + section, a command + its output, a
    dated measurement. A claim a verifier cannot re-open is not evidence.
 4. **Verify before quoting.** Never produce a verbatim quote, citation, API name, config

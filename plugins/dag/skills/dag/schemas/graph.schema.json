@@ -65,6 +65,18 @@
           "units": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } }
         }
       }
+    },
+    "socratic": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "OPTIONAL. The planner/architect's canonical 4-key socratic block (result of the FORK.COUNTER.ADMIT.PIVOT.RESIDUAL self-interrogation over the decomposition's load-bearing claim), same shape as debrief/verify. When present, validate_run.py's I13 check requires `counter` to record an OUTCOME (rejects blank/'n/a'). This is the schema-enforced landing place for the planner's socratic residue (D-07): the planner produces no debrief.json, so the block lives here.",
+      "required": ["premise", "counter", "pivot", "confidence"],
+      "properties": {
+        "premise": { "type": "string", "minLength": 1 },
+        "counter": { "type": "string", "minLength": 1 },
+        "pivot": { "type": "string", "minLength": 1 },
+        "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
+      }
     }
   }
 }

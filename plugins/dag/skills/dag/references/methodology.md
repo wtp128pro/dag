@@ -13,7 +13,9 @@ One shared move-set — **FORK · COUNTER · ADMIT · PIVOT · RESIDUAL** — li
 human gates, Phases 1/2/7/8) and **self-interrogation** (subagent briefs — executor,
 verifier, cartographer, planner — run *before* producing output). Cite it by **one line per
 prompt**; never copy it in. The dialogue is free-form prose; only its *result* is captured
-in the small `socratic` block (§the field, in the protocol file).
+in the small `socratic` block: the executor's in `debrief.json`, the verifier's in `verify.json`
+(both required), the cartographer's in `cartography.json`, and the planner's in `graph.json` (an
+optional block on those two sidecars — they have no debrief — I13-checked when present; D-07).
 
 A Socratic gate is **not** a menu. It is a structured elicitation that makes the user's
 implicit knowledge and preferences explicit *before* they become expensive to change.
