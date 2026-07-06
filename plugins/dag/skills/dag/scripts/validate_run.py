@@ -57,6 +57,27 @@ UNIT_ARTIFACTS = {
 BLANK_COUNTER = {"", "n/a", "na", "none", "-", "--", "tbd", "todo", "null", "pending"}
 MECH_SENTINEL = "unit is mechanical; no material premise to break"
 
+# N-15: the JSON-Schema assertion keywords the built-in mini validator IMPLEMENTS. The schema
+# self-check WARNs (NOTE) on any keyword a schema relies on that the mini validator would silently
+# ignore, and FAILs on an unresolvable $ref it cannot enforce.
+_MINI_SUPPORTED_KEYWORDS = frozenset({
+    "$ref", "type", "const", "enum", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
+    "minLength", "maxLength", "pattern", "minItems", "maxItems", "uniqueItems", "items",
+    "properties", "required", "additionalProperties", "allOf", "anyOf", "oneOf", "not",
+    "if", "then", "else",
+})
+# all standard JSON-Schema assertion keywords — lets the audit tell a real keyword from a property
+# NAME (only a key in this set is treated as a keyword; unknown-to-the-standard keys are ignored).
+_JSONSCHEMA_ASSERTION_KEYWORDS = _MINI_SUPPORTED_KEYWORDS | frozenset({
+    "format", "propertyNames", "patternProperties", "dependencies", "dependentRequired",
+    "dependentSchemas", "minProperties", "maxProperties", "contains", "minContains", "maxContains",
+    "prefixItems", "unevaluatedItems", "unevaluatedProperties", "multipleOf",
+})
+# keys whose VALUE is a map of subschemas keyed by NAME (descend into values, not the names).
+_SUBSCHEMA_MAP_KEYS = frozenset({"properties", "patternProperties", "$defs", "definitions", "dependentSchemas"})
+# keys whose VALUE is DATA, not a schema (never descend — avoids treating data as keywords).
+_DATA_VALUE_KEYS = frozenset({"enum", "const", "examples", "default", "required"})
+
 # ---------------------------------------------------------------------------
 # Minimal Draft-2020-12 validator (subset used by our schemas). Real rejection.
 # ---------------------------------------------------------------------------
@@ -184,6 +205,35 @@ def _mini_validate(inst, schema, path="$", root=None, _seen=frozenset()):
             errs += _mini_validate(inst, schema["else"], path, root)
     return errs
 
+def _audit_schema_self_check(sf, schema, rep):
+    """N-15 self-check depth: FAIL on an unresolvable $ref (the mini validator cannot enforce an
+    external/broken ref), and NOTE any assertion keyword a schema uses that the mini validator does
+    NOT implement — so a future schema keyword cannot silently go unenforced under the stdlib backend."""
+    unimpl = set()
+    def walk(node):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k in _JSONSCHEMA_ASSERTION_KEYWORDS and k not in _MINI_SUPPORTED_KEYWORDS:
+                    unimpl.add(k)
+                if k == "$ref" and isinstance(v, str) and _resolve_ref(v, schema) is None:
+                    rep.fail(f"schema {sf} $ref",
+                             f"unresolvable $ref {v!r} (the built-in mini validator cannot enforce "
+                             "an external/broken ref)")
+                if k in _SUBSCHEMA_MAP_KEYS and isinstance(v, dict):
+                    for sub in v.values():
+                        walk(sub)                       # values are subschemas keyed by NAME
+                elif k in _DATA_VALUE_KEYS:
+                    continue                            # value is DATA, not a subschema
+                else:
+                    walk(v)
+        elif isinstance(node, list):
+            for x in node:
+                walk(x)
+    walk(schema)
+    if unimpl:
+        print(f"  NOTE  schema {sf}: uses keyword(s) the built-in mini validator does not implement "
+              f"(enforced only under the jsonschema backend): {sorted(unimpl)}")
+
 def make_validator():
     try:
         import jsonschema  # type: ignore
@@ -222,7 +272,16 @@ def parse_graph_edges(md_text):
     return edges
 
 def md_has_unfenced_deps(md_text):
-    """True if GRAPH.md contains U-id dependency arrows OUTSIDE any code fence."""
+    """True if GRAPH.md contains U-id dependency arrows OUTSIDE any code fence.
+
+    N-14: fences toggle only on a line whose *stripped* form starts with three backticks
+    (```), so a stray single backtick never flips fence state. Limitation (documented, not a
+    bug): this is a single-pass line scanner — it does not understand nested/indented fences,
+    tildes (~~~), or inline code spans. That is acceptable because GRAPH.md dependency parsing
+    is **defense-in-depth only**: `graph.json` is the AUTHORITATIVE edge set the validator
+    enforces (I3), and a post-decomposition run REQUIRES a valid `graph.json`; this heuristic
+    just flags an obviously-fenceless GRAPH.md as a secondary signal.
+    """
     in_block = False
     for line in md_text.splitlines():
         if line.strip().startswith("```"):
@@ -236,30 +295,39 @@ def md_has_unfenced_deps(md_text):
     return False
 
 def find_cycle(edges):
+    # N-12: iterative explicit-stack DFS (was recursive — a deep dependency chain could
+    # RecursionError). This is a faithful simulation of the former recursion: same root order
+    # (`list(adj)`), same neighbour order (`adj[n]`), GREY checked before WHITE, so the FIRST
+    # cycle found and its returned path (`path[path.index(m):] + [m]`) are byte-identical.
     adj = {}
     for a, b in edges:
         adj.setdefault(a, []).append(b)
         adj.setdefault(b, [])
     WHITE, GREY, BLACK = 0, 1, 2
     color = {n: WHITE for n in adj}
-    def dfs(n, stack):
-        color[n] = GREY
-        stack.append(n)
-        for m in adj[n]:
-            if color[m] == GREY:
-                return stack[stack.index(m):] + [m]
-            if color[m] == WHITE:
-                r = dfs(m, stack)
-                if r:
-                    return r
-        color[n] = BLACK
-        stack.pop()
-        return None
-    for n in list(adj):
-        if color[n] == WHITE:
-            r = dfs(n, [])
-            if r:
-                return r
+    for root in list(adj):
+        if color[root] != WHITE:
+            continue
+        color[root] = GREY
+        path = [root]                              # == the former recursion's `stack`
+        frames = [(root, iter(adj[root]))]         # each frame resumes its neighbour iterator
+        while frames:
+            node, it = frames[-1]
+            descended = False
+            for m in it:
+                if color[m] == GREY:
+                    return path[path.index(m):] + [m]
+                if color[m] == WHITE:
+                    color[m] = GREY
+                    path.append(m)
+                    frames.append((m, iter(adj[m])))
+                    descended = True
+                    break
+                # color[m] == BLACK: already fully explored — skip (matches the recursion)
+            if not descended:                      # neighbours exhausted → backtrack
+                color[node] = BLACK
+                path.pop()
+                frames.pop()
     return None
 
 # ---------------------------------------------------------------------------
@@ -311,6 +379,13 @@ def _model_scope_applies(entry_scope_model, run_model):
 
 # ---------------------------------------------------------------------------
 def main(argv=None):
+    # N-13: never crash on a non-UTF-8 stdout/stderr (e.g. `LC_ALL=C PYTHONUTF8=0`). Replace an
+    # unencodable char instead of raising UnicodeEncodeError; on a UTF-8 stream the labels survive.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(errors="replace")   # Python >=3.7; exotic streams lack reconfigure
+        except Exception:
+            pass
     ap = argparse.ArgumentParser(description="Validate a dag run directory.")
     ap.add_argument("run_dir", nargs="?", help="path to the run directory")
     ap.add_argument("--schemas", default=DEFAULT_SCHEMAS)
@@ -340,6 +415,7 @@ def main(argv=None):
             continue
         schemas[sf] = s
         rep.ok(f"schema {sf} well-formed")
+        _audit_schema_self_check(sf, s, rep)   # N-15: unresolvable $ref => FAIL; unimplemented keyword => NOTE
     if args.self_check:
         return _finish(rep)
 
@@ -598,6 +674,7 @@ def main(argv=None):
     if os.path.isdir(user_dir):
         # HIGH-tier snapshot (run-local ∪ project) for scope-collision override detection.
         high_scopes = {s for s in (_applies_frozenset(E) for E in learnings if isinstance(E, dict)) if s}
+        user_scopes_seen = set()   # N-11: within-user-store scope-collision dedup (first sorted file wins)
         u_merged = u_over = 0
         for fn in sorted(f for f in os.listdir(user_dir) if f.endswith(".json")):
             fp = os.path.join(user_dir, fn)
@@ -639,8 +716,16 @@ def main(argv=None):
                            f"{sorted(escope)} by a higher-precedence entry — dropped from propagation (project > user)")
                     u_over += 1
                     continue
+                if escope and escope in user_scopes_seen:   # N-11: user-vs-user scope collision
+                    rep.ok(f"learnings user-store override (G2): user entry {eid} shadowed on scope "
+                           f"{sorted(escope)} by an earlier user-store entry (first sorted file wins) — "
+                           f"dropped from propagation")
+                    u_over += 1
+                    continue
                 have_ids.add(eid)
                 store_ids.add(eid)
+                if escope:
+                    user_scopes_seen.add(escope)
                 learnings.append(E)
                 u_merged += 1
         rep.ok(f"learnings user-store discovered (~/.claude/dag/learnings/): {u_merged} user entr(y/ies) "
@@ -760,14 +845,12 @@ def main(argv=None):
     #     `supersedes` (path (a)) or narrow `scope.excludes` so the scopes stop overlapping. This
     #     is deliberately a NOTE, not a rep.fail: a hard-fail on this heuristic would break every
     #     legitimate multi-lesson store (e.g. two unrelated `tag:core` lessons), a false positive.
-    def _applies_set(E):
-        sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
-        ats = sc.get("applies_to")
-        return frozenset(a for a in ats if isinstance(a, str)) if isinstance(ats, list) else frozenset()
+    # N-16: reuse the single `_applies_frozenset` helper defined above (removed the duplicate
+    # `_applies_set`, which was byte-identical).
     _by_scope = {}
     for E in learnings:
         if isinstance(E, dict):
-            s = _applies_set(E)
+            s = _applies_frozenset(E)
             if s:
                 _by_scope.setdefault(s, []).append(E)
     for s, grp in sorted(_by_scope.items(), key=lambda kv: sorted(kv[0])):
