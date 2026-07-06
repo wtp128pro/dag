@@ -36,15 +36,21 @@ fi
 RAW_LABEL="$1"
 BASE_DIR="${2:-$(pwd)}"
 
-# Kebab-case the label: lowercase, non-alnum -> '-', squeeze, trim, cap length.
+# Kebab-case the label: lowercase, non-alnum -> '-', squeeze, trim leading, cap length.
+# N-18: cap to 40 chars FIRST, then trim any trailing hyphen the cut may have exposed (reordered,
+# so a truncated label never ends in '-').
 LABEL=$(printf '%s' "$RAW_LABEL" \
   | tr '[:upper:]' '[:lower:]' \
-  | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' -e 's/-*$//' \
-  | cut -c1-40)
+  | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-*//' \
+  | cut -c1-40 \
+  | sed -e 's/-*$//')
 [ -n "$LABEL" ] || LABEL="run"
 
-STAMP=$(date +"%Y-%m-%d_%H%M%S")
-ISO=$(date +"%Y-%m-%dT%H:%M:%S%z")
+# N-18: one clock read, formatted twice, so the dir stamp and ISO timestamp cannot straddle a
+# second boundary (macOS `date -r <epoch>`; GNU/Linux `date -d @<epoch>`).
+NOW_EPOCH=$(date +%s)
+STAMP=$(date -r "$NOW_EPOCH" +"%Y-%m-%d_%H%M%S" 2>/dev/null || date -d "@$NOW_EPOCH" +"%Y-%m-%d_%H%M%S")
+ISO=$(date -r "$NOW_EPOCH" +"%Y-%m-%dT%H:%M:%S%z" 2>/dev/null || date -d "@$NOW_EPOCH" +"%Y-%m-%dT%H:%M:%S%z")
 RUN_DIR="$BASE_DIR/.wip/${STAMP}_${LABEL}"
 
 if [ -e "$RUN_DIR" ]; then
@@ -56,6 +62,9 @@ mkdir -p "$RUN_DIR/units"
 
 # Absolute path (portable; avoids realpath dependency).
 ABS_RUN_DIR=$(cd "$RUN_DIR" && pwd)
+# N-18: JSON-escape the path (it may contain " or \) so fsm-state.json is always valid JSON.
+# python3 is a hard skill dependency (validate_run.py); json.dumps emits the surrounding quotes too.
+ABS_RUN_DIR_JSON=$(python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1]))' "$ABS_RUN_DIR")
 
 cat > "$RUN_DIR/INPUT.md" <<EOF
 # Task Input
@@ -134,7 +143,7 @@ EOF
 # is yet required: no loop substate yet, all gates false — the gate-ordering invariant fires
 # from P2 onward (personas_confirmed is required from P2; see references/state-machine.md).
 cat > "$RUN_DIR/fsm-state.json" <<EOF
-{ "run_dir": "${ABS_RUN_DIR}", "phase": "P0_BOOTSTRAP", "updated_at": "${ISO}",
+{ "run_dir": ${ABS_RUN_DIR_JSON}, "phase": "P0_BOOTSTRAP", "updated_at": "${ISO}",
   "gates": { "personas_confirmed": false, "clarification_resolved": false,
              "cartography_done": false, "decomposition_approved": false },
   "units": [] }

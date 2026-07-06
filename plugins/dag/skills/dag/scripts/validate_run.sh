@@ -9,7 +9,16 @@
 # Usage:  validate_run.sh <run_dir> [--self-check] [--quiet]
 # Exit:   passthrough from the validator · 3 = python3 not available.
 set -eu
-HERE="$(cd "$(dirname "$0")" && pwd)"
+# N-19: resolve this script's REAL dir, following a symlink to $0 (so `ln -s .../validate_run.sh
+# /elsewhere/x.sh && x.sh` still finds validate_run.py beside the real script). CDPATH= and `pwd -P`
+# keep it CWD- and symlink-safe.
+SOURCE="$0"
+while [ -h "$SOURCE" ]; do
+  DIR="$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd -P)"
+  SOURCE="$(readlink "$SOURCE")"
+  case "$SOURCE" in /*) ;; *) SOURCE="$DIR/$SOURCE" ;; esac
+done
+HERE="$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd -P)"
 
 if command -v python3 >/dev/null 2>&1; then
   exec python3 "$HERE/validate_run.py" "$@"
