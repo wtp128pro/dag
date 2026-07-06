@@ -76,7 +76,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 |---|---|---|---|---|
 | LT1 | EXECUTE | debrief_written | debrief.json valid (incl. 4-key `socratic`) | VERIFY |
 | LT2 | VERIFY | verdict_emitted | verify.json valid ∧ `executor_reasoning_seen==false` | ADJUDICATE |
-| LT3 | ADJUDICATE | verdict=PASS | `defects==[]` | DONE |
+| LT3 | ADJUDICATE | verdict=PASS | `verdict == PASS` (defect-content-free; a PASS may carry `minor` observations — I6 revised) | DONE |
 | LT4 | ADJUDICATE | verdict=FAIL ∧ retries<2 | `retries < 2` (variant `V=2−retries > 0`) ∧ FAIL carries ≥1 defect (each naming a brief criterion) ∧ `feedback.actionable_changes` non-empty | RETRY |
 | LT5 | ADJUDICATE | verdict=FAIL ∧ retries≥2 | `retries == 2` | ESCALATE |
 | LT6 | ADJUDICATE | verdict=DISAGREE | evidence cannot settle; `disagreement` present | ESCALATE (→P7) |
@@ -115,7 +115,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I3 DAG acyclic (fail-closed)** | The work graph has no dependency cycle; graph.json is authoritative. | validator: cycle on `edges ∪ unit-deps`; **GRAPH.md-present or post-decomposition ⇒ VALID graph.json REQUIRED** (unparseable/absent ⇒ non-zero exit). Closes E. |
 | **I4 Loop bound** | `retries ≤ 2` per unit (≤3 executions); `iteration ≤ retries+1`. | schema `maximum:2` + validator cross-check. |
 | **I5 Budget cap** | Every brief/unit ≤ 32K tokens. | schema `maximum:32000` on `budget_tokens`/`est_footprint_tokens`. |
-| **I6 Evidence-bound verdicts** | FAIL names ≥1 defect, each citing a brief acceptance criterion; PASS ⇒ `defects==[]`. | schema `if/then` (FAIL⇒defects≥1 + actionable_changes; PASS⇒defects==[]) + validator criterion-∈-brief cross-check. |
+| **I6 Evidence-bound verdicts** | FAIL names ≥1 defect, each citing a brief acceptance criterion; PASS ⇒ **no blocker/major defect** (REVISED for coverage-first, PR1 — was `defects==[]`; a PASS may now carry `minor` observations: "report every finding + severity, filter downstream"). | schema `if/then` (FAIL⇒defects≥1 + actionable_changes; PASS⇒every defect severity==`minor`) + validator criterion-∈-brief cross-check + an I6-PASS defense-in-depth check. Termination-preserving: verdict enum + the §2 partition are unchanged (content-rule revision only). |
 | **I7 Single recommended option** | A disagreement dossier marks exactly ONE option recommended. | validator counts `recommended==true`. |
 | **I8 No open material ambiguity past P2** | Cannot advance past clarification with an open material item. | validator (clarifications extract). |
 | **I9 Every debriefed unit is verified** | A unit dir with a debrief (`.json` or `.md`) MUST have a verify.json with a verdict. | validator presence check. **Closes D.** |
@@ -125,6 +125,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I13 Socratic counter records an outcome** | `debrief`/`verify` `socratic.counter` states an outcome, not a blank/"n/a" (mechanical sentinel allowed). | schema (4 keys + `confidence` regex) + validator counter-outcome check. **Shape only; genuineness = the independent COUNTER re-run (Limitation B).** |
 | **I14 AO-2 do_not_touch disjointness (post-hoc)** | For a retry (`debrief.iteration>1`), `verify.defects[].criterion` is disjoint from the retry's `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit. | `validate_run.py` offline predicate (label `I14 AO-2 do_not_touch disjointness (units/<uid>)`), added ring-02/P1. Gates no transition. **Presence-gated + self-reported — Limitation F.** |
 | **I15 AO-6 responsive change (post-hoc)** | For a retry carrying a `prior_feedback` echo, `debrief.prior_feedback.changes_made` is present and non-empty; else non-zero exit. | `validate_run.py` offline predicate (label `I15 AO-6 responsive change (units/<uid>)`), added ring-02/P2. Gates no transition; `changes_made` executor-self-attested. **Limitation F.** |
+| **I16 Panel discipline (post-hoc, PR1)** | A `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); ANY panel's top-level `verdict` equals the **DISCRETE majority** of the panel verdicts (a no-majority split ⇒ `DISAGREE` — **no softmax**); `verify_rounds` (loop-until-dry) ∈ [1,3]. | `validate_run.py` offline predicate (label `I16 panel discipline (units/<uid>)`), added PR1. Gates **no** transition (never a live LT7 guard). Node-internal ⇒ **PRESERVES** termination. **Presence/shape-checked — genuine lens-diversity + real recall stay verifier judgment (Limitation H).** |
 | **I-dod DoD/non-goals present** | Any post-clarification structural artifact (cartography, graph, units, or synthesis — `learnings.json` is deliberately excluded) requires a schema-valid `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is absent (methodology.md §Clarification). | validator artifact-driven presence check, fail-closed on absence — confirmed via the `missing_dod`/`postdecomp_no_dod`/`synthesis_no_dod`/`unfenced_cycle` fixtures. |
 
 **Socratic seam (canonical 4-key).** The `brief` carries only a **reference** to
@@ -140,13 +141,15 @@ validator requires `counter_reran_independently==true` and rejects a PASS whose
 DAG** (authoritative graph.json required past decomposition); **I1b maker!=checker**
 (persona-distinctness: `executor_persona != verifier_persona` per graph.json unit);
 **I9/I10 missing-verification rejection**; I4 (loop bound + cross-check); I5 (budget); I6 (FAIL⇒defect∈brief-criteria,
-PASS⇒`defects==[]`); I7 (single recommended); I8 (open-material); **I-dod** (DoD/non-goals
+PASS⇒no blocker/major defect — the coverage-first REVISION, PR1); I7 (single recommended); I8 (open-material); **I-dod** (DoD/non-goals
 presence, artifact-triggered — fail-closed even when `clarifications.json` is absent);
 **I11 tag-vocabulary
 membership** (over `V_tag_eff` = run-local ∪ global registry — 04/G1); **I12 learnings-propagation
 predicate + admission gate** (with the 04/G1 authored-vs-imported carve-out); **I13 socratic-counter
 outcome shape**; **I14/I15 post-hoc anti-oscillation** (AO-2 `do_not_touch` disjointness / AO-6
-responsive-change, offline over the retry `debrief` echo — 02/P1, 02/P2); the `premise_check`
+responsive-change, offline over the retry `debrief` echo — 02/P1, 02/P2); **I16 panel discipline**
+(high-stakes⇒panel present with the distinct correctness/reproduce/guardrail lenses; discrete-majority
+aggregation — a split⇒DISAGREE, no softmax; `verify_rounds`∈[1,3] — post-hoc/offline, PR1); the `premise_check`
 attestation; gate-ordering of `fsm-state.phase` vs `gates`; and the `const:false` shape of I1.
 
 **It CANNOT enforce** (these remain human/verifier judgment):
@@ -179,6 +182,18 @@ attestation; gate-ordering of `fsm-state.phase` vs `gates`; and the `const:false
   "already-generalized" signal (a hand-authored `G#` id in a run-local file would receive the
   exemption) — a deliberate provenance-trust boundary, not a cryptographic proof. It never weakens I12
   propagation.
+- **H.** **I16 panel discipline** checks *presence + shape*, not *substance*. It enforces that a
+  high-stakes unit carries a ≥3-member `panel[]` whose lenses cover the canonical trio and whose
+  DISCRETE majority equals the top-level verdict (no softmax), and that `verify_rounds` is bounded —
+  all mechanically decidable. It **cannot** enforce that the three lenses were *genuinely* applied by
+  *genuinely* independent verifiers, that a `converged` (dry) sweep truly exhausted the defects, or
+  that a panelist's verdict is *correct* — those stay verifier/human judgment (validity ≠ correctness,
+  the same boundary as I13/I14/I15). It is POST-HOC and gates no transition, so it can never deadlock
+  the loop (the 02/P1 live-LT7-guard lesson); the independent panel itself is the semantic backstop.
+  Note too that `verify_rounds` is OPTIONAL: I16 bounds it to [1,3] only when present, so an *omitted*
+  `verify_rounds` leaves the internal loop-until-dry round count unaudited (that node's finiteness then
+  rests on model discipline, as it did before the field existed — VERIFY is a single LT2 transition
+  regardless, so termination is unaffected).
 
 ## 6. Phase→state coverage (no orphan phases)
 Every SKILL.md phase 0–8 maps to exactly one state (§1); every gate maps to a guard (§3);

@@ -1,0 +1,5 @@
+{
+  "run_label": "bad-manifest",
+  "sharder": "scripts/shard.py",
+  "shards": [ { "shard_id": "s1", "locator": { "kind": "file", "ref": "d/s1" } } ]
+}

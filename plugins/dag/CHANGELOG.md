@@ -3,6 +3,46 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-07-06
+
+Verifier hardening + reproducible evidence + large-dataset partitioning. Every change is
+node-internal and classified **preserves** the termination proof and the AO-1..7 / I1..I15
+invariants, with the **single exception** of I6's PASS clause, an explicitly-flagged **revises**
+(content-rule) change carried with a migration argument. No FSM edge is added; no live guard is
+placed on the sole `RETRY→EXECUTE` back-edge (all new enforcement is post-hoc/offline). The full
+validator fixture suite's verdicts are unchanged and five new fixtures cover the new reachable states.
+
+### Added
+- **Panel-of-3 is the DEFAULT on `high-stakes` units**, with **distinct lenses** (correctness /
+  reproduce / guardrail — not three clones), aggregated by **DISCRETE majority** (a no-majority split
+  → `DISAGREE`, the AO-5 human route; **never** softmaxed). `high-stakes` is added to `V_tag`.
+- **Loop-until-dry verify sweep**, bounded at `R_max = 3` rounds (accumulate defects until a round is
+  dry or the cap). New optional `verify.json` fields `panel[]`, `verify_rounds`, `converged`.
+- **Post-hoc invariant I16** in `validate_run.py` (offline; **gates no transition**): a high-stakes
+  unit must carry a `panel[]` (≥3, trio covered); any panel's top verdict must equal the discrete
+  majority; `verify_rounds ∈ [1,3]`.
+- **`references/data-partitioning.md`** + **`schemas/manifest.schema.json`** — map-reduce onto the
+  DAG for datasets larger than a unit's 32K budget: partition the *work* not the *context*, the
+  mechanical-uniform-vs-judgment-heavy fork, parametric map waves + a reduce tree, verify-by-re-run+
+  diff, an aggregate-ledger index (migration note), and the non-independent-shard hard case.
+- Five fixtures: `panel_high_stakes_pass`, `panel_missing`, `panel_majority_mismatch`,
+  `pass_with_minor`, `pass_with_major_rejected`, plus `manifest_examples/`.
+
+### Changed
+- **Verifier mandate is now coverage-first** (`templates/verify.md`, methodology §Verification, SKILL
+  Phase 6): report *every* finding with its severity; no "only high-severity" filter that suppresses
+  recall — triage happens downstream.
+- **I6 PASS clause REVISED (flagged revises + migration note):** a `PASS` may now carry `minor`
+  observations but not a blocker/major defect (was `defects==[]`). Verdict enum + the §1.3/§2
+  partition are unchanged, so termination is preserved.
+- **Phase 4 atomicity tightened** ("independently verifiable *within 32K*"; the budget is a
+  reasoning budget, not a data budget) and **`evidence-standards.md`** now prefers
+  executable/reproducible evidence (re-run test, diff output, re-derive number) over asserted
+  evidence — model-independent, and the prerequisite for data-parallel verify.
+- `references/state-machine.md`, `references/self-learning-loops.md`, and
+  `references/formal-models.md` updated to record I16, the I6 revision (+ Limitation H), and the
+  PRESERVES classification (TLA+/Alloy models need no edit).
+
 ## [1.1.1] — 2026-07-05
 
 ### Fixed

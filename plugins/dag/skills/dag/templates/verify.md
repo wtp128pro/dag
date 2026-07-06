@@ -1,13 +1,23 @@
 <!-- VERIFY ARTIFACT GUIDE — the INDEPENDENT verifier produces units/<id>/verify.json ONLY
      (JSON-only; no verify.md). It saw brief.md + debrief.json + the produced artifacts, NEVER the
-     executor's reasoning/chain-of-thought. Mandate: REFUTE — a verifier that only confirms is
-     malfunctioning. Schema: schemas/verify.schema.json.
+     executor's reasoning/chain-of-thought. Mandate: REFUTE (coverage-first) — a verifier that only
+     confirms is malfunctioning. Schema: schemas/verify.schema.json.
 
      ACCURACY NOTE: do the adversarial work FREE-FORM in your reply FIRST, THEN write verify.json.
      Optionally persist that work in the `audit_notes` string; the load-bearing outputs are the
      verdict/feedback/defects/premise_check. -->
 
 # Verify artifact — `units/<UNIT-ID>/verify.json`
+
+## Coverage-first mandate (report everything; filter downstream)
+**Recall first.** Report **every** defect you find, each tagged with a `severity`
+(`blocker | major | minor`) — do **not** self-censor "small" findings, and do **not** apply an
+"only report high-severity" filter (that lowers recall on any model). Severity **ranks** a finding;
+it does **not gate whether you report it**. Triage happens *downstream* of the report, not inside
+your head. A PASS **may** carry `minor` observations (the I6 PASS clause was revised for exactly
+this — a PASS forbids only blocker/major defects; see references/self-learning-loops.md §5). Reserve
+`FAIL` for a blocker/major defect that a retry must fix; record everything else as `minor` and let
+the adjudicator/handoff decide.
 
 Do the adversarial work in your reply, then write `verify.json`:
 1. **Independently re-check each acceptance criterion** (re-run the test / re-derive / open the source).
@@ -18,6 +28,28 @@ Do the adversarial work in your reply, then write `verify.json`:
    *load-bearing* claim (if it names a safe peripheral one, re-derive the true premise and treat the
    block as failing); THEN re-run COUNTER on that premise **from evidence, never from the executor's
    reasoning**, and confirm the debrief's `counter` records an outcome, not a promise.
+
+## Loop-until-dry (bounded coverage sweep)
+Run adversarial **rounds** inside this single VERIFY node, **accumulating** defects across rounds,
+until a round surfaces **no new defect** ("dry") **or** you hit the cap **`R_max = 3`** rounds. The
+verdict is derived from the *accumulated* defect set. This is node-internal work — it adds **no FSM
+edge**, so the correction-loop termination proof is untouched (references/self-learning-loops.md §2).
+Record `verify_rounds` (1–3) and `converged` (`true` iff you stopped dry, `false` iff you stopped at
+the cap — say so honestly; coverage may be incomplete). A single-pass verify is `verify_rounds: 1`.
+
+## Panel of 3 (DEFAULT on `high-stakes` units — distinct lenses, discrete majority)
+A unit tagged **`high-stakes`** is verified by an **odd panel of 3** independent verifiers with
+**distinct lenses**, not three clones (diversity beats redundancy):
+- **correctness** — acceptance criteria met, evidence admissible and real;
+- **reproduce** — re-run / re-derive the result independently (executable evidence, PR2);
+- **guardrail** — no out-of-scope / gold-plated / delivered-non-goal work.
+
+Record each panelist in `panel[]` (`{lens, verdict, verifier_persona?, summary?}`). The top-level
+`verdict` MUST be the **DISCRETE majority** of the three (2-of-3) — **never a softmaxed or averaged
+score**. If the three split with **no strict majority**, emit **`DISAGREE`** (a genuine split →
+Phase-7 human gate, AO-5), not an invented middle verdict. `validate_run.py` **I16** enforces this
+post-hoc: high-stakes ⇒ `panel[]` present (≥3, trio covered) and `verdict == discrete majority`.
+(Routine units may use a single verifier and omit `panel[]`.)
 
 **Required keys** (`schemas/verify.schema.json`):
 - `unit_id`, `verifier_persona`, `verdict` (`PASS|FAIL|DISAGREE`), `iteration`
@@ -32,7 +64,7 @@ Do the adversarial work in your reply, then write `verify.json`:
     offline **I14** disjointness check (AO-2; references/self-learning-loops.md §5) is meaningful for
     *all* passed criteria, not just the ones you remembered to list. Seed only from criteria your
     `inputs_reviewed`/audit actually covered — do not mark an untested criterion "passed".
-- `defects[]` — `PASS ⇒ []`; `FAIL ⇒ ≥1`, each `{severity (required; blocker|major|minor), criterion
+- `defects[]` — `PASS ⇒ no blocker/major` (minor observations allowed — I6 revised, PR1); `FAIL ⇒ ≥1`, each `{severity (required; blocker|major|minor), criterion
   (required; verbatim from brief.acceptance_criteria — cross-checked by the validator), minimal_repro
   (optional), fix_direction (optional)}`
 - `socratic{premise, counter, pivot, confidence}` — the verifier's own 4-key block on its verdict
@@ -40,8 +72,12 @@ Do the adversarial work in your reply, then write `verify.json`:
 
 **Optional keys:** `inputs_reviewed[]` (e.g. `["brief.md","debrief.json","<artifact paths>"]`),
 `audit_notes` (free-form: the criteria-check / evidence-audit / hallucination-sweep narrative),
+`panel[]` (`{lens ∈ correctness|reproduce|guardrail, verdict, verifier_persona?, summary?}` —
+**required on `high-stakes` units**, I16), `verify_rounds` (1–3, loop-until-dry), `converged` (bool),
 `disagreement{why_unresolvable}` (**iff** `verdict==DISAGREE`).
 
-Conditional (schema-enforced): `PASS ⇒ defects==[]`; `FAIL ⇒ ≥1 defect citing a brief criterion +
-≥1 feedback.actionable_change`, else emit `DISAGREE`. No `verify.md` is written — `verify.json` is
-authoritative; adjudication reads its `verdict`/`feedback`/`defects`.
+Conditional (schema-enforced): `PASS ⇒ no blocker/major defect` (minor observations allowed — I6
+revised, PR1); `FAIL ⇒ ≥1 defect citing a brief criterion + ≥1 feedback.actionable_change`, else emit
+`DISAGREE`. When a `panel[]` is present, `verdict` MUST equal its **discrete majority** (no softmax;
+a split ⇒ `DISAGREE`). No `verify.md` is written — `verify.json` is authoritative; adjudication reads
+its `verdict`/`feedback`/`defects`.

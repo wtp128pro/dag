@@ -3,6 +3,19 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.4] — 2026-07-06
+
+### Changed
+- **`dag` plugin → 1.2.0** — verifier hardening + reproducible evidence + large-dataset
+  partitioning: panel-of-3 with distinct correctness/reproduce/guardrail lenses is now the default on
+  `high-stakes` units (discrete-majority aggregation — a split → DISAGREE, never softmax), a bounded
+  loop-until-dry verify sweep and a coverage-first verifier mandate raise recall, I6's PASS clause is
+  revised (a PASS may carry `minor` observations), a new post-hoc invariant **I16** enforces the panel
+  discipline offline (gates no transition), and `references/data-partitioning.md` +
+  `schemas/manifest.schema.json` add map-reduce-onto-the-DAG for large datasets. All node-internal →
+  *preserves* the termination proof (only I6's PASS clause is a flagged content-rule revision). See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.3] — 2026-07-05
 
 ### Changed

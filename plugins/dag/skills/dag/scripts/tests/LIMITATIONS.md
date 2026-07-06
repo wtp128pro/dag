@@ -35,3 +35,24 @@ harness). Overriding `$HOME` requires a runner/wrapper the fixture pattern does 
 to the real `~/.claude` would be destructive and non-reproducible. Handoff to U08: if a HOME-stub
 harness is desired, add a wrapper that sets `HOME` to a temp dir seeded with `tags.json` /
 `learnings/` and asserts the `G1`/`G2` PASS lines — that is the honest way to close this gap.
+
+---
+
+## PR1 verifier hardening — I16 panel discipline + I6 PASS revision (all IN-TREE reachable)
+
+Every new reachable state is exercised by a self-contained fixture (run `python3 validate_run.py
+tests/<name>` and check the exit code / RESULT):
+
+- **I16 (a) high-stakes ⇒ panel present** — `panel_high_stakes_pass/` (POS, exit 0) vs
+  `panel_missing/` (NEG, exit 1: high-stakes unit with no `panel[]`).
+- **I16 (b) discrete-majority / anti-softmax** — `panel_majority_mismatch/` (NEG, exit 1: panel
+  majority `PASS` but top-level `verdict` `FAIL`). The positive is `panel_high_stakes_pass/`
+  (majority == top verdict).
+- **I16 (c) loop-until-dry bound** — `panel_high_stakes_pass/` carries `verify_rounds: 2` (within
+  `R_max=3`); an out-of-range value is additionally rejected by the schema (`maximum: 3`).
+- **I6 PASS revised (coverage-first)** — `pass_with_minor/` (POS, exit 0: PASS carrying a `minor`
+  defect) vs `pass_with_major_rejected/` (NEG, exit 1: PASS carrying a `major` defect ⇒ schema-invalid
+  `verify.json` ⇒ I9 rejects).
+- **manifest.schema.json** — `manifest_examples/` (`valid.json` / `invalid_missing_grain.json`).
+  `manifest.schema.json` is NOT auto-run against a run dir, so this pair is checked directly against
+  the schema (command in `manifest_examples/README.md`), not by a `validate_run.py <dir>` invocation.

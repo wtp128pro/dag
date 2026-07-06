@@ -167,7 +167,16 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.1.1** — corrective audit pass (no functional/guarantee change): the Alloy
+Current version: **1.2.0** — verifier hardening + reproducible-evidence + large-dataset
+partitioning. Panel-of-3 with **distinct lenses** (correctness/reproduce/guardrail) is now the
+**default on `high-stakes` units**, aggregated by **discrete majority** (a split → DISAGREE, never
+softmax); a bounded **loop-until-dry** verify sweep and a **coverage-first** verifier mandate raise
+recall; I6's PASS clause is revised (a PASS may carry `minor` observations). New post-hoc invariant
+**I16** enforces the panel discipline offline (gates no transition). Adds
+`references/data-partitioning.md` + `schemas/manifest.schema.json` (map-reduce onto the DAG) and a
+reproducible/executable-evidence preference. All node-internal → **PRESERVES** the termination proof
+(only I6's PASS clause is a flagged content-rule revision). **1.1.1** — corrective audit pass (no
+functional/guarantee change): the Alloy
 formal model is now executable and machine-checked (a partial `check` scope left `Persona`
 unbounded), doc↔validator drift fixed (`scope.expiry` grammar, the retry consumption-contract
 predicate), stale invariant ranges refreshed to `I1-I15`, dangling persona `pair_with` references

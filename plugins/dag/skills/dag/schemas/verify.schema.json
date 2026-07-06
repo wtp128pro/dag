@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "dag/verify.schema.json",
   "title": "Verify report (machine-checkable extract)",
-  "description": "The units/<UID>/verify.json artifact (JSON-only; no verify.md). Encodes the executor<->verifier LOOP contract + the verifier-independence invariant + the premise-check (the independent COUNTER re-run). verdict/iteration/feedback/defects/socratic/premise_check are required. executor_reasoning_seen MUST be false (independence). FAIL is schema-INVALID unless it carries >=1 defect (each naming a criterion) AND feedback.actionable_changes is non-empty; PASS requires defects==[]; DISAGREE requires a disagreement object. The defect.criterion in brief.acceptance_criteria membership is cross-checked in validate_run.py.",
+  "description": "The units/<UID>/verify.json artifact (JSON-only; no verify.md). Encodes the executor<->verifier LOOP contract + the verifier-independence invariant + the premise-check (the independent COUNTER re-run). verdict/iteration/feedback/defects/socratic/premise_check are required. executor_reasoning_seen MUST be false (independence). FAIL is schema-INVALID unless it carries >=1 defect (each naming a criterion) AND feedback.actionable_changes is non-empty; PASS (I6 clause REVISED for coverage-first, PR1) requires NO blocker/major defect but MAY carry `minor` observations; DISAGREE requires a disagreement object. Optional PR1 fields: `panel[]` (odd-panel-of-3 with distinct correctness/reproduce/guardrail lenses; top verdict == discrete majority, no softmax), `verify_rounds`/`converged` (bounded loop-until-dry). The defect.criterion in brief.acceptance_criteria membership + the I16 panel discipline are cross-checked in validate_run.py.",
   "type": "object",
   "additionalProperties": false,
   "required": ["unit_id", "verifier_persona", "verdict", "iteration", "executor_reasoning_seen", "feedback", "defects", "socratic", "premise_check"],
@@ -21,6 +21,36 @@
       "type": "string",
       "description": "Optional free-form record of the verifier's adversarial work (per-criterion independent check, evidence audit, hallucination sweep, budget check) that formerly lived in verify.md prose. Not required — the load-bearing outputs are verdict/feedback/defects/premise_check."
     },
+    "panel": {
+      "type": "array",
+      "minItems": 3,
+      "description": "OPTIONAL. When a unit is verified by an odd panel (>=3) of INDEPENDENT verifiers with DISTINCT lenses (PR1 verifier hardening), record each panelist here. The top-level `verdict` MUST equal the DISCRETE majority of the panel verdicts (no softmax); a split with no strict majority MUST route to DISAGREE (AO-5). Members must cover the canonical lens trio correctness/reproduce/guardrail (not 3 clones). REQUIRED by validate_run.py I16 on any unit tagged `high-stakes`. Node-internal: recording a panel adds no FSM edge (termination proof untouched).",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["lens", "verdict"],
+        "properties": {
+          "lens": {
+            "type": "string",
+            "enum": ["correctness", "reproduce", "guardrail"],
+            "description": "The panelist's distinct lens: correctness (criteria + evidence), reproduce (re-run/re-derive the result), guardrail (scope/non-goal/gold-plating compliance)."
+          },
+          "verdict": { "type": "string", "enum": ["PASS", "FAIL", "DISAGREE"] },
+          "verifier_persona": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "verify_rounds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "OPTIONAL. Number of loop-until-dry adversarial sweeps run INSIDE this single VERIFY node (defects accumulate across rounds until a round surfaces no NEW defect — 'dry' — or the R_max=3 cap is hit). Node-internal work that adds NO FSM edge; validate_run.py (I16) checks 1<=verify_rounds<=3 (finiteness). See references/self-learning-loops.md §2/§3."
+    },
+    "converged": {
+      "type": "boolean",
+      "description": "OPTIONAL. true iff the loop-until-dry sweep stopped because a round surfaced no NEW defect ('dry'); false iff it stopped at the R_max round cap (coverage may be incomplete — surface honestly)."
+    },
     "feedback": {
       "type": "object",
       "additionalProperties": true,
@@ -34,7 +64,7 @@
     },
     "defects": {
       "type": "array",
-      "description": "Top-level defect list. PASS => []; FAIL => >=1, each citing a brief acceptance criterion (membership cross-checked by the validator).",
+      "description": "Top-level defect list. PASS => no blocker/major defect (minor observations allowed — I6 revised for coverage-first, PR1); FAIL => >=1, each citing a brief acceptance criterion (membership cross-checked by the validator).",
       "items": {
         "type": "object",
         "additionalProperties": true,
@@ -97,14 +127,14 @@
       }
     },
     {
-      "description": "PASS => defects == [] (no phantom defects on an accepted unit).",
+      "description": "PASS => no blocker/major defect (I6 PASS-clause, REVISED for coverage-first, PR1). Was `defects==[]`; now a PASS MAY carry `minor` observations (report every finding + severity, filter downstream) but MUST NOT carry a blocker/major defect — a blocking defect is incompatible with acceptance. A PASS with defects==[] still validates (backward-compatible). See references/self-learning-loops.md §5 (I6 revision + do_not_touch/AO-2 interplay) and references/state-machine.md I6.",
       "if": {
         "required": ["verdict"],
         "properties": { "verdict": { "const": "PASS" } }
       },
       "then": {
         "required": ["defects"],
-        "properties": { "defects": { "type": "array", "maxItems": 0 } }
+        "properties": { "defects": { "type": "array", "items": { "properties": { "severity": { "enum": ["minor"] } } } } }
       }
     },
     {

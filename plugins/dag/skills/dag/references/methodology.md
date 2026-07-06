@@ -151,10 +151,16 @@ argument structure, and the claims that need support.
 
 An **atomic** work unit satisfies all of:
 1. **Single responsibility** — one clearly-stated goal, one owner persona.
-2. **Independently verifiable** — a verifier can judge it PASS/FAIL from its brief +
-   artifacts alone, without running the rest of the task.
-3. **Budget-fit** — its entire required context (brief + the files it must read) fits
-   comfortably under 32K tokens. If not, split it.
+2. **Independently verifiable within budget** — a verifier can judge it PASS/FAIL from its brief +
+   artifacts alone, **within 32K**, without running the rest of the task. Prefer units whose
+   acceptance is checked by **reproducible/executable evidence** (re-run a test, diff an output,
+   re-derive a number — evidence-standards.md): a smaller, reproducibly-checkable unit needs *less
+   model IQ* to get right, which is the lever that lets the default model suffice.
+3. **Budget-fit — a reasoning budget, not a data budget.** The unit's entire required *context*
+   (brief + the files/facts it must read) fits comfortably under 32K. Bulk data is touched **by
+   reference** (path, query, shard locator), never pulled wholesale into context. If the context
+   won't fit, split it (for datasets larger than a unit, don't stuff — *partition the work*; see
+   [data-partitioning.md](data-partitioning.md)).
 
 Right-sizing heuristics:
 - If a unit's brief would need to quote more than a few files' worth of context → split.
@@ -168,6 +174,12 @@ be valid). The graph must be acyclic. Topologically sort into **waves**: wave *k
 units whose dependencies are all in waves < *k*. Units in a wave are mutually independent
 and run in parallel. A critique pass validates: no cycles, no missing edges (a unit that
 secretly needs another's output), no unit over budget.
+
+For a **judgment-heavy pass over a large dataset**, a wave can be **parametric**: one brief *template*
+applied over a manifest of shard locators (a map wave), fanned back in by a reduce *tree* — still a
+wave of independent units and just more waves, so the DAG and its acyclicity are unchanged. See
+[data-partitioning.md](data-partitioning.md) (and first decide the mechanical-uniform vs
+judgment-heavy fork — mechanical-uniform work is a script dag *orchestrates*, not units it shards).
 
 ---
 
@@ -204,6 +216,11 @@ Rules for the adversarial verifier:
 - **Refutation mandate.** Its job is to *break* the result: find the counterexample, the
   unmet criterion, the unsupported claim, the hallucinated citation, the budget breach.
   A verifier that only confirms is malfunctioning.
+- **Coverage-first reporting.** *Recall before triage.* Report **every** defect found, each tagged
+  with a `severity` (`blocker | major | minor`); do **not** self-censor "small" findings and never
+  apply an "only report high-severity" filter — that lowers recall on *any* model. Severity **ranks**
+  a finding; it does not decide whether to report it. Triage is downstream: a PASS may carry `minor`
+  observations (see the revised Verdict rule), and only a blocker/major defect blocks acceptance.
 - **Guardrail compliance.** The verifier confirms the unit delivered **no out-of-scope or
   gold-plated work**: every artifact traces to an acceptance criterion (which in turn traces
   to a Definition-of-Done item), and nothing on the unit's Non-Goals / guardrails list was
@@ -214,12 +231,26 @@ Rules for the adversarial verifier:
   independently confirms the evidence is real and admissible (evidence-standards.md). It
   reproduces results where feasible (run the test, open the cited page, re-derive the
   number).
-- **Verdict.** `PASS` (criteria met, evidence sound), `FAIL` (specific defect + minimal
-  repro), or `DISAGREE` (a genuine judgment split with no objective resolution → Phase 7).
-- **Panels for high stakes.** For irreversible or high-cost units, run an **odd panel**
-  (3) of verifiers with *different lenses* (correctness / adversarial-input / does-it-
-  actually-reproduce) and take the majority. Diversity beats redundancy — three identical
-  skeptics find less than three differently-motivated ones.
+- **Verdict.** `PASS` (criteria met, evidence sound — MAY carry `minor` observations, but **no
+  blocker/major** defect; this is the coverage-first revision of I6, see references/self-learning-
+  loops.md §5), `FAIL` (a blocker/major defect + minimal repro + ≥1 actionable change), or
+  `DISAGREE` (a genuine judgment split with no objective resolution → Phase 7).
+- **Loop-until-dry (bounded coverage sweep).** Within a single VERIFY node, run adversarial rounds
+  that **accumulate** defects until a round surfaces **no new defect** ("dry") **or** you hit the cap
+  `R_max = 3`. The verdict is read off the accumulated set; record `verify_rounds` + `converged`.
+  Simple one-pass verification misses the tail; a bounded sweep raises recall. This is node-internal
+  — it adds **no FSM edge**, so the correction-loop termination proof is untouched (§2 of the loops
+  file). Say so honestly if you stop at the cap rather than dry (coverage may be incomplete).
+- **Panel of 3 is the DEFAULT on `high-stakes` units — distinct lenses, discrete majority.** A unit
+  tagged `high-stakes` is verified by an **odd panel (3)** of independent verifiers with **distinct
+  lenses**, not three clones: **correctness** (criteria + evidence), **reproduce** (re-run / re-derive
+  — executable evidence), **guardrail** (scope / non-goal / gold-plating). Diversity beats redundancy
+  — three differently-motivated skeptics find more than three identical ones. Take the **discrete
+  majority** (2-of-3); a split with no strict majority ⇒ `DISAGREE` (AO-5 → human), **never** a
+  softmaxed or averaged score (softmaxing the discrete guard table would break the termination proof).
+  Routine units may use a single verifier. `validate_run.py` **I16** enforces this post-hoc: a
+  high-stakes unit's `verify.json` must carry a `panel[]` (≥3, trio covered) whose discrete majority
+  equals the top-level `verdict`.
 
 ---
 

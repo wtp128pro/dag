@@ -187,6 +187,20 @@ loop forever, never reaching a terminal (unbounded retries).
 The proof is *parametric in any finite N* (`V = N − retries`), so a configurable cap
 never weakens termination (`self-learning-loops.md` §6.4).
 
+> **PR1 verifier hardening — the model is UNCHANGED (classified PRESERVES).** The panel-of-3
+> default and the bounded loop-until-dry sweep are **internal to the `VERIFY` node**: they add **no
+> new TLA action** (`LVerify` still steps `EXECUTE→…→VERIFY→ADJUDICATE`), no new variable, and no
+> second back-edge — the fan-out (3) and round count (`R_max=3`) are finite constants absorbed by the
+> single `LVerify` step. So `Termination`, `NoDeadlock`, and the well-founded measure `V = 2−retries`
+> hold **verbatim**; `Pipeline.tla`/`.cfg` need no edit. The panel verdict is aggregated by **discrete
+> majority** before `ADJUDICATE` reads it, so `ADJUDICATE`'s guard partition
+> `{PASS}∪{FAIL}×{V>0,V=0}∪{DISAGREE}` is unchanged — a split maps to `DISAGREE`. **Softmaxing** that
+> aggregation WOULD break the model (it would replace the discrete split→DISAGREE routing with a
+> thresholded/averaged score, collapsing the exhaustive, mutually-exclusive guard partition) and is
+> therefore forbidden. Likewise the I6 PASS-clause revision (a PASS may carry `minor` defects) is a *content
+> rule on the verify artifact*, not a state/guard change — `verdict ∈ {PASS,FAIL,DISAGREE}` is
+> untouched, so the model is unaffected.
+
 **Check command:** the run above; `Termination` is a `PROPERTY`, fairness supplied by
 `SPECIFICATION Spec`. Non-vacuity demonstrated by the `Broken.tla` counterexample.
 **Tool-status:** **machine-checked** by TLC 2.19 (liveness, complete state space) +

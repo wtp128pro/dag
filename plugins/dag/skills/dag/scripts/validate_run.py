@@ -10,7 +10,7 @@ Reconciled seams over the pipeline contract:
     (in debrief + verify; the brief carries only a protocol REFERENCE). counter must
     record an OUTCOME (I13); mechanical-unit sentinel allowed.
   * Loop/verdict seam adopts the final loop contract (feedback.actionable_changes,
-    top-level defects[], PASS=>[], FAIL=>>=1 defect each naming a brief criterion,
+    top-level defects[], PASS=>no blocker/major (minor allowed; I6 revised, PR1), FAIL=>>=1 defect each naming a brief criterion,
     DISAGREE=>disagreement, loop.state in the Q vocabulary).
   * Tags + V_tag (graph.v_tag) membership (I11) + the learnings-propagation
     predicate with admission gate (I12).
@@ -22,6 +22,12 @@ Reconciled seams over the pipeline contract:
     and edges derived from each unit's `deps`. An unparseable/absent graph.json is a
     VIOLATION, not a silent skip.
   * Premise-check — the verifier's premise_check attestation (the independent COUNTER re-run) is enforced.
+  * PR1 verifier hardening — I6's PASS clause is REVISED (coverage-first): a PASS may carry `minor`
+    observations but not a blocker/major defect (schema allOf + a defense-in-depth check here). New
+    invariant I16 (panel discipline): a `high-stakes` unit must carry a panel[] of >=3 with the
+    distinct correctness/reproduce/guardrail lenses; any panel's top verdict must equal the DISCRETE
+    majority (a split routes to DISAGREE — no softmax); verify_rounds (loop-until-dry) is bounded to
+    [1,3]. I16 is POST-HOC / OFFLINE and gates NO transition (never a live LT7 guard).
 
 Exit codes:  0 ok · 1 validation/invariant violation · 2 usage error · 3 environment error.
 Usage:  validate_run.py <run_dir> [--schemas <dir>] [--self-check] [--quiet]
@@ -832,6 +838,23 @@ def main(argv=None):
             else:
                 rep.ok(f"I6 FAIL defect criteria drawn from brief (units/{uid})")
 
+    # I6 PASS coverage-first (REVISED, PR1) — a PASS MAY carry `minor` observations (report every
+    # finding + severity, filter downstream) but MUST NOT carry a blocker/major defect. The schema's
+    # allOf already rejects a PASS+blocker/major (so a violating verify.json never reaches unit_docs);
+    # this is defense-in-depth — mirroring I1's belt-and-suspenders — that makes the revised invariant
+    # visible in the enforcement layer. (Was: PASS => defects==[]; see state-machine.md I6.)
+    for uid, d in unit_docs.items():
+        v = d.get("verify")
+        if v and v.get("verdict") == "PASS":
+            blocking = sorted({df.get("severity") for df in v.get("defects", [])
+                               if isinstance(df, dict) and df.get("severity") in ("blocker", "major")})
+            if blocking:
+                rep.fail(f"I6 PASS coverage-first (units/{uid})",
+                         f"PASS carries {blocking} defect(s) — a PASS may record only `minor` "
+                         "observations (I6 PASS-clause revised for coverage-first, PR1)")
+            else:
+                rep.ok(f"I6 PASS coverage-first (units/{uid}: minor-only or no defects)")
+
     # I14 AO-2 do_not_touch disjointness — on a RETRY (debrief.iteration>1) no defect may name a
     # criterion the PRIOR iteration marked correct/off-limits. The validator retains only the
     # latest verify.json per unit, so the prior-iteration do_not_touch is read from the debrief
@@ -893,6 +916,98 @@ def main(argv=None):
                      "verifier attests executor premise is NOT load-bearing yet verdict=PASS")
         else:
             rep.ok(f"premise-check attested (units/{uid})")
+
+    # I16 panel discipline (PR1 verifier hardening) — POST-HOC, OFFLINE, gates NO transition.
+    # Three clauses over the emitted verify.json (never a live LT7 guard — the CLAUDE.md deadlock
+    # lesson; mirrors I14/I15 which also fail CLOSED but gate nothing):
+    #   (a) a unit tagged `high-stakes` (on its graph unit OR its brief) whose verify.json exists MUST
+    #       carry a panel[] of >=3 members covering the canonical lens trio {correctness,reproduce,
+    #       guardrail} — the panel-of-3-with-distinct-lenses default;
+    #   (b) ANY present panel[] MUST have >=3 members, cover the trio, and its top-level `verdict` MUST
+    #       equal the DISCRETE majority of the panel verdicts. A split with NO strict majority MUST
+    #       route to DISAGREE (AO-5: genuine split => human). This is the anti-softmax guarantee: the
+    #       aggregate is a discrete mode, NEVER an averaged/continuous score.
+    #   (c) a present verify_rounds (loop-until-dry) MUST be within [1, R_MAX] (finiteness of the
+    #       node-internal sweep; the schema also bounds it — defense-in-depth).
+    CANON_LENSES = {"correctness", "reproduce", "guardrail"}
+    R_MAX = 3
+    _graph_unit_tags = {}
+    if graph_doc is not None:
+        for _u in graph_doc.get("units", []):
+            _graph_unit_tags[_u.get("id")] = set(_u.get("tags", []) or [])
+
+    def _discrete_majority(verdicts):
+        """Strict discrete majority (mode) of a verdict list, or None on a tie / no-majority.
+        DISCRETE by construction — no softmax, no averaging of miscalibrated confidences."""
+        if not verdicts:
+            return None
+        counts = {}
+        for x in verdicts:
+            counts[x] = counts.get(x, 0) + 1
+        top_val, top_n, tie = None, -1, False
+        for val, c in counts.items():
+            if c > top_n:
+                top_val, top_n, tie = val, c, False
+            elif c == top_n:
+                tie = True
+        if tie:
+            return None
+        return top_val if top_n * 2 > len(verdicts) else None
+
+    for uid, d in unit_docs.items():
+        v = d.get("verify")
+        if v is None:
+            continue
+        b = d.get("brief") or {}
+        tags = set(b.get("tags", []) or []) | _graph_unit_tags.get(uid, set())
+        panel = v.get("panel")
+        top = v.get("verdict")
+        is_high_stakes = "high-stakes" in tags
+        # (a) high-stakes => a panel is REQUIRED
+        if is_high_stakes and not isinstance(panel, list):
+            rep.fail(f"I16 panel discipline (units/{uid})",
+                     "unit is tagged high-stakes but verify.json carries no panel[] — a high-stakes "
+                     "unit must be verified by an odd panel (>=3) with distinct lenses (PR1)")
+        # (b) any present panel must be well-formed + discrete-majority consistent
+        if isinstance(panel, list):
+            members = [m for m in panel if isinstance(m, dict)]
+            lenses = {m.get("lens") for m in members}
+            verdicts = [m.get("verdict") for m in members]
+            panel_ok = True
+            if len(members) < 3:
+                panel_ok = False
+                rep.fail(f"I16 panel discipline (units/{uid})",
+                         f"panel has {len(members)} member(s) — a panel needs >=3 members (odd recommended so ties are rare)")
+            if not CANON_LENSES.issubset(lenses):
+                panel_ok = False
+                rep.fail(f"I16 panel discipline (units/{uid})",
+                         f"panel lenses {sorted(l for l in lenses if l)} do not cover the canonical "
+                         f"trio {sorted(CANON_LENSES)} — panel members must have DISTINCT lenses, not clones")
+            maj = _discrete_majority(verdicts)
+            if maj is None:
+                # no strict majority => genuine split => must escalate as DISAGREE (AO-5), never softmax
+                if top != "DISAGREE":
+                    panel_ok = False
+                    rep.fail(f"I16 panel discipline (units/{uid})",
+                             f"panel verdicts {verdicts} have no strict majority (genuine split) but "
+                             f"top-level verdict={top!r} — a split must route to DISAGREE (AO-5), not a "
+                             "softmaxed/averaged score")
+            elif top != maj:
+                panel_ok = False
+                rep.fail(f"I16 panel discipline (units/{uid})",
+                         f"top-level verdict={top!r} != DISCRETE panel majority={maj!r} — the aggregate "
+                         "must be the discrete majority (no softmax)")
+            if panel_ok:
+                rep.ok(f"I16 panel discipline (units/{uid}: {len(members)}-member panel, "
+                       f"lenses cover trio, verdict={maj if maj else 'split->DISAGREE'})")
+        # (c) loop-until-dry finiteness (schema also bounds it; belt-and-suspenders)
+        vr = v.get("verify_rounds")
+        if isinstance(vr, int) and not isinstance(vr, bool):
+            if vr < 1 or vr > R_MAX:
+                rep.fail(f"I16 loop-until-dry bound (units/{uid})",
+                         f"verify_rounds={vr} outside [1,{R_MAX}] — the loop-until-dry sweep is bounded")
+            else:
+                rep.ok(f"I16 loop-until-dry bound (units/{uid}: verify_rounds={vr}<={R_MAX})")
 
     # I15 AO-6 responsive change — a RETRY (debrief.iteration>1) that records its prior-feedback
     # context MUST also record >=1 concrete change made in response to the prior verdict

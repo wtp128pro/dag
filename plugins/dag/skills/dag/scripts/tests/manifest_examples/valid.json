@@ -1,0 +1,13 @@
+{
+  "run_label": "contract-triage-demo",
+  "grain": "document",
+  "sharder": "scripts/shard_contracts.py --by doc",
+  "shards": [
+    { "shard_id": "c0001", "locator": { "kind": "file", "ref": "contracts/c0001.pdf" }, "count": 1, "stratum": "vendor-A" },
+    { "shard_id": "c0002", "locator": { "kind": "sql", "ref": "SELECT * FROM contracts WHERE bucket=2" }, "stratum": "vendor-B" }
+  ],
+  "results_index": [
+    { "shard_id": "c0001", "partial_ref": "out/c0001.summary.json", "verified": true }
+  ],
+  "sampling_log": { "strategy": "stratified", "sample_size": 1, "strata": ["vendor-A", "vendor-B"], "excluded": ["c0002"], "note": "sampled 1/2 by vendor stratum" }
+}
