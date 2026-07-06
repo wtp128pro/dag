@@ -4,6 +4,12 @@
 
 # Brief — <UNIT-ID>: <title>
 
+> **Also emit `brief.json`** (the machine-checkable sidecar, `schemas/brief.schema.json`) beside this
+> file — the *orchestrator* writes it before dispatch. The validator's I11/I12/I16 checks key off this
+> sidecar (required keys: `unit_id`, `title`, `wave`, `depends_on`, `persona`, `budget_tokens`,
+> `acceptance_criteria`, `context_pointers`, `outputs`, `socratic_protocol`, `tags` ⊆ V_tag,
+> `learnings_applied`). Prose reasoning stays here in `.md`; the sidecar carries only the extract.
+
 - **Run:** <RUN_DIR name>
 - **Wave / dependencies:** wave <k>; depends on: <U.. debriefs, or "none">
 - **Persona to adopt:** <persona name> — <one-line mandate from PERSONAS.md>

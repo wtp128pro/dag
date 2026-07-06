@@ -970,6 +970,14 @@ def main(argv=None):
             check_counter(f"units/{uid}/debrief", d["debrief"].get("socratic"))
         if d.get("verify"):
             check_counter(f"units/{uid}/verify", d["verify"].get("socratic"))
+    # D-07(b): the cartographer/planner produce no debrief.json, so their OPTIONAL socratic
+    # residue lives in cartography.json / graph.json (schema-enforced landing place). When present,
+    # I13 checks the counter records an OUTCOME there too — same predicate, same offline/post-hoc
+    # shape as debrief/verify (absent block => no-op, so every existing run is unaffected).
+    if isinstance(docs.get("cartography"), dict) and docs["cartography"].get("socratic") is not None:
+        check_counter("cartography", docs["cartography"].get("socratic"))
+    if isinstance(docs.get("graph"), dict) and docs["graph"].get("socratic") is not None:
+        check_counter("graph", docs["graph"].get("socratic"))
 
     # premise-check attestation (the independent COUNTER re-run)
     for uid, d in unit_docs.items():

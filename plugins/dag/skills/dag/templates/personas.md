@@ -2,6 +2,11 @@
 
 # Personas — <run label>
 
+> Sidecar note: **also emit `personas.json`** (the machine-checkable sidecar,
+> `schemas/personas.schema.json`) beside this file. It carries the confirmed `roster` (each entry's
+> `persona` + `mandate`, optional `critic_pair`/`phases`) and the propose↔critique `pairings`; the
+> validator's G-personas / I1b maker≠checker checks key off it. Prose stays here in `.md`.
+
 - **Confirmed by user:** <yes @ timestamp | pending>
 - **Sourcing:** curated library + task-specific synthesis (hybrid).
 

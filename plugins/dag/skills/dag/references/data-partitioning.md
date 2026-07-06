@@ -39,7 +39,11 @@ probably in the mechanical-uniform case — orchestrate a script.
 
 ### 3.1 Deterministic sharder (a script, not an LLM)
 A **script** partitions the data and emits a **manifest** — `shard_id → locator` — validated against
-[schemas/manifest.schema.json](../schemas/manifest.schema.json). Partition by the **natural grain**:
+[schemas/manifest.schema.json](../schemas/manifest.schema.json) **explicitly by you (the decomposer)**:
+`validate_run.py` does NOT auto-check `manifest.json` (by design — its schema header + LIMITATIONS.md),
+so run
+`python3 -c "import json,jsonschema,sys; jsonschema.validate(json.load(open(sys.argv[1])), json.load(open(sys.argv[2])))" <RUN_DIR>/manifest.json "${CLAUDE_PLUGIN_ROOT}/skills/dag/schemas/manifest.schema.json"`
+(or check by hand against the schema's required keys when `jsonschema` is unavailable). Partition by the **natural grain**:
 rows → hash/range buckets; documents → per-doc or per-group; logs → time windows; categories → by
 class. Record the manifest in the ledger so the run is **resumable** and every shard is
 **verifier-addressable**. The sharder is deterministic (no LLM) so the partition is reproducible and
@@ -96,7 +100,7 @@ is uniform and the sample is stratified.
   manifest → the map wave. (New Phase-4 discipline + `manifest.schema.json`; see SKILL Phase 4.)
 - **Aggregate ledger.** "Ledger is truth" is a `units/<id>/` directory per unit today; 10k of those
   blow up the orchestrator's *own* bookkeeping. A large map wave needs an **indexed / aggregate
-  ledger** — a manifest + a results table + a sampling log — **not** 10k linear files. This
+  ledger** — a manifest + a `results_index` + a sampling log — **not** 10k linear files. This
   *preserves* "everything is written down" but swaps linear files for an index → **migration note in
   §7**, per CLAUDE.md.
 - **Concurrency + cost bound.** 10k units × (execute + verify) = 20k Agent calls. **Bounded
@@ -125,11 +129,11 @@ FSM edge, no new back-edge, so the ≤12-transition per-unit bound and Claims A�
 every unit. **Classification: PRESERVES** termination and every AO/I invariant.
 
 **The one invariant-adjacent change — the aggregate ledger (migration note).** Replacing 10k linear
-`units/<id>/` directories with an **indexed aggregate ledger** (manifest + results table + sampling
+`units/<id>/` directories with an **indexed aggregate ledger** (manifest + `results_index` + sampling
 log) *revises the representation* of "ledger is truth" while **preserving the guarantee**: everything
 is still written to disk and is still verifier-addressable — by shard id through the index instead of
 by a per-unit directory. Migration: the index is authoritative; a per-shard record is addressable as
-`manifest[shard_id] → results_table[shard_id]`; the sampling log records every shard NOT
+`manifest[shard_id] → results_index[shard_id]`; the sampling log records every shard NOT
 individually verified. Small runs keep the linear `units/<id>/` layout unchanged (this index is
 opt-in for massive map waves), so existing runs and fixtures are byte-for-byte unaffected.
 

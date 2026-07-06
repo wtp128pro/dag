@@ -49,7 +49,9 @@ so most are dead weight until their phase arrives.
   (machine-checked safety + termination) behind that FSM.
 - Machine-checkable schemas live in [schemas/](schemas/); the validator is
   [scripts/validate_run.sh](scripts/validate_run.sh) (→ `validate_run.py`).
-- Templates for every artifact live in [templates/](templates/).
+- Templates for the gated artifacts live in [templates/](templates/) (LEARNINGS entries are
+  specified in `templates/graph.md` §V_tag/LEARNINGS + `schemas/learnings.schema.json`; `manifest.json`
+  and `SYNTHESIS.md` are schema-/prose-specified only, no standalone template).
 
 ## Prime directives (hold these through every phase)
 
@@ -281,9 +283,12 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 2. For each unit record: `id`, title, goal, **inputs** (which prior debriefs/artifacts),
    outputs, **acceptance criteria** — each of which **MUST trace to a Definition-of-Done
    item** (a unit whose criteria map to no DoD item is either scope creep or a DoD gap — fix
-   one), assigned **executor persona**, assigned **verifier persona**, estimated context
-   footprint, **dependencies**, and **explicit out-of-scope / guardrails** carried down from
-   the Non-Goals list so the executor and verifier both know what NOT to build.
+   one), **`tags`** (from the `V_tag` vocabulary seeded in GRAPH.md — required by
+   `graph.schema.json`, and the basis for tag-scoped learnings propagation), assigned
+   **executor persona**, assigned **verifier persona**, estimated context footprint,
+   **dependencies**, its **`wave`** (assigned by the topological sort in step 3 — required in each
+   unit's `brief.json`), and **explicit out-of-scope / guardrails** carried down from the Non-Goals
+   list so the executor and verifier both know what NOT to build.
 3. Build the **dependency DAG**; topologically sort into **waves** (units within a wave
    are independent → run in parallel). Reject cycles.
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
@@ -298,8 +303,12 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 > ("extract field X from 10M rows") is ETL/SQL/Spark — dag **orchestrates + verifies a script** (one
 > unit writes the transform, one verifier re-runs it on a sample and diffs); do **NOT** shard it into
 > units. Only *judgment-heavy per-slice* work ("assess 500 contracts") partitions into units, via
-> **map-reduce onto the DAG**: a deterministic sharder script emits a schema-valid
-> `manifest.json` (`shard_id → locator`, [schemas/manifest.schema.json](schemas/manifest.schema.json));
+> **map-reduce onto the DAG**: a deterministic sharder script emits a
+> `manifest.json` (`shard_id → locator`, [schemas/manifest.schema.json](schemas/manifest.schema.json))
+> that **you (the decomposer) validate explicitly** — `validate_run.py` deliberately does NOT
+> auto-check `manifest.json` (see its schema header + LIMITATIONS.md) — with
+> `python3 -c "import json,jsonschema,sys; jsonschema.validate(json.load(open(sys.argv[1])), json.load(open(sys.argv[2])))" <RUN_DIR>/manifest.json "${CLAUDE_PLUGIN_ROOT}/skills/dag/schemas/manifest.schema.json"`,
+> or by hand against the schema's required keys when `jsonschema` is unavailable;
 > a **parametric map wave** applies ONE brief *template* over the manifest (each unit reads its
 > locator by reference and emits a *compressed* partial); a **reduce tree** fans in the partials in
 > bounded groups. **Verify by re-run + diff on the locator, never by re-reading raw data** (this is
@@ -317,8 +326,14 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 ## Phase 5 — Briefing generation  (req 5, 13)
 
 For **every** unit, generate `RUN_DIR/units/<id>/brief.md` from
-[templates/brief.md](templates/brief.md). A brief is a **contract** and must be
-**self-contained**: the executor should never need to rediscover anything.
+[templates/brief.md](templates/brief.md) **and its machine-checkable sidecar
+`units/<id>/brief.json`** ([schemas/brief.schema.json](schemas/brief.schema.json)) — the
+*orchestrator* writes the sidecar before dispatch; the validator's I11/I12/I16 checks key off it
+(required keys per the schema: `unit_id`, `title`, `wave`, `depends_on`, `persona`,
+`budget_tokens`, `acceptance_criteria`, `context_pointers`, `outputs`, plus `socratic_protocol`
+(the protocol *reference*), `tags` (⊆ V_tag), and `learnings_applied` — confirm against the schema,
+don't trust this list). A brief is a **contract** and must be **self-contained**: the executor
+should never need to rediscover anything.
 
 Each brief embeds or points to *exactly* what the unit needs and no more:
 - objective + acceptance criteria (verbatim, testable);
@@ -328,6 +343,7 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
   load-bearing facts inline;
 - the **evidence standard** for this unit's claim types (evidence-standards.md);
 - the **budget contract** (≤ 32K; "read only what this brief lists");
+- the **brief.json sidecar** (above): the orchestrator writes it beside `brief.md` before dispatch;
 - the **required debrief artifact**: produce `debrief.json` per templates/debrief.md (JSON-only).
 
 **Validate footprint.** If a brief cannot fit the unit within budget, re-atomize
@@ -369,10 +385,12 @@ call per unit, ideally in a single message). For **each unit**:
    reject the block and re-derive the true load-bearing premise. THEN independently re-run
    COUNTER on that premise from evidence — never by reading the executor's reasoning — and
    confirm `counter` records an outcome, not a promise** (references/socratic-protocol.md).
-   It writes `verify.json` (JSON-only)
-   with a verdict `PASS | FAIL | DISAGREE`, `iteration`, `executor_reasoning_seen: false`,
-   and structured `feedback{summary, actionable_changes[], do_not_touch[]}` +
-   `defects[{severity, criterion, minimal_repro, fix_direction}]`. Report **coverage-first**: every
+   It writes `verify.json` (JSON-only) — all nine schema-required keys — with `unit_id`,
+   `verifier_persona`, a verdict `PASS | FAIL | DISAGREE`, `iteration`, `executor_reasoning_seen:
+   false`, the 4-key `socratic` block, `premise_check`, and structured
+   `feedback{summary, actionable_changes[], do_not_touch[]}` +
+   `defects[{severity, criterion, minimal_repro, fix_direction}]` (full field list:
+   templates/verify.md — authoritative; schema: schemas/verify.schema.json). Report **coverage-first**: every
    finding with its `severity` (blocker|major|minor) — never an "only high-severity" filter that
    suppresses recall; a `PASS` MAY carry `minor` observations but **no blocker/major** defect (the I6
    PASS clause was revised for exactly this). A `FAIL` MUST cite a specific brief acceptance criterion
@@ -478,6 +496,16 @@ Never resolve a material disagreement silently. Never hide an option because you
    advisory only: it surfaces each `promotable` entry as a NON-gating `NOTE  G3 promotion (advisory)`
    line, flagging it as eligible for HUMAN promotion to a user-local `~/.claude/dag/principles.md` (or
    project `CLAUDE.md` / a skill) — never auto-written, never gated.
+
+---
+
+> **Provenance-label legend (safe to ignore when executing).** Tags like `02/P1`…`04/G5`, `ring-05`,
+> `PR1`, `PR2`, `03/P4` that pepper this file and `references/` mark *why a rule exists* — they are
+> provenance references to the dag self-evaluation runs that produced each rule (**PR1** = verifier
+> hardening; **PR2** = reproducible evidence + large-dataset partitioning; **02/03/04** = the
+> self-learning-loop proposal rings; **ring-05** = the deferred cross-party trust work). Those run
+> dirs are not shipped; the labels are cross-references the maintainer uses and are safe to ignore
+> when executing a task.
 
 ---
 

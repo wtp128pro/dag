@@ -64,7 +64,12 @@ Valid-value rules (what the schema and validator check):
   top-level `confidence` enum — no `med` abbreviation).
 
 Elicitation-mode results are **not** encoded here — they live in DECISIONS.md (existing
-schema). This block is for the executor/verifier/cartographer/planner debrief only.
+schema). The self-mode block is recorded in a **schema-enforced** `socratic` field for every role
+that runs it: the **executor** in `debrief.json` and the **verifier** in `verify.json` (both
+required); the **cartographer** in `cartography.json` and the **planner/architect** in `graph.json`
+(both an OPTIONAL `socratic` block added for these roles — they emit no debrief.json — and, when
+present, I13-checked exactly like debrief/verify; D-07). In all four the `counter` must record an
+OUTCOME.
 
 ## Cost (why this does not blow the 32K budget)
 

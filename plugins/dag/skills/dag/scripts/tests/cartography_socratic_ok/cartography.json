@@ -1,0 +1,37 @@
+{
+  "run_label": "good-fixture",
+  "terrain_shape": "The dag skill is a prose-instructed orchestrator; rules live as prose, not checks.",
+  "elements": [
+    {
+      "element": "templates/*.md",
+      "role": "artifact skeletons",
+      "relevance": "become JSON schemas",
+      "authority": "the template files"
+    },
+    {
+      "element": "init_run.sh",
+      "role": "seeds ledgers",
+      "relevance": "seam to seed schemas+validator",
+      "authority": "init_run.sh"
+    }
+  ],
+  "invariants": [
+    "verifier independence",
+    "ledger is truth",
+    "DAG acyclic",
+    "loop bound <= 2"
+  ],
+  "risks": [
+    "over-formalization breaks usability",
+    "formal theater"
+  ],
+  "unknowns": [
+    "whether Claude Code hooks can auto-run validators"
+  ],
+  "socratic": {
+    "premise": "The map treats validate_run.py as the ground-truth authority for what is enforced.",
+    "counter": "Attempted to refute by checking whether docs override code; outcome: code wins, the docs were stale \u2014 confirmed by the PR-3 selector drift.",
+    "pivot": "Kept validate_run.py as the authority and flagged the doc drift.",
+    "confidence": "high"
+  }
+}
