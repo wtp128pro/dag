@@ -173,6 +173,9 @@ def _mini_validate(inst, schema, path="$", root=None, _seen=frozenset()):
         n = sum(1 for sub in schema["oneOf"] if not _mini_validate(inst, sub, path, root))
         if n != 1:
             errs.append(f"{path}: matched {n} oneOf subschemas (need exactly 1)")
+    if "not" in schema:                                 # N-06: valid iff inst does NOT match the subschema
+        if not _mini_validate(inst, schema["not"], path, root):
+            errs.append(f"{path}: matched 'not' subschema (must NOT match)")
     if "if" in schema:
         if not _mini_validate(inst, schema["if"], path, root):
             if "then" in schema:

@@ -64,21 +64,49 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["tokens_consumed", "within_budget"],
+      "description": "Actual token usage report. tokens_consumed has NO maximum (IMP-04/PR-6): a REAL overrun must be recordable truthfully rather than forced to lie under the old maximum:32000 cap. The plan-side 32K ceiling lives on brief.budget_tokens / graph.est_footprint_tokens (untouched — you still cannot PLAN >32K). The if/then below mirrors the semantic tie: any report of tokens_consumed>32000 MUST self-identify as over-budget (within_budget:false), so the re-atomization discipline (SKILL.md Scope note) consumes an honest signal.",
       "properties": {
-        "tokens_consumed": { "type": "integer", "minimum": 0, "maximum": 32000 },
+        "tokens_consumed": { "type": "integer", "minimum": 0 },
         "within_budget": { "type": "boolean" }
+      },
+      "if": {
+        "required": ["tokens_consumed"],
+        "properties": { "tokens_consumed": { "exclusiveMinimum": 32000 } }
+      },
+      "then": {
+        "properties": { "within_budget": { "const": false } }
       }
     },
     "handoff_notes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
     "prior_feedback": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Retries only (iteration>1): verbatim echo of iteration n-1's verify.feedback (actionable_changes + do_not_touch) plus >=1 concrete change made in response (AO-6). Home for what was formerly the debrief.md 'Prior feedback' section under JSON-only artifacts.",
+      "description": "Retries only (iteration>1): verbatim echo of iteration n-1's verify.feedback (actionable_changes + do_not_touch) plus >=1 concrete change made in response (AO-6). Home for what was formerly the debrief.md 'Prior feedback' section under JSON-only artifacts. On a retry the presence + non-empty changes_made + do_not_touch echo are now SCHEMA-REQUIRED (see the allOf clause below — IMP-05/PR-6); the echo's CONTENT stays executor-attested.",
       "properties": {
         "actionable_changes": { "type": "array", "items": { "type": "string" } },
         "do_not_touch": { "type": "array", "items": { "type": "string" } },
         "changes_made": { "type": "array", "items": { "type": "string" } }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "description": "Retry echo mandatory (IMP-05/PR-6). A retry (iteration>=2) MUST carry the prior_feedback echo, and that echo MUST record >=1 concrete change (changes_made non-empty, AO-6) plus the do_not_touch echo field (present; may be [] for an honest 'nothing passed yet', AO-2). Closes the 'evasion by omission' half of Limitation F (I14/I15 were presence-gated: a retry omitting the whole block skipped both checks). A schema-invalid retry debrief is dropped before the I14/I15 comparison, so this is now the load-bearing presence gate; I14/I15 remain as the semantic backstop over schema-valid retries. First attempts (iteration:1) are untouched.",
+      "if": {
+        "required": ["iteration"],
+        "properties": { "iteration": { "minimum": 2 } }
+      },
+      "then": {
+        "required": ["prior_feedback"],
+        "properties": {
+          "prior_feedback": {
+            "required": ["changes_made", "do_not_touch"],
+            "properties": {
+              "changes_made": { "type": "array", "minItems": 1 }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
