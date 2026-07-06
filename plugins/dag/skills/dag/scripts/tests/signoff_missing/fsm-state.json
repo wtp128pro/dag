@@ -6,8 +6,7 @@
     "personas_confirmed": true,
     "clarification_resolved": true,
     "cartography_done": true,
-    "decomposition_approved": true,
-    "signoff_confirmed": true
+    "decomposition_approved": true
   },
   "loop": {
     "unit_id": "U01",
@@ -20,10 +19,6 @@
     {
       "unit_id": "U01",
       "status": "passed"
-    },
-    {
-      "unit_id": "U02",
-      "status": "executing"
     }
   ]
 }

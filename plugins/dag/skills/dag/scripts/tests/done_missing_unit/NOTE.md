@@ -14,3 +14,8 @@ This is the EXACT probe that returned rc=0 (RESULT: PASS) BEFORE the fix.
 EXPECTED: exit 1 with `FAIL  I10 synthesis completeness (units/U01)` (no debrief / no valid
 verify.json) and `FAIL  I10 synthesis completeness (units/U02)` (no units/U02/ directory), plus a
 `G-brief offline (units/U02)` line (U02 also lacks a brief at DONE). No Python traceback.
+
+> D-06 migration: `gates.signoff_confirmed: true` was added to this `DONE` fixture so it fails ONLY
+> on its intended I10/G-brief completeness defects — not spuriously on the new sign-off gate. (A
+> `DONE` run without the flag now also FAILs `gate ordering … requires gates ['signoff_confirmed']`;
+> that path is covered by the `signoff_missing` fixture.)

@@ -495,7 +495,12 @@ Never resolve a material disagreement silently. Never hide an option because you
    non-goal that slipped in,** unmet criteria (if any), and residual risks. Ask to accept or iterate. Use
    elicitation mode (references/socratic-protocol.md). **Surface the req-1 tension:** confirm
    Socratic questioning was applied *selectively* (material surfaces only), not literally to
-   every prompt.
+   every prompt. **Only once the human accepts, record the sign-off: set
+   `fsm-state.gates.signoff_confirmed = true` before advancing `phase` to `DONE`.** This gate is
+   **mechanically non-skippable (D-06):** `validate_run.py`'s REQUIRED_GATES lists `signoff_confirmed`
+   for `DONE`, so a run at phase `DONE` without the flag is INVALID (non-zero exit) — do not flip the
+   flag or advance to `DONE` until the human has actually accepted (the flag is your attestation that
+   they did).
 4. **Promote durable LEARNINGS → persist (03/P2 write end).** Close the promotion loop that the
    Phase-0.5 intake re-reads: for every run-local entry marked `promotable: true` with a non-expired
    `scope.expiry`, write a schema-valid file into the project store `.dag/learnings/<id>.json` (upsert

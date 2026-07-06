@@ -1713,6 +1713,12 @@ def main(argv=None):
 
     # Gate ordering: phase requires prior gates true. personas_confirmed is the FIRST
     # gate (Phase 1) and is required from P2 onward — the human persona gate is not skippable.
+    # D-06/BRK-13: `signoff_confirmed` (the Phase-8 human sign-off, G-signoff/T12) is added to the
+    # DONE row, so a run cannot reach phase DONE without the flag — closing the skip-the-human hole
+    # where the validator previously could not tell sign-off happened. Like personas_confirmed, this
+    # is a POST-HOC/OFFLINE gate-ordering predicate over the emitted fsm-state.json (it gates no live
+    # transition and never guards LT7); the flag is a human attestation whose PRESENCE — not
+    # genuineness — is checked. REVISES the gate contract: a DONE run without it is now INVALID.
     REQUIRED_GATES = {
         "P2_CLARIFICATION": ["personas_confirmed"],
         "P3_CARTOGRAPHY": ["personas_confirmed", "clarification_resolved"],
@@ -1721,7 +1727,7 @@ def main(argv=None):
         "P6_EXECUTE_VERIFY": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved"],
         "P7_DISAGREEMENT_GATE": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved"],
         "P8_SYNTHESIS": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved"],
-        "DONE": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved"],
+        "DONE": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved", "signoff_confirmed"],
     }
     if fsm:
         gates = fsm.get("gates", {})
