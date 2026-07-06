@@ -1,0 +1,12 @@
+{
+  "run_dir": "tests/store_malformed_nongating",
+  "phase": "P2_CLARIFICATION",
+  "updated_at": "2026-07-06T00:00:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": false,
+    "cartography_done": false,
+    "decomposition_approved": false
+  },
+  "units": []
+}

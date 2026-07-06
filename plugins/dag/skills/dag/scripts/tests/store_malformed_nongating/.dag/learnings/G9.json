@@ -1,0 +1,13 @@
+{
+  "id": "G9",
+  "since_wave": "BAD",
+  "scope": {
+    "applies_to": [
+      "tag:core"
+    ]
+  },
+  "trigger": "stale store",
+  "lesson": "x",
+  "how_to_apply": "y",
+  "evidence": "z"
+}

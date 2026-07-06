@@ -128,10 +128,14 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
 2. **Merge, override order project > user** (03/P2 read end). Dedup by `id`; on an `id` collision —
    or a `scope.applies_to` collision — the higher-precedence entry (project, then user) wins and the
    shadowed one is dropped (the validator reports this as `learnings user-store override (G2)`).
-3. **Re-ground before injecting** (03/P1 guarantee). Re-run the §4.2 generalizability gate against
-   THIS run's DAG and assign every imported entry `since_wave = 1`, so imports bind all waves and are
-   never injected retroactively (forward-only by construction — everything is present before wave 1
-   runs). **Advisory until re-grounded (03/P4).** The shipped validator loads every imported cross-run
+3. **Re-ground before injecting** (03/P1 guarantee). An imported entry is EXEMPT from the §4.2
+   ≥2-carrier generalizability re-proof (the 04/G1 carve-out — it was already generalized in the run
+   that persisted it), and no DAG exists yet at Phase 0.5, so there is nothing to re-prove against
+   here. What this step actually does pre-DAG is (a) assign every imported entry `since_wave = 1`, so
+   imports bind all waves and are never injected retroactively (forward-only by construction —
+   everything is present before wave 1 runs), and (b) mark it advisory-until-re-grounded (below). The
+   scope check against THIS run's real units happens post-hoc via I12 once the DAG exists (Phase 4+).
+   **Advisory until re-grounded (03/P4).** The shipped validator loads every imported cross-run
    entry as **advisory** — reported and voluntarily citable, but **not** force-injected by I12 — until
    you re-ground it to a THIS-run signal and mark it with the entry field `grounding: "re-grounded"`.
    The I12 required-propagation predicate then runs over the **active** set only — run-local authored
@@ -149,7 +153,9 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
    excludes the entry it supersedes; an unorderable split is surfaced for a human (03/P5), never
    auto-picked.
 5. Fold the surviving imports into the run's `learnings.json` / `LEARNINGS.md` so Phase-5 briefs
-   carry them. Log the intake in `PROGRESS.md`.
+   carry them (this is the one legitimate **pre-Phase-1** `learnings.json` write; the validator
+   treats `learnings.json` as ledger bookkeeping — NOT a post-Phase-1 work-graph artifact — so it
+   does not trip the G-personas gate). Log the intake in `PROGRESS.md`.
 
 ---
 
@@ -495,7 +501,8 @@ entry matches **and** whose wave satisfies `unit.wave ≥ since_wave` MUST list 
 in `learnings_applied` and quote its `lesson` + `how_to_apply` (the predicate is
 `unit.wave ≥ since_wave`, not merely "authored after" the entry). `learnings.json` is the
 machine-readable sidecar for `LEARNINGS.md`, **emitted in Phase 6 when a generalizable lesson is
-admitted** (it is *not* seeded at bootstrap); the I12 propagation check is enforced **when that
+admitted, or seeded by the Phase-0.5 intake when cross-run imports survive** (it is *not* seeded by
+`init_run.sh` at bootstrap); the I12 propagation check is enforced **when that
 `learnings.json` sidecar is present.** **Tags / `V_tag`:** each unit declares
 `tags: [T ∈ V_tag]` from the enumerated vocabulary `V_tag` seeded in `GRAPH.md` — tags are
 the only mechanical basis for pattern-scoped propagation. Full spec + termination + the

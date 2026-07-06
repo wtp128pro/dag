@@ -1,0 +1,7 @@
+{ "entries": [
+  { "id": "G1", "since_wave": 1, "scope": { "applies_to": ["tag:core"] },
+    "trigger": "A prior run persisted a generalizable core-tagged lesson to the user store.",
+    "lesson": "Ground every gate in an independent external signal.",
+    "how_to_apply": "A core-tagged unit SHOULD cite G1 once it is re-grounded this run.",
+    "evidence": "imported cross-run entry (advisory until re-grounded)" }
+] }
