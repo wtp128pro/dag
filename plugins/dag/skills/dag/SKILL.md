@@ -406,7 +406,12 @@ call per unit, ideally in a single message). For **each unit**:
    guardrail), aggregated by **discrete majority** (a no-majority split ⇒ `DISAGREE`; **never**
    softmax); routine units may use a single verifier. The panel, the loop-until-dry sweep, and the
    discrete-majority rule are **node-internal** (no FSM edge — termination proof untouched) and
-   enforced post-hoc by `validate_run.py` **I16** (methodology.md §Verification).
+   enforced post-hoc by `validate_run.py` **I16** (methodology.md §Verification). A panel MAY
+   additionally persist **each member's full verify** as `units/<U>/verify_p<N>.json` (same
+   `verify.schema.json`, `executor_reasoning_seen: false`) alongside the aggregated `verify.json` +
+   its `panel[]`, purely for audit; the validator **validates any such file if present** (D-04) —
+   schema-valid + blind + `unit_id` matching its directory — but never requires them and never lets
+   them override the aggregated `verify.json` the correction loop reads.
 5. **Adjudicate — the bounded correction loop** (req 12). The loop is a state machine
    `EXECUTE → VERIFY → ADJUDICATE → {DONE | RETRY | ESCALATE}` with an exhaustive,
    mutually-exclusive guard table (full spec + termination proof + invariants:

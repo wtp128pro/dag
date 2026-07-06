@@ -511,6 +511,45 @@ def main(argv=None):
                         unit_docs.setdefault(uid, {})[rel.replace(".json", "")] = inst
                         rep.ok(f"units/{uid}/{rel} valid against {sf}")
 
+            # D-04(a)/IMP-20: bless per-panelist verify files. A panel MAY persist each member's
+            # FULL verify as verify_p<N>.json (same verify.schema.json) for audit; the aggregated
+            # verdict still lives in verify.json + verify.json.panel[]. Validate-if-present: each
+            # must be schema-valid (verify.schema pins executor_reasoning_seen const:false — the I1
+            # blindness attestation) and declare a unit_id matching its directory (D21). These are
+            # AUDIT artifacts — deliberately NOT inserted into unit_docs, so they never override the
+            # aggregated verify.json that the downstream per-unit checks (I6/I16/…) read. Additive /
+            # validate-if-present => PRESERVES (a run with no verify_p* files is unaffected).
+            for prel in sorted(f for f in os.listdir(udir)
+                               if f.startswith("verify_p") and f.endswith(".json")):
+                p = os.path.join(udir, prel)
+                try:
+                    pinst = load_json(p)
+                except Exception as e:
+                    rep.fail(f"units/{uid}/{prel}", f"not valid JSON: {e}")
+                    continue
+                ps = schemas.get("verify.schema.json")
+                if ps is None:
+                    rep.fail(f"units/{uid}/{prel}", "no schema loaded for verify.schema.json")
+                    continue
+                perrs = validate(pinst, ps)
+                if perrs:
+                    for e in perrs:
+                        rep.fail(f"units/{uid}/{prel}", e)
+                    continue
+                paid = pinst.get("unit_id")
+                if paid is not None and paid != uid:
+                    rep.fail(f"units/{uid}/{prel} unit_id mismatch",
+                             f"panelist verify declares unit_id {paid!r} but lives in directory {uid!r}")
+                    continue
+                # Defense-in-depth (mirrors I1): verify.schema already pins executor_reasoning_seen
+                # const:false, so a true value was schema-INVALID above; this explicit check keeps the
+                # D-04 audit-blindness requirement legible and still bites in a no-schema degraded mode.
+                if pinst.get("executor_reasoning_seen") is not False:
+                    rep.fail(f"units/{uid}/{prel} I1 panelist independence",
+                             "executor_reasoning_seen must be false in an audit panelist verify")
+                else:
+                    rep.ok(f"units/{uid}/{prel} valid against verify.schema.json (panelist audit, blind)")
+
     # optional machine-readable learnings ledger — schema'd sidecar (D01). Each entry is
     # validated against learnings.schema.json ($defs/entry). A malformed entry is REPORTED
     # (rep.fail) and DROPPED, so it can never reach the I12 `since_wave >=` comparison below
