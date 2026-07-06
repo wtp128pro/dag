@@ -5,3 +5,6 @@ __pycache__/
 
 # dag run directories (working state, never committed)
 /.wip/
+
+# TLC model-checker scratch metadir (N-04; regenerated on every TLC run, never committed)
+plugins/dag/skills/dag/formal/states/
