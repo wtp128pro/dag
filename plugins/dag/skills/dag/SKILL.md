@@ -81,7 +81,9 @@ so most are dead weight until their phase arrives.
    `--quiet` prints only failures + the RESULT summary — the exit code (the hard-stop signal) is
    identical, so this saves per-check stdout with no loss of enforcement.
    `${CLAUDE_PLUGIN_ROOT}` is set by Claude Code to this plugin's install dir, so the call is
-   CWD-independent (a bare `scripts/…` path is not — it resolves against the caller's CWD).
+   CWD-independent (a bare `scripts/…` path is not — it resolves against the caller's CWD). The
+   same anchoring applies to every `references/`, `schemas/`, and `templates/` path in this file:
+   resolve each as `${CLAUDE_PLUGIN_ROOT}/skills/dag/<path>` when you invoke a tool on it.
    **A non-zero exit is a hard stop:** do not advance `fsm-state.phase` or open a gate until
    it exits 0. The validator is the external correctness signal (schemas/ + FSM invariants);
    it is enforcement by an explicit Bash step, not a passive hook (see DESIGN §6).
@@ -183,7 +185,10 @@ unchallenged.
    `optimizes_for`, `skeptical_of`, `phase`, `pair_with` (strings), `qualifications` and `tags`
    (string arrays). The Phase-1 candidate pool is the **union** of {curated catalog, discovered
    project + user JSON, synthesized personas}; on a **name collision** the more specific source
-   wins — **override order: project > user > curated**. No loader script — you read the files
+   wins — **override order: project > user > curated**. Compare names for collision after
+   kebab-case normalization (lowercase; whitespace/punctuation → single hyphens; collapse repeats;
+   trim) — the same rule the `personas` skill uses to derive filenames — so both skills detect the
+   same collisions. No loader script — you read the files
    here (references/personas/GUIDE.md §Extending the library; templates/persona.json is a
    conforming example). The merged roster still goes through the **gate** below unchanged —
    discovery adds candidates, it never bypasses human confirmation.

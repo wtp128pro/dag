@@ -5,5 +5,6 @@
   "mandate": "own the correct answer within one domain.",
   "optimizes_for": "correctness by the domain's real standards and idioms.",
   "skeptical_of": "generic solutions that ignore domain constraints.",
+  "phase": "any",
   "pair_with": "Red-Team / Devil's Advocate"
 }

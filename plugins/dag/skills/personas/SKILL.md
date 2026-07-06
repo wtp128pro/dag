@@ -33,6 +33,16 @@ Do the smallest thing that satisfies the request. Run the Socratic dialogue
 the user chose to skip. For the move-set behind this elicitation style, see
 [../dag/references/socratic-protocol.md](../dag/references/socratic-protocol.md).
 
+**Path convention (anchor tool-call paths via `${CLAUDE_PLUGIN_ROOT}`).** Every repo-relative
+path below is relative to this skill's directory (`${CLAUDE_PLUGIN_ROOT}/skills/personas/`). When
+you **invoke a tool** (`Read` / `Glob` / Bash), resolve any cross-skill path through
+`${CLAUDE_PLUGIN_ROOT}` — set by Claude Code to this plugin's install dir, so the call is
+CWD-independent; a bare `../dag/…` resolves against the session CWD (wherever the user happens to
+be), not this file. E.g. the built-in catalog is
+`${CLAUDE_PLUGIN_ROOT}/skills/dag/references/personas/` and the schema is
+`${CLAUDE_PLUGIN_ROOT}/skills/dag/schemas/persona.schema.json`. Markdown *links* below may stay
+relative (they are for human browsing); *tool-call targets* must be anchored this way.
+
 ## The persona schema (enforce this inline — no external validator)
 
 Authoritative contract:
@@ -92,24 +102,30 @@ Remove/Modify too when **List** has already pre-selected a target file (its loca
 
 1. **Gather** personas from all three sources:
    - **Built-in (read-only):** `Read`
-     [../dag/references/personas/index.json](../dag/references/personas/index.json) —
+     `${CLAUDE_PLUGIN_ROOT}/skills/dag/references/personas/index.json` —
      one object per built-in persona (`name`, `role`, `description`, `mandate`, `skeptical_of`,
-     `phase`); for a full entry `Read` the matching
-     `../dag/references/personas/<name>.json`. These ship with the plugin — no file to edit
-     or delete.
-   - **User / global:** `Glob ~/.claude/dag/personas/*.json`; `Read` each → name / role /
-     description. An empty or missing directory is fine — just show none for that source.
+     `phase`); for a full entry `Read`
+     `${CLAUDE_PLUGIN_ROOT}/skills/dag/references/personas/<name>.json`, where `<name>.json` is
+     the **kebab-case of the index entry's `name`** by the same filename rule above (e.g.
+     "Red-Team / Devil's Advocate" → `red-team-devil-s-advocate.json`). These ship with the
+     plugin — no file to edit or delete.
+   - **User / global:** `Glob ~/.claude/dag/personas/*.json` (expand `~` to the real home first —
+     `Glob` does not tilde-expand); `Read` each → name / role / description. An empty or missing
+     directory is fine — just show none for that source.
    - **Project / local:** `Glob .dag/personas/*.json`; `Read` each → name / role /
      description. Empty/missing is fine.
+   - **Invalid files:** a file that fails to parse as JSON, or parses but violates the schema, is
+     shown in the list as `<filename> — INVALID (<one-line reason>)`, is **not** merged into the
+     pool, and is offered for **Modify** (repair) or **Remove** like any other entry.
 2. **Display** a unified list grouped by source (**Project → User → Built-in**). Every entry,
    built-in or not, now has `name`/`role`/`description`, so each row is
    `name — role: <first clause of description>`; for Project/User entries also show the **file
    path** (built-ins ship with the plugin, so note them as read-only rather than editable files).
-   State the override order **project > user > built-in**,
+   State the override order **project > user > curated**,
    and **flag any name that shadows another source** — normalize names the same way as the
    filename rule above (lowercase; collapse whitespace/punctuation to single hyphens; trim
    leading/trailing hyphens) before comparing, so e.g. `Planner-Architect` and the built-in
-   `Planner / Architect` heading are recognized as the same name (a project `Clarifier` overrides
+   `Planner / Architect` entry are recognized as the same name (a project `Clarifier` overrides
    the built-in one).
 3. **Ask** (AskUserQuestion) whether to **Edit**, **Delete**, or **Done / just view**. On Edit
    or Delete, present the personas as options to pick the target, then route into the existing
@@ -138,7 +154,8 @@ Remove/Modify too when **List** has already pre-selected a target file (its loca
    `mkdir -p` the directory if needed.
 5. **Collision check** with Glob/Read: if a file of that name already exists, this is a
    destructive overwrite — show the existing persona and **confirm** (AskUserQuestion:
-   Overwrite / Add numeric suffix like `-2` / Cancel) before writing.
+   Overwrite / **Rename** (elicit a different `name`, from which the filename re-derives — so no
+   two files in one source share a `name`) / Cancel) before writing.
 6. Write the file, then verify it is valid JSON: `python3 -m json.tool <path> >/dev/null`
    (stdlib only — this confirms parseability, not schema; schema is your job above).
 7. Give the **completion confirmation** (see below).
@@ -161,7 +178,9 @@ Remove/Modify too when **List** has already pre-selected a target file (its loca
 1. List-and-pick exactly as in Remove (steps 1–2) to select the target file.
 2. `Read` the current JSON. Ask which fields to change; guide the edit in elicitation mode for
    just those fields. Adding an optional field is fine; removing one is fine. Do not touch or
-   re-interrogate fields the user leaves alone.
+   re-interrogate fields the user leaves alone. **If the current file is invalid JSON**, skip
+   "ask which fields to change" and rebuild it via the Add elicitation, pre-filling whatever
+   fields are salvageable.
 3. Re-validate the whole object against the schema (required non-empty; no unknown fields; one
    object). If `name` changed, the filename should change too — recompute the kebab-case name,
    and treat the rename as a new-file collision check (confirm before clobbering; remove the old
