@@ -149,6 +149,18 @@ traceability, and the Alloy structural models (`formal/WorkGraph.als`, whose `ch
 hand-run in the Alloy Analyzer) are documented in
 [`references/formal-models.md`](references/formal-models.md).
 
+The validator has an executable, HOME-isolated fixture suite (the repo has no CI — this is it):
+
+```sh
+cd skills/dag
+bash scripts/run_tests.sh   # every tests/ fixture on each validator backend; non-zero on any mismatch
+```
+
+It runs `validate_run.py` over every `scripts/tests/` fixture, pins each expected exit code + FAIL
+line via `scripts/tests/expectations.tsv`, checks `manifest.schema.json` against its instance pair,
+and stubs `$HOME` so results never depend on your real `~/.claude/dag/` (finding IMP-16). Set
+`DAG_TEST_VENV=/path/to/venv` (a venv with `jsonschema` installed) to also run the jsonschema backend.
+
 ## Install
 
 See the [marketplace README](../../README.md). In short:
