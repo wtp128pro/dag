@@ -398,7 +398,10 @@ call per unit, ideally in a single message). For **each unit**:
    | `verdict == DISAGREE` | **ESCALATE** | Objective-irresolvable executor↔verifier split → **Phase 7**. |
 
    **Retries are capped at 2** (`fsm-state.retries`, schema `maximum: 2`); the only back-edge
-   is `RETRY → EXECUTE`, guarded so the loop provably halts. Honor the anti-oscillation
+   is `RETRY → EXECUTE`. The loop provably halts because *entry* to `RETRY` is guarded by the
+   variant `V = 2 − retries > 0` (LT4) — the back-edge itself is deliberately **unguarded** (see
+   references/state-machine.md §2a and the 02/P1 deadlock lesson: a live guard on the sole back-edge
+   can leave `RETRY` with no enabled out-edge → deadlock). Honor the anti-oscillation
    invariants (references/self-learning-loops.md §5): a criterion once PASS enters
    `feedback.do_not_touch` and a retry MUST NOT re-open it (AO-2, now post-hoc-checked as **I14**); a
    retry is authorized only by the *independent* verifier's evidence-bound FAIL, never executor

@@ -4,7 +4,8 @@ module WorkGraph
  * of the runtime validator, scripts/validate_run.py).
  *
  * Mirrors:
- *   - schemas/graph.schema.json  : units, dependency edges, waves, V_tag
+ *   - schemas/graph.schema.json  : units, dependency edges, waves (tags / V_tag are NOT
+ *                                  modeled here — tag-scoped propagation is validator I11/I12)
  *                                  -> PROPERTY 3  DAG acyclicity (validator I3).
  *   - schemas/verify.schema.json : verifier independence, executor_reasoning_seen
  *                                  == false (const) -> PROPERTY 4 (validator I1/I1b).

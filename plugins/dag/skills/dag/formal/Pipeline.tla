@@ -5,7 +5,7 @@
 (*                                                                            *)
 (* Source of truth mirrored here:                                             *)
 (*   - references/state-machine.md  : phase/gate FSM, guards G-*, invariants  *)
-(*                                    I1-I15 (+ I1b, I-dod); TLC checks the    *)
+(*                                    I1-I16 (+ I1b, I-dod); TLC checks the    *)
 (*                                    structural/temporal subset (gate         *)
 (*                                    ordering, loop bound, variant).          *)
 (*   - references/self-learning-loops.md : the executor<->verifier bounded     *)
@@ -19,7 +19,7 @@
 (*                                                                            *)
 (* TOOL-STATUS: this spec IS TLC-checkable and was MACHINE-CHECKED (TLC 2.19,   *)
 (* JDK 25 via `/usr/libexec/java_home`): TLC explored the full state space      *)
-(* (327 distinct states, queue empty) with no error, so every INVARIANT and the *)
+(* (328 distinct states, queue empty) with no error, so every INVARIANT and the *)
 (* Termination PROPERTY hold; the hand-proofs carry the same results. The        *)
 (* reproducible transcript + the one-command check plan are in                  *)
 (* references/formal-models.md. (Do NOT re-assert "no JRE/TLC present": false.)  *)
@@ -106,11 +106,16 @@ Advance(p) ==
   /\ phase' = Succ(p)
   /\ UNCHANGED <<gate, lstate, retries, verdict>>
 
-(* T10: a DISAGREE escalation opens the as-needed Phase-7 gate (P6 -> P7).        *)
-ToDisagree ==
+(* T10: an ESCALATE opens the as-needed Phase-7 gate (P6 -> P7), from EITHER origin: *)
+(* a DISAGREE (LT6) OR a retries-exhausted FAIL (LT5: verdict=FAIL at retries=Max).  *)
+(* Both are `lstate = "ESCALATE"`; the guard admits both verdicts, matching the prose *)
+(* (state-machine.md §1a: BOTH ESCALATE origins route to P7). BRK-11 fix — previously  *)
+(* the guard was `verdict = "DISAGREE"` only, so a FAIL-origin ESCALATE stuttered in P6 *)
+(* forever and could never reach P7 (the probe P7OnlyViaDisagree held; now it fails).  *)
+ToEscalate ==
   /\ phase = "P6"
   /\ lstate = "ESCALATE"
-  /\ verdict = "DISAGREE"
+  /\ verdict \in {"DISAGREE", "FAIL"}
   /\ phase' = "P7"
   /\ UNCHANGED <<gate, lstate, retries, verdict>>
 
@@ -125,7 +130,7 @@ PhaseNext ==
   \/ \E p \in SpinePhases : Complete(p)
   \/ LinkP6
   \/ \E p \in SpinePhases : Advance(p)
-  \/ ToDisagree
+  \/ ToEscalate
   \/ Resolve
 
 -------------------------------------------------------------------------------

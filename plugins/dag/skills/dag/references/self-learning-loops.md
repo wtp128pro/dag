@@ -39,7 +39,7 @@ Q = { EXECUTE, VERIFY, ADJUDICATE, RETRY, ESCALATE, DONE }
 | `EXECUTE` | action | Executor subagent runs the current attempt (`iteration ≤ retries+1`, I4) from its brief. On a retry (`iteration>1`) the brief **embeds the prior `feedback`** (see §3). Produces `debrief.json` + artifacts. |
 | `VERIFY` | action | An **independent** verifier (sees brief + debrief + artifacts, **not** the executor's reasoning or identity) emits the **verdict/feedback JSON** (§3) validated against `verify.schema.json`. |
 | `ADJUDICATE` | decision (no side effects) | Reads `verdict` and the counter `retries`; selects exactly one outgoing transition via the exhaustive guard table (§1.3). |
-| `RETRY` | action | `retries := retries + 1`; build the next executor brief carrying prior `feedback`; log the iteration in `PROGRESS.md`. |
+| `RETRY` | action | `retries := retries + 1`; `iteration := iteration + 1` (LT7; I4 cross-checks `iteration ≤ retries+1`); build the next executor brief carrying prior `feedback`; log the iteration in `PROGRESS.md`. |
 | `ESCALATE` | **terminal** (absorbing) | Write `disagreement.md`; hand to Phase 7 human gate. Control leaves the automated loop. |
 | `DONE` | **terminal** (absorbing) | Mark unit `PASS`; append any generalizable `LEARNINGS` entry (§4); propagate handoff notes into downstream briefs; `TaskUpdate`. |
 
@@ -71,7 +71,7 @@ State × event/guard → action → next state. `↑retries` = increment.
 | LT4 | `ADJUDICATE` | `verdict == FAIL ∧ retries < 2` | — | `RETRY` |
 | LT5 | `ADJUDICATE` | `verdict == FAIL ∧ retries == 2` | — | `ESCALATE` |
 | LT6 | `ADJUDICATE` | `verdict == DISAGREE` | — | `ESCALATE` |
-| LT7 | `RETRY` | `retry_prepared` (guard LT4 held ⇒ `retries<2`) | `↑retries`; embed `feedback` in next brief | `EXECUTE` |
+| LT7 | `RETRY` | `retry_prepared` (guard LT4 held ⇒ `retries<2`) | `retries := retries+1`; `iteration := iteration+1` (I4 cross-checks `iteration ≤ retries+1`); embed `feedback` in next brief | `EXECUTE` |
 
 `EXECUTE`, `VERIFY`, `RETRY` have unconditional single out-edges (LT1, LT2, LT7).
 `ADJUDICATE`'s guards LT3–LT6 partition the whole reachable input space
