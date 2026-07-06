@@ -36,6 +36,15 @@ to the real `~/.claude` would be destructive and non-reproducible. Handoff to U0
 harness is desired, add a wrapper that sets `HOME` to a temp dir seeded with `tags.json` /
 `learnings/` and asserts the `G1`/`G2` PASS lines — that is the honest way to close this gap.
 
+> **Resolved by U08 (PR-8) — `scripts/run_tests.sh`.** The HOME-stub wrapper handed off above now
+> exists: the runner does `export HOME="$(mktemp -d)"` before every validator invocation
+> (trap-cleaned on exit), so `~/.claude/dag/{learnings,tags.json}` are **deterministically absent**
+> and no fixture verdict depends on the operator's real `$HOME` (IMP-16). This DOCUMENTS-then-CLOSES
+> the "no environment control" gap. The in-tree unreachability of G1/G2 above is unchanged — a
+> fixture still cannot write the real HOME (that is *why* the wrapper is needed); to exercise the
+> G1/G2 global-store paths against a **manually staged** `~/.claude/dag/`, run
+> `bash scripts/run_tests.sh --real-home` (opts out of the stub).
+
 ---
 
 ## PR1 verifier hardening — I16 panel discipline + I6 PASS revision (all IN-TREE reachable)
@@ -56,3 +65,6 @@ tests/<name>` and check the exit code / RESULT):
 - **manifest.schema.json** — `manifest_examples/` (`valid.json` / `invalid_missing_grain.json`).
   `manifest.schema.json` is NOT auto-run against a run dir, so this pair is checked directly against
   the schema (command in `manifest_examples/README.md`), not by a `validate_run.py <dir>` invocation.
+  **Resolved by U08 (PR-8):** `scripts/run_tests.sh` now runs this pair automatically as a step
+  (reusing `validate_run.make_validator()`, so no `jsonschema` is required), closing the "manual
+  heredoc" gap (N-09).

@@ -1,0 +1,51 @@
+# fixture-relative-path<TAB>expected-exit<TAB>required-output-substring (empty for exit 0)
+# One row per tests/ fixture dir with a documented expectation. Consumed by run_tests.sh.
+# manifest_examples is a schema-instance pair, checked separately by the runner (not a run dir).
+good	0	
+ao2_disjoint	0	
+cartography_socratic_ok	0	
+expiry_excluded	0	
+overrun_honest	0	
+p05_intake_before_personas	0	
+panel_high_stakes_pass	0	
+pass_with_minor	0	
+regrounded_g_listed	0	
+scope_model_narrow	0	
+selector_all_ok	0	
+store_malformed_nongating	0	
+supersedes	0	
+p4_advisory/advisory_not_required	0	
+ao2_do_not_touch	1	I14 AO-2 do_not_touch disjointness
+ao6_no_changes	1	changes_made
+bad	1	retries: 5
+bad_learnings	1	since_wave
+cartography_socratic_blank	1	I13 socratic counter (cartography)
+disagreement_on_pass	1	present but INVALID
+done_missing_unit	1	G-brief offline (units/U02)
+expiry_bad_grammar	1	'someday' does not match
+fail	1	I4 loop cross-check
+gate_skip	1	gate ordering: phase P5_BRIEFING
+graph_socratic_blank	1	I13 socratic counter (graph)
+learnings_bare_object	1	MUST list L1 in learnings_applied
+learnings_gap	1	MUST list L1 in learnings_applied
+missing_brief	1	G-brief offline (units/U01)
+missing_dod	1	definition_of_done
+missing_personas	1	G-personas non-skippable
+missing_verify	1	I9 missing verification (units/U01)
+no_fsm_state	1	I2 ledger-is-truth: fsm-state.json absent
+overrun_dishonest	1	within_budget
+panel_majority_mismatch	1	top-level verdict='FAIL' != DISCRETE panel majority='PASS'
+panel_missing	1	unit is tagged high-stakes but verify.json carries no panel[]
+pass_with_major_rejected	1	severity: 'major'
+postdecomp_no_dod	1	I-dod DoD/non-goals present
+regrounded_g_unlisted	1	MUST list G7 in learnings_applied
+retry_no_echo	1	prior_feedback
+scope_model_match	1	MUST list L1 in learnings_applied
+selector_all_gap	1	matches selector all at wave 1
+selector_unit_gap	1	is unit U01 at wave 1
+selector_unknown	1	I12 selector: L1 scope.applies_to selector 'wave:2' is not a recognized kind
+synthesis_no_dod	1	I-dod DoD/non-goals present
+unfenced_cycle	1	I3 DAG fail-closed (E)
+verify_without_debrief	1	I9 verify-without-debrief (units/U01)
+wave_float_gap	1	MUST list L1 in learnings_applied
+p4_advisory/regrounded_required	1	MUST list L7 in learnings_applied
