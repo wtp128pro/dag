@@ -104,13 +104,23 @@
     "disagreement": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Present iff verdict==DISAGREE: why evidence cannot settle it (routes to Phase 7).",
+      "description": "Present iff verdict==DISAGREE: why evidence cannot settle it (routes to Phase 7). The iff is now enforced BOTH directions (N-06/PR-6): the DISAGREE=>present clause plus the non-DISAGREE=>absent clause in allOf below.",
       "properties": {
         "why_unresolvable": { "type": "string", "minLength": 1 }
       }
     }
   },
   "allOf": [
+    {
+      "description": "disagreement present IFF verdict==DISAGREE — the => direction (N-06/PR-6): a non-DISAGREE verdict (PASS or FAIL) MUST NOT carry a disagreement object. The <= direction (DISAGREE=>present) is the dedicated clause further below. Uses `not` (built-in mini-validator extended for this — jsonschema supports it natively), so both backends agree.",
+      "if": {
+        "required": ["verdict"],
+        "properties": { "verdict": { "enum": ["PASS", "FAIL"] } }
+      },
+      "then": {
+        "not": { "required": ["disagreement"] }
+      }
+    },
     {
       "description": "FAIL => >=1 defect AND non-empty feedback.actionable_changes (evidence-bound critique).",
       "if": {

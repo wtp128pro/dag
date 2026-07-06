@@ -18,10 +18,11 @@ EXPECTED: exit 1 with the single operative failure
 `FAIL I14 AO-2 do_not_touch disjointness (units/U01): defect criteria ['each with >=1 dated
 primary source'] intersect prior_feedback.do_not_touch …` and no Python traceback.
 
-## Documented Limitation (L1)
-I14 fails **CLOSED only when the retry data is present**: it reads `prior_feedback.do_not_touch`
-from the debrief echo. A retry that **OMITS the `prior_feedback` block entirely** (or omits
-`do_not_touch`) currently EVADES this check — the loop simply reports nothing to audit. This is a
-deliberate no-false-positive design (a post-hoc validator has no per-iteration verify history to
-reconstruct the prior do_not_touch set); the honest way to close it is to make the executor's
-`prior_feedback` echo mandatory on `iteration>1`, which is a schema/discipline change outside U07.
+## Documented Limitation (L1) — presence half CLOSED by PR-6
+Formerly a retry that **OMITTED the `prior_feedback` block entirely** (or omitted `do_not_touch`)
+EVADED this check. PR-6 makes the echo — including the `do_not_touch` field — schema-mandatory on
+`iteration>1` (`debrief.schema.json` `allOf`), so the omit-the-block evader now fails CLOSED at the
+schema layer (see `retry_no_echo`). What remains (Limitation F, narrowed): I14 still compares the
+executor's **self-reported** `do_not_touch` against the single retained `verify.json` — a post-hoc
+validator has no per-iteration verify history to reconstruct the authoritative prior set, so the
+*content*'s genuineness stays verifier/human judgment.

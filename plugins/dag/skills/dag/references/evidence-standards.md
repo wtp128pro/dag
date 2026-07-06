@@ -44,7 +44,9 @@ should down-rank or reject it.
 
 1. **Tag every material claim** with its type and evidence in the debrief evidence table.
    Immaterial asides don't need rows, but anything a downstream unit or the final
-   deliverable relies on is material.
+   deliverable relies on is material — and every debrief carries **≥1 evidence row**
+   (schema `minItems: 1`). A purely mechanical unit's single row records the mechanical
+   action itself (e.g. the command run + its exit status), which is its evidence.
 2. **Assumptions are labeled, never laundered into facts.** If you must proceed without
    evidence, write "ASSUMPTION:" + why it's reasonable + its blast radius if wrong. The
    verifier **flags** a material unverifiable assumption — in `verify.json` `feedback`/`defects`,

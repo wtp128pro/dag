@@ -2,6 +2,11 @@
   "unit_id": "U01",
   "persona": "Agent-Orchestration Researcher",
   "iteration": 2,
+  "prior_feedback": {
+    "actionable_changes": ["addressed the prior verify feedback"],
+    "do_not_touch": [],
+    "changes_made": ["applied the requested change on this retry"]
+  },
   "result": "13 findings across 5 areas, each with a dated primary source.",
   "evidence_table": [
     { "claim": "Orchestrator-worker +90.2% but 15x tokens", "type": "empirical-world-fact",

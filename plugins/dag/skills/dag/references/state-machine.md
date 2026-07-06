@@ -133,7 +133,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I2 Ledger-is-truth** | Current state = disk (`fsm-state.json` + markdown), never model memory only. | convention; validator confirms `fsm-state.json` parses & is valid. |
 | **I3 DAG acyclic (fail-closed)** | The work graph has no dependency cycle; graph.json is authoritative. | validator: cycle on `edges ∪ unit-deps`; **GRAPH.md-present or post-decomposition ⇒ VALID graph.json REQUIRED** (unparseable/absent ⇒ non-zero exit). Closes E. |
 | **I4 Loop bound** | `retries ≤ 2` per unit (≤3 executions); `iteration ≤ retries+1`. | schema `maximum:2` + validator cross-check. |
-| **I5 Budget cap** | Every brief/unit ≤ 32K tokens. | schema `maximum:32000` on `budget_tokens`/`est_footprint_tokens`. |
+| **I5 Budget cap** | Every brief/unit ≤ 32K tokens (PLAN-side). | schema `maximum:32000` on `budget_tokens`/`est_footprint_tokens` (the plan-side ceiling — briefs/graph units still cannot *plan* >32K). **Report-side (PR-6/IMP-04):** `debrief.footprint.tokens_consumed` has NO maximum, so a real overrun is *reported* truthfully; a schema `if/then` forces `tokens_consumed>32000 ⇒ within_budget:false`, so the re-atomization discipline consumes an honest over-budget signal instead of a forced lie. |
 | **I6 Evidence-bound verdicts** | FAIL names ≥1 defect, each citing a brief acceptance criterion; PASS ⇒ **no blocker/major defect** (REVISED for coverage-first, PR1 — was `defects==[]`; a PASS may now carry `minor` observations: "report every finding + severity, filter downstream"). | schema `if/then` (FAIL⇒defects≥1 + actionable_changes; PASS⇒every defect severity==`minor`) + validator criterion-∈-brief cross-check + an I6-PASS defense-in-depth check. Termination-preserving: verdict enum + the §2 partition are unchanged (content-rule revision only). |
 | **I7 Single recommended option** | A disagreement dossier marks exactly ONE option recommended. | validator counts `recommended==true`. |
 | **I8 No open material ambiguity past P2** | Cannot advance past clarification with an open material item. | validator (clarifications extract). |
@@ -142,8 +142,8 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I11 Tag vocabulary** | Every unit/brief `tag` is a member of `V_tag_eff` (`graph.json.v_tag` ∪ the global registry `~/.claude/dag/tags.json` — 04/G1; absent/invalid ⇒ run-local `V_tag`). | validator membership check over `V_tag_eff`. **Domain widened by 04/G1 — Limitation G.** |
 | **I12 Learnings propagation** | Every unit created no earlier than a learning E and matched by E's scope selector — `all`, a unit-id (`U0X`), or `tag:T` — lists E in `learnings_applied`. Admission is selector-kind ASYMMETRIC: `all` admissible iff ≥2 graph units, `tag:T` iff ≥2 units carry T, a `U0X` selector always (single-target). An unrecognized selector kind is a hard `I12 selector` FAIL (BRK-08); `phaseN` was removed as unevaluable (BRK-09). | validator decidable predicate + admission gate (see `self-learning-loops.md` §4.3). Imported entries (`G#`/store-loaded) are EXEMPT from the ≥2-carrier re-proof via the 04/G1 carve-out but still propagation-checked. |
 | **I13 Socratic counter records an outcome** | `debrief`/`verify` `socratic.counter` states an outcome, not a blank/"n/a" (mechanical sentinel allowed). | schema (4 keys + `confidence` regex) + validator counter-outcome check. **Shape only; genuineness = the independent COUNTER re-run (Limitation B).** |
-| **I14 AO-2 do_not_touch disjointness (post-hoc)** | For a retry (`debrief.iteration>1`), `verify.defects[].criterion` is disjoint from the retry's `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit. | `validate_run.py` offline predicate (label `I14 AO-2 do_not_touch disjointness (units/<uid>)`), added ring-02/P1. Gates no transition. **Presence-gated + self-reported — Limitation F.** |
-| **I15 AO-6 responsive change (post-hoc)** | For a retry carrying a `prior_feedback` echo, `debrief.prior_feedback.changes_made` is present and non-empty; else non-zero exit. | `validate_run.py` offline predicate (label `I15 AO-6 responsive change (units/<uid>)`), added ring-02/P2. Gates no transition; `changes_made` executor-self-attested. **Limitation F.** |
+| **I14 AO-2 do_not_touch disjointness (post-hoc)** | For a retry (`debrief.iteration>1`), `verify.defects[].criterion` is disjoint from the retry's `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit. | `validate_run.py` offline predicate (label `I14 AO-2 do_not_touch disjointness (units/<uid>)`), added ring-02/P1. Gates no transition. **Presence now schema-required on retries (PR-6); content self-reported — Limitation F (narrowed).** |
+| **I15 AO-6 responsive change (post-hoc)** | For a retry carrying a `prior_feedback` echo, `debrief.prior_feedback.changes_made` is present and non-empty; else non-zero exit. | `validate_run.py` offline predicate (label `I15 AO-6 responsive change (units/<uid>)`), added ring-02/P2. Gates no transition. **Presence + non-emptiness of `changes_made` now schema-required on retries (PR-6)**, so this offline check is SUBSUMED for schema-valid retries and remains a degraded-mode (no-schema) backstop; `changes_made` *content* executor-self-attested. **Limitation F (narrowed).** |
 | **I16 Panel discipline (post-hoc, PR1)** | A `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); ANY panel's top-level `verdict` equals the **DISCRETE majority** of the panel verdicts (a no-majority split ⇒ `DISAGREE` — **no softmax**); `verify_rounds` (loop-until-dry) ∈ [1,3]. | `validate_run.py` offline predicate (label `I16 panel discipline (units/<uid>)`), added PR1. Gates **no** transition (never a live LT7 guard). Node-internal ⇒ **PRESERVES** termination. **Presence/shape-checked — genuine lens-diversity + real recall stay verifier judgment (Limitation H).** |
 | **I-dod DoD/non-goals present** | Any post-clarification structural artifact (cartography, graph, units, or synthesis — `learnings.json` is deliberately excluded) requires a schema-valid `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is absent (methodology.md §Clarification). | validator artifact-driven presence check, fail-closed on absence — confirmed via the `missing_dod`/`postdecomp_no_dod`/`synthesis_no_dod`/`unfenced_cycle` fixtures. |
 
@@ -176,7 +176,9 @@ outcome shape**; **I14/I15 post-hoc anti-oscillation** (AO-2 `do_not_touch` disj
 responsive-change, offline over the retry `debrief` echo — 02/P1, 02/P2); **I16 panel discipline**
 (high-stakes⇒panel present with the distinct correctness/reproduce/guardrail lenses; discrete-majority
 aggregation — a split⇒DISAGREE, no softmax; `verify_rounds`∈[1,3] — post-hoc/offline, PR1); the `premise_check`
-attestation; gate-ordering of `fsm-state.phase` vs `gates`; and the `const:false` shape of I1.
+attestation; **the verify `disagreement` iff** (present ⟺ verdict==DISAGREE — both directions now
+schema-enforced, the ⇒ direction via a `not` clause added PR-6/N-06); gate-ordering of
+`fsm-state.phase` vs `gates`; and the `const:false` shape of I1.
 
 **It CANNOT enforce** (these remain human/verifier judgment):
 - **A.** Whether the verifier *truly* was blind to executor reasoning — `const:false` /
@@ -192,13 +194,16 @@ attestation; gate-ordering of `fsm-state.phase` vs `gates`; and the `const:false
   stays unobservable to the validator.
 - **E.** Whether a `tag` genuinely denotes a reusable pattern (I12 enforces ≥2 carriers +
   presence; whether the lesson is *truly* generalizable stays a verifier/human judgment).
-- **F.** Whether I14/I15 **authoritatively** enforce AO-2/AO-6. They are **post-hoc + presence-gated
-  + self-reported**: both fire only when the retry's `debrief.prior_feedback` echo is present (a retry
-  omitting it is skipped, not failed); I14 compares the executor's **self-reported** `do_not_touch`
-  echo — NOT the authoritative prior verify, since the validator retains only the *latest*
-  `verify.json` per unit (no per-iteration verify history to reconstruct); and I15's `changes_made` is
-  executor-self-attested. So they check *presence/plumbing*, not genuineness (validity ≠ correctness);
-  the independent verifier stays the semantic backstop. (Learning L1.)
+- **F.** Whether I14/I15 **authoritatively** enforce AO-2/AO-6. **Presence is now schema-required on
+  retries (PR-6/IMP-05):** `debrief.schema.json` mandates the `prior_feedback` echo — with non-empty
+  `changes_made` and a present `do_not_touch` — on `iteration>=2`, so a retry can no longer EVADE the
+  checks by omitting the block (the former presence-gate hole; see the `retry_no_echo` fixture, and
+  `ao6_no_changes` for the omitted-`changes_made` case). What remains self-reported: I14 compares the
+  executor's **self-reported** `do_not_touch` echo — NOT the authoritative prior verify, since the
+  validator retains only the *latest* `verify.json` per unit (no per-iteration verify history to
+  reconstruct); and the *content* of `changes_made` is executor-attested. So the schema+checks now
+  enforce *presence/plumbing* authoritatively, but not the *genuineness* of the echoed content
+  (validity ≠ correctness); the independent verifier stays the semantic backstop. (Learning L1.)
 - **G.** The I11/I12 tag domain is **widened** by 04/G1 to `V_tag_eff = global ∪ project ∪ run_local`
   (global tier `~/.claude/dag/tags.json`, schema-validated) — a **domain revision** of I11/I12, not a
   pure additive check; an absent/invalid registry falls back to run-local `V_tag`, so the domain is
