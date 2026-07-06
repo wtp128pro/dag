@@ -82,7 +82,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | T9 | P6_EXECUTE_VERIFY | all_units_passed | every unit loop = `DONE` (**every unit with a debrief has a verify.json verdict=PASS — I9/I10**) | P8_SYNTHESIS |
 | T10 | P6_EXECUTE_VERIFY | escalation_raised | a unit loop = `ESCALATE` (via DISAGREE **or** a retries-exhausted FAIL) | P7_DISAGREEMENT_GATE |
 | T11 | P7_DISAGREEMENT_GATE | user_decides | user picks an option (DECISIONS.md appended) | P6_EXECUTE_VERIFY (or P2/P3/P4 on rollback) |
-| T12 | P8_SYNTHESIS | synthesis_done | SYNTHESIS.md written; all units accounted for; **human accepted at the sign-off gate (G-signoff — human, not mechanically checkable)** | DONE |
+| T12 | P8_SYNTHESIS | synthesis_done | SYNTHESIS.md written; all units accounted for; **human accepted at the sign-off gate — recorded as `gates.signoff_confirmed` (G-signoff), now REQUIRED at DONE (D-06)** | DONE |
 
 ### 2a. Phase-6 loop transitions (per unit) — the 7-row table in `references/self-learning-loops.md` §1.3
 | # | From (substate) | Event | Guard | To (substate) |
@@ -133,10 +133,13 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 - **G-resolve** (T11): the human picks an option at the disagreement gate (DECISIONS.md appended).
   **Human gate — NOT validator-checkable** (the validator cannot verify a human decided; mirrors the
   §5 Limitations pattern).
-- **G-signoff** (T12): the human accepts the deliverable at the Phase-8 sign-off gate. **Human gate —
-  NOT validator-checkable** today: there is no `gates.signoff_confirmed` flag (proposing one is design
-  decision **D-06**), so T12's mechanical guard is only "SYNTHESIS.md written; all units accounted for"
-  and the sign-off itself is a human obligation the validator cannot confirm.
+- **G-signoff** (T12): the human accepts the deliverable at the Phase-8 sign-off gate, recorded as
+  **`gates.signoff_confirmed`**. **Fail-closed & non-skippable (D-06):** the validator's REQUIRED_GATES
+  lists `signoff_confirmed` for `DONE`, so a run at phase `DONE` without the flag is INVALID (non-zero
+  exit) — closing the former skip-the-human hole (the validator previously could not tell sign-off
+  happened). Like `personas_confirmed`, this is a POST-HOC gate-ordering predicate over the emitted
+  `fsm-state.json` (it gates no live transition, never guards LT7); the flag is a **human attestation
+  whose PRESENCE — not genuineness — is checked** (validity ≠ correctness; §5 Limitation pattern).
 
 ## 4. Invariants (must hold in EVERY state)
 | Inv | Statement | Enforcement |
@@ -191,7 +194,8 @@ responsive-change, offline over the retry `debrief` echo — 02/P1, 02/P2); **I1
 aggregation — a split⇒DISAGREE, no softmax; `verify_rounds`∈[1,3] — post-hoc/offline, PR1); the `premise_check`
 attestation; **the verify `disagreement` iff** (present ⟺ verdict==DISAGREE — both directions now
 schema-enforced, the ⇒ direction via a `not` clause added PR-6/N-06); gate-ordering of
-`fsm-state.phase` vs `gates`; and the `const:false` shape of I1.
+`fsm-state.phase` vs `gates` (REQUIRED_GATES — including **`signoff_confirmed` required at `DONE`**,
+the G-signoff sign-off gate, D-06); and the `const:false` shape of I1.
 
 **It CANNOT enforce** (these remain human/verifier judgment):
 - **A.** Whether the verifier *truly* was blind to executor reasoning — `const:false` /
@@ -247,11 +251,14 @@ adds no transition, and is validated only post-hoc (I12); T1's guard (INPUT.md e
 It is intentionally not its own FSM state / schema enum value (full modeling would add a state with
 zero enforcement value — see D-01).
 
-Every **mechanical** gate maps to a §3 guard; the **two human gates are outside the mechanical guard
-set** and are named in §3 as **G-signoff** (Phase-8 sign-off) and **G-resolve** (T11 user-decides),
-both with enforcement "human; not validator-checkable" (mirroring the §5 Limitations pattern). T12's
-guard text names G-signoff explicitly. The Phase-6 executor↔verifier loop maps to the loop substate
+Every **mechanical** gate maps to a §3 guard. **G-signoff** (Phase-8 sign-off) is now recorded as
+`gates.signoff_confirmed` and **mechanically REQUIRED at DONE** (D-06) — like `personas_confirmed`,
+its *presence* is validator-checked (its *genuineness* stays a human attestation, the §5 Limitation
+pattern). That leaves **G-resolve** (T11 user-decides) as the **sole human gate outside the
+mechanical guard set** — the validator cannot confirm a human picked a disagreement option. T12's
+guard text names G-signoff and its `signoff_confirmed` flag explicitly. The Phase-6 executor↔verifier loop maps to the loop substate
 machine (§1a/§2a, `EXECUTE·VERIFY·ADJUDICATE·RETRY·ESCALATE·DONE`). The as-needed Phase 7 maps to
 `P7_DISAGREEMENT_GATE` (entered via T10 from an ESCALATE — a DISAGREE-origin escalation or a
-retries-exhausted FAIL — exited via T11). No phase, mechanical gate, or loop is unmodeled; the two
-human gates are modeled as human gates, not as mechanical guards.
+retries-exhausted FAIL — exited via T11). No phase, mechanical gate, or loop is unmodeled; the sole
+remaining human gate (G-resolve, T11) is modeled as a human gate, while G-signoff — formerly a human
+gate — is now the mechanical `gates.signoff_confirmed` guard required at DONE (D-06).

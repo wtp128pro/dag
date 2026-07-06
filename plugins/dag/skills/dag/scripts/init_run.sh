@@ -145,7 +145,8 @@ EOF
 cat > "$RUN_DIR/fsm-state.json" <<EOF
 { "run_dir": ${ABS_RUN_DIR_JSON}, "phase": "P0_BOOTSTRAP", "updated_at": "${ISO}",
   "gates": { "personas_confirmed": false, "clarification_resolved": false,
-             "cartography_done": false, "decomposition_approved": false },
+             "cartography_done": false, "decomposition_approved": false,
+             "signoff_confirmed": false },
   "units": [] }
 EOF
 

@@ -20,10 +20,6 @@
     {
       "unit_id": "U01",
       "status": "passed"
-    },
-    {
-      "unit_id": "U02",
-      "status": "executing"
     }
   ]
 }

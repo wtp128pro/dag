@@ -28,7 +28,11 @@
         "personas_confirmed": { "type": "boolean" },
         "clarification_resolved": { "type": "boolean" },
         "cartography_done": { "type": "boolean" },
-        "decomposition_approved": { "type": "boolean" }
+        "decomposition_approved": { "type": "boolean" },
+        "signoff_confirmed": {
+          "type": "boolean",
+          "description": "The human accepted the deliverable at the Phase-8 sign-off gate (G-signoff / T12). REQUIRED true to reach phase DONE — validate_run.py's REQUIRED_GATES lists it for DONE, so a run at DONE without it is INVALID (D-06). Like personas_confirmed, the flag is a human attestation the validator checks the PRESENCE of, not the genuineness of."
+        }
       }
     },
     "loop": {
