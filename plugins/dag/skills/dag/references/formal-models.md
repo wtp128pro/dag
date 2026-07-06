@@ -2,7 +2,7 @@
      top of the runtime validator (scripts/validate_run.py). For each of 4 core
      invariants: the formal statement, a rigorous hand-proof, the exact model-check
      command, and honest tool-status. ADD-ONLY: references existing invariants
-     (state-machine.md I1-I15 + I1b/I-dod, self-learning-loops.md, graph/verify schemas); modifies
+     (state-machine.md I1-I16 + I1b/I-dod, self-learning-loops.md, graph/verify schemas); modifies
      no validator/schema/prose. -->
 
 # Formal Models — TLA+ / Alloy proof layer
@@ -34,7 +34,7 @@ TLC), `formal/WorkGraph.als` (Alloy).
 > `/usr/bin/java` already resolves to a real JDK.
 >
 > **`tla2tools.jar` and the Alloy jar are BUILD tools, not skill files** — both are fetched to
-> `/tmp`, never vendored under `staged/skill/`. Download once:
+> `/tmp`, never vendored into the repo. Download once:
 > `curl -L -o /tmp/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar`
 > `curl -L -o /tmp/alloy.jar https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar`
 > Alloy's default `java -jar alloy.jar` launches the GUI; drive it headlessly through the Alloy
@@ -59,7 +59,8 @@ derived).
 
 One command checks *both* TLA+ properties (the safety invariants and the liveness
 `PROPERTY` — the `SPECIFICATION Spec` in the `.cfg` carries the `WF_vars(LoopNext)`
-fairness the liveness check needs). Run from the run directory:
+fairness the liveness check needs). Run from `plugins/dag/skills/dag/` (the skill dir, where
+`formal/` lives — the `formal/…` config paths below resolve there, not in a run dir):
 
 ```sh
 export JAVA_HOME=$(/usr/libexec/java_home)
@@ -67,24 +68,28 @@ export JAVA_HOME=$(/usr/libexec/java_home)
     -config formal/Pipeline.cfg formal/Pipeline.tla
 ```
 
-**Actual TLC transcript (2026-07-03, TLC 2.19, JDK 25.0.3):**
+**Actual TLC transcript (2026-07-06, TLC 2.19, JDK 25.0.3 — after the BRK-11 `ToEscalate` fix):**
 
 ```
 TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
 Implied-temporal checking--satisfiability problem has 1 branches.
 Finished computing initial states: 1 distinct state generated ...
-Progress(28): 712 states generated, 327 distinct states found, 0 states left on queue.
-Checking temporal properties for the complete state space with 327 total distinct states
+Progress(28): 715 states generated, 328 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 328 total distinct states
 Finished checking temporal properties in 00s
 Model checking completed. No error has been found.
-712 states generated, 327 distinct states found, 0 states left on queue.
+715 states generated, 328 distinct states found, 0 states left on queue.
 The depth of the complete state graph search is 28.
 ```
 
-`Model checking completed. No error has been found.` ⇒ across the **327 reachable
+`Model checking completed. No error has been found.` ⇒ across the **328 reachable
 states** (full state space, queue empty), every `INVARIANT` (`TypeOK`,
 `GateOrdering`, `LoopBound`, `VariantOK`, `BackEdgeGuarded`) held in every state, and
-the temporal `PROPERTY Termination` held on every fair behavior.
+the temporal `PROPERTY Termination` held on every fair behavior. (The BRK-11 `ToEscalate` fix
+added exactly one new reachable state — `phase=P7 ∧ verdict=FAIL ∧ retries=2`, the retries-exhausted
+FAIL escalation reaching P7 — enlarging the space by one distinct state. The probe invariant
+`P7OnlyViaDisagree ≡ (phase="P7") ⇒ (verdict="DISAGREE")`, which HELD on the pre-fix model, now
+reports a violation — P7 is reachable from a FAIL-origin escalate.)
 
 **Non-vacuity check (adversarial — did the liveness test have teeth?).** I broke the
 variant in a throwaway copy `Broken.tla`: made `LRetry` write `retries' = retries`
@@ -129,7 +134,7 @@ Two facts:
    each flipping one entry `FALSE→TRUE`; none sets `TRUE→FALSE`. So once a gate holds
    it holds forever.
 2. **`phase` only advances through the guarded `Advance`.** `Advance(p)` requires
-   `gate[p]=TRUE` and sets `phase'=Succ(p)`. `ToDisagree`/`Resolve` move only P6↔P7
+   `gate[p]=TRUE` and sets `phase'=Succ(p)`. `ToEscalate`/`Resolve` move only P6↔P7
    (never forward past a gate).
    *Base:* `Init` has `phase=P0`; the antecedents of every `GateOrdering` clause are
    false ⇒ holds.
@@ -140,7 +145,7 @@ Two facts:
    invariant. ∎  The bad behaviors above are therefore unreachable: to be at P3,
    `Advance(P2)` fired ⇒ `gate["P2"]`; to be at P8, `Advance(P6)` fired ⇒ `gate["P6"]`,
    and `gate["P6"]` is set *only* by `LinkP6`, which requires `lstate="DONE"` (the unit
-   passed). TLC confirms across all 327 states.
+   passed). TLC confirms across all 328 states.
 
 **Check command:** the run above; `GateOrdering` is listed as `INVARIANT`.
 **Tool-status:** **machine-checked** by TLC 2.19 (no JRE→TLC excuse: a real JDK 25 was
@@ -191,8 +196,11 @@ never weakens termination (`self-learning-loops.md` §6.4).
 > default and the bounded loop-until-dry sweep are **internal to the `VERIFY` node**: they add **no
 > new TLA action** (`LVerify` still steps `EXECUTE→…→VERIFY→ADJUDICATE`), no new variable, and no
 > second back-edge — the fan-out (3) and round count (`R_max=3`) are finite constants absorbed by the
-> single `LVerify` step. So `Termination`, `NoDeadlock`, and the well-founded measure `V = 2−retries`
-> hold **verbatim**; `Pipeline.tla`/`.cfg` need no edit. The panel verdict is aggregated by **discrete
+> single `LVerify` step. So `Termination` and the well-founded measure `V = 2−retries`
+> hold **verbatim**; `Pipeline.tla`/`.cfg` need no edit. (Deadlock-freedom is not a *named* property —
+> it is TLC's built-in default check, kept satisfied by the `TermStutter` step on the absorbing
+> terminals `{DONE, ESCALATE}`, so the composed behavior is always infinite and TLC needs no
+> `-deadlock` flag.) The panel verdict is aggregated by **discrete
 > majority** before `ADJUDICATE` reads it, so `ADJUDICATE`'s guard partition
 > `{PASS}∪{FAIL}×{V>0,V=0}∪{DISAGREE}` is unchanged — a split maps to `DISAGREE`. **Softmaxing** that
 > aggregation WOULD break the model (it would replace the discrete split→DISAGREE routing with a
@@ -257,8 +265,9 @@ layering forces a DAG.
 ## 4. Verifier independence — STRUCTURAL (Alloy) · asserted + machine-checked (no counterexample)
 
 **Mirrors:** `verify.schema.json` `executor_reasoning_seen : {const:false}` + validator
-**I1** (maker≠checker; gates grounded in an external signal, never the
-model re-reading its own reasoning).
+**I1** (verifier independence — gates grounded in an external signal, never the model re-reading
+its own reasoning) and **I1b** (maker≠checker) — the split this document's own table (§Consistency)
+already uses.
 
 **Formal statement** (`WorkGraph.als`):
 
@@ -308,7 +317,7 @@ even a green Alloy check would **not** prove the *real system* enforces it: see 
 | maker≠checker (**I1b maker!=checker**) | Prop 4 Alloy `DistinctMakerChecker` (asserted + machine-checked) | `executor_persona != verifier_persona` per graph.json unit (U04) |
 
 **Covered by one layer only (noted honestly):** the validator additionally enforces
-I5–I7, I9, I11–I13, I-dod, and the premise-check attestation (the independent COUNTER re-run), which are *data-shape* checks with no
+I5–I7, I9, I11–I16, I-dod, and the premise-check attestation (the independent COUNTER re-run), which are *data-shape* checks with no
 temporal/structural content worth a separate model. Conversely, the models prove the
 *rules* (no run can bypass a gate; the loop can't diverge) — a guarantee the per-run
 validator cannot give, since it inspects one run's artifacts, not the rule-space.
@@ -317,7 +326,7 @@ validator cannot give, since it inspects one run's artifacts, not the rule-space
 
 `Pipeline.tla` is a deliberately small model of the pipeline+loop; three abstractions are
 called out honestly. **None weakens the proved properties — the shipped model PASSES as-is
-(TLC 2.19: 712 states generated / 327 distinct / depth 28 / no error), and each abstraction is
+(TLC 2.19: 715 states generated / 328 distinct / depth 28 / no error), and each abstraction is
 safety-preserving (it removes behaviors, so it can only make `GateOrdering` easier to hold, not
 harder).**
 
@@ -349,7 +358,7 @@ These are model-scoping choices, surfaced rather than hidden; the properties pro
 
 ## Residual — invariants that are NOT formalizable (semantic / model-judged)
 
-Directly inherited from `state-machine.md` §5 Limitations A–E — these are *semantic*
+Directly inherited from `state-machine.md` §5 Limitations A–H — these are *semantic*
 and **cannot** be captured in TLA+/Alloy:
 
 - **A. (the load-bearing one for Prop 4).** Whether the verifier was *truly* blind to
@@ -366,6 +375,16 @@ and **cannot** be captured in TLA+/Alloy:
   observe whether the real deployment ran a genuinely different model behind the label.
 - **E.** Whether a `tag` denotes a *genuinely reusable* pattern (I12 checks ≥2 carriers
   mechanically; "truly generalizable" stays a human/verifier call).
+- **F, G, H (validator-layer limitations — the models do not touch them).** These three are
+  properties of the *runtime validator*, not the design-time model, so they are neither proved nor
+  weakened here: **F** — I14/I15 are post-hoc, presence-gated, self-reported anti-oscillation checks
+  (the model proves loop *termination*, not that a retry genuinely responded to feedback);
+  **G** — the `V_tag_eff = global ∪ project ∪ run_local` domain widening + the authored-vs-imported
+  admission carve-out are a validator data-domain revision with a provenance-trust boundary
+  (`Pipeline.tla`/`WorkGraph.als` model neither tags nor the learnings domain); **H** — I16 panel
+  discipline checks panel presence/shape/discrete-majority, not that the lenses were genuinely applied
+  (the model has no panel construct). Listing them keeps this inheritance range honest —
+  state-machine.md defines Limitations A through H.
 
 These are surfaced, not papered over: the formal layer proves the *plumbing and the
 rules*; correctness-of-content remains the independent verifier's semantic judgment

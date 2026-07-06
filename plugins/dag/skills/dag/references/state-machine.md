@@ -1,7 +1,7 @@
 <!-- state-machine.md — the FORMAL model of record for the dag pipeline
      (formal-enforcement layer for reqs 1/4/7/9/12; not req 2 — req 2 is clarification).
      Phase-6 loop substates use the loop's Q vocabulary + 7-row table; the socratic seam is
-     the canonical 4-key block; invariants I9-I15 (+ I1b, I-dod) close the missing-verification
+     the canonical 4-key block; invariants I9-I16 (+ I1b, I-dod) close the missing-verification
      and fail-closed-DAG validator holes, tags/learnings propagation, socratic-counter
      genuineness, the DoD/non-goals gate, and the post-hoc anti-oscillation (AO-2/AO-6) checks.
      TLA+/Alloy models ship under `formal/` (Pipeline.tla/.cfg, WorkGraph.als; see
@@ -27,7 +27,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 
 | State id (fsm-state.phase) | Phase | Artifact produced | Kind |
 |---|---|---|---|
-| `P0_BOOTSTRAP`        | 0 Bootstrap        | INPUT.md            | linear |
+| `P0_BOOTSTRAP`        | 0 Bootstrap (incl. Phase 0.5 learnings intake — a prose sub-step, no own state) | INPUT.md | linear |
 | `P1_PERSONAS`         | 1 Personas         | PERSONAS.md         | human gate |
 | `P2_CLARIFICATION`    | 2 Clarification    | CLARIFICATIONS.md   | human gate |
 | `P3_CARTOGRAPHY`      | 3 Cartography      | CARTOGRAPHY.md      | linear |
@@ -69,7 +69,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | T9 | P6_EXECUTE_VERIFY | all_units_passed | every unit loop = `DONE` (**every unit with a debrief has a verify.json verdict=PASS — I9/I10**) | P8_SYNTHESIS |
 | T10 | P6_EXECUTE_VERIFY | escalation_raised | a unit loop = `ESCALATE` (via DISAGREE **or** a retries-exhausted FAIL) | P7_DISAGREEMENT_GATE |
 | T11 | P7_DISAGREEMENT_GATE | user_decides | user picks an option (DECISIONS.md appended) | P6_EXECUTE_VERIFY (or P2/P3/P4 on rollback) |
-| T12 | P8_SYNTHESIS | synthesis_done | SYNTHESIS.md written; all units accounted for | DONE |
+| T12 | P8_SYNTHESIS | synthesis_done | SYNTHESIS.md written; all units accounted for; **human accepted at the sign-off gate (G-signoff — human, not mechanically checkable)** | DONE |
 
 ### 2a. Phase-6 loop transitions (per unit) — the 7-row table in `references/self-learning-loops.md` §1.3
 | # | From (substate) | Event | Guard | To (substate) |
@@ -77,8 +77,8 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | LT1 | EXECUTE | debrief_written | debrief.json valid (incl. 4-key `socratic`) | VERIFY |
 | LT2 | VERIFY | verdict_emitted | verify.json valid ∧ `executor_reasoning_seen==false` | ADJUDICATE |
 | LT3 | ADJUDICATE | verdict=PASS | `verdict == PASS` (defect-content-free; a PASS may carry `minor` observations — I6 revised) | DONE |
-| LT4 | ADJUDICATE | verdict=FAIL ∧ retries<2 | `retries < 2` (variant `V=2−retries > 0`) ∧ FAIL carries ≥1 defect (each naming a brief criterion) ∧ `feedback.actionable_changes` non-empty | RETRY |
-| LT5 | ADJUDICATE | verdict=FAIL ∧ retries≥2 | `retries == 2` | ESCALATE |
+| LT4 | ADJUDICATE | verdict=FAIL ∧ retries<2 | `retries < 2` (variant `V=2−retries > 0`) — the §1.3 branch condition | RETRY |
+| LT5 | ADJUDICATE | verdict=FAIL ∧ retries==2 | `retries == 2` | ESCALATE |
 | LT6 | ADJUDICATE | verdict=DISAGREE | evidence cannot settle; `disagreement` present | ESCALATE (→P7) |
 | LT7 | RETRY | resubmit | `retries := retries+1`; `iteration := iteration+1` | EXECUTE  *(SOLE back-edge)* |
 
@@ -88,6 +88,18 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 > proof (parametric in any finite N): `self-learning-loops.md` §2. Enforced by
 > `fsm-state.schema.json` (`loop.retries.maximum=2`) + `validate_run.py` cross-check
 > (`verify.iteration ≤ retries+1`, I4).
+>
+> **Row-for-row equality with `self-learning-loops.md` §1.3 (IMP-13).** These seven rows are exactly
+> the §1.3 table. Two seams to note so the tables read identically: (1) **LT4's branch condition is
+> just `verdict==FAIL ∧ retries<2`** — the `{FAIL}×{retries<2}` cell of the exhaustive ADJUDICATE
+> partition. The I6/G-defect *content* requirements (a FAIL carries ≥1 defect each naming a brief
+> criterion; `feedback.actionable_changes` non-empty) are **artifact-content rules the validator
+> enforces post-hoc**, NOT part of the transition guard — a content-violating FAIL is a validator
+> FAIL, not a stuck ADJUDICATE. Holding them out of the guard is what keeps the partition
+> `{PASS} ∪ {FAIL}×{retries<2, retries==2} ∪ {DISAGREE}` exhaustive and mutually exclusive.
+> (2) **LT7 carries `iteration := iteration+1`** alongside `retries := retries+1` — mirrored in the
+> §1.3 row — because the validator cross-checks `verify.iteration ≤ retries+1` (I4), so the
+> iteration counter is part of the contract, not cosmetic.
 
 ## 3. Guards (the conditions gating each transition)
 - **G-personas** (T2): user confirmed the roster. **Fail-closed & non-skippable:** the
@@ -105,6 +117,13 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
   the brief's acceptance criteria, and non-empty `feedback.actionable_changes` (no empty rejections).
 - **G-retry** (LT4/LT5): branch on `retries < 2` vs `retries == 2`.
 - **G-verified** (T9): every unit with a debrief has a verify.json with verdict=PASS (I9/I10).
+- **G-resolve** (T11): the human picks an option at the disagreement gate (DECISIONS.md appended).
+  **Human gate — NOT validator-checkable** (the validator cannot verify a human decided; mirrors the
+  §5 Limitations pattern).
+- **G-signoff** (T12): the human accepts the deliverable at the Phase-8 sign-off gate. **Human gate —
+  NOT validator-checkable** today: there is no `gates.signoff_confirmed` flag (proposing one is design
+  decision **D-06**), so T12's mechanical guard is only "SYNTHESIS.md written; all units accounted for"
+  and the sign-off itself is a human obligation the validator cannot confirm.
 
 ## 4. Invariants (must hold in EVERY state)
 | Inv | Statement | Enforcement |
@@ -203,8 +222,18 @@ attestation; gate-ordering of `fsm-state.phase` vs `gates`; and the `const:false
   regardless, so termination is unaffected).
 
 ## 6. Phase→state coverage (no orphan phases)
-Every SKILL.md phase 0–8 maps to exactly one state (§1); every gate maps to a guard (§3);
-the Phase-6 executor↔verifier loop maps to the loop substate machine (§1a/§2a, `EXECUTE·VERIFY·
-ADJUDICATE·RETRY·ESCALATE·DONE`). The as-needed Phase 7 maps to `P7_DISAGREEMENT_GATE` (entered
-via T10 from an ESCALATE — a DISAGREE-origin escalation or a retries-exhausted FAIL — exited via
-T11). No phase, gate, or loop is unmodeled.
+Every SKILL.md phase 0–8 maps to exactly one state (§1), with **one deliberately-unmodeled
+sub-step: Phase 0.5 (learnings intake).** Phase 0.5 is a prose sub-step *within* `P0_BOOTSTRAP` —
+it writes no gated artifact (its `learnings.json` is ledger bookkeeping, not a work-graph output),
+adds no transition, and is validated only post-hoc (I12); T1's guard (INPUT.md exists) is unchanged.
+It is intentionally not its own FSM state / schema enum value (full modeling would add a state with
+zero enforcement value — see D-01).
+
+Every **mechanical** gate maps to a §3 guard; the **two human gates are outside the mechanical guard
+set** and are named in §3 as **G-signoff** (Phase-8 sign-off) and **G-resolve** (T11 user-decides),
+both with enforcement "human; not validator-checkable" (mirroring the §5 Limitations pattern). T12's
+guard text names G-signoff explicitly. The Phase-6 executor↔verifier loop maps to the loop substate
+machine (§1a/§2a, `EXECUTE·VERIFY·ADJUDICATE·RETRY·ESCALATE·DONE`). The as-needed Phase 7 maps to
+`P7_DISAGREEMENT_GATE` (entered via T10 from an ESCALATE — a DISAGREE-origin escalation or a
+retries-exhausted FAIL — exited via T11). No phase, mechanical gate, or loop is unmodeled; the two
+human gates are modeled as human gates, not as mechanical guards.
