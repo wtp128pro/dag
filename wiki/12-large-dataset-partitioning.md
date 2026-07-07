@@ -116,7 +116,7 @@ Each map unit is an ordinary dag unit running the same `EXECUTE→VERIFY→ADJUD
 
 ## 4. The aggregate-ledger index — a migration note that preserves "ledger is truth"
 
-"Ledger is truth" ships today as a `units/<id>/` directory **per unit** — the durable record the validator enforces via I2 (`fsm-state.json` absent while other artifacts exist ⇒ FAIL). But **10k of those directories blow up the orchestrator's own bookkeeping** (`data-partitioning.md:101-104`). A massive map wave therefore uses an **indexed / aggregate ledger** — the manifest plus a `results_index` plus a `sampling_log` — **not** 10k linear files (`data-partitioning.md:102-105`).
+"Ledger is truth" ships today as a `units/<id>/` directory **per unit** — the durable record the validator enforces via I2 (`fsm-state.json` absent while other artifacts exist ⇒ FAIL — `validate_run.py:1682-1694`). But **10k of those directories blow up the orchestrator's own bookkeeping** (`data-partitioning.md:101-104`). A massive map wave therefore uses an **indexed / aggregate ledger** — the manifest plus a `results_index` plus a `sampling_log` — **not** 10k linear files (`data-partitioning.md:102-105`).
 
 The schema carries both optional pieces: `results_index[]` is "one row per shard, replacing 10k linear `units/<id>/` dirs", each row a `{shard_id, partial_ref, verified}` (`manifest.schema.json:45-57`); the `sampling_log` is the honesty record (§5). Addressing is by shard id through the index:
 

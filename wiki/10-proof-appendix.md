@@ -178,7 +178,7 @@ check Acyclic                for 7 but 5 Int
 check LayeringImpliesAcyclic for 7 but 5 Int
 ```
 
-**The `for 7 but 5 Int` scope is a requirement, not a convenience.** It bounds *every* sig to 7 with Int bitwidth 5 (range −16..15, ample for ≥7 waves). A bare `7 Unit, 5 Int` does **not** work: `Unit.executor : one Persona` (`formal/WorkGraph.als:30`) makes `Persona` reachable, so a partial scope list leaves `Persona`/`Verifier` unbounded and the command will not run (`references/formal-models.md` lines 232–235; `formal/WorkGraph.als:21`).
+**The `for 7 but 5 Int` scope is a requirement, not a convenience.** It bounds *every* sig to 7 with Int bitwidth 5 (range −16..15, ample for ≥7 waves). A bare `7 Unit, 5 Int` does **not** work: `Unit.executor : one Persona` (`formal/WorkGraph.als:30`) makes `Persona` reachable, so a partial scope list leaves `Persona`/`Verifier` unbounded and the command will not run (`references/formal-models.md` lines 254–257; `formal/WorkGraph.als:21`).
 
 **Expected:** *No counterexample found. Assertion may be valid.*
 
@@ -192,7 +192,7 @@ check DistinctMakerChecker for 7 Unit, 5 Verifier, 5 Persona, 5 Int
 run   WitnessGraph         for exactly 4 Unit, exactly 2 Verifier, exactly 3 Persona, 5 Int
 ```
 
-**Expected:** the two `check`s → *No counterexample found*; the `run` → *Instance found* (`references/formal-models.md` line 277).
+**Expected:** the two `check`s → *No counterexample found*; the `run` → *Instance found* (`references/formal-models.md` line 300).
 
 - `VerifierBlind` (`formal/WorkGraph.als:89`) mirrors `verify.schema.json` `executor_reasoning_seen : {const:false}` and validator I1 — no verifier read any executor's chain-of-thought.
 - `DistinctMakerChecker` (`formal/WorkGraph.als:90`) mirrors maker≠checker (validator I1b) — a unit is never verified by its own maker.
@@ -228,7 +228,7 @@ The design-time proofs (this page) and the runtime validator (`scripts/validate_
 
 Two boundaries, stated honestly and inherited from `references/formal-models.md`:
 
-- **Scope, not universality.** TLC's result is over the model's full reachable state space with `MaxRetries = 2`; the termination hand-proof is *parametric in any finite N* (`references/formal-models.md` line 187). Alloy's result is "no counterexample **up to scope `for 7`**" — not "for all sizes." This is bounded verification.
+- **Scope, not universality.** TLC's result is over the model's full reachable state space with `MaxRetries = 2`; the termination hand-proof is *parametric in any finite N* (`references/formal-models.md` line 192). Alloy's result is "no counterexample **up to scope `for 7`**" — not "for all sizes." This is bounded verification.
 - **Plumbing, not content (Residual A, the load-bearing one for Property 4).** `executor_reasoning_seen = false` and the Alloy `Independence` fact are **self-attestations**; no platform hook intercepts subagent I/O. The model proves the invariant is *well-formed and consistent* — **not** that the running system obeys it (`references/formal-models.md` § Residual A). Correctness-of-content (is a `PASS` correct? is a persona genuinely different?) remains the independent verifier's semantic judgment, an external signal — never the model re-reading itself (`references/formal-models.md` § Residual B–E).
 
 Model simplifications (the loop actions are not per-action phase-gated; `Resolve` doesn't re-arm the loop; `gate["P0"]`/`gate["P5"]` have no runtime flag) are intentional and safety-preserving — each *removes* behaviors, so it can only make `GateOrdering` easier to hold, not harder (`references/formal-models.md` § "Model simplifications"). The shipped model passes as-is: 715 states / 328 distinct / depth 28 / no error.
