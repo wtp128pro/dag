@@ -75,6 +75,21 @@ test/REPL/command output exhibiting the rejection
 This very wiki page is held to the same bar: nearly every sentence carries a repo locator a
 verifier can open, because the page is *about* a system that insists on evidence.
 
+**Not all admissible evidence is equal — a preference ordering (PR2).** Within an admissible
+claim type, `dag` prefers evidence the verifier can *mechanically regenerate* over evidence it
+must take on faith, in a strict order:
+**(1) executable / reproducible** — a command + its output, a re-run test, a diff of expected vs
+actual, a re-derived number *with* its derivation; the verifier *re-runs* it. **(2) located but
+static** — a `file:line`, a dated URL + quoted section, an observed request/response captured
+earlier; the verifier *re-opens* it. **(3) asserted** — "I checked and it holds," admissible only
+when 1–2 are genuinely infeasible, and then labeled `ASSUMPTION:` with its blast radius. The
+ordering is *load-bearing, not stylistic*: a re-run's correctness does not depend on the checker's
+reasoning depth, so reproducible evidence is **model-independent** (a modest verifier re-running a
+test reaches the same verdict a stronger one would), and it is the prerequisite for data-parallel
+verification. When a claim *can* be made executable, an asserted-only version is a weaker debrief
+the verifier should down-rank or reject
+([`evidence-standards.md`, "Evidence preference ordering" (PR2)](../plugins/dag/skills/dag/references/evidence-standards.md)).
+
 ### 2.2 The loop that catches what slips through
 
 Evidence standards are enforced by a person who did not write the claim. Every unit is judged
@@ -133,7 +148,7 @@ verbatim from [`state-machine.md` §5](../plugins/dag/skills/dag/references/stat
 | **I3** | Fail-closed DAG acyclicity on `edges ∪ unit-deps`; authoritative `graph.json` required past decomposition |
 | **I4** | Loop bound `retries ≤ 2`, cross-check `iteration ≤ retries+1` |
 | **I5** | Budget cap `≤ 32000` on declared `budget_tokens` / `est_footprint_tokens` |
-| **I6** | Evidence-bound verdicts: FAIL names ≥1 defect whose criterion ∈ brief; PASS ⇒ `defects==[]` |
+| **I6** | Evidence-bound verdicts: FAIL names ≥1 defect whose criterion ∈ brief; PASS ⇒ **no blocker/major defect** (REVISED coverage-first, PR1 — was `defects==[]`; a PASS may now carry `minor` observations) |
 | **I7** | Exactly one recommended option in a disagreement dossier |
 | **I8** | No open material ambiguity past Phase 2 |
 | **I9** | Every debriefed unit has a `verify.json` verdict (missing-verification rejection) |
@@ -143,6 +158,7 @@ verbatim from [`state-machine.md` §5](../plugins/dag/skills/dag/references/stat
 | **I13** | Socratic `counter` records an *outcome* (shape only — genuineness is Limit. B) |
 | **I14** | AO-2 `do_not_touch` disjointness, post-hoc offline (presence-gated + self-reported — Limit. F) |
 | **I15** | AO-6 responsive-change presence, post-hoc offline (self-attested — Limit. F) |
+| **I16** | Panel discipline, post-hoc offline (PR1): a `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); the top-level `verdict` equals the **discrete majority** of the panel verdicts (a split ⇒ `DISAGREE`, no softmax); `verify_rounds ∈ [1,3]` (presence/shape only — genuine lens-diversity is Limit. H) |
 | **I-dod** | Definition-of-Done + Non-Goals present once any post-clarification structural artifact exists (fail-closed even if `clarifications.json` absent) |
 | (attestation) | The `premise_check` attestation: `counter_reran_independently==true`, PASS rejected if `is_load_bearing==false`; gate-ordering of `phase` vs `gates` |
 
@@ -158,7 +174,7 @@ Four properties are proved at the level of the *rules*, each tagged at its true 
 | DAG acyclicity (I3) | Alloy | **machine-checked (in scope)**, no counterexample + hand-proved |
 | Verifier independence (I1) | Alloy | **asserted (consistent)** + machine-checked, no counterexample |
 
-"**In scope**" is load-bearing. TLC explored a *bounded* state space — 327 distinct reachable
+"**In scope**" is load-bearing. TLC explored a *bounded* state space — 328 distinct reachable
 states, depth 28, "no error has been found"
 ([`formal-models.md` TLC transcript](../plugins/dag/skills/dag/references/formal-models.md)) —
 and Alloy checked within a finite scope (`for 7 but 5 Int`)
@@ -183,7 +199,7 @@ layer closes with a Residual section: the proofs establish "the *plumbing and th
 correctness-of-content remains the independent verifier's semantic judgment"
 ([`formal-models.md` Residual](../plugins/dag/skills/dag/references/formal-models.md)).
 
-### 4.1 The semantic limitations A–G — NOT mechanically decidable
+### 4.1 The semantic limitations A–H — NOT mechanically decidable
 
 These are the things no schema, validator, or model checker can decide; they stay a
 human/verifier judgment. Enumerated verbatim from
@@ -218,6 +234,16 @@ human/verifier judgment. Enumerated verbatim from
   as the "already-generalized" signal — "a deliberate provenance-trust boundary, not a
   cryptographic proof" (an absent/invalid registry falls back to run-local, so the domain is
   never widened silently or on bad data).
+- **H — I16 panel presence/shape, not genuine lens diversity.** I16 mechanically checks that a
+  `high-stakes` unit carries a ≥3-member `panel[]` whose lenses cover the canonical
+  correctness/reproduce/guardrail trio and whose **discrete majority** equals the top-level verdict
+  (a split ⇒ `DISAGREE`, no softmax), and that `verify_rounds ∈ [1,3]` — all mechanically decidable.
+  It **cannot** enforce that the three lenses were *genuinely* applied by *genuinely* independent
+  verifiers, that a `converged` (dry) sweep truly exhausted the defects, or that a panelist's
+  verdict is *correct* — those stay verifier/human judgment (validity ≠ correctness, the same
+  boundary as I13/I14/I15). Being post-hoc, it gates no transition, so it can never deadlock the
+  loop
+  ([`state-machine.md:233-244`, Limitation H](../plugins/dag/skills/dag/references/state-machine.md)).
 
 ### 4.2 Reading the seam correctly
 

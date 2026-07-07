@@ -33,8 +33,8 @@ point of the gate ordering.
 
 **Source of truth:** `references/state-machine.md` §1 (states table), §2 (transition table T1–T12),
 §3 (guards). Machine-checked complement: the `GateOrdering` safety invariant in
-`formal/Pipeline.tla` — *machine-checked (in scope)* by TLC over 327 reachable states
-(`formal-models.md` §1).
+`formal/Pipeline.tla` — *machine-checked (in scope)* by TLC over 328 reachable states
+(`formal-models.md` §1 transcript, 2026-07-06: 715 generated / 328 distinct / depth 28).
 
 ```mermaid
 stateDiagram-v2
@@ -50,7 +50,7 @@ stateDiagram-v2
     P6_EXECUTE_VERIFY --> P8_SYNTHESIS: T9 all_units_passed (every unit loop = DONE, I9/I10)
     P6_EXECUTE_VERIFY --> P7_DISAGREEMENT_GATE: T10 escalation_raised
     P7_DISAGREEMENT_GATE --> P6_EXECUTE_VERIFY: T11 user_decides (or P2/P3/P4 on rollback)
-    P8_SYNTHESIS --> DONE: T12 synthesis_done
+    P8_SYNTHESIS --> DONE: T12 synthesis_done, guard gates.signoff_confirmed (D-06)
     DONE --> [*]
 ```
 
@@ -58,7 +58,12 @@ Notes tied to source: `P6_EXECUTE_VERIFY` is a **composite** state — its inter
 (`state-machine.md` §1a). T10's escalation has two origins (a DISAGREE or a retries-exhausted FAIL),
 both routed to the same Phase-7 human gate (`state-machine.md` §1a note, T10). T11's rollback
 targets (P2/P3/P4) are listed in the transition table but are **out of the TLA+ model's scope**
-(`formal-models.md` §Model simplifications (b)).
+(`formal-models.md` §Model simplifications (b)). **T12 now carries a guard:** `synthesis_done`
+additionally requires the human sign-off flag `gates.signoff_confirmed` (G-signoff), which the
+validator lists in `REQUIRED_GATES` for `DONE` — a run reaching `DONE` without it is INVALID
+(D-06; `state-machine.md` §2 T12 / §3 G-signoff). It is a **post-hoc** gate-ordering predicate over
+`fsm-state.json`: it gates no live transition and never guards LT7, and the flag's *presence* — not
+its genuineness — is what is checked (validity ≠ correctness).
 
 ---
 
@@ -80,19 +85,34 @@ stateDiagram-v2
     [*] --> EXECUTE
     EXECUTE --> VERIFY: LT1 debrief.json + artifacts written
     VERIFY --> ADJUDICATE: LT2 verify.json valid, guard executor_reasoning_seen == false
-    ADJUDICATE --> DONE: LT3 verdict == PASS (defects empty)
+    ADJUDICATE --> DONE: LT3 verdict == PASS (no blocker/major defect, minor allowed - I6 revised)
     ADJUDICATE --> RETRY: LT4 verdict == FAIL, guard retries below 2 (V = 2 - retries stays positive)
     ADJUDICATE --> ESCALATE: LT5 verdict == FAIL, guard retries == 2
     ADJUDICATE --> ESCALATE: LT6 verdict == DISAGREE
     RETRY --> EXECUTE: LT7 SOLE back-edge, retries incremented by 1
     ESCALATE --> [*]: to Phase 7 human gate (leaves loop)
     DONE --> [*]
+    note right of VERIFY
+        Node-internal work (I16, PR1) adds NO edge.
+        High-stakes default is an odd panel of 3 with distinct
+        correctness / reproduce / guardrail lenses, aggregated by
+        discrete majority (a split yields DISAGREE, LT6; no softmax).
+        Loop-until-dry sweep runs verify_rounds in 1..3 (R_max = 3),
+        ending when a round is dry or the cap is hit.
+        No new back-edge and V = 2 - retries is untouched,
+        so termination is PRESERVED.
+    end note
 ```
 
 Notes tied to source: `ADJUDICATE`'s guards LT3–LT6 **partition** the reachable input space
 `{PASS} ∪ {FAIL}×{retries<2, retries==2} ∪ {DISAGREE}`, so exactly one edge is always enabled — no
 deadlock, no non-determinism (`self-learning-loops.md` §1.3). `EXECUTE`, `VERIFY`, `RETRY` each have
-a single unconditional out-edge. `ESCALATE` and `DONE` are absorbing terminals (§1.1).
+a single unconditional out-edge. `ESCALATE` and `DONE` are absorbing terminals (§1.1). The note on
+`VERIFY` records the **PR1 verifier hardening** (panel-of-3 default on `high-stakes` + loop-until-dry):
+it is **node-internal work** that adds no transition row, no second back-edge, and does not touch the
+variant `V = 2 − retries` — which is exactly why it **PRESERVES** the termination proof (Claims A–D
+hold verbatim; `self-learning-loops.md` §2 FLAG, §3 panel contract; `state-machine.md` §4 I16). See
+§5.3 for the formula.
 
 ---
 
@@ -217,12 +237,17 @@ does flag (`formal-models.md` §2).
 
 ```
 applies(E.scope, U) ≡
-      (   "all"      ∈ E.scope.applies_to
-        ∨  U.id      ∈ E.scope.applies_to
-        ∨  U.phase   ∈ E.scope.applies_to
-        ∨  ∃ "tag:T" ∈ E.scope.applies_to :  T ∈ U.tags )     // tag = set membership over V_tag
+      (   "all"      ∈ E.scope.applies_to                     // all-selector
+        ∨  U.id      ∈ E.scope.applies_to                     // unit-id selector "U0X" (single target)
+        ∨  ∃ "tag:T" ∈ E.scope.applies_to :  T ∈ U.tags )     // pattern/tag selector — set membership over V_tag
    ∧ ¬( U.id ∈ E.scope.excludes )
 ```
+
+There are exactly **three** disjuncts — `all`, unit-id (`U0X`), and `tag:T`; the validator enforces
+all three and treats any other `applies_to` element as a hard `I12 selector` FAIL. **There is no
+`phase` disjunct: the `"phaseN"` selector was removed (BRK-09)**, since no unit carries a `phase`
+field in `graph.schema.json`/`brief.schema.json` to match, so it was mechanically unevaluable
+(`self-learning-loops.md` §4.3, lines 411–413).
 
 **The I12 REQUIRE quantifier** — the propagation rule the validator enforces
 (`self-learning-loops.md` §4.3; invariant **I12**, `state-machine.md` §4):
@@ -235,16 +260,22 @@ REQUIRE  ∀ E ∈ LEARNINGS,  ∀ U ∈ briefs with U.wave ≥ E.since_wave :
 The `U.wave ≥ E.since_wave` guard is the temporal safety catch: a learning binds only briefs from a
 wave no earlier than its own, never retroactively (`self-learning-loops.md` §4.3 property 1).
 
-**The ≥2-unit generalizability gate** — admission into `LEARNINGS.md` (`self-learning-loops.md`
-§4.2; **I12** admission gate):
+**The generalizability gate** — admission into `LEARNINGS.md` (`self-learning-loops.md` §4.2;
+**I12** admission gate). It is **selector-kind ASYMMETRIC** — not one uniform "≥2 units" rule:
 
 ```
-E admissible ⇔ its applies_to would match ≥ 2 units in the run:
-   • "all" / "phaseN"  → trivially can (a phase holds ≥2 units in a non-trivial run)
-   • "tag:T"           → admissible only if ≥ 2 GRAPH.md units carry tag T
-   • bare unit-id set  → admissible only if it lists ≥ 2 unit-ids
-A lesson matching a single unit is REJECTED → it belongs in that unit's debrief.json.
+E.scope.applies_to element → admissible when:
+   • "all"    → the graph has ≥ 2 units (an "all" scope on a 1-unit graph is not a pattern)
+   • "tag:T"  → ≥ 2 GRAPH.md units carry tag T (a single-carrier tag fails the gate)
+   • "U0X"    → ALWAYS admissible — a DELIBERATE single-target binding, not a generalization
+                claim, so it needs no ≥2-carrier re-proof (it cannot force-inject beyond its one unit)
+A "tag:T" or "all" lesson that would match only a single unit is REJECTED → it belongs in that
+unit's debrief.json. A "U0X" selector is the explicit single-unit exception; a lesson meant to bind
+two units names them as two "U0X" selectors (or a "tag:T").
 ```
+
+`"phaseN"` is **not** an admissible kind — it was removed from the vocabulary (BRK-09,
+`self-learning-loops.md` §4.2, lines 374–388 / §SelectorSet lines 325–332).
 
 Carve-out (honest boundary): imported / already-generalized entries (a `G#` global id or a
 store-loaded id) are **exempt** from the ≥2-carrier *re-proof* but are still governed by the I12
@@ -252,6 +283,24 @@ propagation predicate — a deliberate provenance-trust boundary, not a cryptogr
 (`self-learning-loops.md` §4.2, 04/G1; `state-machine.md` §5 Limitation G). The gate checks scope
 *breadth* mechanically; whether a lesson is *truly* generalizable stays a verifier/human call
 (`self-learning-loops.md` §6.5).
+
+### 5.3 Panel discipline (I16) and loop-until-dry — node-internal to `VERIFY`
+
+The PR1 verifier hardening (Diagram 2's `VERIFY` note) adds **no** FSM edge: the panel and the
+loop-until-dry sweep are *node-internal work inside* `VERIFY`, which is exactly why they **PRESERVE**
+the termination proof — Claims A–D hold verbatim and only LT7 ever writes `retries`
+(`self-learning-loops.md` §2 FLAG). It is enforced *post-hoc / offline* by validator invariant **I16**,
+which gates no transition and never guards LT7 (`state-machine.md` §4 I16).
+
+| Formula | Meaning | Source |
+|---|---|---|
+| `high-stakes(U) ⇒ panel has ≥ 3 members`, lenses ⊇ {correctness, reproduce, guardrail} | a `high-stakes` unit's `verify.json` MUST carry an odd panel of ≥3 verifiers with the three distinct lenses (the default) | `self-learning-loops.md` §3 (panel contract, lines 241–250); `state-machine.md` §4 I16 |
+| `verdict = discrete-majority(panel.verdict)`;  no strict majority ⇒ `verdict = DISAGREE`  (**no softmax**) | the top-level verdict is the discrete mode (2-of-3); a genuine split routes to LT6 → ESCALATE (AO-5). Softmaxing the discrete guard partition would REVISE (break) the §2 proof and is forbidden | `self-learning-loops.md` §2 FLAG (lines 169–172), §3; `state-machine.md` §4 I16 |
+| `1 ≤ verify_rounds ≤ R_max`,  `R_max = 3` | loop-until-dry: sweep rounds accumulate defects until a round is dry (`converged = true`) or the cap is hit (`converged = false`); bounded ⇒ finite | `self-learning-loops.md` §3 (loop-until-dry, lines 251–254); §2 Bound |
+
+Honest boundary: I16 checks the panel's **presence and shape**, not whether the three lenses are
+*genuinely* diverse or the sweep achieved *real* recall — those stay verifier/human judgment
+(`state-machine.md` §5 Limitation H).
 
 ---
 
@@ -261,6 +310,6 @@ The diagrams and formulas capture the **rules and plumbing**: gate ordering, loo
 acyclicity, and the shape of the maker≠checker seam. They do **not** establish that a PASS is
 *correct*, that a cited evidence locator resolves, that the executor and verifier are genuinely a
 different model behind their persona labels, or that the verifier was *truly* blind to executor
-reasoning — those are the semantic residuals (`state-machine.md` §5 Limitations A–G;
+reasoning — those are the semantic residuals (`state-machine.md` §5 Limitations A–H;
 `formal-models.md` §Residual A–E). This page mirrors the source proof-status verbatim and stops
 there.
