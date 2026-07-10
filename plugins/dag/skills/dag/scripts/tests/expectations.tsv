@@ -81,6 +81,14 @@ amend_wave1_insert	1	record.frontier_wave 2
 amend_edit_executed	1	I17 frozen-content anchor
 amend_rewave_executed	1	I17 frozen-content anchor
 amend_rewire_executed	1	I17 frozen-content anchor
+dup_unit_id	1	I3 unit id uniqueness
+ledger_status_mismatch	1	I2 status vs verify verdict
+ledger_verdict_mismatch	1	I2 status vs verify verdict
+phase_underreport	1	I2 phase artifact floor
+learnings_forged_import	1	I12 import provenance
+within_budget_dishonest	1	I5 within-budget honesty
+fsm_phantom_unit	1	I2 fsm units subset
+fail_blank_actionable	1	actionable_changes
 amend_smuggled_unit	1	I17 amendment reconciliation
 amend_phantom_add	1	I17 amendment reconciliation
 amend_added_unreconciled	1	I17 amendment reconciliation

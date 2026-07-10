@@ -10,7 +10,7 @@
   },
   "loop": {
     "unit_id": "U01",
-    "state": "ADJUDICATE",
+    "state": "DONE",
     "retries": 1,
     "iteration": 2,
     "last_verdict": "FAIL"
@@ -18,7 +18,7 @@
   "units": [
     {
       "unit_id": "U01",
-      "status": "failed"
+      "status": "passed"
     },
     {
       "unit_id": "U02",

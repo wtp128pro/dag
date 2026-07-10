@@ -100,6 +100,16 @@
         "grounding": {
           "type": "string",
           "description": "Optional (03/P4): whether an IMPORTED cross-run lesson has been re-grounded to a local signal in THIS run. The load-bearing value is \"re-grounded\": an imported entry (store-loaded or a global G# id) carrying grounding==\"re-grounded\" is re-promoted to the ACTIVE, I12-enforced set; an imported entry WITHOUT it is ADVISORY (loaded + citable but never force-injected, so its omission from a brief never FAILs I12). Absent/any-other value on an imported entry => advisory. Inert on run-local authored entries (they are ACTIVE regardless). Consistent with AO-4: an un-re-grounded import is not an external signal that binds briefs."
+        },
+        "origin": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["store"],
+          "description": "Optional (WP5/G8): import provenance STAMPED by the Phase-0.5 cross-run intake when an entry is folded in from a store. validate_run.py's I12 keys the advisory/import carve-out (exemption from force-injection AND the >=2-carrier admission gate) off actual store membership OR this stamp — NOT the id spelling. A G#-id entry that was neither loaded from a store this run NOR carries origin.store is FORGED provenance and FAILs closed, so a run-local L1 renamed G7 can no longer dodge propagation.",
+          "properties": {
+            "store": { "enum": ["user", "project"] },
+            "imported_at": { "type": "string" }
+          }
         }
       }
     }

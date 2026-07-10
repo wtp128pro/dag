@@ -8,21 +8,9 @@
     "cartography_done": true,
     "decomposition_approved": true
   },
-  "loop": {
-    "unit_id": "U01",
-    "state": "ADJUDICATE",
-    "retries": 1,
-    "iteration": 2,
-    "last_verdict": "FAIL"
-  },
+  "loop": { "unit_id": "U01", "state": "DONE", "retries": 1, "iteration": 2, "last_verdict": "PASS" },
   "units": [
-    {
-      "unit_id": "U01",
-      "status": "failed"
-    },
-    {
-      "unit_id": "U02",
-      "status": "executing"
-    }
+    { "unit_id": "U01", "status": "passed" },
+    { "unit_id": "U02", "status": "executing" }
   ]
 }

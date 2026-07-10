@@ -36,10 +36,17 @@
       "title": "I2: ledger-is-truth (fsm-state.json is authoritative)",
       "tier": "mechanical",
       "validator_label_prefixes": [
-        "I2 ledger-is-truth"
+        "I2 fsm units subset",
+        "I2 ledger-is-truth",
+        "I2 phase artifact floor",
+        "I2 status vs verify verdict"
       ],
       "fixtures": [
-        "no_fsm_state"
+        "no_fsm_state",
+        "ledger_status_mismatch",
+        "ledger_verdict_mismatch",
+        "phase_underreport",
+        "fsm_phantom_unit"
       ],
       "provenance": [],
       "docs": [
@@ -53,11 +60,13 @@
       "validator_label_prefixes": [
         "I3 DAG",
         "I3 DAG acyclic",
-        "I3 DAG fail-closed (E)"
+        "I3 DAG fail-closed (E)",
+        "I3 unit id uniqueness"
       ],
       "fixtures": [
         "unfenced_cycle",
-        "amend_cycle"
+        "amend_cycle",
+        "dup_unit_id"
       ],
       "provenance": [
         "E"
@@ -120,10 +129,14 @@
     },
     {
       "id": "I5",
-      "title": "I5: per-unit budget cap <= 32K tokens",
-      "tier": "schema",
-      "validator_label_prefixes": [],
-      "fixtures": [],
+      "title": "I5: per-unit budget cap <= 32K tokens + within-budget honesty",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I5 within-budget honesty"
+      ],
+      "fixtures": [
+        "within_budget_dishonest"
+      ],
       "provenance": [],
       "docs": [
         "references/state-machine.md#4"
@@ -134,12 +147,14 @@
       "title": "I6: PASS coverage-first / FAIL names a genuine defect",
       "tier": "schema",
       "validator_label_prefixes": [
+        "I6 FAIL actionable change",
         "I6 FAIL defect",
         "I6 PASS coverage-first"
       ],
       "fixtures": [
         "pass_with_minor",
-        "pass_with_major_rejected"
+        "pass_with_major_rejected",
+        "fail_blank_actionable"
       ],
       "provenance": [],
       "docs": [
@@ -228,6 +243,7 @@
         "I12 admission carve-out (G1)",
         "I12 learnings admission gate",
         "I12 learnings propagation",
+        "I12 import provenance",
         "I12 learnings since_wave",
         "I12 model narrowing (04/G4)",
         "I12 selector",
@@ -246,6 +262,7 @@
         "wave_float_gap",
         "regrounded_g_listed",
         "regrounded_g_unlisted",
+        "learnings_forged_import",
         "p4_advisory/advisory_not_required",
         "p4_advisory/regrounded_required"
       ],

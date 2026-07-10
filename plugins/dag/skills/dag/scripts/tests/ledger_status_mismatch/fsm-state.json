@@ -10,10 +10,10 @@
   },
   "loop": {
     "unit_id": "U01",
-    "state": "ADJUDICATE",
+    "state": "DONE",
     "retries": 1,
     "iteration": 2,
-    "last_verdict": "FAIL"
+    "last_verdict": "PASS"
   },
   "units": [
     {
