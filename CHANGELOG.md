@@ -3,6 +3,22 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.8] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.6.0** — **Validator hardening (extra_check remediation)**: closes ten reproduced
+  false-PASS holes in the Bounded Graph Amendments enforcement and the core validator (baseline +
+  reconciliation + records-required trigger; fuel seed anchor + `fuel_before`/`fuel_after` chain;
+  per-kind amendment schema closure + split/child semantics + bookkeeping; frozen-content anchor of
+  every executed unit against its `brief.json`; duplicate-unit-id detection; ledger↔verify cross-check;
+  artifact-driven phase floor; forgery-proof learnings-import provenance; within-budget honesty;
+  non-blank actionable-changes), documents the third ESCALATE origin (amendment-fuel exhaustion) and
+  makes I9 status-aware, sweeps the drift (D1–D12) + SKILL.md operability (U1–U11), adds a negative
+  fixture per previously-uncovered branch, and runs the fixture suite on **both** validator backends.
+  Every new check is **post-hoc/offline** (no live LT7 guard) so the correction-loop **termination proof
+  is PRESERVED**; the BGA pipeline bound and I17/I18/I19 **REVISE upward**. 106 fixtures green on both
+  backends; SC1–SC7 PASS; TLC 853/408/depth 36 (2,923/1,608/depth 156 at MaxFuel=32); Alloy 8/8.
+
 ## [1.0.7] — 2026-07-10
 
 ### Changed

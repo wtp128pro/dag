@@ -9,7 +9,7 @@ hosting reusable skills. Add it once, then install any plugin from it.
 
 | Plugin | Version | Description | Invoke |
 |--------|---------|-------------|--------|
-| [`dag`](plugins/dag) | 1.5.0 | Gated, multi-phase task execution — **formally enforced** (JSON Schemas + FSM + validator; TLA+ TLC-machine-checked, Alloy machine-checked), **universal Socratic dialogue**, atomic work-unit DAG, budget-capped subagents, independent adversarial verification (**default distinct-lens panel-of-3 on high-stakes units, coverage-first, loop-until-dry**), **bounded self-learning loops** (`all`/`U0X`/`tag:` selectors enforced), **bounded mid-run graph amendments** (fuel-budgeted, machine-checked quiescence), anti-hallucination evidence standards, **large-dataset map-reduce partitioning**, a **mechanical Phase-8 sign-off gate**, durable **per-unit loop state**, and an **executable HOME-isolated test harness** | `/dag:dag <task>` |
+| [`dag`](plugins/dag) | 1.6.0 | Gated, multi-phase task execution — **formally enforced** (JSON Schemas + FSM + validator; TLA+ TLC-machine-checked, Alloy machine-checked), **universal Socratic dialogue**, atomic work-unit DAG, budget-capped subagents, independent adversarial verification (**default distinct-lens panel-of-3 on high-stakes units, coverage-first, loop-until-dry**), **bounded self-learning loops** (`all`/`U0X`/`tag:` selectors enforced), **bounded mid-run graph amendments** (fuel-budgeted, tamper-evident, machine-checked quiescence), anti-hallucination evidence standards, **large-dataset map-reduce partitioning**, a **mechanical Phase-8 sign-off gate**, durable **per-unit loop state**, and an **executable HOME-isolated test harness** (both validator backends) | `/dag:dag <task>` |
 
 ### Skills in the `dag` plugin
 
@@ -105,9 +105,10 @@ dag/
 │       │   │   ├── DESIGN.md
 │       │   │   ├── references/
 │       │   │   ├── schemas/         # JSON Schemas (artifact sidecars)
+│       │   │   ├── spec/            # SSR registry: fsm.json, invariants.json (dev-time drift source)
 │       │   │   ├── templates/
-│       │   │   ├── scripts/         # init_run.sh, validate_run.sh/.py
-│       │   │   └── formal/          # TLA+ / Alloy formal models
+│       │   │   ├── scripts/         # init_run.sh, validate_run.sh/.py, run_tests.sh, spec_check.py
+│       │   │   └── formal/          # TLA+ / Alloy formal models (Pipeline, WorkGraph, Amendment)
 │       │   └── personas/        # manages reusable persona JSON files
 │       │       └── SKILL.md
 │       ├── README.md
