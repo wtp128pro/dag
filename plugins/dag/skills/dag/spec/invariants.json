@@ -355,7 +355,8 @@
       "validator_label_prefixes": [
         "I17 amendment reconciliation",
         "I17 frozen executed prefix",
-        "I17 frozen prefix"
+        "I17 frozen prefix",
+        "I17 frozen-content anchor"
       ],
       "fixtures": [
         "amend_frozen",
@@ -365,11 +366,15 @@
         "amend_added_unreconciled",
         "amend_fake_retire",
         "amend_phantom_retire_undercharge",
-        "amend_missing_baseline"
+        "amend_missing_baseline",
+        "amend_edit_executed",
+        "amend_rewave_executed",
+        "amend_rewire_executed"
       ],
       "provenance": [
         "BGA",
-        "WP1"
+        "WP1",
+        "WP4"
       ],
       "docs": [
         "references/state-machine.md#4"

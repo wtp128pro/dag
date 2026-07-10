@@ -164,12 +164,18 @@ verify are flagged so we don't launder them into facts — practicing req 10 on 
 7. **Bounded Graph Amendments are attestation-checked, not semantically proven.** BGA lets the
    Phase-6 graph grow, but the three semantic guarantees stay human/verifier judgment (validity ≠
    correctness): `human_gate` is a **presence-checked attestation** (like `signoff_confirmed`) — the
-   validator cannot prove a human actually approved a scope-change/cancel; `frontier_wave` is
-   **attested** (the validator cannot reconstruct dispatch timing); and `dod_refs` verbatim matching
-   is **string membership**, not semantic traceability — that a new unit *genuinely* serves its cited
-   DoD item stays the verifier/critique-pass backstop. What IS mechanical and fail-closed: the frozen
-   executed prefix (I17), the fuel bound (I18), acyclicity + wave layering + dependency closure
-   (I3/I3b/I3c), and DoD string membership + the human-gate flag's presence (I19).
+   validator cannot prove a human actually approved a scope-change/cancel; a record's `frontier_wave` is
+   internally-consistency-checked against the graph (WP3: every `units_added` lands at `wave ≥
+   frontier_wave`) but the *dispatch timing* it stands for is still **attested** (Limitation J); and
+   `dod_refs` verbatim matching is **string membership**, not semantic traceability — that a new unit
+   *genuinely* serves its cited DoD item stays the verifier/critique-pass backstop (Limitation K). What
+   IS mechanical and fail-closed: the frozen executed prefix (I17 — including the WP1 baseline
+   reconciliation and the WP4 executed-unit content anchor against `brief.json`: `title`/`wave`/`deps`/
+   `persona`/`tags`/`acceptance_criteria`; `goal`/`est_footprint_tokens` are not brief-carried and stay
+   attested), the fuel bound + tamper-evidence + bookkeeping (I18 — seed anchor, `fuel_before`/`fuel_after`
+   chain, records-required, id/filename/revision/counter/frontier), acyclicity + wave layering +
+   dependency closure (I3/I3b/I3c), and per-kind schema closure + split semantics + DoD string membership
+   + the human-gate flag's presence (I19).
 
 ## 7. How to run
 

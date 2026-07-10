@@ -493,9 +493,14 @@ split at the disagreement gate), or `human_request`.
 
 **Frozen executed prefix (I17) — the load-bearing rule.** No amendment may modify, retire, re-wave, or
 rewire a unit that has a `debrief.json`/`verify.json` or is executing/verifying/passed/failed/blocked/
-escalated. **The correction loop is never entered, exited, bypassed, or interrupted by an amendment** —
-a FAIL that "needs a split" still exits via RETRY or ESCALATE→P7, where the human may approve a split
-as the T11 resolution. Amendments are **never** used to dodge a FAIL.
+escalated. **Mechanically (WP4):** for every executed unit, I17 anchors its current `graph.json` entry
+against its immutable `brief.json` (written at dispatch) on `title`, `wave`, `depends_on`, executor
+`persona`, `tags`, and `acceptance_criteria` — a post-execution rewrite of any of these FAILs. (`goal`
+and `est_footprint_tokens` are not brief-carried — the brief has a distinct `budget_tokens` ceiling — so
+they remain attested; dispatch-timing stays Limitation J.) **The correction loop is never entered,
+exited, bypassed, or interrupted by an amendment** — a FAIL that "needs a split" still exits via RETRY or
+ESCALATE→P7, where the human may approve a split as the T11 resolution. Amendments are **never** used to
+dodge a FAIL.
 
 **Fuel (I18) — termination.** Each amendment costs `max(1, |units_added| − |units_retired|)` fuel;
 `expansion.fuel_remaining` decreases monotonically (schema max 32). **Fuel exhausted + an amendment

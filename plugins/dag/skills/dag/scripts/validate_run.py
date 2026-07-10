@@ -411,6 +411,7 @@ LABELS = [
     {"key": "i17_frozen", "stem": "I17 frozen prefix", "invariant": "I17"},
     {"key": "i17_frozen_ok", "stem": "I17 frozen executed prefix", "invariant": "I17"},
     {"key": "i17_reconcile", "stem": "I17 amendment reconciliation", "invariant": "I17"},
+    {"key": "i17_anchor", "stem": "I17 frozen-content anchor", "invariant": "I17"},
     {"key": "i18_fuel_bound", "stem": "I18 fuel bound", "invariant": "I18"},
     {"key": "i18_records_required", "stem": "I18 amendment records required", "invariant": "I18"},
     {"key": "i18_bookkeeping", "stem": "I18 amendment bookkeeping", "invariant": "I18"},
@@ -1696,6 +1697,44 @@ def main(argv=None):
                              f"retired unit {_u.get('unit_id')} has fsm status {_u.get('status')!r} != 'retired'")
         if i17_ok:
             rep.ok(f"{LABEL_STEM['i17_frozen_ok']} ({len(retired_ids)} retired id(s); no executed unit touched)")
+
+        # ---- I17 frozen-content anchor (WP4: B5) — an EXECUTED unit's current graph entry must still
+        # match its immutable brief.json (the contract written at dispatch). A post-execution rewrite of
+        # an executed unit's title/wave/deps/persona/tags/acceptance_criteria in graph.json is caught.
+        # `goal` and `est_footprint_tokens` are NOT brief-carried (the brief has budget_tokens, a distinct
+        # ceiling), so they remain attested — Limitation J covers the residual dispatch-timing surface.
+        # Offline/post-hoc; REVISES I17 upward. ----
+        if graph_doc is not None:
+            _gunits = {u.get("id"): u for u in graph_doc.get("units", [])}
+            _gwave = {}
+            for _w in (graph_doc.get("waves") or []):
+                for _uid in _w.get("units", []):
+                    _gwave[_uid] = _as_int(_w.get("wave"))
+            for uid in sorted(unit_dirs_with_debrief):
+                b = unit_docs.get(uid, {}).get("brief")
+                gu = _gunits.get(uid)
+                if not isinstance(b, dict) or not isinstance(gu, dict):
+                    continue                       # no brief (G-brief already FAILs) or unit not in graph (I17 orphan)
+                _mism = []
+                if gu.get("title") != b.get("title"):
+                    _mism.append(f"title {gu.get('title')!r} != brief {b.get('title')!r}")
+                _bw = _as_int(b.get("wave"))
+                if _gwave.get(uid) is not None and _bw is not None and _gwave.get(uid) != _bw:
+                    _mism.append(f"wave {_gwave.get(uid)} != brief {_bw}")
+                if sorted(gu.get("deps", []) or []) != sorted(b.get("depends_on", []) or []):
+                    _mism.append(f"deps {sorted(gu.get('deps', []) or [])} != brief depends_on {sorted(b.get('depends_on', []) or [])}")
+                if gu.get("executor_persona") != b.get("persona"):
+                    _mism.append(f"executor_persona {gu.get('executor_persona')!r} != brief persona {b.get('persona')!r}")
+                if sorted(gu.get("tags", []) or []) != sorted(b.get("tags", []) or []):
+                    _mism.append(f"tags {sorted(gu.get('tags', []) or [])} != brief {sorted(b.get('tags', []) or [])}")
+                if list(gu.get("acceptance_criteria", []) or []) != list(b.get("acceptance_criteria", []) or []):
+                    _mism.append("acceptance_criteria differ from brief")
+                if _mism:
+                    rep.fail(f"{LABEL_STEM['i17_anchor']} (units/{uid})",
+                             "executed unit's graph entry diverges from its frozen brief.json: " + "; ".join(_mism)
+                             + " — an amendment may not modify/re-wave/rewire an executed unit")
+                else:
+                    rep.ok(f"{LABEL_STEM['i17_anchor']} (units/{uid}: graph entry matches frozen brief)")
 
         # ---- I18 fuel bound — the termination-preserving budget (mirrors retries<=2 structurally) ----
         # fuel_remaining == fuel_initial - Σ fuel_cost >= 0; each record's fuel_cost == max(1,
