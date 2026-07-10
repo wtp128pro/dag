@@ -52,14 +52,22 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | `VERIFY`      | independent verifier producing verify.json (verdict + feedback + `premise_check`) |
 | `ADJUDICATE`  | branch on the verdict over the partition `{PASS} ∪ {FAIL}×{retries<2, retries==2} ∪ {DISAGREE}` |
 | `RETRY`       | executor revising after a FAIL (retries<2), given verifier feedback (an external signal) |
-| `ESCALATE`    | terminal within the loop: FAIL with `retries==2` **or** DISAGREE — both hand off to the Phase-7 human gate |
+| `ESCALATE`    | terminal within the loop: FAIL with `retries==2`, DISAGREE, or (BGA) amendment-fuel exhaustion — all hand off to the Phase-7 human gate |
 | `DONE`        | verdict=PASS; unit accepted |
 
-> **ESCALATE has two origins, both routed to `P7_DISAGREEMENT_GATE` (top-level T10).** A
-> DISAGREE-origin escalation hands off directly. A retries-exhausted FAIL escalation is treated
-> as a **material disagreement** (SKILL.md Phase 6 → 7 + self-learning-loops.md §1.1): it writes
-> `disagreement.md`, marks the unit `blocked`, and hands to the same Phase-7 human gate — it does
-> **not** auto-advance to synthesis (see I10).
+> **ESCALATE has THREE origins, all routed to `P7_DISAGREEMENT_GATE` (top-level T10).** (1) A
+> DISAGREE-origin escalation (LT6) hands off directly. (2) A retries-exhausted FAIL escalation (LT5)
+> is treated as a **material disagreement** (SKILL.md Phase 6 → 7 + self-learning-loops.md §1.1): it
+> writes `disagreement.md`, marks the unit `blocked`, and hands to the same Phase-7 human gate — it
+> does **not** auto-advance to synthesis (see I10). (3) **Amendment-fuel exhaustion** (BGA, WP6/B9):
+> *fuel exhausted + an amendment still needed* routes to ESCALATE via the same Phase-7 gate (SKILL.md
+> Phase 6 "Fuel (I18)"). This third origin is a **documentation/enumeration** addition — it is NOT a
+> new modeled transition (`spec/fsm.json` T10 keeps its two spec in-edges LT5/LT6; `Pipeline.tla`
+> disables `Amend` at `fuel==0`, and `Quiesce` covers the halt), which is why it is flagged here and
+> in `formal/` as a **model simplification**. **Classification: REVISES** the ESCALATE-origin
+> enumeration (documentation-level); **PRESERVES** termination (fuel exhaustion halts either way). A
+> post-hoc validator predicate (`ESCALATE origin provenance`) checks that any unit recorded in
+> loop-state `ESCALATE` carries one of the three justifications.
 
 > **Per-unit loop state under parallel waves (`fsm-state.units[]`, D-02/IMP-11).** The single
 > top-level `fsm-state.loop` object holds the substate of the **most recently transitioned** unit
@@ -303,7 +311,7 @@ pattern). That leaves **G-resolve** (T11 user-decides) as the **sole human gate 
 mechanical guard set** — the validator cannot confirm a human picked a disagreement option. T12's
 guard text names G-signoff and its `signoff_confirmed` flag explicitly. The Phase-6 executor↔verifier loop maps to the loop substate
 machine (§1a/§2a, `EXECUTE·VERIFY·ADJUDICATE·RETRY·ESCALATE·DONE`). The as-needed Phase 7 maps to
-`P7_DISAGREEMENT_GATE` (entered via T10 from an ESCALATE — a DISAGREE-origin escalation or a
-retries-exhausted FAIL — exited via T11). No phase, mechanical gate, or loop is unmodeled; the sole
+`P7_DISAGREEMENT_GATE` (entered via T10 from an ESCALATE — a DISAGREE-origin escalation, a
+retries-exhausted FAIL, or (BGA) amendment-fuel exhaustion; §1a — exited via T11). No phase, mechanical gate, or loop is unmodeled; the sole
 remaining human gate (G-resolve, T11) is modeled as a human gate, while G-signoff — formerly a human
 gate — is now the mechanical `gates.signoff_confirmed` guard required at DONE (D-06).

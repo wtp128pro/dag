@@ -54,6 +54,10 @@
           "back_edge": {
             "type": "boolean",
             "description": "true iff this edge is a back edge (loops toward an earlier state). Exactly one edge (LT7 RETRY->EXECUTE) is a back_edge; that count/identity policy is an SC concern, not a schema constraint."
+          },
+          "$comment": {
+            "type": "string",
+            "description": "OPTIONAL free-text annotation (not read by SC2's structural row-diff). Used e.g. on T10 to document the BGA amendment-fuel-exhaustion ESCALATE origin (WP6/B9)."
           }
         }
       },

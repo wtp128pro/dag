@@ -199,7 +199,8 @@
       ],
       "fixtures": [
         "missing_verify",
-        "verify_without_debrief"
+        "verify_without_debrief",
+        "i9_midloop_note"
       ],
       "provenance": [],
       "docs": [
@@ -796,6 +797,24 @@
         "03/P5"
       ],
       "docs": []
+    },
+    {
+      "id": "escalate-origin",
+      "title": "ESCALATE origin provenance (retries==2 & FAIL, DISAGREE, or amendment-fuel exhaustion)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "ESCALATE origin provenance"
+      ],
+      "fixtures": [
+        "escalate_no_origin"
+      ],
+      "provenance": [
+        "B9",
+        "D-A"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
     },
     {
       "id": "gate-ordering",

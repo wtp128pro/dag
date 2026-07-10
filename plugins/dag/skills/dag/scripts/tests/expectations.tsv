@@ -89,6 +89,8 @@ learnings_forged_import	1	I12 import provenance
 within_budget_dishonest	1	I5 within-budget honesty
 fsm_phantom_unit	1	I2 fsm units subset
 fail_blank_actionable	1	actionable_changes
+i9_midloop_note	0
+escalate_no_origin	1	ESCALATE origin provenance
 amend_smuggled_unit	1	I17 amendment reconciliation
 amend_phantom_add	1	I17 amendment reconciliation
 amend_added_unreconciled	1	I17 amendment reconciliation

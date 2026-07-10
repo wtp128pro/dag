@@ -359,6 +359,19 @@ Classification (self-learning-loops.md §2 FLAG): the **per-unit correction-loop
 well-founded-counter shape as `retries`). `GateOrdering` **PRESERVES** — `Amend` is guarded on
 `gate["P6"]=FALSE` and writes neither `phase` nor any `gate` entry, so no gate can be bypassed.
 
+**Model simplification — the third ESCALATE origin (WP6/B9).** SKILL.md and `state-machine.md` route a
+*third* ESCALATE origin to Phase 7: **amendment-fuel exhaustion** (`fuel==0` + an amendment still
+needed). This origin is **NOT a modeled transition** in `Pipeline.tla`: `Amend`'s guard `fuel>0`
+simply *disables* re-arming at the floor, and the loop's own `LEscFail`/`LEscDisagree` (LT5/LT6) are
+the only edges into `ESCALATE`; `Quiesce` + `TermStutter` prove the machine still halts. So the third
+origin is a **documentation/enumeration** addition at the SKILL/state-machine layer, deliberately
+abstracted away in the formal model (the halt it induces is already covered by `Quiesce`). Its
+provenance is instead checked *post-hoc* by `validate_run.py` (`ESCALATE origin provenance`).
+**Classification: REVISES** the ESCALATE-origin enumeration (documentation-level); **PRESERVES**
+`Termination`/`Quiesce` (fuel exhaustion halts either way). This joins the two pre-existing
+model simplifications noted above ((a) the single representative loop; (b) T11 rollback edges
+existing in TLA prose but not the transition relation).
+
 **Non-vacuity (adversarial — does `Quiesce` have teeth?).** The load-bearing point: `Termination`
 (`EXECUTE ~> {DONE,ESCALATE}`) alone would **NOT** catch unbounded amendment — each re-armed lap still
 terminates, so `Termination` stays true; only the *run* fails to quiesce. Demonstrated on a throwaway

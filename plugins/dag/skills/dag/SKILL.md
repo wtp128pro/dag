@@ -87,11 +87,16 @@ so most are dead weight until their phase arrives.
    **A non-zero exit is a hard stop:** do not advance `fsm-state.phase` or open a gate until
    it exits 0. The validator is the external correctness signal (schemas/ + FSM invariants);
    it is enforcement by an explicit Bash step, not a passive hook (see DESIGN §6).
-   **In Phase 6, "each artifact" means each unit's `debrief.json`/`verify.json`, not just the
-   phase as a whole** — with many units executing in parallel waves, schema-shape drift (e.g.
-   subagents using natural field names instead of a schema's exact required shape) compounds
+   **In Phase 6, "each artifact" means each unit's `debrief.json`+`verify.json` PAIR, not the
+   debrief alone** — validate after the verify lands, not between the debrief and the verify (a
+   debrief-with-no-verify is expected mid-loop, so validating there would trip I9 against
+   by-design transient state). With many units executing in parallel waves, schema-shape drift
+   (e.g. subagents using natural field names instead of a schema's exact required shape) compounds
    silently across every unit if validation is deferred to the wave's or phase's end; catching
-   it after the first unit is orders of magnitude cheaper than reshaping a dozen units at once.
+   it after the first *pair* is orders of magnitude cheaper than reshaping a dozen units at once.
+   (The validator cooperates: **I9 is status-aware (B10)** — a debrief with no verify emits a NOTE,
+   not a FAIL, when `phase == P6_EXECUTE_VERIFY` and the unit's `fsm-state.units[]` status is
+   `executing`/`verifying`; everywhere else, and always at P8/DONE, it stays a hard FAIL.)
 
 ---
 

@@ -449,6 +449,7 @@ LABELS = [
     {"key": "gpersonas_nonskip", "stem": "G-personas non-skippable", "invariant": "G-personas"},
     {"key": "gpersonas_failclosed", "stem": "G-personas fail-closed", "invariant": "G-personas"},
     {"key": "gate_ordering", "stem": "gate ordering", "invariant": "gate-ordering"},
+    {"key": "escalate_origin", "stem": "ESCALATE origin provenance", "invariant": "escalate-origin"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -1984,12 +1985,32 @@ def main(argv=None):
             if rec_ok:
                 rep.ok(f"{LABEL_STEM['i19_scope']} (amendments/{aid}: dod-traced, gated, split-covered)")
 
-    # I9 MISSING VERIFICATION (MUST-FIX D) — a debrief without a verify is REJECTED
+    # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
+    # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.
+    # Prime directive 7 mandates validating after each unit's debrief+verify PAIR, and parallel waves keep
+    # several units mid-loop; so when phase==P6_EXECUTE_VERIFY and fsm-state marks the unit
+    # `executing`/`verifying`, a not-yet-written verify is EXPECTED — emit a NOTE, not a FAIL. Everywhere
+    # else (any other phase, any other status, and ALWAYS at P8/DONE) it stays a hard FAIL; I10 still
+    # hard-fails unverified units at synthesis and WP5's I2 ledger cross-check catches a dishonest
+    # `passed`/`failed` status, so terminal verdicts are unchanged. REVISES I9's firing condition only.
+    _fsm_unit_status = {}
+    if fsm and isinstance(fsm.get("units"), list):
+        for _u in fsm["units"]:
+            if isinstance(_u, dict):
+                _fsm_unit_status[_u.get("unit_id")] = _u.get("status")
     for uid in sorted(unit_dirs_with_debrief):
         vpath = os.path.join(units_dir, uid, "verify.json")
         if not os.path.exists(vpath):
-            rep.fail(f"{LABEL_STEM['i9_missing']} (units/{uid})",
-                     "unit has a debrief but NO verify.json — unverified unit rejected")
+            _st = _fsm_unit_status.get(uid)
+            if phase == "P6_EXECUTE_VERIFY" and _st in ("executing", "verifying"):
+                if not args.quiet:
+                    print(f"  NOTE  {LABEL_STEM['i9_missing']} (units/{uid}): debrief present, verify PENDING "
+                          f"(fsm status {_st!r} at P6) — an in-flight unit mid-loop, not yet a defect")
+            else:
+                rep.fail(f"{LABEL_STEM['i9_missing']} (units/{uid})",
+                         f"debrief present but verify.json is MISSING (fsm status {_st!r}, phase {phase}) — "
+                         "an executed unit must be adversarially verified before the loop closes "
+                         "(only an executing/verifying unit at P6 is an expected mid-loop NOTE)")
         else:
             vd = unit_docs.get(uid, {}).get("verify")
             if vd is None:
@@ -2486,6 +2507,55 @@ def main(argv=None):
         rep.fail(f"{LABEL_STEM['i2_phase_floor']}",
                  f"SYNTHESIS.md present but fsm phase={phase!r} not in {{P8_SYNTHESIS, DONE}} — "
                  "synthesis is a Phase-8 artifact")
+
+    # B9 (WP6): ESCALATE loop-state provenance — a unit recorded in loop-state ESCALATE must carry one of
+    # the THREE documented origins: retries==2 with a FAIL verify (LT5), a DISAGREE verify (LT6), or a
+    # disagreement dossier citing amendment-fuel exhaustion (the BGA third origin). Without this, an
+    # ESCALATE loop-state is unverifiable provenance. Post-hoc/offline; gates no transition — PRESERVES
+    # termination (fuel exhaustion halts either way). Inert unless a unit is actually in ESCALATE.
+    _escalated = set()
+    _unit_retries = {}
+    if fsm and isinstance(fsm.get("loop"), dict):
+        if fsm["loop"].get("state") == "ESCALATE":
+            _escalated.add(fsm["loop"].get("unit_id"))
+        if fsm["loop"].get("unit_id"):
+            _unit_retries[fsm["loop"].get("unit_id")] = _as_int(fsm["loop"].get("retries"))
+    if fsm and isinstance(fsm.get("units"), list):
+        for _u in fsm["units"]:
+            if not isinstance(_u, dict):
+                continue
+            if _u.get("loop_state") == "ESCALATE" or _u.get("status") == "escalated":
+                _escalated.add(_u.get("unit_id"))
+            if _u.get("retries") is not None:
+                _unit_retries[_u.get("unit_id")] = _as_int(_u.get("retries"))
+    for _euid in sorted(x for x in _escalated if x):
+        _ev = unit_docs.get(_euid, {}).get("verify")
+        _everdict = _ev.get("verdict") if isinstance(_ev, dict) else None
+        _er = _unit_retries.get(_euid)
+        _why = None
+        if _everdict == "DISAGREE":
+            _why = "DISAGREE verify (LT6)"
+        elif _everdict == "FAIL" and _er == 2:
+            _why = "retries==2 with FAIL verify (LT5)"
+        else:
+            for _dn in ("disagreement.json", "disagreement.md"):
+                _dp = os.path.join(units_dir, _euid, _dn)
+                if os.path.exists(_dp):
+                    try:
+                        with open(_dp, encoding="utf-8") as _fh:
+                            _dt = _fh.read().lower()
+                        if "fuel" in _dt and ("exhaust" in _dt or "amendment" in _dt):
+                            _why = "disagreement dossier cites amendment-fuel exhaustion (BGA origin)"
+                            break
+                    except Exception:
+                        pass
+        if _why:
+            rep.ok(f"{LABEL_STEM['escalate_origin']} (units/{_euid}: {_why})")
+        else:
+            rep.fail(f"{LABEL_STEM['escalate_origin']} (units/{_euid})",
+                     f"unit is in loop-state ESCALATE but no valid origin (verify verdict={_everdict!r}, "
+                     f"retries={_er}) — ESCALATE requires (retries==2 ∧ FAIL) or DISAGREE or a "
+                     "disagreement dossier citing amendment-fuel exhaustion (the three T10 origins)")
 
     if post_p1:
         missing = []
