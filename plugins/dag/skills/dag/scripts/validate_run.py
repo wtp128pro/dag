@@ -405,7 +405,9 @@ LABELS = [
     # Bounded Graph Amendments
     {"key": "i17_frozen", "stem": "I17 frozen prefix", "invariant": "I17"},
     {"key": "i17_frozen_ok", "stem": "I17 frozen executed prefix", "invariant": "I17"},
+    {"key": "i17_reconcile", "stem": "I17 amendment reconciliation", "invariant": "I17"},
     {"key": "i18_fuel_bound", "stem": "I18 fuel bound", "invariant": "I18"},
+    {"key": "i18_records_required", "stem": "I18 amendment records required", "invariant": "I18"},
     {"key": "i19_scope", "stem": "I19 amendment scope", "invariant": "I19"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
@@ -1477,18 +1479,117 @@ def main(argv=None):
     # pipeline-level unit-count bound (total units <= N0 + fuel0). They are INERT when amendments/ is
     # absent (empty `amendments`), so every legacy run is byte-for-byte unaffected. (The live guard
     # they deliberately are NOT is the 02/P1 deadlock lesson — mirrors I14/I15/I16.)
-    if amendments:
-        # Retired ids: the union of every amendment's units_retired and graph.json.retired_units[].id.
-        retired_ids = set()
+    # B1 (WP1) fail-closed trigger: the append-only amendments/A<NN>.json records are the SOLE
+    # provenance for an amended graph, so deleting amendments/ must NOT launder the guarantee. Compute
+    # whether graph.json / fsm-state.json bear amendment EVIDENCE (revision>1, a non-empty
+    # amendments_applied or retired_units, or fuel spent); if so, the block runs EVEN when `amendments`
+    # is empty, and the records-required check below FAILs closed. Still post-hoc/offline over emitted
+    # artifacts — no live LT7 guard — so BGA PRESERVES the termination proof (Claims A-D verbatim).
+    amendment_evidence = False
+    _ev_reasons = []
+    if graph_doc is not None:
+        _rev0 = _as_int(graph_doc.get("revision"))
+        if _rev0 is not None and _rev0 > 1:
+            amendment_evidence = True; _ev_reasons.append(f"graph.revision={_rev0}>1")
+        if graph_doc.get("amendments_applied"):
+            amendment_evidence = True; _ev_reasons.append(f"amendments_applied={graph_doc.get('amendments_applied')}")
+        if graph_doc.get("retired_units"):
+            amendment_evidence = True; _ev_reasons.append("graph.retired_units non-empty")
+    _exp0 = fsm.get("expansion") if isinstance(fsm, dict) else None
+    if isinstance(_exp0, dict):
+        _fi0, _fr0 = _as_int(_exp0.get("fuel_initial")), _as_int(_exp0.get("fuel_remaining"))
+        if _fi0 is not None and _fr0 is not None and _fr0 != _fi0:
+            amendment_evidence = True; _ev_reasons.append(f"fuel spent ({_fi0}->{_fr0})")
+
+    if amendments or amendment_evidence:
+        record_ids = [_rec.get("id") for _fn, _rec in amendments]
+
+        # ---- B1 records-required trigger — evidence with absent/desynced records => FAIL (I18) ----
+        if amendment_evidence:
+            applied = list(graph_doc.get("amendments_applied", []) or []) if graph_doc is not None else []
+            _rev = _as_int(graph_doc.get("revision")) if graph_doc is not None else None
+            _probs = []
+            if len(amendments) != len(applied):
+                _probs.append(f"|records|={len(amendments)} != |amendments_applied|={len(applied)}")
+            if _rev is not None and len(amendments) != _rev - 1:
+                _probs.append(f"|records|={len(amendments)} != revision-1={_rev - 1}")
+            if record_ids != applied:
+                _probs.append(f"record ids {record_ids} != amendments_applied {applied}")
+            if _probs:
+                rep.fail(f"{LABEL_STEM['i18_records_required']}",
+                         "amendment evidence present (" + "; ".join(_ev_reasons) + ") but amendment "
+                         "records missing/desynced: " + "; ".join(_probs) + " — the append-only "
+                         "amendments/A<NN>.json records are the sole provenance and may never be "
+                         "deleted or desynced from graph.json")
+            else:
+                rep.ok(f"{LABEL_STEM['i18_records_required']} ({len(amendments)} record(s) back the amended graph)")
+
+        # Retired ids: split by source so attribution (below) can compare the two. `retired_ids` (their
+        # union) preserves the pre-WP1 semantics every downstream I17 clause keys off.
+        retired_from_records = set()
         for _fn, _rec in amendments:
             for _rid in (_rec.get("units_retired", []) or []):
-                retired_ids.add(_rid)
+                retired_from_records.add(_rid)
+        retired_from_graph = set()
         if graph_doc is not None:
             for _ru in (graph_doc.get("retired_units", []) or []):
                 if isinstance(_ru, dict) and _ru.get("id"):
-                    retired_ids.add(_ru.get("id"))
+                    retired_from_graph.add(_ru.get("id"))
+        retired_ids = retired_from_records | retired_from_graph
         current_unit_ids = ({u.get("id") for u in graph_doc.get("units", [])}
                             if graph_doc is not None else set())
+
+        # ---- I17 amendment reconciliation (WP1: B2/B3) — the unit-set accounting that makes the
+        # revised pipeline bound (executed units <= N0 + fuel0) REAL. Without it, amendment ops are
+        # taken on faith: units can be smuggled into units[] with no amendment, phantom-added (recorded
+        # but never materialized), or phantom-retired (paying fuel to retire ids that never existed).
+        # Runs only when a valid graph carries the immutable baseline (schema requires it once
+        # revision>1). Offline/post-hoc; REVISES I17 upward (strictly stronger surface). ----
+        if graph_doc is not None and graph_doc.get("baseline_units") is not None:
+            baseline = set(graph_doc.get("baseline_units", []) or [])
+            added_all = set()
+            for _fn, _rec in amendments:
+                for _aid in (_rec.get("units_added", []) or []):
+                    added_all.add(_aid)
+            recon_ok = True
+            # (1) exact unit-set equation, both directions.
+            lhs = current_unit_ids | retired_ids
+            rhs = baseline | added_all
+            if lhs != rhs:
+                recon_ok = False
+                _smuggled = sorted(lhs - rhs)    # in graph but neither baseline nor added by a record
+                _phantom = sorted(rhs - lhs)     # baseline/added by a record but absent from the graph
+                rep.fail(f"{LABEL_STEM['i17_reconcile']}",
+                         "unit-set mismatch: (units[] ∪ retired) != (baseline_units ∪ ⋃ units_added) — "
+                         f"unaccounted-for in graph {_smuggled}; recorded but missing {_phantom}")
+            # (2) retirement existence — a retired id must have existed (baseline or an earlier add),
+            #     order-aware so add-then-retire within the same run is legitimate.
+            _existed = set(baseline)
+            for _fn, _rec in amendments:
+                for _rid in (_rec.get("units_retired", []) or []):
+                    if _rid not in _existed:
+                        recon_ok = False
+                        rep.fail(f"{LABEL_STEM['i17_reconcile']} (amendments/{_rec.get('id')})",
+                                 f"retires {_rid} which never existed (not in baseline_units nor any "
+                                 "earlier amendment's units_added) — a phantom retirement inflates the bound")
+                for _aid in (_rec.get("units_added", []) or []):
+                    _existed.add(_aid)
+            # (3) disjointness — a retired id must be GONE from the current units[].
+            _still = sorted(retired_ids & current_unit_ids)
+            if _still:
+                recon_ok = False
+                rep.fail(f"{LABEL_STEM['i17_reconcile']}",
+                         f"retired id(s) {_still} still present in units[] — a retired unit must be "
+                         "removed from the current graph (else N <= N0 + fuel0 has no floor)")
+            # (4) attribution — graph.retired_units[].id == ⋃ records' units_retired, both directions.
+            if retired_from_graph != retired_from_records:
+                recon_ok = False
+                rep.fail(f"{LABEL_STEM['i17_reconcile']}",
+                         f"graph.retired_units ids {sorted(retired_from_graph)} != ⋃ amendment "
+                         f"units_retired {sorted(retired_from_records)} — retirement bookkeeping desynced")
+            if recon_ok:
+                rep.ok(f"{LABEL_STEM['i17_reconcile']} (units[] ∪ retired == baseline ∪ adds; "
+                       f"{len(baseline)} baseline + {len(added_all)} added)")
 
         # ---- I17 frozen executed prefix — amendments touch only the not-yet-started future ----
         # (1) a retired unit dir may hold at most brief.md/brief.json (no debrief/verify — a retired

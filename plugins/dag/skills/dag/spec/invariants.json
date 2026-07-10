@@ -350,18 +350,26 @@
     },
     {
       "id": "I17",
-      "title": "I17: frozen executed prefix under amendment",
+      "title": "I17: frozen executed prefix + amendment reconciliation under amendment",
       "tier": "mechanical",
       "validator_label_prefixes": [
+        "I17 amendment reconciliation",
         "I17 frozen executed prefix",
         "I17 frozen prefix"
       ],
       "fixtures": [
         "amend_frozen",
-        "amend_orphan"
+        "amend_orphan",
+        "amend_smuggled_unit",
+        "amend_phantom_add",
+        "amend_added_unreconciled",
+        "amend_fake_retire",
+        "amend_phantom_retire_undercharge",
+        "amend_missing_baseline"
       ],
       "provenance": [
-        "BGA"
+        "BGA",
+        "WP1"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -369,17 +377,20 @@
     },
     {
       "id": "I18",
-      "title": "I18: amendment fuel conservation bound",
+      "title": "I18: amendment fuel conservation bound + records-required trigger",
       "tier": "mechanical",
       "validator_label_prefixes": [
+        "I18 amendment records required",
         "I18 fuel bound"
       ],
       "fixtures": [
         "amend_fuel_overrun",
-        "amend_no_fuel_seed"
+        "amend_no_fuel_seed",
+        "amend_records_deleted"
       ],
       "provenance": [
-        "BGA"
+        "BGA",
+        "WP1"
       ],
       "docs": [
         "references/state-machine.md#4"

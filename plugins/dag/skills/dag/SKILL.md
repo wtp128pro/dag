@@ -300,7 +300,10 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    atomization, any unit whose footprint would exceed budget (→ re-atomize), **that every
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
 5. Write `GRAPH.md` (template) with the unit table, the DAG, and the wave ordering.
-   Register each unit as a task via `TaskCreate` for live tracking.
+   Register each unit as a task via `TaskCreate` for live tracking. **At graph approval (T6), write
+   the immutable `graph.json.baseline_units`** = exactly the approved `units[].id` set (the revision-1
+   baseline). It is written **once** and never edited; every later amendment reconciles against it (I17),
+   so a smuggled or phantom-added/retired unit is caught. (Only needed if BGA may run; harmless to always write.)
 6. **Seed the amendment fuel budget (Bounded Graph Amendments).** Set
    `fsm-state.expansion.fuel_initial` — how many graph amendments Phase 6 may make without a human
    interrupt — to a **default `min(N0, 8)`** (N0 = unit count at decomposition approval); the human

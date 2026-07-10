@@ -73,8 +73,15 @@
     },
     "amendments_applied": {
       "type": "array",
+      "uniqueItems": true,
       "items": { "type": "string", "pattern": "^A[0-9]{2,}$" },
-      "description": "OPTIONAL (Bounded Graph Amendments). The amendment ids (A<NN>) applied to this graph, in order. I18 requires it to list exactly the amendments/A<NN>.json record ids in order."
+      "description": "OPTIONAL (Bounded Graph Amendments). The amendment ids (A<NN>) applied to this graph, in order. I18 requires it to list exactly the amendments/A<NN>.json record ids in order; uniqueItems (WP3) forbids a duplicated id."
+    },
+    "baseline_units": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+      "description": "OPTIONAL (Bounded Graph Amendments). The revision-1 (T6) unit-id set: exactly units[] at Phase-4 approval, written ONCE and IMMUTABLE thereafter. REQUIRED once revision > 1 (schema allOf below). validate_run.py I17 reconciles set(units[]) ∪ set(retired) == set(baseline_units) ∪ ⋃ amendment units_added, so a smuggled or phantom-added/retired unit is caught. Absent => revision 1 (no amendments)."
     },
     "retired_units": {
       "type": "array",
@@ -102,5 +109,12 @@
         "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "$comment": "BGA (WP1): once the graph has been amended (revision > 1), the immutable revision-1 baseline_units set MUST be present so validate_run.py I17 can reconcile the current unit set against baseline ∪ amendment adds. revision 1 (or absent) => no baseline required.",
+      "if": { "properties": { "revision": { "minimum": 2 } }, "required": ["revision"] },
+      "then": { "required": ["baseline_units"] }
+    }
+  ]
 }

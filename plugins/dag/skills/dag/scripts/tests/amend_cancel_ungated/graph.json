@@ -6,6 +6,10 @@
     "A02",
     "A03"
   ],
+  "baseline_units": [
+    "U01",
+    "U02"
+  ],
   "retired_units": [
     {
       "id": "U02",

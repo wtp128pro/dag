@@ -65,3 +65,10 @@ amend_fuel_overrun	1	I18
 amend_no_fuel_seed	1	I18
 amend_dod_untraced	1	I19
 amend_cancel_ungated	1	I19
+amend_records_deleted	1	I18 amendment records required
+amend_smuggled_unit	1	I17 amendment reconciliation
+amend_phantom_add	1	I17 amendment reconciliation
+amend_added_unreconciled	1	I17 amendment reconciliation
+amend_fake_retire	1	I17 amendment reconciliation
+amend_phantom_retire_undercharge	1	I17 amendment reconciliation
+amend_missing_baseline	1	baseline_units
