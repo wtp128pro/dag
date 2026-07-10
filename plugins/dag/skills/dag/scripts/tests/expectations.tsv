@@ -91,6 +91,16 @@ fsm_phantom_unit	1	I2 fsm units subset
 fail_blank_actionable	1	actionable_changes
 i9_midloop_note	0
 escalate_no_origin	1	ESCALATE origin provenance
+i1b_same_persona	1	I1b maker!=checker
+unit_id_dir_mismatch	1	unit_id mismatch
+disagreement_two_recommended	1	I7 single recommended option
+open_material_ambiguity	1	I8 open material ambiguity
+i10_missing_unit_at_done	1	I10 synthesis completeness
+i10_stray_unit_at_done	1	I10 synthesis completeness
+tag_not_in_vocab	1	I11 tag vocabulary
+iteration_ceiling	1	I4 iteration ceiling
+premise_not_reran	1	premise re-run
+premise_deflection_pass	1	premise deflection
 amend_smuggled_unit	1	I17 amendment reconciliation
 amend_phantom_add	1	I17 amendment reconciliation
 amend_added_unreconciled	1	I17 amendment reconciliation
