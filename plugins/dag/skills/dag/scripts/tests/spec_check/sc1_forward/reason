@@ -1,0 +1,2 @@
+SC1 FORWARD gap: mechanical entry 'I2' given a bogus validator_label_prefixes (not a real LABELS stem).
+=> FAIL SC1: mechanical entry 'I2' has empty/bogus label_prefixes: ['NONEXISTENT STEM ZZZ']

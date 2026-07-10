@@ -10,12 +10,7 @@
      formal-models.md) as the machine-checked complement; this transition table + guards +
      invariants is the prose FSM of record they mirror. `scripts/validate_run.py` is the
      runtime checker for the mechanically-checkable subset; the rest are semantic invariants
-     a human/verifier must uphold (see Limitations).
-     SSR (dev-time drift checks): the normative facts in this file — the §2/§2a transition rows and
-     the §4 invariants — are ALSO recorded descriptively in `spec/fsm.json` + `spec/invariants.json`
-     and diffed against these tables by `scripts/spec_check.py` (SC1 label↔registry, SC2 table
-     row-diff), a DEV-TIME drift check run under `run_tests.sh` — NOT part of run validation and NOT a
-     runtime read (`spec/` stays off SKILL.md's lazy-load path). -->
+     a human/verifier must uphold (see Limitations). -->
 
 # Dag Pipeline — Finite-State Machine (formal spec)
 
@@ -98,7 +93,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | LT1 | EXECUTE | debrief_written | debrief.json valid (incl. 4-key `socratic`) | VERIFY |
 | LT2 | VERIFY | verdict_emitted | verify.json valid ∧ `executor_reasoning_seen==false` | ADJUDICATE |
 | LT3 | ADJUDICATE | verdict=PASS | `verdict == PASS` (defect-content-free; a PASS may carry `minor` observations — I6 revised) | DONE |
-| LT4 | ADJUDICATE | verdict=FAIL ∧ retries<2 | `retries < 2` (variant `V=2−retries > 0`) — the §1.3 branch condition | RETRY |
+| LT4 | ADJUDICATE | verdict=FAIL ∧ retries<2 | `retries < 2` (variant `V=2−retries > 0`) — the §1.3 branch condition | ESCALATE |
 | LT5 | ADJUDICATE | verdict=FAIL ∧ retries==2 | `retries == 2` | ESCALATE |
 | LT6 | ADJUDICATE | verdict=DISAGREE | evidence cannot settle; `disagreement` present | ESCALATE (→P7) |
 | LT7 | RETRY | resubmit | `retries := retries+1`; `iteration := iteration+1` | EXECUTE  *(SOLE back-edge)* |

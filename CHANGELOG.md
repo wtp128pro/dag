@@ -3,6 +3,23 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.7] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.5.0** — **Structured Spec Registry + Drift Checks (SSR)**: a descriptive, dev-time
+  spec registry (`spec/fsm.json` + `spec/invariants.json`) recording the `state-machine.md` transition
+  rows (T*/LT*) and the I* invariants as machine-readable data, plus a drift checker
+  `scripts/spec_check.py` (**SC1–SC7**, wired into `scripts/run_tests.sh` as a clean-run step + a
+  6-negative-fixture step) that diffs the FSM tables, dereferences schema constant-pointers, validates
+  embedded worked examples, and presence-checks the TLA+ `\* spec:` pragma coverage. These are
+  diff / dereference / presence (drift-detection) checks — **not** semantic proofs of correctness. Also
+  ships a behaviour-neutral `validate_run.py` LABELS hoist and a `verify.md`-vs-schema dual-authority
+  fix (schema authoritative). Dev-time only — `spec/` + `spec_check.py` are never on the skill's
+  lazy-load path and SKILL.md gains no new runtime read; **PRESERVES** every guarantee (no FSM
+  state/edge/guard, no schema constraint, no enforcement behaviour changed — proof: byte-identical
+  64-fixture matrix on both backends + TLC 853/408/depth 36). See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.6] — 2026-07-10
 
 ### Changed

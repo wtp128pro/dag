@@ -212,6 +212,19 @@ The skill creates the run dir, walks the phases, and pauses at the gates that ma
 > spot that enumerates it (SKILL.md, methodology.md, the schema `description`, the template, the
 > CHANGELOG) in the same change, or the "coverage" claim silently drifts.
 
+**L1 now has a dev-time backstop (Structured Spec Registry + Drift Checks, SSR).** The formerly
+discipline-only "update every prose spot in the same change" clause is now **machine-checked at dev
+time**: `scripts/spec_check.py` diffs the FSM tables and schema constants against a descriptive
+registry (`spec/fsm.json` + `spec/invariants.json`) — **SC2** row-diffs the transition/invariant
+tables against the registry, **SC4** dereferences each `(authoritative: <schema>#/<path>)` constant
+pointer to its live schema value, **SC1** cross-checks every table label against the registry, and
+**SC5** validates the embedded worked examples against their schemas. These are **diff / dereference /
+presence checks that catch *drift*, not semantic proofs that a claim is *correct*** — the same
+validity ≠ correctness boundary as the runtime validator (§4). They run under `scripts/run_tests.sh`
+and add **no** runtime read: `spec/` and `spec_check.py` are **dev-time only**, never on the skill's
+lazy-load path (SKILL.md is unchanged). So L1's "mirror" discipline now *fails a test* when a table row
+or a constant pointer drifts, instead of resting solely on the author re-reading the construct.
+
 *Why this rule exists:* adversarial verification once caught the `I-dod` trigger claiming to
 "mirror the G-personas `post_p1` union" while enumerating a narrower set, and a debrief overstating
 coverage as "ALL post-clarification states"; a reproduced non-reachable state falsified the absolute.

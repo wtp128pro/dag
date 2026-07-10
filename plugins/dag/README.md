@@ -183,7 +183,19 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.4.0** — **Bounded Graph Amendments (BGA)**: the Phase-6 work graph may grow under
+Current version: **1.5.0** — **Structured Spec Registry + Drift Checks (SSR)**: a descriptive, dev-time spec
+registry (`spec/fsm.json` + `spec/invariants.json`) that records the `state-machine.md` transition rows
+(T*/LT*) and the I* invariants as machine-readable data, plus a drift checker `scripts/spec_check.py`
+(**SC1–SC7**, wired into `scripts/run_tests.sh`) that diffs the FSM tables, dereferences schema
+constant-pointers `(authoritative: <schema>#/<path>)`, validates embedded worked examples, and
+presence-checks the TLA+ `\* spec:` pragma coverage in `Pipeline.tla`. These are **diff / dereference /
+presence (drift-detection) checks — not semantic proofs of correctness** (SC7 checks that every T*/LT* id
+is *mentioned* as a pragma, not that the action faithfully models the transition). Ships a behaviour-neutral
+`validate_run.py` LABELS hoist and a `verify.md`-vs-schema dual-authority fix (schema authoritative,
+template illustrative). Dev-time only — `spec/` + `spec_check.py` are never on the skill's lazy-load path,
+SKILL.md gains no new runtime read; **PRESERVES** every guarantee (no FSM state/edge/guard, no schema
+constraint, no enforcement behaviour changed — proof: byte-identical 64-fixture matrix on both backends,
+TLC 853/408/depth 36 No error). **1.4.0** — **Bounded Graph Amendments (BGA)**: the Phase-6 work graph may grow under
 mechanical constraints via append-only amendment records (`add_units`/`split_unit`/`add_edges`;
 `cancel_unit` human-gated), bounded by a monotone-decreasing **fuel** budget (total units ≤ N0 + fuel₀).
 Five new **post-hoc/offline** invariants (**I3b** wave layering + **I3c** dependency closure — closing

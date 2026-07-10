@@ -1,0 +1,2 @@
+SC4: spec/fsm.json constant retries_max_loop.expected_value 2 -> 3; pointer dereferences to 2.
+=> FAIL SC4: stale constant 'retries_max_loop' ... dereferences to 2 != expected 3

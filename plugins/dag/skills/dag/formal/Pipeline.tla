@@ -99,7 +99,7 @@ Complete(p) ==
 (* T9 link: the loop finishing (DONE) satisfies the P6 "all units passed" gate.  *)
 (* Models a single representative unit; the multi-unit gate is the conjunction   *)
 (* over units, which is uniform in this argument (see formal-models.md).         *)
-LinkP6 ==
+LinkP6 ==  \* spec: T9
   /\ phase = "P6"
   /\ lstate = "DONE"
   /\ gate["P6"] = FALSE
@@ -107,7 +107,7 @@ LinkP6 ==
   /\ UNCHANGED <<phase, lstate, retries, verdict, fuel>>
 
 (* Advance along the happy-path spine, guarded by the source phase's exit gate.  *)
-Advance(p) ==
+Advance(p) ==  \* spec: T1 T2 T3 T5 T6 T8 T12 (parametric; Complete(p) sets the exit gate this advances past)
   /\ phase = p
   /\ p \in SpinePhases
   /\ gate[p] = TRUE
@@ -120,7 +120,7 @@ Advance(p) ==
 (* (state-machine.md §1a: BOTH ESCALATE origins route to P7). BRK-11 fix — previously  *)
 (* the guard was `verdict = "DISAGREE"` only, so a FAIL-origin ESCALATE stuttered in P6 *)
 (* forever and could never reach P7 (the probe P7OnlyViaDisagree held; now it fails).  *)
-ToEscalate ==
+ToEscalate ==  \* spec: T10
   /\ phase = "P6"
   /\ lstate = "ESCALATE"
   /\ verdict \in {"DISAGREE", "FAIL"}
@@ -129,11 +129,13 @@ ToEscalate ==
 
 (* T11: the user resolves the disagreement; control returns to P6 (never forward,*)
 (* so the excursion can never bypass a downstream gate).                         *)
-Resolve ==
+Resolve ==  \* spec: T11
   /\ phase = "P7"
   /\ phase' = "P6"
   /\ UNCHANGED <<gate, lstate, retries, verdict, fuel>>
 
+\* spec: T4 T7 — intentionally unmodeled self-loops (unfair stutter): T4 (P2 blocking on
+\* open ambiguity) and T7 (P4 re-split) are UNFAIR self-loops with no modeling action.
 PhaseNext ==
   \/ \E p \in SpinePhases : Complete(p)
   \/ LinkP6
@@ -146,44 +148,44 @@ PhaseNext ==
 (* FAIR: the automated executor / verifier subagents always eventually act       *)
 (* (WF below). That fairness + the variant is exactly what yields termination.   *)
 
-LExecute ==   \* LT1
+LExecute ==   \* spec: LT1
   /\ lstate = "EXECUTE"
   /\ lstate' = "VERIFY"
   /\ UNCHANGED <<phase, gate, retries, verdict, fuel>>
 
-LVerify ==    \* LT2 : an independent verifier emits SOME verdict (nondet.)
+LVerify ==    \* spec: LT2 : an independent verifier emits SOME verdict (nondet.)
   /\ lstate = "VERIFY"
   /\ \E v \in {"PASS","FAIL","DISAGREE"} : verdict' = v
   /\ lstate' = "ADJUDICATE"
   /\ UNCHANGED <<phase, gate, retries, fuel>>
 
-LPass ==      \* LT3
+LPass ==      \* spec: LT3
   /\ lstate = "ADJUDICATE"
   /\ verdict = "PASS"
   /\ lstate' = "DONE"
   /\ UNCHANGED <<phase, gate, retries, verdict, fuel>>
 
-LRetryBranch ==  \* LT4 : FAIL with budget remaining (V > 0)
+LRetryBranch ==  \* spec: LT4 : FAIL with budget remaining (V > 0)
   /\ lstate = "ADJUDICATE"
   /\ verdict = "FAIL"
   /\ retries < MaxRetries
   /\ lstate' = "RETRY"
   /\ UNCHANGED <<phase, gate, retries, verdict, fuel>>
 
-LEscFail ==   \* LT5 : FAIL with budget exhausted (V = 0)
+LEscFail ==   \* spec: LT5 : FAIL with budget exhausted (V = 0)
   /\ lstate = "ADJUDICATE"
   /\ verdict = "FAIL"
   /\ retries = MaxRetries
   /\ lstate' = "ESCALATE"
   /\ UNCHANGED <<phase, gate, retries, verdict, fuel>>
 
-LEscDisagree ==  \* LT6
+LEscDisagree ==  \* spec: LT6
   /\ lstate = "ADJUDICATE"
   /\ verdict = "DISAGREE"
   /\ lstate' = "ESCALATE"
   /\ UNCHANGED <<phase, gate, retries, verdict, fuel>>
 
-LRetry ==     \* LT7 : the SOLE back-edge; increments the counter => V strictly decreases
+LRetry ==     \* spec: LT7 : the SOLE back-edge; increments the counter => V strictly decreases
   /\ lstate = "RETRY"
   /\ retries' = retries + 1
   /\ verdict' = "NONE"

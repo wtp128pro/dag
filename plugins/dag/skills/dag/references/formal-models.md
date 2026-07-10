@@ -21,6 +21,16 @@ Artifacts: `formal/Pipeline.tla` + `formal/Pipeline.cfg` (TLA+, machine-checked 
 TLC), `formal/WorkGraph.als` + `formal/Amendment.als` (Alloy). `Amendment.als` is the Bounded Graph
 Amendments structural theorem (adding wave-layered units above their deps preserves acyclicity — §5).
 
+> **SSR spec-pragma coverage (dev-time, `spec_check.py` SC7).** Each FSM-bearing definition in
+> `formal/Pipeline.tla` carries a TLA+ comment pragma `\* spec: <id>` naming the transition/loop id it
+> realizes (e.g. `\* spec: T6`, `\* spec: LT7`). `scripts/spec_check.py` **SC7** then
+> **presence-checks** that every `T*`/`LT*` id enumerated in the `state-machine.md` tables has a
+> matching `\* spec:` pragma in `Pipeline.tla`. This is a **coverage / presence check that each id is
+> *mentioned* — NOT a semantic verification** that the TLA+ action faithfully models that transition;
+> that faithfulness stays the hand-proof + TLC/Alloy machine-check in §§1–5 and, ultimately, reviewer
+> judgment (validity ≠ correctness, §5 Residual). Like the rest of SSR it is **dev-time only** (runs
+> under `run_tests.sh`), never a runtime read; it modifies no validator, schema, or proof here.
+
 ## Tool-status (honest — evidence-standards.md)
 
 | Tool | Present? | Used? |

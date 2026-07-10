@@ -1,0 +1,2 @@
+SC2: references/state-machine.md §2a LT4 To-cell RETRY -> ESCALATE (structure-only drift; wording untouched).
+=> FAIL SC2: references/state-machine.md: LT4 to 'ESCALATE' != spec 'RETRY'

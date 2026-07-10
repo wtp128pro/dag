@@ -341,11 +341,10 @@ For **every** unit, generate `RUN_DIR/units/<id>/brief.md` from
 [templates/brief.md](templates/brief.md) **and its machine-checkable sidecar
 `units/<id>/brief.json`** ([schemas/brief.schema.json](schemas/brief.schema.json)) — the
 *orchestrator* writes the sidecar before dispatch; the validator's I11/I12/I16 checks key off it
-(required keys per the schema: `unit_id`, `title`, `wave`, `depends_on`, `persona`,
-`budget_tokens`, `acceptance_criteria`, `context_pointers`, `outputs`, plus `socratic_protocol`
-(the protocol *reference*), `tags` (⊆ V_tag), and `learnings_applied` — confirm against the schema,
-don't trust this list). A brief is a **contract** and must be **self-contained**: the executor
-should never need to rediscover anything.
+(the full required-key list is authoritative in schemas/brief.schema.json — the sidecar exists so
+those checks read a machine-checkable shape instead of prose; the load-bearing keys among them are
+`tags` (⊆ V_tag) and `learnings_applied`, which drive the I11/I12 propagation predicate). A brief is
+a **contract** and must be **self-contained**: the executor should never need to rediscover anything.
 
 Each brief embeds or points to *exactly* what the unit needs and no more:
 - objective + acceptance criteria (verbatim, testable);
@@ -397,12 +396,10 @@ call per unit, ideally in a single message). For **each unit**:
    reject the block and re-derive the true load-bearing premise. THEN independently re-run
    COUNTER on that premise from evidence — never by reading the executor's reasoning — and
    confirm `counter` records an outcome, not a promise** (references/socratic-protocol.md).
-   It writes `verify.json` (JSON-only) — all nine schema-required keys — with `unit_id`,
-   `verifier_persona`, a verdict `PASS | FAIL | DISAGREE`, `iteration`, `executor_reasoning_seen:
-   false`, the 4-key `socratic` block, `premise_check`, and structured
-   `feedback{summary, actionable_changes[], do_not_touch[]}` +
-   `defects[{severity, criterion, minimal_repro, fix_direction}]` (full field list:
-   templates/verify.md — authoritative; schema: schemas/verify.schema.json). Report **coverage-first**: every
+   It writes `verify.json` (JSON-only) — all nine schema-required keys (authoritative field list in
+   schemas/verify.schema.json; templates/verify.md is an illustrative field guide) — including the
+   verdict `PASS | FAIL | DISAGREE`, `executor_reasoning_seen: false` (independence), the 4-key
+   `socratic` block, `premise_check`, and structured `feedback`/`defects`. Report **coverage-first**: every
    finding with its `severity` (blocker|major|minor) — never an "only high-severity" filter that
    suppresses recall; a `PASS` MAY carry `minor` observations but **no blocker/major** defect (the I6
    PASS clause was revised for exactly this). A `FAIL` MUST cite a specific brief acceptance criterion

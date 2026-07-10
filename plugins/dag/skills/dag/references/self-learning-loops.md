@@ -209,6 +209,7 @@ the machine seam encoded as `verify.schema.json`, which is top-level
 (structure the plumbing, not the reasoning). The block below is a VALID instance (a `FAIL`);
 strip the `//` comments to parse it.
 
+<!-- spec_check: verify.schema.json -->
 ```jsonc
 {
   "unit_id": "U07",                       // required, string matching ^U[0-9]{2,}$ (the unit under verification)
@@ -267,7 +268,7 @@ no FSM edge — §2 FLAG):
   verdicts (2-of-3); a split with no strict majority ⇒ `verdict == DISAGREE` (→ LT6 → ESCALATE, the
   AO-5 genuine-split route). **No softmax** — the aggregate is a discrete mode, never an averaged
   score (softmaxing the discrete guard partition would REVISE the §2 proof).
-- `verify_rounds: int 1..R_max` (`R_max = 3`) and `converged: bool` — the **loop-until-dry** sweep:
+- `verify_rounds: int 1..R_max` (`R_max = 3`; authoritative: verify.schema.json#/properties/verify_rounds/maximum) and `converged: bool` — the **loop-until-dry** sweep:
   run rounds accumulating defects until a round surfaces no new defect (`converged: true`) or the cap
   is hit (`converged: false`, coverage possibly incomplete). Bounded ⇒ finite (§2). I16 checks
   `1 ≤ verify_rounds ≤ R_max`.

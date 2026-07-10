@@ -133,6 +133,23 @@ set -e
 printf '%s\n' "$mout"
 if [ "$mrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
 
+# spec_check (dev-time prose<->spec<->code drift checker, U05-U07: SC1-SC7). Static check,
+# run ONCE (not per-backend, like manifest_examples). A non-zero exit folds into fail_total,
+# so any drift FAILs this harness. spec_check lives HERE only — never in validate_run.py's
+# run path (it never reads spec/). PRESERVES (test infrastructure only, no enforcement change).
+echo "== spec_check (clean run on real tree) =="
+set +e; scout=$(python3 "$SCRIPTS_DIR/spec_check.py" 2>&1); scrc=$?; set -e
+printf '%s\n' "$scout"
+if [ "$scrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
+
+# spec_check negative fixtures (U09): each overlay mutant must FAIL its pinned SC check on a
+# throwaway temp-root copy (the real tree is never written). The runner self-locates and
+# consumes scripts/tests/spec_check/expectations.tsv; a non-zero exit folds into fail_total.
+echo "== spec_check negative fixtures =="
+set +e; sfout=$(bash "$SCRIPTS_DIR/tests/spec_check/run_fixtures.sh" 2>&1); sfrc=$?; set -e
+printf '%s\n' "$sfout"
+if [ "$sfrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
+
 echo "== summary =="
 echo "backends exercised: ${backends_seen:-none}"
 if [ "$fail_total" -eq 0 ]; then

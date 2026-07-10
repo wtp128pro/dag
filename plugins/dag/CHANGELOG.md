@@ -3,6 +3,41 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] — 2026-07-10
+
+**Structured Spec Registry + Drift Checks (SSR)** — a descriptive, dev-time spec registry plus a drift
+checker that catch prose↔schema↔model drift at development time. Everything added is dev-time-only
+test/CI infrastructure: no FSM state/edge/guard, no schema constraint, and no runtime-validation
+behaviour changed, so every guarantee is **PRESERVED** verbatim (proof: a byte-identical 64-fixture
+matrix on both validator backends + TLC **853/408/depth 36 No error**).
+
+### Added
+- **Structured Spec Registry + Drift Checks (SSR).** Added a descriptive, dev-time spec registry
+  (`spec/fsm.json` + `spec/invariants.json`) that records the `state-machine.md` transition rows
+  (T*/LT*) and the I* invariants as machine-readable data — a dev-time source-of-record, **NOT** a
+  runtime artifact and **NOT** on the skill's lazy-load path.
+- **Drift checker `scripts/spec_check.py` (SC1–SC7),** wired into `scripts/run_tests.sh` (a clean-run
+  step + a negative-fixtures step): SC1 label↔registry, SC2 FSM-table row-diff, SC4 constant-pointer
+  dereference `(authoritative: <schema>#/<path>)`, SC5 embedded worked-example validation, SC7
+  `\* spec:` T*/LT* pragma presence-coverage in `Pipeline.tla`. All are diff / dereference / presence
+  (drift-detection) checks — **not** semantic proofs of correctness (SC7 confirms each id is
+  *mentioned* as a pragma, not that the action faithfully models the transition). Any drift folds into
+  the harness fail gate (non-zero exit); six negative fixtures pin one FAIL apiece.
+
+### Changed
+- **Behaviour-neutral `validate_run.py` LABELS hoist** — check labels moved to a shared table so
+  `spec_check.py` can cross-reference them; no runtime-validation behaviour changed.
+- **Docs de-dup / consistency:** templates & embedded worked examples are now machine-validated against
+  their schemas; the `verify.md`-vs-schema dual-authority ambiguity is resolved (schema authoritative,
+  template illustrative). Descriptive notes added to `DESIGN.md` §9 (the L1 authoring-rule backstop),
+  the `state-machine.md` header, and `formal-models.md` (the `\* spec:` pragma + SC7 presence-check).
+
+### Guarantee classification
+- **PRESERVES every guarantee:** no FSM state/edge/guard, no schema constraint, and no enforcement
+  behaviour changed. `spec/` + `spec_check.py` are dev-time only; SKILL.md gains no new runtime read.
+  Proof = byte-identical 64/64 fixture matrix on both backends, spec_check clean (SC1–SC7 PASS), and
+  TLC 853/408/depth 36 / Alloy 6 checks + 2 runs all unchanged from baseline.
+
 ## [1.4.0] — 2026-07-10
 
 **Bounded Graph Amendments (BGA)** — the Phase-6 work graph may now grow under mechanical constraints, so
