@@ -210,7 +210,7 @@ The skill creates the run dir, walks the phases, and pauses at the gates that ma
   **project > user > curated**), still behind the human gate. A documented convention —
   **no loader script**, and **not** a required run artifact (meta-validated by `--self-check` only).
 
-**Authoring rule L1 (a durable maintenance discipline).**
+**Authoring rule AR-1 (a durable maintenance discipline; D11 — renamed from "L1" to avoid colliding with Learning `L1` and the I-dod enforcement Layer-1/Layer-2).**
 > Any claim that a change *mirrors / covers / matches* an existing construct, or is
 > *complete / non-skippable / all*, MUST be verified by **enumerating that construct exactly and
 > re-reading/re-running it** before asserting it — and prefer **precise scope wording over
@@ -218,7 +218,7 @@ The skill creates the run dir, walks the phases, and pauses at the gates that ma
 > spot that enumerates it (SKILL.md, methodology.md, the schema `description`, the template, the
 > CHANGELOG) in the same change, or the "coverage" claim silently drifts.
 
-**L1 now has a dev-time backstop (Structured Spec Registry + Drift Checks, SSR).** The formerly
+**AR-1 now has a dev-time backstop (Structured Spec Registry + Drift Checks, SSR).** The formerly
 discipline-only "update every prose spot in the same change" clause is now **machine-checked at dev
 time**: `scripts/spec_check.py` diffs the FSM tables and schema constants against a descriptive
 registry (`spec/fsm.json` + `spec/invariants.json`) — **SC2** row-diffs the transition/invariant
@@ -228,7 +228,7 @@ pointer to its live schema value, **SC1** cross-checks every table label against
 presence checks that catch *drift*, not semantic proofs that a claim is *correct*** — the same
 validity ≠ correctness boundary as the runtime validator (§4). They run under `scripts/run_tests.sh`
 and add **no** runtime read: `spec/` and `spec_check.py` are **dev-time only**, never on the skill's
-lazy-load path (SKILL.md is unchanged). So L1's "mirror" discipline now *fails a test* when a table row
+lazy-load path (SKILL.md is unchanged). So AR-1's "mirror" discipline now *fails a test* when a table row
 or a constant pointer drifts, instead of resting solely on the author re-reading the construct.
 
 *Why this rule exists:* adversarial verification once caught the `I-dod` trigger claiming to

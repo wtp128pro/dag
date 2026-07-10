@@ -83,6 +83,7 @@
         "I3b wave layering"
       ],
       "fixtures": [
+        "amend_ok",
         "amend_layering"
       ],
       "provenance": [],
@@ -98,6 +99,7 @@
         "I3c dependency closure"
       ],
       "fixtures": [
+        "amend_ok",
         "amend_dangling_dep"
       ],
       "provenance": [],

@@ -1,9 +1,9 @@
 <!-- formal-models.md — a DESIGN-TIME formal-model proof layer on
-     top of the runtime validator (scripts/validate_run.py). For each of 4 core
-     invariants: the formal statement, a rigorous hand-proof, the exact model-check
+     top of the runtime validator (scripts/validate_run.py). For each of the 5 core
+     model-checked properties: the formal statement, a rigorous hand-proof, the exact model-check
      command, and honest tool-status. ADD-ONLY: references existing invariants
-     (state-machine.md I1-I16 + I1b/I-dod, self-learning-loops.md, graph/verify schemas); modifies
-     no validator/schema/prose. -->
+     (state-machine.md I1-I19 incl. I1b/I3b/I3c/I17/I18/I19 + I-dod, self-learning-loops.md,
+     graph/verify schemas); modifies no validator/schema/prose. -->
 
 # Formal Models — TLA+ / Alloy proof layer
 

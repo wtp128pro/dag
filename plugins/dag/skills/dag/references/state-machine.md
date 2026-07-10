@@ -73,7 +73,8 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 > top-level `fsm-state.loop` object holds the substate of the **most recently transitioned** unit
 > only — with parallel waves >1 unit is in flight, so that one slot cannot durably represent every
 > unit's retry count (I2 ledger-is-truth). Each `units[]` item therefore MAY carry its own optional
-> **`retries`** (0..2; authoritative: `fsm-state.schema.json` `loop.retries.maximum`) and
+> **`retries`** (0..2; authoritative: `fsm-state.schema.json` `units.items.properties.retries.maximum` —
+> the per-unit cap, NOT the loop slot's `loop.retries.maximum`) and
 > **`loop_state`** (the same `Q` vocabulary above). Both are additive and
 > optional: an item that omits them is unchanged, and the top-level `loop` slot stays as the
 > back-compat "current unit" snapshot. When a `units[]` item records `retries`, `validate_run.py`
@@ -148,15 +149,23 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
   `personas_confirmed:true` flag unbacked by a VALID `personas.json`. The human persona gate
   cannot be skipped — including when "right-sizing" a small task.
 - **G-clarify** (T3/T4): `open_material == 0` — no unresolved *material* ambiguity.
+- **G-cartography** (T5): the cartography phase is complete — a flag-bearing mechanical gate,
+  `gates.cartography_done` in REQUIRED_GATES (D2: previously omitted from this list). (G-input (T1)
+  and G-escalate (T10) are also transition guards but flagless — G-input keys off INPUT.md's
+  existence, G-escalate off a raised escalation — so they need no gate flag.)
 - **G-dag** (T6/T7): an **authoritative `graph.json` exists** and its DAG (edges ∪ unit-`deps`)
   is **acyclic**; every unit ≤ 32K est. footprint. Fail-closed: a missing/unparseable graph.json
   past decomposition is a violation, not a skip (I3).
 - **G-brief** (T8): each dispatched unit's brief.json is schema-valid AND carries a
   `socratic_protocol` reference, a `tags` set (⊆ V_tag), and `learnings_applied`.
 - **G-independent** (LT2): the verify.json attests `executor_reasoning_seen == false`.
-- **G-defect** (LT4): a FAIL verdict carries ≥1 concrete defect whose `criterion` is drawn from
-  the brief's acceptance criteria, and non-empty `feedback.actionable_changes` (no empty rejections).
-- **G-retry** (LT4/LT5): branch on `retries < 2` vs `retries == 2`.
+- **I6/AO-3 defect-content rule** (D1: NOT a transition guard): a FAIL verdict carries ≥1 concrete
+  defect whose `criterion` is drawn from the brief's acceptance criteria, and a non-empty (non-blank —
+  WP5/G11) `feedback.actionable_changes`. This is a **post-hoc artifact-content check** (`validate_run.py`
+  I6 + the schema `if/then`), not the LT4 guard — `spec/fsm.json` gives LT4 the guard `G-retry`, and
+  content-gating LT4 would break the exhaustive ADJUDICATE partition (see the §2a deadlock note). It is
+  listed here for completeness, not as a mechanical gate that maps to a T*/LT* guard.
+- **G-retry** (LT4/LT5): branch on `retries < 2` vs `retries == 2` — the actual LT4 guard.
 - **G-verified** (T9): every unit with a debrief has a verify.json with verdict=PASS (I9/I10).
 - **G-resolve** (T11): the human picks an option at the disagreement gate (DECISIONS.md appended).
   **Human gate — NOT validator-checkable** (the validator cannot verify a human decided; mirrors the

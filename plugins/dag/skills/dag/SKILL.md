@@ -245,9 +245,9 @@ Goal: eliminate every *material* lapse in the requirements before any work begin
    Right-size their *contents* to the task, never their *presence*: trigger the underlying
    questions on a *detected ambiguity signal* (materiality), not as a fixed ritual — but DoD
    and Non-Goals are always required.
-5. **This is mechanically enforced, not advisory — two layers.** (L1) the schema marks
+5. **This is mechanically enforced, not advisory — two layers.** (Layer-1) the schema marks
    `definition_of_done` and `non_goals` **required** + non-empty, so a present
-   `clarifications.json` missing either field hard-fails; (L2) the validator's **`I-dod`**
+   `clarifications.json` missing either field hard-fails; (Layer-2) the validator's **`I-dod`**
    check fires once a run has ANY post-clarification structural artifact (cartography, graph,
    units, or synthesis) and then REQUIRES a schema-valid `clarifications.json` carrying non-empty
    `definition_of_done` AND `non_goals` — even if the file is absent — else a non-zero exit.
@@ -327,7 +327,7 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 > **map-reduce onto the DAG**: a deterministic sharder script emits a
 > `manifest.json` (`shard_id → locator`, [schemas/manifest.schema.json](schemas/manifest.schema.json))
 > that **you (the decomposer) validate explicitly** — `validate_run.py` deliberately does NOT
-> auto-check `manifest.json` (see its schema header + LIMITATIONS.md) — with
+> auto-check `manifest.json` (see its schema header + `scripts/tests/LIMITATIONS.md`) — with
 > `python3 -c "import json,jsonschema,sys; jsonschema.validate(json.load(open(sys.argv[1])), json.load(open(sys.argv[2])))" <RUN_DIR>/manifest.json "${CLAUDE_PLUGIN_ROOT}/skills/dag/schemas/manifest.schema.json"`,
 > or by hand against the schema's required keys when `jsonschema` is unavailable;
 > a **parametric map wave** applies ONE brief *template* over the manifest (each unit reads its
@@ -438,7 +438,9 @@ call per unit, ideally in a single message). For **each unit**:
    | `verdict == FAIL ∧ retries == 2` | **ESCALATE** | Retry budget exhausted → treat as a material disagreement → **Phase 7**. |
    | `verdict == DISAGREE` | **ESCALATE** | Objective-irresolvable executor↔verifier split → **Phase 7**. |
 
-   **Retries are capped at 2** (`fsm-state.retries`, schema `maximum: 2`); the only back-edge
+   **Retries are capped at 2** (`fsm-state.loop.retries` / `fsm-state.units[].retries`, each schema
+   `maximum: 2` — there is no top-level `fsm-state.retries` field; the top level is
+   `additionalProperties:false`); the only back-edge
    is `RETRY → EXECUTE`. The loop provably halts because *entry* to `RETRY` is guarded by the
    variant `V = 2 − retries > 0` (LT4) — the back-edge itself is deliberately **unguarded** (see
    references/state-machine.md §2a and the 02/P1 deadlock lesson: a live guard on the sole back-edge
@@ -526,7 +528,9 @@ seed `graph.json.fuel_initial` is written once at T6 and immutable, and I18 requ
 2. Write `amendments/A<NN>.json` → regenerate `graph.json` (`revision`+1, append `amendments_applied`,
    record `retired_units`) → append `GRAPH.md` §Amendments → update `fsm-state.expansion` → mark retired
    units' `fsm-state.units[]` status `retired` → `TaskCreate` the new units.
-3. Run `bash scripts/validate_run.sh <RUN_DIR> --quiet`; **a non-zero exit is a hard stop** — do not
+3. Run `bash "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.sh" <RUN_DIR> --quiet` (the anchored
+   form — a bare `scripts/…` path resolves against the caller's CWD, per the Prime-directive-7 rule);
+   **a non-zero exit is a hard stop** — do not
    dispatch any new unit until it exits 0.
 4. Write the new units' briefs per Phase-5 rules (learnings propagation applies naturally: new units
    have `wave ≥ since_wave`; per-tag FAIL tallies for panel escalation include amended units).
