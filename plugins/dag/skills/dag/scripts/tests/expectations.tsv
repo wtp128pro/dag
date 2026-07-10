@@ -66,6 +66,8 @@ amend_no_fuel_seed	1	I18
 amend_dod_untraced	1	I19
 amend_cancel_ungated	1	I19
 amend_records_deleted	1	I18 amendment records required
+amend_fuel_widen	1	graph.json.fuel_initial=2
+amend_fuel_chain_break	1	fuel chain break
 amend_smuggled_unit	1	I17 amendment reconciliation
 amend_phantom_add	1	I17 amendment reconciliation
 amend_added_unreconciled	1	I17 amendment reconciliation

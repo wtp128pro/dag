@@ -1,14 +1,24 @@
 {
   "id": "A01",
   "kind": "add_units",
-  "origin": { "trigger": "debrief_handoff", "source_unit": "U01", "source_ref": "units/U01/debrief.json handoff_notes" },
-  "rationale": "U01's debrief surfaced a coverage gap not in the original plan; add a dedicated unit for it (mechanical addition, no scope change — traces to an existing DoD item).",
+  "origin": {
+    "trigger": "debrief_handoff",
+    "source_unit": "U01",
+    "source_ref": "units/U01/debrief.json handoff_notes"
+  },
+  "rationale": "U01's debrief surfaced a coverage gap not in the original plan; add a dedicated unit for it (mechanical addition, no scope change \u2014 traces to an existing DoD item).",
   "scope_change": false,
   "human_gate": false,
-  "dod_refs": ["the coverage gap U01 surfaced is handled by a dedicated unit"],
+  "dod_refs": [
+    "the coverage gap U01 surfaced is handled by a dedicated unit"
+  ],
   "fuel_cost": 1,
+  "fuel_before": 3,
+  "fuel_after": 2,
   "frontier_wave": 2,
-  "units_added": ["U03"],
+  "units_added": [
+    "U03"
+  ],
   "graph_revision_after": 2,
   "timestamp": "2026-07-03T10:30:00-0400"
 }

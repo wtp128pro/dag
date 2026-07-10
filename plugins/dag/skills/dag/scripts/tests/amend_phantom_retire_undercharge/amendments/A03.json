@@ -13,6 +13,8 @@
     "every planned unit is briefable within the 32K budget"
   ],
   "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
   "frontier_wave": 2,
   "units_added": [
     "U06",

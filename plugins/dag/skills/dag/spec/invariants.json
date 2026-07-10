@@ -386,11 +386,14 @@
       "fixtures": [
         "amend_fuel_overrun",
         "amend_no_fuel_seed",
-        "amend_records_deleted"
+        "amend_records_deleted",
+        "amend_fuel_widen",
+        "amend_fuel_chain_break"
       ],
       "provenance": [
         "BGA",
-        "WP1"
+        "WP1",
+        "WP2"
       ],
       "docs": [
         "references/state-machine.md#4"

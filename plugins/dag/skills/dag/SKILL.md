@@ -300,10 +300,11 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    atomization, any unit whose footprint would exceed budget (→ re-atomize), **that every
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
 5. Write `GRAPH.md` (template) with the unit table, the DAG, and the wave ordering.
-   Register each unit as a task via `TaskCreate` for live tracking. **At graph approval (T6), write
-   the immutable `graph.json.baseline_units`** = exactly the approved `units[].id` set (the revision-1
-   baseline). It is written **once** and never edited; every later amendment reconciles against it (I17),
-   so a smuggled or phantom-added/retired unit is caught. (Only needed if BGA may run; harmless to always write.)
+   Register each unit as a task via `TaskCreate` for live tracking. **At graph approval (T6), write two
+   immutable anchors into `graph.json`:** `baseline_units` = exactly the approved `units[].id` set (the
+   revision-1 baseline; reconciled by I17 so a smuggled or phantom-added/retired unit is caught), and
+   `fuel_initial` = the fuel seed of step 6 (anchored by I18 so widening `expansion.fuel_initial` mid-run
+   is caught). Both are written **once** and never edited. (Only needed if BGA may run; harmless to always write.)
 6. **Seed the amendment fuel budget (Bounded Graph Amendments).** Set
    `fsm-state.expansion.fuel_initial` — how many graph amendments Phase 6 may make without a human
    interrupt — to a **default `min(N0, 8)`** (N0 = unit count at decomposition approval); the human
@@ -500,7 +501,12 @@ as the T11 resolution. Amendments are **never** used to dodge a FAIL.
 `expansion.fuel_remaining` decreases monotonically (schema max 32). **Fuel exhausted + an amendment
 still needed ⇒ ESCALATE** (write `disagreement.md` on the origin unit → Phase-7 human gate) — exactly
 the `retries == 2` pattern; never a stuck state. This bounds total units at N0 + fuel₀, so the pipeline
-provably quiesces (machine-checked by the TLC `Quiesce` property).
+provably quiesces (machine-checked by the TLC `Quiesce` property). **Fuel is tamper-evident (WP2):** the
+seed `graph.json.fuel_initial` is written once at T6 and immutable, and I18 requires
+`expansion.fuel_initial == graph.fuel_initial` (widening it mid-run is caught). Each record carries
+`fuel_before`/`fuel_after` forming an unbroken chain — `A01.fuel_before == fuel_initial`,
+`fuel_after == fuel_before − fuel_cost`, `A(k+1).fuel_before == A(k).fuel_after`, last
+`fuel_after == fuel_remaining`.
 
 **Transactional procedure (between adjudications):**
 1. Draft the amendment; if any new unit's acceptance criteria do not trace verbatim to an existing DoD

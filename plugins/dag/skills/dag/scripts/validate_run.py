@@ -1680,6 +1680,46 @@ def main(argv=None):
                 if fuel_remaining < 0:
                     i18_ok = False
                     rep.fail(f"{LABEL_STEM['i18_fuel_bound']}", f"fuel_remaining={fuel_remaining} < 0 (fuel exhausted/overrun)")
+
+            # ---- Fuel tamper-evidence (WP2: B4) — immutable seed anchor + per-record fuel chain ----
+            # The old I18 arithmetic reads expansion.fuel_initial at face value, so widening it mid-run
+            # (fuel_initial 2->3 to buy a 3rd amendment) passes. Anchor it to the immutable
+            # graph.json.fuel_initial (written once at T6), and chain each record's fuel_before/fuel_after
+            # from fuel_initial to fuel_remaining so a spoofed seed or a broken link is caught. REVISES
+            # I18 upward; still post-hoc/offline (no LT7 guard) => termination PRESERVED.
+            if graph_doc is not None and graph_doc.get("fuel_initial") is not None:
+                g_fi = _as_int(graph_doc.get("fuel_initial"))
+                if fuel_initial is not None and g_fi is not None and fuel_initial != g_fi:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']}",
+                             f"expansion.fuel_initial={fuel_initial} != immutable graph.json.fuel_initial={g_fi} "
+                             "— the fuel seed is fixed at T6; widening it mid-run is tamper-evident (B4)")
+            _prev_after = fuel_initial   # A01.fuel_before must equal the seed
+            for _fn, _rec in amendments:
+                _fb = _as_int(_rec.get("fuel_before"))
+                _fa = _as_int(_rec.get("fuel_after"))
+                _fc = _as_int(_rec.get("fuel_cost"))
+                if _fb is None or _fa is None:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']} (amendments/{_rec.get('id')})",
+                             "fuel_before/fuel_after must be integers — the fuel chain is unverifiable")
+                    _prev_after = None
+                    continue
+                if _prev_after is not None and _fb != _prev_after:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']} (amendments/{_rec.get('id')})",
+                             f"fuel chain break: fuel_before={_fb} != prior fuel_after/fuel_initial={_prev_after}")
+                if _fc is not None and _fa != _fb - _fc:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']} (amendments/{_rec.get('id')})",
+                             f"fuel chain break: fuel_after={_fa} != fuel_before={_fb} - fuel_cost={_fc} = {_fb - _fc}")
+                _prev_after = _fa
+            if amendments and _prev_after is not None and fuel_remaining is not None and _prev_after != fuel_remaining:
+                i18_ok = False
+                rep.fail(f"{LABEL_STEM['i18_fuel_bound']}",
+                         f"fuel chain break: last amendment fuel_after={_prev_after} != "
+                         f"expansion.fuel_remaining={fuel_remaining}")
+
             expect_rev = 1 + len(amendments)
             record_ids = [_rec.get("id") for _fn, _rec in amendments]
             if graph_doc is None:

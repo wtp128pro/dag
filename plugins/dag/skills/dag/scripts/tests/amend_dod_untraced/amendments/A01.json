@@ -13,6 +13,8 @@
     "gold-plate the coverage unit with extra features"
   ],
   "fuel_cost": 1,
+  "fuel_before": 2,
+  "fuel_after": 1,
   "frontier_wave": 2,
   "units_added": [
     "U03"

@@ -10,6 +10,7 @@
     "U01",
     "U02"
   ],
+  "fuel_initial": 3,
   "retired_units": [
     {
       "id": "U02",
