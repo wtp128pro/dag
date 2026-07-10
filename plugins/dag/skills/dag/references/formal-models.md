@@ -407,6 +407,21 @@ never `java -jar` (GUI). **Tool-status:** **machine-checked** — TLC 2.19 (`Qui
 408-state space, non-vacuous vs the keep-fuel mutant) + Alloy 6 (`Amendment.als`, no counterexample) +
 hand-proved.
 
+> **`MaxFuel` scope (F1 — why cfg stays at 2).** The shipped `Pipeline.cfg` pins `MaxFuel = 2` so the
+> documented state counts stay stable (853 generated / 408 distinct / depth 36). The fuel argument is
+> parametric (the well-founded variant `fuel ∈ 0..MaxFuel` above), so a larger ceiling only lengthens
+> the same terminating behaviours — verified by re-running with `MaxFuel = 32` (the shipped runtime
+> ceiling): **2,923 generated / 1,608 distinct / depth 156, `No error has been found`** (both `Quiesce`
+> and `Termination` still hold; all six INVARIANTs pass). Reproduce by copying `Pipeline.cfg`, editing
+> `MaxFuel` to 32, and running TLC with that temp cfg — the committed cfg is deliberately left at 2
+> (D-E), so no documented count changes.
+
+> **SAT4J scope wall (F3 — for a future re-checker).** The Alloy `check`s run at scope 7 (`for 7 but
+> 5 Int`). The bundled SAT4J solver's cost grows steeply with scope: the closure checks complete in
+> **4–15 s at scope 7** but **80–360 s at scope 8** and **> 26 min with no verdict at scope 9** — a
+> scope-9 timeout is the solver wall, NOT a regression. Keep the committed scope at 7; escalate scope
+> only with a native solver (e.g. MiniSat/Glucose via JNI) if deeper assurance is ever needed.
+
 ---
 
 ## Consistency with the runtime validator (two levels, same invariants)
