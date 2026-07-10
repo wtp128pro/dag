@@ -171,6 +171,25 @@ so wall-clock work is finite too. ∎
 > by replacing the discrete split→DISAGREE routing with a thresholded/averaged score — collapsing the
 > exhaustive, mutually-exclusive `ADJUDICATE` guard partition — and is therefore forbidden (§3).
 
+> **FLAG — Bounded Graph Amendments, classified PRESERVES (per-unit) / REVISES (pipeline-level bound).**
+> BGA lets Phase 6 grow the work graph (`add_units`/`split_unit`/`add_edges`; `cancel_unit` human-gated)
+> via append-only `amendments/A<NN>.json` records. **Per-unit Claims A–D hold verbatim** — no new row
+> enters the §1.3 table, no second back-edge is added, and **only LT7 writes `retries`**; a newly added
+> or split unit simply runs the same `EXECUTE→VERIFY→ADJUDICATE` loop from scratch, so the
+> correction-loop termination proof is **PRESERVED**. What **REVISES** is the *pipeline-level*
+> finiteness bound (§6.4): the total unit count is no longer a fixed `N` chosen at decomposition — it is
+> bounded above by **N0 + fuel₀**, where `fuel₀ = expansion.fuel_initial` (schema max 32). **Migration
+> argument:** `fuel` has the *identical* well-founded-counter shape as `retries` — monotone-decreasing
+> (only an amendment writes it, only `−fuel_cost`), floor-bounded at 0, and its floor disables further
+> amendment (fuel-exhaustion ⇒ ESCALATE, exactly the `retries == 2` pattern, never a stuck state). Total
+> loop transitions ≤ 12·(N0 + fuel₀) + fuel₀ amendment events — finite. Every amendment invariant
+> (I3b/I3c/I17/I18/I19) is an **offline validator predicate**, never a live guard on LT7 (the 02/P1
+> deadlock lesson). **The property with teeth:** the existing `Termination` (`EXECUTE ~> {DONE,ESCALATE}`)
+> alone would **NOT** catch unbounded amendment — each unit still terminates, the run never does; the new
+> machine-checked liveness property **`Quiesce == <>[](lstate ∈ {DONE,ESCALATE})`** is the one that
+> fails on a keep-fuel mutant (formal-models.md Property 5). Any unbounded counter is forbidden (§3),
+> exactly as softmaxing the PR1 panel is.
+
 > The load-bearing point the brief demands: the guarantee is **not** the cap. It is that
 > the *only* cycle strictly descends a well-founded, floor-bounded measure whose back-edge
 > is disabled at the floor, `ADJUDICATE`'s guards are exhaustive (no deadlock), and both
@@ -608,6 +627,14 @@ rarely help and intrinsic correction can *degrade* (arXiv:2310.01798). **Recomme
 added, so there is no second mirror to keep in sync. Crucially, the §2 proof is **parametric in any
 finite `N`** (variant `V = N − retries`), so configurability never weakens termination — a real
 property, not an assertion.
+
+**Pipeline-level parametricity (Bounded Graph Amendments).** The same shape lifts to the *pipeline*:
+the unit count is no longer a fixed `N` chosen at decomposition but is bounded by **N0 + fuel₀**, with
+`fuel` a *second* well-founded counter of the identical shape (monotone-decreasing, floor-bounded at 0,
+floor-disables-the-move — I18 / `expansion`, schema max 32). So the global bound ≤ 12·(N0 + fuel₀) + fuel₀
+amendment events is still finite and parametric; it is machine-checked **non-vacuously** by the TLC
+`Quiesce` property, which — unlike `Termination` — fails on a keep-fuel mutant (formal-models.md
+Property 5). The §2 FLAG carries the full PRESERVES (per-unit) / REVISES (pipeline-bound) classification.
 
 **6.5 Residual uncertainty (model-judged, not mechanically decidable).** The validator
 checks the *plumbing* — contract shape, the counter, `do_not_touch` disjointness, scope

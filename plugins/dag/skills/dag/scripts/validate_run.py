@@ -28,6 +28,16 @@ Reconciled seams over the pipeline contract:
     distinct correctness/reproduce/guardrail lenses; any panel's top verdict must equal the DISCRETE
     majority (a split routes to DISAGREE — no softmax); verify_rounds (loop-until-dry) is bounded to
     [1,3]. I16 is POST-HOC / OFFLINE and gates NO transition (never a live LT7 guard).
+  * Bounded Graph Amendments (BGA) — the Phase-6 work graph may grow under mechanical constraints via
+    append-only amendments/A<NN>.json records (amendment.schema.json). Five new POST-HOC / OFFLINE
+    invariants, none a live transition guard: I3b wave layering + I3c dependency closure (run whenever
+    a graph is present — they also close two pre-existing gaps: `waves` was never cross-checked and a
+    dangling dep/edge endpoint was never flagged); I17 frozen executed prefix (no amendment touches a
+    unit with a debrief/verify); I18 fuel bound (fuel_remaining == fuel_initial - Σ fuel_cost >= 0, the
+    revision/amendments_applied bookkeeping — the termination-preserving budget, mirrors retries<=2);
+    I19 amendment scope (dod_refs verbatim ∈ definition_of_done, human-gate on scope_change/cancel,
+    split coverage). All INERT when amendments/ is absent — BGA PRESERVES the correction-loop
+    termination proof and REVISES only the pipeline-level unit-count bound (total units <= N0 + fuel0).
 
 Exit codes:  0 ok · 1 validation/invariant violation · 2 usage error · 3 environment error.
 Usage:  validate_run.py <run_dir> [--schemas <dir>] [--self-check] [--quiet]
@@ -930,6 +940,36 @@ def main(argv=None):
     graph_json_exists = os.path.exists(os.path.join(rd, "graph.json"))
     graph_doc = docs.get("graph")  # present only if graph.json parsed AND schema-valid
 
+    # ---- Bounded Graph Amendments: load append-only amendment records (I17/I18/I19) ----
+    # Glob amendments/*.json (sorted); schema-validate each against amendment.schema.json; a
+    # malformed record is REPORTED (rep.fail — it IS this run's emitted artifact) and DROPPED so it
+    # can never reach the I17/I18/I19 predicates below. `amendments` is a list of (filename, record)
+    # in sorted-filename order. ABSENT amendments/ dir => empty list => every new check (I17/I18/I19
+    # and the amendment-gated arm of I3b) is INERT — a legacy run with no amendments is byte-for-byte
+    # unaffected. Post-hoc/offline over emitted artifacts: no live guard on any transition (never
+    # touches LT7), so BGA PRESERVES the correction-loop termination proof (Claims A-D hold verbatim).
+    amendments = []
+    amend_dir = os.path.join(rd, "amendments")
+    if os.path.isdir(amend_dir):
+        _amend_schema = schemas.get("amendment.schema.json")
+        for fn in sorted(f for f in os.listdir(amend_dir) if f.endswith(".json")):
+            fp = os.path.join(amend_dir, fn)
+            try:
+                inst = load_json(fp)
+            except Exception as e:
+                rep.fail(f"amendments/{fn}", f"not valid JSON: {e}")
+                continue
+            if _amend_schema is None:
+                rep.fail(f"amendments/{fn}", "no schema loaded for amendment.schema.json")
+                continue
+            errs = validate(inst, _amend_schema)
+            if errs:
+                for e in errs:
+                    rep.fail(f"amendments/{fn}", e)
+                continue  # DROP malformed record — it must not reach I17/I18/I19
+            amendments.append((fn, inst))
+            rep.ok(f"amendments/{fn} valid against amendment.schema.json")
+
     # Once decomposition is approved, an authoritative graph.json MUST exist — you
     # cannot reach P5+ by deleting BOTH GRAPH.md and graph.json (fail-closed).
     if post_decomposition and graph_doc is None:
@@ -964,6 +1004,73 @@ def main(argv=None):
                          f"({u.get('executor_persona')!r}) — maker and checker must be distinct")
             else:
                 rep.ok(f"I1b maker!=checker (persona distinctness) (units/{u.get('id')})")
+
+        # I3c dependency closure (BGA — closes a pre-existing validator gap, EVALUATION §6).
+        # Every `deps` element and every `edges[].from/to` MUST name a CURRENT unit id; a dangling
+        # reference (incl. a retired id still referenced) becomes a phantom node in cycle detection,
+        # so fail closed. Runs whenever a graph is present (NOT amendment-gated) — verified inert on
+        # all 54 legacy fixtures (their graph.json has no dangling deps/edges). Offline/post-hoc.
+        _unit_ids = {u.get("id") for u in graph_doc.get("units", [])}
+        _dangling = set()
+        for u in graph_doc.get("units", []):
+            for d in u.get("deps", []):
+                if d not in _unit_ids:
+                    _dangling.add(d)
+        for e in graph_doc.get("edges", []):
+            for endp in (e.get("from"), e.get("to")):
+                if endp not in _unit_ids:
+                    _dangling.add(endp)
+        if _dangling:
+            rep.fail("I3c dependency closure",
+                     f"dep/edge endpoint(s) {sorted(_dangling)} not in units[] — a dangling "
+                     "reference (a retired or nonexistent unit id) is a phantom node in cycle detection")
+        else:
+            rep.ok(f"I3c dependency closure ({len(_unit_ids)} unit(s); all deps/edges resolve)")
+
+        # I3b wave layering (BGA — closes a pre-existing validator gap, EVALUATION §6: graph.json.waves
+        # was never cross-checked, so a layering-violating-yet-acyclic graph passed silently). When
+        # `waves` is present: every graph unit appears in exactly one wave group (and no wave group
+        # names a non-unit), and every edge in `edges ∪ deps-derived` rises strictly in wave
+        # (wave(from) < wave(to)). When amendments exist, `waves` is REQUIRED (absent => FAIL — new
+        # units are placed by wave, so layering is load-bearing for by-construction safety); without
+        # amendments an absent `waves` is a SKIP (today's behavior — the backward-compat anchor).
+        # _as_int normalizes float-integral waves (BRK-04, the wave_float_gap precedent). Offline/post-hoc.
+        _waves = graph_doc.get("waves")
+        if not isinstance(_waves, list):
+            if amendments:
+                rep.fail("I3b wave layering",
+                         "amendments present but graph.json has no `waves` — wave layering is required "
+                         "once the graph is amended (new units are placed strictly above their deps by wave)")
+            elif not args.quiet:
+                print("  SKIP  I3b wave layering: graph.json has no `waves` (not required without amendments)")
+        else:
+            _wave_of = {}
+            _multi = []
+            for w in _waves:
+                for uid in w.get("units", []):
+                    if uid in _wave_of:
+                        _multi.append(uid)
+                    _wave_of[uid] = _as_int(w.get("wave"))
+            _i3b_ok = True
+            _missing = sorted(_unit_ids - set(_wave_of))
+            _extra = sorted(set(_wave_of) - _unit_ids)
+            if _multi:
+                _i3b_ok = False
+                rep.fail("I3b wave layering", f"unit(s) {sorted(set(_multi))} appear in >1 wave group")
+            if _missing:
+                _i3b_ok = False
+                rep.fail("I3b wave layering", f"unit(s) {_missing} absent from every wave group (each unit needs exactly one wave)")
+            if _extra:
+                _i3b_ok = False
+                rep.fail("I3b wave layering", f"wave group(s) list non-unit id(s) {_extra}")
+            for a, b in edges:
+                wa, wb = _wave_of.get(a), _wave_of.get(b)
+                if wa is not None and wb is not None and not (wa < wb):
+                    _i3b_ok = False
+                    rep.fail("I3b wave layering",
+                             f"edge {a}->{b} violates layering: wave({a})={wa} not < wave({b})={wb}")
+            if _i3b_ok:
+                rep.ok(f"I3b wave layering ({len(_wave_of)} unit(s) across {len(_waves)} wave(s); all edges rise)")
     if graph_md_exists:  # defense-in-depth on the prose graph
         with open(graph_md, encoding="utf-8") as f:
             md_text = f.read()
@@ -1267,6 +1374,209 @@ def main(argv=None):
             rep.fail(f"I15 AO-6 responsive change (units/{uid})",
                      "iteration>1 with a prior_feedback echo but changes_made is absent/empty — a "
                      "retry must record >=1 concrete change made in response to the prior verdict (AO-6)")
+
+    # ======================= Bounded Graph Amendments (I17/I18/I19) =======================
+    # All three are POST-HOC / OFFLINE predicates over the emitted amendment records + graph.json +
+    # fsm-state.json. None gates a transition and none touches LT7 — so BGA PRESERVES the correction-
+    # loop termination proof (self-learning-loops.md §2 Claims A-D hold verbatim) and REVISES only the
+    # pipeline-level unit-count bound (total units <= N0 + fuel0). They are INERT when amendments/ is
+    # absent (empty `amendments`), so every legacy run is byte-for-byte unaffected. (The live guard
+    # they deliberately are NOT is the 02/P1 deadlock lesson — mirrors I14/I15/I16.)
+    if amendments:
+        # Retired ids: the union of every amendment's units_retired and graph.json.retired_units[].id.
+        retired_ids = set()
+        for _fn, _rec in amendments:
+            for _rid in (_rec.get("units_retired", []) or []):
+                retired_ids.add(_rid)
+        if graph_doc is not None:
+            for _ru in (graph_doc.get("retired_units", []) or []):
+                if isinstance(_ru, dict) and _ru.get("id"):
+                    retired_ids.add(_ru.get("id"))
+        current_unit_ids = ({u.get("id") for u in graph_doc.get("units", [])}
+                            if graph_doc is not None else set())
+
+        # ---- I17 frozen executed prefix — amendments touch only the not-yet-started future ----
+        # (1) a retired unit dir may hold at most brief.md/brief.json (no debrief/verify — a retired
+        #     unit must never have executed); (2) every debriefed unit dir's id is in the CURRENT
+        #     graph units[] (executed work is never orphaned by an amendment); (3) a retired id never
+        #     reappears in a later units_added (retired ids are never reused); (4) a retired id in
+        #     fsm-state.units[] carries status 'retired'.
+        i17_ok = True
+        for rid in sorted(retired_ids):
+            rdir = os.path.join(units_dir, rid)
+            if os.path.isdir(rdir):
+                for f in sorted(os.listdir(rdir)):
+                    if f not in ("brief.md", "brief.json"):
+                        i17_ok = False
+                        rep.fail(f"I17 frozen prefix (amendments/{rid})",
+                                 f"retired unit dir contains {f!r} — a retired unit may keep at most "
+                                 "brief.md/brief.json (it must never have executed: no debrief/verify)")
+        if graph_doc is not None:
+            for uid in sorted(unit_dirs_with_debrief):
+                if uid not in current_unit_ids:
+                    i17_ok = False
+                    rep.fail(f"I17 frozen prefix (amendments/{uid})",
+                             f"unit {uid} has a debrief but is absent from the amended graph.json units[] "
+                             "— executed work must never be orphaned by an amendment")
+        # (3) order-aware: an id may be added then later retired (legitimate), but a retired id must
+        # never REAPPEAR in a LATER amendment's units_added. `amendments` is in sorted-filename =
+        # chronological order (A01, A02, ...), so accumulate retired-by-earlier and check each add
+        # against it (an order-insensitive check would false-flag the add-then-cancel case).
+        retired_so_far = set()
+        for _fn, _rec in amendments:
+            for _aid in (_rec.get("units_added", []) or []):
+                if _aid in retired_so_far:
+                    i17_ok = False
+                    rep.fail(f"I17 frozen prefix (amendments/{_rec.get('id')})",
+                             f"amendment re-adds retired unit id {_aid} — a retired id is never reused")
+            for _rid in (_rec.get("units_retired", []) or []):
+                retired_so_far.add(_rid)
+        if fsm and isinstance(fsm.get("units"), list):
+            for _u in fsm["units"]:
+                if isinstance(_u, dict) and _u.get("unit_id") in retired_ids and _u.get("status") != "retired":
+                    i17_ok = False
+                    rep.fail(f"I17 frozen prefix (amendments/{_u.get('unit_id')})",
+                             f"retired unit {_u.get('unit_id')} has fsm status {_u.get('status')!r} != 'retired'")
+        if i17_ok:
+            rep.ok(f"I17 frozen executed prefix ({len(retired_ids)} retired id(s); no executed unit touched)")
+
+        # ---- I18 fuel bound — the termination-preserving budget (mirrors retries<=2 structurally) ----
+        # fuel_remaining == fuel_initial - Σ fuel_cost >= 0; each record's fuel_cost == max(1,
+        # |units_added| - |units_retired|); graph.json.revision == 1 + |records|; graph.json.
+        # amendments_applied lists exactly the record ids in order. Amendments present with NO
+        # expansion object => FAIL (BGA disabled means no amendments allowed).
+        expansion = fsm.get("expansion") if isinstance(fsm, dict) else None
+        if not isinstance(expansion, dict):
+            rep.fail("I18 fuel bound",
+                     "amendments/ present but no valid fsm-state.json `expansion` object — the fuel "
+                     "budget must be seeded (Phase 4) before any amendment (0/absent expansion = BGA off)")
+        else:
+            i18_ok = True
+            fuel_initial = _as_int(expansion.get("fuel_initial"))
+            fuel_remaining = _as_int(expansion.get("fuel_remaining"))
+            total_cost = 0
+            for _fn, _rec in amendments:
+                fc = _as_int(_rec.get("fuel_cost"))
+                added = len(_rec.get("units_added", []) or [])
+                retired = len(_rec.get("units_retired", []) or [])
+                expect = max(1, added - retired)
+                if fc is None:
+                    i18_ok = False
+                    rep.fail(f"I18 fuel bound (amendments/{_rec.get('id')})",
+                             f"fuel_cost {_rec.get('fuel_cost')!r} is not an integer")
+                    continue
+                total_cost += fc
+                if fc != expect:
+                    i18_ok = False
+                    rep.fail(f"I18 fuel bound (amendments/{_rec.get('id')})",
+                             f"fuel_cost={fc} != max(1, |units_added|={added} - |units_retired|={retired})={expect}")
+            if fuel_initial is None or fuel_remaining is None:
+                i18_ok = False
+                rep.fail("I18 fuel bound",
+                         f"expansion.fuel_initial/fuel_remaining must be integers (got "
+                         f"{expansion.get('fuel_initial')!r}/{expansion.get('fuel_remaining')!r})")
+            else:
+                if fuel_remaining != fuel_initial - total_cost:
+                    i18_ok = False
+                    rep.fail("I18 fuel bound",
+                             f"fuel_remaining={fuel_remaining} != fuel_initial={fuel_initial} - "
+                             f"Σ fuel_cost={total_cost} = {fuel_initial - total_cost}")
+                if fuel_remaining < 0:
+                    i18_ok = False
+                    rep.fail("I18 fuel bound", f"fuel_remaining={fuel_remaining} < 0 (fuel exhausted/overrun)")
+            expect_rev = 1 + len(amendments)
+            record_ids = [_rec.get("id") for _fn, _rec in amendments]
+            if graph_doc is None:
+                i18_ok = False
+                rep.fail("I18 fuel bound",
+                         "amendments present but no valid graph.json to carry revision/amendments_applied")
+            else:
+                revision = _as_int(graph_doc.get("revision"))
+                if revision != expect_rev:
+                    i18_ok = False
+                    rep.fail("I18 fuel bound",
+                             f"graph.json.revision={graph_doc.get('revision')!r} != 1 + |amendment records|={expect_rev}")
+                applied = graph_doc.get("amendments_applied")
+                if applied != record_ids:
+                    i18_ok = False
+                    rep.fail("I18 fuel bound",
+                             f"graph.json.amendments_applied={applied} != amendment record ids in order {record_ids}")
+            if i18_ok:
+                rep.ok(f"I18 fuel bound ({len(amendments)} amendment(s); Σ fuel_cost={total_cost}; "
+                       f"fuel {fuel_initial}->{fuel_remaining}; revision={expect_rev})")
+
+        # ---- I19 amendment scope — DoD traceability + human-gate policy + split coverage, per record ----
+        # * add_units/split_unit => dod_refs non-empty AND each element verbatim ∈ clarifications.json
+        #   .definition_of_done (a decidable string-membership check — the semantic backstop is the
+        #   verifier/critique pass; state-machine.md §5 honest boundary).
+        # * scope_change==true => human_gate==true; kind==cancel_unit => human_gate==true (the human-
+        #   gate POLICY — enforced here, not in amendment.schema.json, so an ungated cancel/scope-change
+        #   reaches this check and fails with the I19 label; presence-checked attestation, not proof a
+        #   human decided — §5 Limitation pattern, like signoff_confirmed).
+        # * split_unit => children tags ⊇ retired_snapshot tags AND every snapshot acceptance criterion
+        #   is a criteria_map key mapping to >=1 existing child id (scope-preserving by construction).
+        dod = set()
+        _cl = docs.get("clarifications")
+        if isinstance(_cl, dict):
+            dod = {x for x in _cl.get("definition_of_done", []) if isinstance(x, str)}
+        cur_units = ({u.get("id"): u for u in graph_doc.get("units", [])}
+                     if graph_doc is not None else {})
+        for _fn, _rec in amendments:
+            aid = _rec.get("id")
+            kind = _rec.get("kind")
+            rec_ok = True
+            if _rec.get("scope_change") is True and _rec.get("human_gate") is not True:
+                rec_ok = False
+                rep.fail(f"I19 amendment scope (amendments/{aid})",
+                         "scope_change==true requires human_gate==true (a scope change is human-gated)")
+            if kind == "cancel_unit" and _rec.get("human_gate") is not True:
+                rec_ok = False
+                rep.fail(f"I19 amendment scope (amendments/{aid})",
+                         "cancel_unit requires human_gate==true (deleting planned scope is always human-gated)")
+            if kind in ("add_units", "split_unit"):
+                refs = _rec.get("dod_refs") or []
+                if not refs:
+                    rec_ok = False
+                    rep.fail(f"I19 amendment scope (amendments/{aid})",
+                             f"{kind} must carry a non-empty dod_refs tracing to definition_of_done")
+                untraced = sorted(r for r in refs if r not in dod)
+                if untraced:
+                    rec_ok = False
+                    rep.fail(f"I19 amendment scope (amendments/{aid})",
+                             f"dod_refs {untraced} not present verbatim in clarifications.json."
+                             f"definition_of_done {sorted(dod)}")
+            if kind == "split_unit":
+                children = _rec.get("units_added", []) or []
+                child_tags = set()
+                for c in children:
+                    if c in cur_units:
+                        child_tags |= set(cur_units[c].get("tags", []) or [])
+                snap_tags, snap_crits = set(), []
+                for s in (_rec.get("retired_snapshot", []) or []):
+                    if isinstance(s, dict):
+                        snap_tags |= set(s.get("tags", []) or [])
+                        snap_crits += [c for c in s.get("acceptance_criteria", []) if isinstance(c, str)]
+                missing_tags = sorted(snap_tags - child_tags)
+                if missing_tags:
+                    rec_ok = False
+                    rep.fail(f"I19 amendment scope (amendments/{aid})",
+                             f"split children tags {sorted(child_tags)} do not cover parent tags "
+                             f"(missing {missing_tags}) — children collectively must carry ⊇ parent tags")
+                cmap = _rec.get("criteria_map") or {}
+                for crit in snap_crits:
+                    targets = cmap.get(crit)
+                    if not targets:
+                        rec_ok = False
+                        rep.fail(f"I19 amendment scope (amendments/{aid})",
+                                 f"parent criterion {crit!r} is not a criteria_map key — every parent "
+                                 "acceptance criterion must map to >=1 child")
+                        continue
+                    if not any(t in cur_units for t in targets):
+                        rec_ok = False
+                        rep.fail(f"I19 amendment scope (amendments/{aid})",
+                                 f"criteria_map[{crit!r}]={targets} maps to no existing child unit")
+            if rec_ok:
+                rep.ok(f"I19 amendment scope (amendments/{aid}: dod-traced, gated, split-covered)")
 
     # I9 MISSING VERIFICATION (MUST-FIX D) — a debrief without a verify is REJECTED
     for uid in sorted(unit_dirs_with_debrief):

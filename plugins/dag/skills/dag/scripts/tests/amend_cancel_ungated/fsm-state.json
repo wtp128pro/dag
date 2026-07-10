@@ -1,0 +1,45 @@
+{
+  "run_dir": "tests/amend_ok",
+  "phase": "P6_EXECUTE_VERIFY",
+  "updated_at": "2026-07-03T11:00:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true
+  },
+  "expansion": {
+    "fuel_initial": 3,
+    "fuel_remaining": 0,
+    "amendments_applied": 3
+  },
+  "loop": {
+    "unit_id": "U01",
+    "state": "DONE",
+    "retries": 1,
+    "iteration": 2,
+    "last_verdict": "PASS"
+  },
+  "units": [
+    {
+      "unit_id": "U01",
+      "status": "passed"
+    },
+    {
+      "unit_id": "U02",
+      "status": "retired"
+    },
+    {
+      "unit_id": "U03",
+      "status": "pending"
+    },
+    {
+      "unit_id": "U04",
+      "status": "pending"
+    },
+    {
+      "unit_id": "U05",
+      "status": "retired"
+    }
+  ]
+}

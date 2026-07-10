@@ -3,6 +3,59 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] — 2026-07-10
+
+**Bounded Graph Amendments (BGA)** — the Phase-6 work graph may now grow under mechanical constraints, so
+discovered work no longer forces a full re-decomposition, a budget-breaching cram, or a silent DoD gap.
+Amendments are append-only records (`amendments/A<NN>.json`) of four whitelisted kinds — `add_units` /
+`split_unit` / `add_edges` (autonomous, DoD-traced) and `cancel_unit` (human-gated) — over the
+**not-yet-started future only** (a unit whose correction loop has begun is frozen). A monotone-decreasing
+**fuel** budget (`fsm-state.expansion`, schema max 32) bounds total units at N0 + fuel₀; fuel exhaustion
+routes to ESCALATE. Every new invariant is **post-hoc / offline** — no FSM edge, no live guard on the sole
+`RETRY→EXECUTE` back-edge (LT7) — so the per-unit correction-loop termination proof is **PRESERVED**
+verbatim; only the pipeline-level unit-count bound is **REVISED** (fixed finite N → N ≤ N0 + fuel₀), with
+fuel the identical well-founded-counter shape as `retries`.
+
+### Added
+- **`schemas/amendment.schema.json`** — the append-only amendment record (14 schemas total; self-check
+  green on both the built-in and `jsonschema` backend). `graph.schema.json` gains optional `revision` /
+  `amendments_applied` / `retired_units`; `fsm-state.schema.json` gains an optional `expansion` object and
+  a `retired` unit status. All additive — the 54 legacy fixtures are byte-unchanged.
+- **Five post-hoc validator invariants** in `validate_run.py`: **I3b** wave layering + **I3c** dependency
+  closure (run whenever a graph is present — they also close two pre-existing gaps: `waves` was never
+  cross-checked, and a dangling dep/edge endpoint was never flagged); **I17** frozen executed prefix,
+  **I18** fuel bound (`fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + revision/`amendments_applied`
+  bookkeeping), **I19** amendment scope (`dod_refs` verbatim ∈ `definition_of_done` + human-gate on
+  scope-change/cancel + split coverage). None gates a transition.
+- **10 new fixtures** (54 → 64), swept on both backends: `amend_ok` (rev-3 graph: an `add_units` + a
+  `split_unit`, correct fuel ledger, layered waves, retired parent kept brief-only) and nine negatives
+  pinning `I3` / `I3b` / `I3c` / `I17` (×2) / `I18` (×2) / `I19` (×2).
+- **Formal Property 5 — bounded-amendment quiescence.** `Pipeline.tla` gains a `MaxFuel` constant, a
+  `fuel` variable, an `Amend` action, the `FuelBound` invariant, and the liveness property **`Quiesce`**
+  `<>[](lstate ∈ {DONE,ESCALATE})`. TLC is green (**853 states / 408 distinct / depth 36**, up from
+  715/328/28); a throwaway keep-fuel mutant fails `Quiesce` while still passing `Termination` — the
+  external signal that `Quiesce`, not `Termination`, has teeth for BGA. New Alloy `formal/Amendment.als`
+  proves amendment layering-preservation ⇒ acyclicity (headless, no counterexample); `WorkGraph.als`
+  untouched.
+
+### Changed
+- Docs threaded end-to-end (authoring rule L1): SKILL.md Phase 4 fuel seeding + Phase 6 "Graph amendments
+  (bounded)"; `state-machine.md` (I3b/I3c/I17/I18/I19 rows, a "no new transition" note, Limitations
+  I/J/K); `self-learning-loops.md` §2 FLAG + §6.4; `formal-models.md` Property 5 + every stale TLC count
+  updated; `methodology.md`, `data-partitioning.md` (BGA is **not** a dataset-sharding tool), `DESIGN.md`,
+  `templates/graph.md` + new `templates/amendment.json`.
+
+### Guarantee classification
+- Per-unit correction-loop termination (Claims A–D): **PRESERVES** (verbatim — no loop edge/state/guard;
+  only LT7 writes `retries`).
+- Pipeline-level finiteness ("fixed finite N"): **REVISES** → N ≤ N0 + fuel₀ (fuel monotone-decreasing,
+  schema-capped, validator-cross-checked; machine-checked by `Quiesce`).
+- GateOrdering safety: **PRESERVES** (`Amend` guarded on `gate["P6"]=FALSE`, writes no phase/gate).
+- I3 acyclicity: **PRESERVES + STRENGTHENS** (full-graph re-check per revision; I3b/I3c added).
+- AO-1..7: **PRESERVES** (the frozen executed prefix forbids re-opening executed work).
+- Live-guard prohibition (02/P1): **HONORED** (I3b/I3c/I17/I18/I19 are all offline predicates; violations
+  route to a non-zero exit, never a transition guard).
+
 ## [1.3.0] — 2026-07-06
 
 Five-track audit remediation of the two skills (`dag`, `personas`): thirteen work units run through

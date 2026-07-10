@@ -183,6 +183,17 @@ wave of independent units and just more waves, so the DAG and its acyclicity are
 [data-partitioning.md](data-partitioning.md) (and first decide the mechanical-uniform vs
 judgment-heavy fork — mechanical-uniform work is a script dag *orchestrates*, not units it shards).
 
+**Seed the amendment fuel budget here (Bounded Graph Amendments).** Decomposition also sets
+`fsm-state.expansion.fuel_initial` (default `min(N0, 8)`, human-adjustable at the gate; `0`/absent =
+off) — how many *bounded* graph amendments Phase 6 may make when executed work surfaces unknowns,
+without a full re-decomposition. The graph is no longer frozen-for-good at T6: it may **grow under
+mechanical constraints** — `add_units` / `split_unit` / `add_edges` (autonomous, DoD-traced) and
+`cancel_unit` (human-gated) — over the **not-yet-started future only** (a unit whose correction loop
+has begun is frozen, I17), bounded by that monotone-decreasing fuel (total units ≤ N0 + fuel₀; fuel
+exhaustion ⇒ ESCALATE). This generalizes the 02/P4 guarded-re-brief safety line. Procedure + kinds
+table: SKILL.md Phase 6 "Graph amendments (bounded)"; invariants: references/state-machine.md §4
+(I3b/I3c/I17/I18/I19); termination classification: references/self-learning-loops.md §2 FLAG.
+
 ---
 
 ## §Briefing — the self-contained contract (Phase 5)

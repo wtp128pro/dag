@@ -4,6 +4,8 @@
      the canonical 4-key block; invariants I9-I16 (+ I1b, I-dod) close the missing-verification
      and fail-closed-DAG validator holes, tags/learnings propagation, socratic-counter
      genuineness, the DoD/non-goals gate, and the post-hoc anti-oscillation (AO-2/AO-6) checks.
+     Bounded Graph Amendments add five more post-hoc/offline checks (I3b/I3c wave-layering +
+     dependency-closure; I17/I18/I19 frozen-prefix + fuel-bound + amendment-scope) — none a live guard.
      TLA+/Alloy models ship under `formal/` (Pipeline.tla/.cfg, WorkGraph.als; see
      formal-models.md) as the machine-checked complement; this transition table + guards +
      invariants is the prose FSM of record they mirror. `scripts/validate_run.py` is the
@@ -114,6 +116,18 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 > §1.3 row — because the validator cross-checks `verify.iteration ≤ retries+1` (I4), so the
 > iteration counter is part of the contract, not cosmetic.
 
+> **Graph amendments add NO transition (Bounded Graph Amendments).** The Phase-6 work graph may grow
+> mid-run (`add_units`/`split_unit`/`add_edges`; `cancel_unit` human-gated) via append-only
+> `amendments/A<NN>.json` records, but this adds **no row** to either transition table: T9's "every
+> unit" quantifies over the **current `graph.json` revision**, and amending is **node-internal to P6
+> orchestration** — the same category as the I16 panel (finite work inside a node, no FSM edge). New
+> units simply enter the existing P5→P6 machinery. Termination is preserved by a monotone-decreasing
+> **fuel** budget (I18, mirroring `retries ≤ 2`): total units ≤ N0 + fuel₀, and fuel exhaustion routes
+> to ESCALATE (never a stuck state). Every amendment invariant (I3b/I3c/I17/I18/I19, §4) is an
+> **offline validator predicate**, never a live guard on any transition (the 02/P1 deadlock lesson) —
+> so the correction-loop proof holds **verbatim**. Full spec: SKILL.md Phase 6 "Graph amendments
+> (bounded)"; classification: self-learning-loops.md §2.
+
 ## 3. Guards (the conditions gating each transition)
 - **G-personas** (T2): user confirmed the roster. **Fail-closed & non-skippable:** the
   validator requires `gates.personas_confirmed` from P2 onward (REQUIRED_GATES) and rejects a
@@ -162,6 +176,11 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I15 AO-6 responsive change (post-hoc)** | For a retry carrying a `prior_feedback` echo, `debrief.prior_feedback.changes_made` is present and non-empty; else non-zero exit. | `validate_run.py` offline predicate (label `I15 AO-6 responsive change (units/<uid>)`), added ring-02/P2. Gates no transition. **Presence + non-emptiness of `changes_made` now schema-required on retries (PR-6)**, so this offline check is SUBSUMED for schema-valid retries and remains a degraded-mode (no-schema) backstop; `changes_made` *content* executor-self-attested. **Limitation F (narrowed).** |
 | **I16 Panel discipline (post-hoc, PR1)** | A `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); ANY panel's top-level `verdict` equals the **DISCRETE majority** of the panel verdicts (a no-majority split ⇒ `DISAGREE` — **no softmax**); `verify_rounds` (loop-until-dry) ∈ [1,3]. | `validate_run.py` offline predicate (label `I16 panel discipline (units/<uid>)`), added PR1. Gates **no** transition (never a live LT7 guard). Node-internal ⇒ **PRESERVES** termination. **Presence/shape-checked — genuine lens-diversity + real recall stay verifier judgment (Limitation H).** |
 | **I-dod DoD/non-goals present** | Any post-clarification structural artifact (cartography, graph, units, or synthesis — `learnings.json` is deliberately excluded) requires a schema-valid `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is absent (methodology.md §Clarification). | validator artifact-driven presence check, fail-closed on absence — confirmed via the `missing_dod`/`postdecomp_no_dod`/`synthesis_no_dod`/`unfenced_cycle` fixtures. |
+| **I3b wave layering** (BGA) | When `graph.json.waves` is present: every unit appears in exactly one wave group (and no group names a non-unit), and every edge in `edges ∪ deps` rises strictly in wave (`wave(from) < wave(to)`). When amendments exist `waves` is REQUIRED (absent ⇒ FAIL); without amendments an absent `waves` ⇒ SKIP. Closes a pre-existing gap: `waves` was never cross-checked, so a layering-violating-yet-acyclic graph passed silently. | `validate_run.py` post-hoc/offline; runs whenever a graph is present; gates no transition ⇒ **PRESERVES** termination (+STRENGTHENS I3). Fixtures `amend_ok`/`amend_layering`. |
+| **I3c dependency closure** (BGA) | Every `deps` element and every `edges[].from/to` names a CURRENT `units[].id`; a dangling reference (incl. a retired id still referenced) ⇒ FAIL. Closes a pre-existing gap: a phantom endpoint became an invisible node in cycle detection. | `validate_run.py` post-hoc/offline; runs whenever a graph is present; gates no transition ⇒ **PRESERVES** termination (+STRENGTHENS I3). Fixtures `amend_ok`/`amend_dangling_dep`. |
+| **I17 frozen executed prefix** (BGA) | No amendment touches a unit with a `debrief.json`/`verify.json` (retired dirs hold at most `brief.*`); no debriefed unit id is orphaned out of the amended `graph.json`; a retired id never reappears in a later `units_added`; a retired id in `fsm-state.units[]` has status `retired`. Mirrors the load-bearing 02/P4 has-no-debrief guard. | `validate_run.py` post-hoc/offline; gates no transition ⇒ **PRESERVES** AO-1/forward-only/I10/termination. Fixtures `amend_frozen`/`amend_orphan`. |
+| **I18 fuel bound** (BGA) | `expansion.fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0`; each record's `fuel_cost == max(1, \|units_added\| − \|units_retired\|)`; `graph.json.revision == 1 + \|records\|` with `amendments_applied` listing the record ids in order; amendments present with no `expansion` ⇒ FAIL. The pipeline-level termination budget (schema max 32), structurally identical to `retries ≤ 2`. | `validate_run.py` post-hoc/offline; gates no transition ⇒ **PRESERVES** the per-unit proof, **REVISES** the pipeline-level bound (N ≤ N0 + fuel₀); machine-checked by the TLC `Quiesce` property. Fixtures `amend_fuel_overrun`/`amend_no_fuel_seed`. |
+| **I19 amendment scope** (BGA) | Per record: `add_units`/`split_unit` ⇒ `dod_refs` non-empty and each element verbatim ∈ `definition_of_done`; `scope_change==true ⇒ human_gate==true`; `cancel_unit ⇒ human_gate==true`; split children tags ⊇ retired-snapshot tags and every snapshot criterion maps (`criteria_map`) to ≥1 existing child. | `validate_run.py` post-hoc/offline; gates no transition ⇒ **PRESERVES** I-dod/Non-Goals/sign-off integrity. `human_gate`/`frontier_wave`/`dod_refs` semantic trace are attestation-only (Limitations I/J/K). Fixtures `amend_dod_untraced`/`amend_cancel_ungated`. |
 
 **Socratic seam (canonical 4-key).** The `brief` carries only a **reference** to
 `references/socratic-protocol.md`; the answered block `socratic = {premise, counter, pivot,
@@ -195,7 +214,12 @@ aggregation — a split⇒DISAGREE, no softmax; `verify_rounds`∈[1,3] — post
 attestation; **the verify `disagreement` iff** (present ⟺ verdict==DISAGREE — both directions now
 schema-enforced, the ⇒ direction via a `not` clause added PR-6/N-06); gate-ordering of
 `fsm-state.phase` vs `gates` (REQUIRED_GATES — including **`signoff_confirmed` required at `DONE`**,
-the G-signoff sign-off gate, D-06); and the `const:false` shape of I1.
+the G-signoff sign-off gate, D-06); and the `const:false` shape of I1; and — for **Bounded Graph
+Amendments** — **I3b** wave layering + **I3c** dependency closure (run whenever a graph is present),
+**I17** frozen executed prefix, **I18** fuel bound (`fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0`
+plus the revision/`amendments_applied` bookkeeping), and **I19** amendment scope (`dod_refs` verbatim ∈
+`definition_of_done`, human-gate on scope_change/cancel, split coverage) — all post-hoc/offline, **none
+a live transition guard** (the 02/P1 deadlock lesson).
 
 **It CANNOT enforce** (these remain human/verifier judgment):
 - **A.** Whether the verifier *truly* was blind to executor reasoning — `const:false` /
@@ -242,6 +266,17 @@ the G-signoff sign-off gate, D-06); and the `const:false` shape of I1.
   `verify_rounds` leaves the internal loop-until-dry round count unaudited (that node's finiteness then
   rests on model discipline, as it did before the field existed — VERIFY is a single LT2 transition
   regardless, so termination is unaffected).
+- **I.** (BGA) Whether a `human_gate` on a scope-change/cancel was a **genuine** human decision.
+  `amendment.human_gate == true` (I19) is a **presence-checked attestation** — like
+  `signoff_confirmed` / `personas_confirmed` — not proof a human approved (validity ≠ correctness, the
+  A/D boundary).
+- **J.** (BGA) Whether an amendment's `frontier_wave` reflects the **real dispatch frontier**. The
+  validator enforces wave layering (I3b) and the frozen executed prefix (I17), but it cannot
+  reconstruct dispatch *timing* — `frontier_wave` is an attested field, not a derived one.
+- **K.** (BGA) Whether a new/split unit **genuinely serves** its cited `dod_refs`. I19 checks verbatim
+  **string membership** in `definition_of_done` (decidable), not semantic traceability — that the added
+  work actually advances that DoD item stays the verifier/critique-pass backstop (the same shape as E
+  for tags).
 
 ## 6. Phase→state coverage (no orphan phases)
 Every SKILL.md phase 0–8 maps to exactly one state (§1), with **one deliberately-unmodeled

@@ -18,7 +18,8 @@ Two levels of assurance guard the same invariants:
   independence is a structural (not incidental) invariant.
 
 Artifacts: `formal/Pipeline.tla` + `formal/Pipeline.cfg` (TLA+, machine-checked by
-TLC), `formal/WorkGraph.als` (Alloy).
+TLC), `formal/WorkGraph.als` + `formal/Amendment.als` (Alloy). `Amendment.als` is the Bounded Graph
+Amendments structural theorem (adding wave-layered units above their deps preserves acyclicity — §5).
 
 ## Tool-status (honest — evidence-standards.md)
 
@@ -26,7 +27,7 @@ TLC), `formal/WorkGraph.als` (Alloy).
 |------|----------|-------|
 | JDK (Oracle Java SE **25.0.3**, via `/usr/libexec/java_home`) | **yes** | yes |
 | **TLC** (`tla2tools.jar` v2.19) | fetched to `/tmp` | **yes — TLA+ properties MACHINE-CHECKED** |
-| **Alloy** (`org.alloytools.alloy.dist.jar` v6.2) | fetched to `/tmp` | **yes — Alloy properties MACHINE-CHECKED** (Kodkod / bundled SAT4J, headless): all 4 `check`s → no counterexample, `run WitnessGraph` → instance found (see §3–§4) |
+| **Alloy** (`org.alloytools.alloy.dist.jar` v6.2) | fetched to `/tmp` | **yes — Alloy properties MACHINE-CHECKED** (Kodkod / bundled SAT4J, headless): all 4 `WorkGraph.als` `check`s + both `Amendment.als` `check`s → no counterexample; `run WitnessGraph` / `run AmendWitness` → instance found (see §3–§5) |
 
 > On a fresh macOS `/usr/bin/java` *may* be a stub (it prints "Unable to locate a Java
 > Runtime" when no JDK is installed); if so, reach the real JDK via
@@ -52,6 +53,7 @@ derived).
 | 2 | Bounded-loop termination | LIVENESS | `Pipeline.tla` | **machine-checked** (TLC) + hand-proved (variant) |
 | 3 | DAG acyclicity | STRUCTURAL | `WorkGraph.als` | **machine-checked** (Alloy — no counterexample) + hand-proved |
 | 4 | Verifier independence | STRUCTURAL | `WorkGraph.als` | **machine-checked** (Alloy — no counterexample) + asserted (structural invariant, shown consistent) |
+| 5 | Bounded-amendment quiescence | LIVENESS + STRUCTURAL | `Pipeline.tla` (`Quiesce`) + `Amendment.als` | **machine-checked** (TLC `Quiesce`, non-vacuous vs keep-fuel mutant; Alloy `Amendment.als` layering-preservation — no counterexample) + hand-proved (fuel variant) |
 
 ---
 
@@ -68,28 +70,32 @@ export JAVA_HOME=$(/usr/libexec/java_home)
     -config formal/Pipeline.cfg formal/Pipeline.tla
 ```
 
-**Actual TLC transcript (2026-07-06, TLC 2.19, JDK 25.0.3 — after the BRK-11 `ToEscalate` fix):**
+**Actual TLC transcript (2026-07-10, TLC 2.19, JDK 25.0.3 — after adding the Bounded Graph Amendments
+`Amend` action, the `fuel` variable, the `FuelBound` invariant, and the `Quiesce` property):**
 
 ```
 TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
-Implied-temporal checking--satisfiability problem has 1 branches.
+Implied-temporal checking--satisfiability problem has 2 branches.
 Finished computing initial states: 1 distinct state generated ...
-Progress(28): 715 states generated, 328 distinct states found, 0 states left on queue.
-Checking temporal properties for the complete state space with 328 total distinct states
+Progress(36): 853 states generated, 408 distinct states found, 0 states left on queue.
+Checking 2 branches of temporal properties for the complete state space with 816 total distinct states
 Finished checking temporal properties in 00s
 Model checking completed. No error has been found.
-715 states generated, 328 distinct states found, 0 states left on queue.
-The depth of the complete state graph search is 28.
+853 states generated, 408 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 36.
 ```
 
-`Model checking completed. No error has been found.` ⇒ across the **328 reachable
+`Model checking completed. No error has been found.` ⇒ across the **408 reachable
 states** (full state space, queue empty), every `INVARIANT` (`TypeOK`,
-`GateOrdering`, `LoopBound`, `VariantOK`, `BackEdgeGuarded`) held in every state, and
-the temporal `PROPERTY Termination` held on every fair behavior. (The BRK-11 `ToEscalate` fix
-added exactly one new reachable state — `phase=P7 ∧ verdict=FAIL ∧ retries=2`, the retries-exhausted
-FAIL escalation reaching P7 — enlarging the space by one distinct state. The probe invariant
-`P7OnlyViaDisagree ≡ (phase="P7") ⇒ (verdict="DISAGREE")`, which HELD on the pre-fix model, now
-reports a violation — P7 is reachable from a FAIL-origin escalate.)
+`GateOrdering`, `LoopBound`, `VariantOK`, `BackEdgeGuarded`, **`FuelBound`**) held in every state, and
+**both** temporal properties — `Termination` and the new **`Quiesce`** (the "2 branches of temporal
+properties" line) — held on every fair behavior. **Baseline → BGA:** the pre-BGA model checked at
+**715 states generated / 328 distinct / depth 28** with a single `Termination` branch; adding the
+bounded `fuel` variable (`MaxFuel = 2`) and the `Amend` re-arm action grows the reachable space to
+**853 / 408 / depth 36** with a second temporal branch (`Quiesce`) — the graph-amendment budget made
+visible to the model checker. (The earlier BRK-11 `ToEscalate` fix — which added the
+`phase=P7 ∧ verdict=FAIL ∧ retries=2` state and made the probe `P7OnlyViaDisagree` reportably violated,
+P7 now reachable from a FAIL-origin escalate — is subsumed in this 408-state count.)
 
 **Non-vacuity check (adversarial — did the liveness test have teeth?).** I broke the
 variant in a throwaway copy `Broken.tla`: made `LRetry` write `retries' = retries`
@@ -145,7 +151,7 @@ Two facts:
    invariant. ∎  The bad behaviors above are therefore unreachable: to be at P3,
    `Advance(P2)` fired ⇒ `gate["P2"]`; to be at P8, `Advance(P6)` fired ⇒ `gate["P6"]`,
    and `gate["P6"]` is set *only* by `LinkP6`, which requires `lstate="DONE"` (the unit
-   passed). TLC confirms across all 328 states.
+   passed). TLC confirms across all 408 states.
 
 **Check command:** the run above; `GateOrdering` is listed as `INVARIANT`.
 **Tool-status:** **machine-checked** by TLC 2.19 (no JRE→TLC excuse: a real JDK 25 was
@@ -306,6 +312,80 @@ even a green Alloy check would **not** prove the *real system* enforces it: see 
 
 ---
 
+## 5. Bounded-amendment quiescence — LIVENESS (TLA+) + STRUCTURAL (Alloy) · machine-checked
+
+**Mirrors:** the Bounded Graph Amendments invariants **I18** (fuel bound) + I3b/I3c/I17/I19
+(state-machine.md §4); self-learning-loops.md §2 FLAG (PRESERVES per-unit / REVISES pipeline-bound).
+Runtime backstop: `fsm-state.schema.json` `expansion.fuel_*` (max 32) + validator **I18**.
+
+**Formal statement** (`Quiesce`, a `PROPERTY` under `WF_vars(LoopNext)`):
+
+```
+<>[](lstate \in {"DONE","ESCALATE"})
+```
+
+("<>[]" = eventually-always; the loop eventually STAYS in a terminal — amendments cannot re-arm it
+forever.)
+
+**What bad behavior it must exclude** (COUNTER): an unbounded-amendment run whose graph grows without
+limit — the loop re-armed (`DONE → EXECUTE`) infinitely, so the *pipeline* never quiesces even though
+every individual unit still terminates.
+
+**Hand-proof (well-founded variant — the §3.4 / self-learning-loops §2 argument).** The amendment is
+the `Amend` action: guarded on `phase="P6" ∧ gate["P6"]=FALSE ∧ lstate="DONE" ∧ fuel>0`, it spends one
+unit of fuel (`fuel' = fuel − 1`) and re-arms the representative loop (`lstate'="EXECUTE",
+retries'=0, verdict'="NONE"`; `UNCHANGED <<phase, gate>>`). Two facts:
+1. **Per-unit termination is untouched** (Property 2, Claims A–D verbatim): each re-armed lap runs the
+   same `EXECUTE→VERIFY→ADJUDICATE` loop with variant `V = 2 − retries`; `WF_vars(LoopNext)` drives it
+   to a terminal. Only LT7 writes `retries`; `Amend` resets it for a *fresh* unit and adds no back-edge.
+2. **`fuel` is a second well-founded variant.** `fuel ∈ 0..MaxFuel` (invariant `FuelBound`), only
+   `Amend` writes it and only `−1`, and `Amend`'s own guard `fuel>0` disables it at the floor. So after
+   ≤ MaxFuel re-arms `Amend` is permanently disabled; the loop then reaches a terminal and — with no
+   enabled `Amend` — `{DONE,ESCALATE}` absorb (`TermStutter`). Hence `lstate` is eventually always
+   terminal. ∎  Total transitions ≤ 12·(N0 + fuel₀) + fuel₀ — finite.
+
+Classification (self-learning-loops.md §2 FLAG): the **per-unit correction-loop proof PRESERVES**
+(verbatim); the **pipeline-level bound REVISES** ("fixed finite N" → "N ≤ N0 + fuel₀", fuel the same
+well-founded-counter shape as `retries`). `GateOrdering` **PRESERVES** — `Amend` is guarded on
+`gate["P6"]=FALSE` and writes neither `phase` nor any `gate` entry, so no gate can be bypassed.
+
+**Non-vacuity (adversarial — does `Quiesce` have teeth?).** The load-bearing point: `Termination`
+(`EXECUTE ~> {DONE,ESCALATE}`) alone would **NOT** catch unbounded amendment — each re-armed lap still
+terminates, so `Termination` stays true; only the *run* fails to quiesce. Demonstrated on a throwaway
+keep-fuel mutant (`Amend` with `fuel' = fuel`, so fuel never decreases):
+
+```
+mutant + PROPERTY Termination only  =>  Model checking completed. No error has been found.
+mutant + PROPERTY Quiesce only      =>  Error: Temporal properties were violated.
+                                        Back to state <n>: <LRetryBranch/Amend>   (infinite DONE->EXECUTE re-arm lasso)
+```
+
+The shipped `Pipeline.tla` (fuel strictly decreases) passes `Quiesce`; the mutant fails it while still
+passing `Termination`. This is the external signal that `Quiesce` — not `Termination` — captures the
+BGA termination guarantee. (Mutant deleted after recording; never vendored, like `Broken.tla`.)
+
+**Structural half (Alloy — `formal/Amendment.als`).** The TLA+ liveness proof assumes the amended graph
+stays acyclic; `Amendment.als` proves that *structurally*. `Old` abstracts the frozen executed prefix
+(I17); `Unit − Old` are amendment-added units placed strictly above their dependencies. Given
+`OldLayered` + `FrozenOld` (old edges never point at new units — I17) + `NewAboveDeps`, both
+`check AmendPreservesLayering` and `check AmendPreservesAcyclic` report **no counterexample**
+(scope `7 but 5 Int`), and `run AmendWitness` finds a non-vacuous instance (real new units, one
+consuming an old unit, acyclic). Hand-proof: case-split on `u ∈ Old` (then `depends ⊆ Old` by FrozenOld,
+and OldLayered gives `d.wave < u.wave`) vs `u ∉ Old` (NewAboveDeps gives it directly) ⇒ the combined
+graph is wave-layered, and the existing `LayeringImpliesAcyclic` theorem (Property 3) yields acyclicity.
+∎  Honest scope: `add_edges` into an unexecuted *old* unit is not modeled in Alloy — it is caught at
+runtime by the full-graph I3 + I3b re-check per revision (noted, not hidden). `WorkGraph.als` is left
+untouched and its four checks still report no counterexample.
+
+**Check command** (from `plugins/dag/skills/dag/`): the TLC run above, now with `Quiesce` in the
+`PROPERTY` list + `FuelBound` in the `INVARIANT` list (`Pipeline.cfg` carries `MaxFuel = 2`); for Alloy,
+drive `Amendment.als` headless via the Alloy Java API (default SAT4J, `-Djava.awt.headless=true`) —
+never `java -jar` (GUI). **Tool-status:** **machine-checked** — TLC 2.19 (`Quiesce` liveness, complete
+408-state space, non-vacuous vs the keep-fuel mutant) + Alloy 6 (`Amendment.als`, no counterexample) +
+hand-proved.
+
+---
+
 ## Consistency with the runtime validator (two levels, same invariants)
 
 | Invariant | Design-time proof (here) | Runtime enforcement (`validate_run.py`) |
@@ -315,9 +395,10 @@ even a green Alloy check would **not** prove the *real system* enforces it: see 
 | DAG acyclic (I3) | Prop 3 `Acyclic` (hand-proved + machine-checked Alloy `check`) | fail-closed cycle detection on `edges ∪ deps` |
 | Verifier independence (I1) | Prop 4 structural `Independence` | `executor_reasoning_seen const:false` |
 | maker≠checker (**I1b maker!=checker**) | Prop 4 Alloy `DistinctMakerChecker` (asserted + machine-checked) | `executor_persona != verifier_persona` per graph.json unit (U04) |
+| Bounded-amendment quiescence (I18) | Prop 5 `Quiesce` (TLC ✓, non-vacuous vs keep-fuel mutant) + `Amendment.als` layering (Alloy ✓) | I18 fuel bound (`fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + revision/`amendments_applied` bookkeeping) |
 
 **Covered by one layer only (noted honestly):** the validator additionally enforces
-I5–I7, I9, I11–I16, I-dod, and the premise-check attestation (the independent COUNTER re-run), which are *data-shape* checks with no
+I5–I7, I9, I11–I16, I-dod, the BGA frozen-prefix + scope + graph-closure checks (I17/I19/I3b/I3c), and the premise-check attestation (the independent COUNTER re-run), which are *data-shape* checks with no
 temporal/structural content worth a separate model. Conversely, the models prove the
 *rules* (no run can bypass a gate; the loop can't diverge) — a guarantee the per-run
 validator cannot give, since it inspects one run's artifacts, not the rule-space.
@@ -326,7 +407,7 @@ validator cannot give, since it inspects one run's artifacts, not the rule-space
 
 `Pipeline.tla` is a deliberately small model of the pipeline+loop; three abstractions are
 called out honestly. **None weakens the proved properties — the shipped model PASSES as-is
-(TLC 2.19: 715 states generated / 328 distinct / depth 28 / no error), and each abstraction is
+(TLC 2.19: 853 states generated / 408 distinct / depth 36 / no error, incl. `FuelBound` + `Quiesce`), and each abstraction is
 safety-preserving (it removes behaviors, so it can only make `GateOrdering` easier to hold, not
 harder).**
 
@@ -344,6 +425,13 @@ harder).**
   advances forward past a gate and changes no `gate` entry, so `GateOrdering` still holds; the
   omitted recovery/rollback edges would only add more (still gate-respecting) behavior. In-model,
   the post-`Resolve` P6 state is a stutter-absorbing terminal rather than a re-armed loop.
+  **BGA note:** an ESCALATE-origin amendment (a P7 resolution that amends the graph — an
+  `amendment.origin.trigger` of `p7_resolution`) folds into this same out-of-scope `Resolve`
+  simplification. The model's `Amend` re-arms only from `lstate="DONE"` (an autonomous, mid-P6
+  amendment), not from a post-`Resolve` ESCALATE; the human-approved-split path is the same
+  out-of-model recovery edge (b) already omits. The runtime validator's I17/I18/I19 govern the
+  amendment regardless of origin, so nothing is unenforced — only the P7-recovery *edge* is
+  unmodeled, exactly as it was pre-BGA.
 - **(c) `gate["P0"]` / `gate["P5"]` have no runtime gate flag.** The model carries an exit gate
   for every spine phase (`gate ∈ [SpinePhases -> BOOLEAN]`), but the *runtime* `gates` object
   has only the **four gate flags** (`personas_confirmed`, `clarification_resolved`,
@@ -375,7 +463,7 @@ and **cannot** be captured in TLA+/Alloy:
   observe whether the real deployment ran a genuinely different model behind the label.
 - **E.** Whether a `tag` denotes a *genuinely reusable* pattern (I12 checks ≥2 carriers
   mechanically; "truly generalizable" stays a human/verifier call).
-- **F, G, H (validator-layer limitations — the models do not touch them).** These three are
+- **F, G, H, I, J, K (validator-layer limitations — the models do not touch them).** These are
   properties of the *runtime validator*, not the design-time model, so they are neither proved nor
   weakened here: **F** — I14/I15 are post-hoc, presence-gated, self-reported anti-oscillation checks
   (the model proves loop *termination*, not that a retry genuinely responded to feedback);
@@ -383,8 +471,15 @@ and **cannot** be captured in TLA+/Alloy:
   admission carve-out are a validator data-domain revision with a provenance-trust boundary
   (`Pipeline.tla`/`WorkGraph.als` model neither tags nor the learnings domain); **H** — I16 panel
   discipline checks panel presence/shape/discrete-majority, not that the lenses were genuinely applied
-  (the model has no panel construct). Listing them keeps this inheritance range honest —
-  state-machine.md defines Limitations A through H.
+  (the model has no panel construct). The three **Bounded Graph Amendments** semantic limits are
+  likewise validator-layer, not modeled: **I** — `amendment.human_gate` is a presence-checked
+  attestation (I19), not proof a human approved a scope-change/cancel; **J** — `frontier_wave` is
+  attested, not derived (the validator cannot reconstruct dispatch timing); **K** — I19's `dod_refs`
+  verbatim match is string membership in `definition_of_done`, not semantic traceability that the
+  added unit genuinely serves that DoD item. The TLA+ `Amend`/`Quiesce` proof covers only the
+  *termination* + *acyclicity* half of BGA (Property 5); these three semantic guarantees stay the
+  verifier/human backstop. Listing them keeps this inheritance range honest — state-machine.md defines
+  Limitations A through K.
 
 These are surfaced, not papered over: the formal layer proves the *plumbing and the
 rules*; correctness-of-content remains the independent verifier's semantic judgment

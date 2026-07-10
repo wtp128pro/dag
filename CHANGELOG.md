@@ -3,6 +3,21 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.6] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.4.0** — **Bounded Graph Amendments (BGA)**: the Phase-6 work graph may grow under
+  mechanical constraints via append-only `amendments/A<NN>.json` records (`add_units`/`split_unit`/
+  `add_edges` autonomous + DoD-traced; `cancel_unit` human-gated), over the not-yet-started future only,
+  bounded by a monotone-decreasing fuel budget (total units ≤ N0 + fuel₀; exhaustion ⇒ ESCALATE). Five
+  new **post-hoc/offline** invariants (**I3b/I3c** — also closing two pre-existing validator gaps: `waves`
+  cross-check + dependency closure — and **I17/I18/I19**, none a live guard), a new `amendment.schema.json`
+  (14 schemas), 10 new fixtures (**54 → 64**), and a machine-checked TLA+ liveness property **`Quiesce`**
+  (TLC 853/408/depth 36; non-vacuous vs a keep-fuel mutant) plus a new Alloy `Amendment.als`. The per-unit
+  correction-loop termination proof is **PRESERVED** verbatim; only the pipeline-level unit-count bound
+  **REVISES** to N ≤ N0 + fuel₀ (fuel the same well-founded-counter shape as `retries`). See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.5] — 2026-07-06
 
 ### Changed

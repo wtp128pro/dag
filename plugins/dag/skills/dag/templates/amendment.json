@@ -1,0 +1,18 @@
+{
+  "id": "A01",
+  "kind": "add_units",
+  "origin": {
+    "trigger": "debrief_handoff",
+    "source_unit": "U03",
+    "source_ref": "units/U03/debrief.json handoff_notes: 'we also need a migration-safety check'"
+  },
+  "rationale": "U03's debrief surfaced a migration-safety check absent from the original plan; add a dedicated unit. Mechanical addition that traces verbatim to an existing Definition-of-Done item, so it is autonomous (no scope change) and consumes 1 fuel.",
+  "scope_change": false,
+  "human_gate": false,
+  "dod_refs": ["the migration path is verified safe by a dedicated check"],
+  "fuel_cost": 1,
+  "frontier_wave": 3,
+  "units_added": ["U07"],
+  "graph_revision_after": 2,
+  "timestamp": "2026-07-10T14:00:00-0400"
+}

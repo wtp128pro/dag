@@ -51,6 +51,7 @@ files. This is what makes the run resumable and keeps Dag's own context lean.
 │   ├── debrief.json     structured result OUT            (JSON-only — verifier + downstream read this)
 │   ├── verify.json      independent adversarial report   (JSON-only — adjudication reads this)
 │   └── disagreement.md  (only if escalated)              (+ disagreement.json)
+├── amendments/A<NN>.json  bounded graph-amendment records (Phase 6, BGA) — append-only, one per amendment; graph.json stays authoritative
 └── SYNTHESIS.md     final rolled-up deliverable (Phase 8)
 ```
 
@@ -81,7 +82,7 @@ notes. This is how "no rediscovery" (req 13) and the budget cap (req 7) are both
 | 1 | Socratic dialogue for personas | SKILL Phase 1; methodology §Socratic; **references/socratic-protocol.md** (one move-set, 2 modes); references/personas/ (index.json + per-file JSON) | Hybrid roster proposed, user confirms via AskUserQuestion gate; questioning is *selective* (material surfaces only), not a ritual; the answered `socratic` block is schema-checked (`schemas/debrief.schema.json` + `schemas/verify.schema.json`) and its genuineness re-verified in Phase 6; the **persona gate is mechanically non-skippable** — `validate_run.py` requires `gates.personas_confirmed` from Phase 2 on and rejects a confirmed flag unbacked by a valid `personas.json` (G-personas / T2), so "right-sizing" cannot drop it |
 | 2 | Clarification analysis eliminating lapses | SKILL Phase 2; methodology §Clarification; templates/clarifications.md | Ambiguity register ranked by materiality; material items gated to user |
 | 3 | Detailed cartography | SKILL Phase 3; templates/cartography.md | Cartographer subagent(s) produce annotated map |
-| 4 | Atomic units + dependency graph | SKILL Phase 4; methodology §Decomposition; templates/graph.md; **schemas/graph.schema.json** | Atomicity tests, DAG, topological waves, critique pass; the validator parses `graph.json` **fail-closed** — an unparseable/empty graph or a cycle is rejected; units carry `tags ⊆ V_tag` for pattern-scoped learning |
+| 4 | Atomic units + dependency graph | SKILL Phase 4; methodology §Decomposition; templates/graph.md; **schemas/graph.schema.json**; **Bounded Graph Amendments**: SKILL Phase 6 "Graph amendments (bounded)"; **schemas/amendment.schema.json** | Atomicity tests, DAG, topological waves, critique pass; the validator parses `graph.json` **fail-closed** — an unparseable/empty graph or a cycle is rejected; units carry `tags ⊆ V_tag` for pattern-scoped learning. The Phase-6 graph may **grow under mechanical constraints** via append-only `amendments/A<NN>.json` (kinds `add_units`/`split_unit`/`add_edges`; `cancel_unit` human-gated), bounded by a monotone-decreasing `expansion` fuel budget and validated post-hoc by **I3b** (wave layering) / **I3c** (dependency closure) / **I17** (frozen executed prefix) / **I18** (fuel bound) / **I19** (amendment scope) — none a live transition guard, so the correction-loop termination proof is PRESERVED (total units ≤ N0 + fuel₀) |
 | 5 | Structured briefing per unit | SKILL Phase 5; templates/brief.md | Self-contained contract; footprint validated |
 | 6 | Structured debriefing consumed up the line | templates/debrief.md; handoff notes | Evidence table + handoff notes feed downstream briefs |
 | 7 | Subagent, ≤32K context budget | SKILL Phase 6 + Prime Directive 2; brief "budget contract"; **schemas/brief.schema.json** (`budget_tokens maximum: 32000`) | Atomic scope + read-only-what's-listed + self-reported footprint checked by verifier; the *declared* budget is now schema-hard-checked. **(Real consumption still disciplinary — see Limitations §1.)** |
@@ -160,6 +161,15 @@ verify are flagged so we don't launder them into facts — practicing req 10 on 
    high-stakes/complex work; for trivial tasks it is overkill — say so and offer to skip.
 6. **Interactive by design.** Because of the Socratic gates, this runs in the foreground,
    not as a fire-and-forget background job.
+7. **Bounded Graph Amendments are attestation-checked, not semantically proven.** BGA lets the
+   Phase-6 graph grow, but the three semantic guarantees stay human/verifier judgment (validity ≠
+   correctness): `human_gate` is a **presence-checked attestation** (like `signoff_confirmed`) — the
+   validator cannot prove a human actually approved a scope-change/cancel; `frontier_wave` is
+   **attested** (the validator cannot reconstruct dispatch timing); and `dod_refs` verbatim matching
+   is **string membership**, not semantic traceability — that a new unit *genuinely* serves its cited
+   DoD item stays the verifier/critique-pass backstop. What IS mechanical and fail-closed: the frozen
+   executed prefix (I17), the fuel bound (I18), acyclicity + wave layering + dependency closure
+   (I3/I3b/I3c), and DoD string membership + the human-gate flag's presence (I19).
 
 ## 7. How to run
 

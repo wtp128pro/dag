@@ -183,7 +183,16 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.3.0** — five-track audit remediation. Closes validator-enforcement evasions and
+Current version: **1.4.0** — **Bounded Graph Amendments (BGA)**: the Phase-6 work graph may grow under
+mechanical constraints via append-only amendment records (`add_units`/`split_unit`/`add_edges`;
+`cancel_unit` human-gated), bounded by a monotone-decreasing **fuel** budget (total units ≤ N0 + fuel₀).
+Five new **post-hoc/offline** invariants (**I3b** wave layering + **I3c** dependency closure — closing
+two pre-existing validator gaps — and **I17** frozen executed prefix, **I18** fuel bound, **I19**
+amendment scope), none a live guard; a new `amendment.schema.json` (14 schemas); 10 new fixtures
+(**54 → 64**); and a machine-checked TLA+ liveness property **`Quiesce`** (non-vacuous vs a keep-fuel
+mutant) plus a new Alloy `Amendment.als`. The per-unit correction-loop termination proof is **PRESERVED**
+verbatim; only the pipeline-level unit-count bound is **REVISED** (fixed N → N ≤ N0 + fuel₀). **1.3.0** —
+five-track audit remediation. Closes validator-enforcement evasions and
 adds robustness (PR-1); fixes the learnings contract + the Phase-0.5→G-personas deadlock (PR-2) and
 the I12 selector semantics — `all`/`U0X`/`tag:` enforced, `phaseN` removed (PR-3); makes the
 formal-model docs honest (PR-4); tightens skill instructions + socratic schemas (PR-5) and the

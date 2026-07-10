@@ -5,9 +5,9 @@ description: >-
   Socratic persona selection, exhaustive clarification, contextual cartography,
   atomic work-unit decomposition with a dependency graph, self-contained briefings,
   budget-capped subagent execution with propose/critique personas, INDEPENDENT
-  adversarial verification of every work unit, adaptive evidence standards to
-  eliminate hallucination, Socratic gates on material disagreement, and a durable
-  plan/decision/progress/learnings ledger. Use for complex, high-stakes, or
+  adversarial verification of every work unit, bounded mid-run graph amendments,
+  adaptive evidence standards to eliminate hallucination, Socratic gates on material
+  disagreement, and a durable plan/decision/progress/learnings ledger. Use for complex, high-stakes, or
   correctness-critical work where a single-shot answer is not trustworthy.
   Invoke with `/dag:dag <task>`.
 argument-hint: "<task prompt, or leave empty to be asked>"
@@ -301,6 +301,13 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
 5. Write `GRAPH.md` (template) with the unit table, the DAG, and the wave ordering.
    Register each unit as a task via `TaskCreate` for live tracking.
+6. **Seed the amendment fuel budget (Bounded Graph Amendments).** Set
+   `fsm-state.expansion.fuel_initial` — how many graph amendments Phase 6 may make without a human
+   interrupt — to a **default `min(N0, 8)`** (N0 = unit count at decomposition approval); the human
+   MAY adjust it at the decomposition gate. `0` or an absent `expansion` object **disables BGA**
+   (today's behavior). Record it in `GRAPH.md` and `fsm-state.json`
+   (`{fuel_initial, fuel_remaining = fuel_initial, amendments_applied: 0}`). This is the
+   pipeline-level termination budget (schema max 32) and mirrors the per-unit `retries` cap.
 
 > **Large datasets — partition the *work*, not the *context* (see
 > [references/data-partitioning.md](references/data-partitioning.md)).** When the objective is a pass
@@ -460,6 +467,59 @@ call per unit, ideally in a single message). For **each unit**:
      termination. A not-yet-executed unit has `retries = 0` untouched, so re-briefing it only *adds* the
      `learnings_applied` entry I12 would otherwise demand — it can reduce I12 violations, never create
      one. **NEVER re-brief a unit that already has a debrief.**
+
+### Graph amendments (bounded) — grow the DAG mid-run without a re-decomposition  (BGA)
+
+Real work surfaces unknowns mid-execution. Rather than cram discovered work into a unit (budget
+breach), force a full P7→P4 re-decomposition, or drop it (a silent DoD gap), Phase 6 may **amend the
+work graph under mechanical constraints** — the same forward-only safety line as the 02/P4 guarded
+re-brief: **only the not-yet-started future is amendable; a unit whose correction loop has begun is
+frozen.** Depth: references/state-machine.md §4 (I3b/I3c/I17/I18/I19), references/self-learning-loops.md
+§2 (the PRESERVES/REVISES classification), references/formal-models.md Property 5.
+
+**When.** Only **between** unit adjudications, on a trigger: `debrief_handoff` (a debrief says "we also
+need X"), `footprint_breach` on a **not-yet-dispatched** unit, `p7_resolution` (the human approves a
+split at the disagreement gate), or `human_request`.
+
+**Kinds (whitelist — nothing else exists; free-form mutation is forbidden):**
+
+| Kind | What it does | Autonomy |
+|---|---|---|
+| `add_units` | insert ≥1 new unit + incoming edges; each new unit's wave strictly above every dependency's wave | autonomous iff every new unit's `dod_refs` trace **verbatim** to existing DoD items; else human-gated |
+| `split_unit` | replace one **unexecuted** unit with ≥2 children covering its tags + every acceptance criterion (`criteria_map`); parent id retired, never reused | autonomous (scope-preserving) |
+| `add_edges` | add edges whose **target** is unexecuted; layering must still hold | autonomous |
+| `cancel_unit` | retire an unexecuted unit without replacement | **always human-gated** (drops planned scope) |
+
+**Frozen executed prefix (I17) — the load-bearing rule.** No amendment may modify, retire, re-wave, or
+rewire a unit that has a `debrief.json`/`verify.json` or is executing/verifying/passed/failed/blocked/
+escalated. **The correction loop is never entered, exited, bypassed, or interrupted by an amendment** —
+a FAIL that "needs a split" still exits via RETRY or ESCALATE→P7, where the human may approve a split
+as the T11 resolution. Amendments are **never** used to dodge a FAIL.
+
+**Fuel (I18) — termination.** Each amendment costs `max(1, |units_added| − |units_retired|)` fuel;
+`expansion.fuel_remaining` decreases monotonically (schema max 32). **Fuel exhausted + an amendment
+still needed ⇒ ESCALATE** (write `disagreement.md` on the origin unit → Phase-7 human gate) — exactly
+the `retries == 2` pattern; never a stuck state. This bounds total units at N0 + fuel₀, so the pipeline
+provably quiesces (machine-checked by the TLC `Quiesce` property).
+
+**Transactional procedure (between adjudications):**
+1. Draft the amendment; if any new unit's acceptance criteria do not trace verbatim to an existing DoD
+   item, set `scope_change: true` ⇒ `AskUserQuestion` gate. On approval, **first** append the new DoD
+   item to `clarifications.json` + `CLARIFICATIONS.md` and log it in `DECISIONS.md` (so I19's membership
+   check passes post-hoc).
+2. Write `amendments/A<NN>.json` → regenerate `graph.json` (`revision`+1, append `amendments_applied`,
+   record `retired_units`) → append `GRAPH.md` §Amendments → update `fsm-state.expansion` → mark retired
+   units' `fsm-state.units[]` status `retired` → `TaskCreate` the new units.
+3. Run `bash scripts/validate_run.sh <RUN_DIR> --quiet`; **a non-zero exit is a hard stop** — do not
+   dispatch any new unit until it exits 0.
+4. Write the new units' briefs per Phase-5 rules (learnings propagation applies naturally: new units
+   have `wave ≥ since_wave`; per-tag FAIL tallies for panel escalation include amended units).
+5. Log to `PROGRESS.md` (always) and `DECISIONS.md` (when human-gated).
+
+Every new invariant (I3b/I3c/I17/I18/I19) is an **offline validator predicate** over the emitted
+records — **never a live guard on any transition** (the 02/P1 deadlock lesson). The per-unit
+correction-loop termination proof is **PRESERVED verbatim**; only the pipeline-level unit-count bound is
+**REVISED** (fixed N → N ≤ N0 + fuel₀).
 
 ---
 

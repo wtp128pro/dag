@@ -55,3 +55,13 @@ unfenced_cycle	1	I3 DAG fail-closed (E)
 verify_without_debrief	1	I9 verify-without-debrief (units/U01)
 wave_float_gap	1	MUST list L1 in learnings_applied
 p4_advisory/regrounded_required	1	MUST list L7 in learnings_applied
+amend_ok	0	
+amend_cycle	1	I3
+amend_layering	1	I3b
+amend_dangling_dep	1	I3c
+amend_frozen	1	I17
+amend_orphan	1	I17
+amend_fuel_overrun	1	I18
+amend_no_fuel_seed	1	I18
+amend_dod_untraced	1	I19
+amend_cancel_ungated	1	I19

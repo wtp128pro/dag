@@ -57,3 +57,24 @@ waved through (a missing or unverifiable DAG blocks the run).
 
 ## Budget audit
 - Every unit's estimated footprint ≤ 32K after atomization? <yes | re-split list>
+
+## Fuel budget (Bounded Graph Amendments)
+- `expansion.fuel_initial` = <default `min(N0, 8)`; human-adjustable at this gate; `0`/absent = BGA off>.
+  This bounds how many graph amendments Phase 6 may make when executed work surfaces unknowns.
+
+## Amendments (appended in Phase 6 — only if the graph is amended)
+When executed work surfaces an unknown, the graph may grow under mechanical constraints. Record each
+amendment as `amendments/A<NN>.json` (the authoritative append-only record) **and** as one row here:
+| Amendment | Kind | Origin (trigger) | Fuel cost | Units added | Units retired | DoD refs |
+|-----------|------|------------------|-----------|-------------|---------------|----------|
+| A01 | add_units | debrief_handoff (U0X) | 1 | U0Y | — | `<verbatim definition_of_done item>` |
+| A02 | split_unit | footprint_breach (U0Z) | 1 | U0P, U0Q | U0Z | `<verbatim definition_of_done item>` |
+
+`graph.json` stays authoritative and is **regenerated** after each amendment: `revision`+1,
+`amendments_applied` lists the `A<NN>` ids in order, `retired_units` records `{id, replaced_by[],
+amendment}`. Fuel: `expansion.fuel_remaining = fuel_initial − Σ fuel_cost ≥ 0` (each amendment costs
+`max(1, |units_added| − |units_retired|)`; validate_run.py **I18**). Kinds:
+`add_units`/`split_unit`/`add_edges` (autonomous, DoD-traced) · `cancel_unit` (human-gated). Only the
+**not-yet-started future** is amendable — a unit whose correction loop has begun is frozen (**I17**).
+See SKILL.md Phase 6 "Graph amendments (bounded)", `schemas/amendment.schema.json`, and
+`templates/amendment.json`.
