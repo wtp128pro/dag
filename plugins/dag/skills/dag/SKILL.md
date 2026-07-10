@@ -53,11 +53,26 @@ so most are dead weight until their phase arrives.
   specified in `templates/graph.md` §V_tag/LEARNINGS + `schemas/learnings.schema.json`; `manifest.json`
   and `SYNTHESIS.md` are schema-/prose-specified only, no standalone template).
 
+> **Provenance-label legend (U9 — hoisted here, before first use; safe to ignore when executing).** Tags
+> like `02/P1`…`04/G5`, `ring-05`, `PR1`, `PR2`, `03/P4`, and the `WP#`/`B#`/`G#`/`D#`/`U#` markers mark
+> *why a rule exists* — provenance references to the dag self-evaluation runs that produced each rule
+> (**PR1** = verifier hardening; **PR2** = reproducible evidence + large-dataset partitioning;
+> **02/03/04** = the self-learning-loop proposal rings; **ring-05** = the deferred cross-party trust
+> work; **WP#/B#/G#/D#/U#** = the extra_check validator-hardening remediation). Those run dirs are not
+> shipped; the labels are cross-references the maintainer uses and are safe to ignore when executing.
+
 ## Prime directives (hold these through every phase)
 
 1. **Ledger is truth.** State lives in `RUN_DIR/{PLAN,DECISIONS,PROGRESS,LEARNINGS}.md`
    and the per-unit files. If it isn't written down, it didn't happen. Update the
    ledger at every state change so no downstream unit ever rediscovers a fact.
+   **`fsm-state.json` bookkeeping protocol (U1 — the validator hard-requires this).** On exiting each
+   phase N, update `fsm-state.json`: set `phase = <the P#_ENUM you are entering>`, set the phase's
+   gate flag true (`clarification_resolved` after P2, `cartography_done` after P3,
+   `decomposition_approved` after P4, `signoff_confirmed` after P8 — `personas_confirmed` after P1),
+   and bump `updated_at`. The validator's REQUIRED_GATES and its WP5 artifact→phase-floor check will
+   FAIL a run whose ledger under-reports the phase or omits a gate flag. **Never self-set a gate flag
+   to skip a human gate** — a flag is your attestation the human actually decided (U3, below).
 2. **Every executor gets a self-contained brief** and runs in an isolated subagent
    with a **≤ 32K-token context budget**. Atomize work until each unit fits.
 3. **Decouple the maker from the checker.** Every executor is checked by an
@@ -68,6 +83,12 @@ so most are dead weight until their phase arrives.
    any assertion whose evidence is missing or inadmissible for its claim type.
 5. **Gate on decisions that matter.** Pause for the human at: persona/clarification,
    any *material* disagreement, and final sign-off. Otherwise proceed and log.
+   **Non-interactive runs (U3):** if no human can answer a gate, the run MUST **halt at the gate and
+   report the pending question** — never self-set a gate flag to proceed. A gate flag is an attestation
+   the human decided; setting it without a human is a defect the validator cannot detect but you must not
+   commit. **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
+   unavailable, substitute a plain numbered question in your reply for the gate, and track unit state in
+   `PROGRESS.md` instead of the task tools — the gates and the ledger are what matter, not the tool.
 6. **Learn within the run.** Capture generalizable lessons in LEARNINGS.md and inject
    them into later briefs. Cap retries; never loop forever.
 7. **Validate mechanically at every step.** Most artifacts are written as free-form prose
@@ -149,8 +170,10 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
    you re-ground it to a THIS-run signal and mark it with the entry field `grounding: "re-grounded"`.
    The I12 required-propagation predicate then runs over the **active** set only — run-local authored
    entries ∪ imported entries carrying `grounding == "re-grounded"` — while an advisory (un-re-grounded)
-   import gets an `advisory import (not force-injected): <id>` report line and its omission from a brief
-   **never FAILs**. This is the **AO-4** tie: an un-re-grounded import is not an external signal that
+   import gets an `advisory import (not force-injected): <id>` report line (**U11:** emitted only once a
+   graph exists — the I12 block is graph-gated, so Phase 4+) and its omission from a brief
+   **never FAILs**. (**G8/WP5:** an imported entry must carry genuine provenance — actual store membership
+   or an `origin.store` stamp — not a `G#` id spelling; a bare `G#`-id FAILs `I12 import provenance`.) This is the **AO-4** tie: an un-re-grounded import is not an external signal that
    binds briefs. A re-grounded/active import is then governed by I12 exactly like a run-local entry,
    including the 04/G1 carve-out that exempts an imported/already-generalized `G#`/store-loaded entry
    from the ≥2-carrier re-proof while still propagation-checking it. **Honest boundary:** re-grounding
@@ -275,8 +298,10 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    dependencies, blast radius).
 2. Optionally run a **second cartographer with a different lens** (propose/critique) to
    catch blind spots; reconcile the two maps.
-3. Write `CARTOGRAPHY.md`. Note explicitly what is *unknown* — unknowns become either
-   clarification items (loop to Phase 2) or work units.
+3. Write `CARTOGRAPHY.md` **plus its machine-checkable `cartography.json` sidecar** (U7 — the
+   JSON-sidecar convention every phase follows; if the cartographer ran a Socratic pass, its residue
+   lives in `cartography.json.socratic`, which I13 then checks). Note explicitly what is *unknown* —
+   unknowns become either clarification items (loop to Phase 2) or work units.
 
 ---
 
@@ -304,7 +329,10 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
    atomization, any unit whose footprint would exceed budget (→ re-atomize), **that every
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
-5. Write `GRAPH.md` (template) with the unit table, the DAG, and the wave ordering.
+5. Write `GRAPH.md` (template) **and its authoritative `graph.json` sidecar** — the moment `GRAPH.md`
+   exists the validator REQUIRES a schema-valid `graph.json` and treats it as the authoritative DAG
+   (I3 fail-closed; U7 — the sidecar instruction, previously only in `templates/graph.md`), so write
+   both. `graph.json` carries `units`/`edges`/`waves`/`v_tag`.
    Register each unit as a task via `TaskCreate` for live tracking. **At graph approval (T6), write two
    immutable anchors into `graph.json`:** `baseline_units` = exactly the approved `units[].id` set (the
    revision-1 baseline; reconciled by I17 so a smuggled or phantom-added/retired unit is caught), and
@@ -312,8 +340,11 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    is caught). Both are written **once** and never edited. (Only needed if BGA may run; harmless to always write.)
 6. **Seed the amendment fuel budget (Bounded Graph Amendments).** Set
    `fsm-state.expansion.fuel_initial` — how many graph amendments Phase 6 may make without a human
-   interrupt — to a **default `min(N0, 8)`** (N0 = unit count at decomposition approval); the human
-   MAY adjust it at the decomposition gate. `0` or an absent `expansion` object **disables BGA**
+   interrupt — to a **default `min(N0, 8)`** (N0 = unit count at decomposition approval). **Decomposition
+   is a linear self-critique phase, NOT a human gate (U2/D-C):** there are exactly three human gates
+   (persona/clarification, material disagreement, sign-off), and this is none of them. Use a non-default
+   fuel value only if the user gave an explicit instruction at an *earlier* gate; otherwise the default
+   stands — do not open a new prompt here. `0` or an absent `expansion` object **disables BGA**
    (today's behavior). Record it in `GRAPH.md` and `fsm-state.json`
    (`{fuel_initial, fuel_remaining = fuel_initial, amendments_applied: 0}`). This is the
    pipeline-level termination budget (schema max 32) and mirrors the per-unit `retries` cap.
@@ -386,6 +417,12 @@ call per unit, ideally in a single message). For **each unit**:
    > the unit is purely mechanical. Report your context footprint and confidence.*
 
    Restrict the subagent's tools to what the unit needs (budget + safety).
+   **U4 — expand paths to ABSOLUTE before handing text to a subagent.** A fresh executor/verifier has
+   its own project CWD and NO `${CLAUDE_PLUGIN_ROOT}`, so any skill-relative path you quote (in the
+   prompt above, or embedded in `brief.md`/`templates/*`) must be expanded to a real absolute path when
+   you generate the brief/prompt: `RUN_DIR/...` → the run dir's absolute path; `references/...`,
+   `templates/...`, `schemas/...` → `${CLAUDE_PLUGIN_ROOT}/skills/dag/<path>` resolved to absolute. The
+   authoritative debrief-key list is `templates/debrief.md` — quote it (expanded) rather than paraphrase.
 2. **Propose/critique.** For design/decision-heavy units, run the matched Critic persona
    (second subagent) against the executor's debrief; reconcile into the debrief or
    escalate a disagreement.
@@ -591,16 +628,6 @@ Never resolve a material disagreement silently. Never hide an option because you
    advisory only: it surfaces each `promotable` entry as a NON-gating `NOTE  G3 promotion (advisory)`
    line, flagging it as eligible for HUMAN promotion to a user-local `~/.claude/dag/principles.md` (or
    project `CLAUDE.md` / a skill) — never auto-written, never gated.
-
----
-
-> **Provenance-label legend (safe to ignore when executing).** Tags like `02/P1`…`04/G5`, `ring-05`,
-> `PR1`, `PR2`, `03/P4` that pepper this file and `references/` mark *why a rule exists* — they are
-> provenance references to the dag self-evaluation runs that produced each rule (**PR1** = verifier
-> hardening; **PR2** = reproducible evidence + large-dataset partitioning; **02/03/04** = the
-> self-learning-loop proposal rings; **ring-05** = the deferred cross-party trust work). Those run
-> dirs are not shipped; the labels are cross-references the maintainer uses and are safe to ignore
-> when executing a task.
 
 ---
 

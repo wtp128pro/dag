@@ -20,7 +20,10 @@ never truncate to "fit" the schema.
 - `result` — full narrative of what was produced / concluded (this is where the reasoning lands;
   if you produced an artifact, give its path)
 - `evidence_table[]` — one row per material claim: `{claim, type, evidence (locator: path:line /
-  URL§ / command→output), reproducible}` (`type` ∈ the evidence-standards.md taxonomy)
+  URL§ / command→output), reproducible}`. **`type` MUST be one of these seven LITERAL schema strings**
+  (U8 — the schema enum, not the prose labels): `empirical-world-fact`, `code-behavior`,
+  `api-tool-contract`, `numeric-quantitative`, `causal`, `design-judgment`, `provenance-quote`
+  (taxonomy rationale: evidence-standards.md).
 - `socratic{premise, counter, pivot, confidence}` — result of the pre-output self-interrogation;
   `counter` records an OUTCOME (mechanical units: `counter: "unit is mechanical; no material
   premise to break"`); `confidence` starts `high|medium|low`
