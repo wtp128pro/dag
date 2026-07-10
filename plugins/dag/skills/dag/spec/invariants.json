@@ -380,6 +380,7 @@
       "title": "I18: amendment fuel conservation bound + records-required trigger",
       "tier": "mechanical",
       "validator_label_prefixes": [
+        "I18 amendment bookkeeping",
         "I18 amendment records required",
         "I18 fuel bound"
       ],
@@ -388,12 +389,18 @@
         "amend_no_fuel_seed",
         "amend_records_deleted",
         "amend_fuel_widen",
-        "amend_fuel_chain_break"
+        "amend_fuel_chain_break",
+        "amend_dup_amendment_id",
+        "amend_id_file_mismatch",
+        "amend_bogus_revision_after",
+        "amend_dead_counter",
+        "amend_wave1_insert"
       ],
       "provenance": [
         "BGA",
         "WP1",
-        "WP2"
+        "WP2",
+        "WP3"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -401,17 +408,23 @@
     },
     {
       "id": "I19",
-      "title": "I19: amendment scope traceability and gating",
+      "title": "I19: amendment scope traceability, kind closure, and gating",
       "tier": "mechanical",
       "validator_label_prefixes": [
         "I19 amendment scope"
       ],
       "fixtures": [
         "amend_dod_untraced",
-        "amend_cancel_ungated"
+        "amend_cancel_ungated",
+        "amend_kind_dodge",
+        "amend_cancel_noop",
+        "amend_bare_snapshot",
+        "amend_noncild_criteria_map",
+        "amend_single_child_split"
       ],
       "provenance": [
-        "BGA"
+        "BGA",
+        "WP3"
       ],
       "docs": [
         "references/state-machine.md#4"

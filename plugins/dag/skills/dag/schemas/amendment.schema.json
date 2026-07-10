@@ -55,9 +55,32 @@
     "timestamp": { "type": "string" }
   },
   "allOf": [
-    { "if": { "properties": { "kind": { "enum": ["add_units", "split_unit"] } } },
+    { "$comment": "add_units/split_unit carry a non-empty dod_refs tracing to definition_of_done, and add >=1 unit.",
+      "if": { "properties": { "kind": { "enum": ["add_units", "split_unit"] } }, "required": ["kind"] },
       "then": { "required": ["dod_refs", "units_added"], "properties": { "dod_refs": { "minItems": 1 } } } },
-    { "if": { "properties": { "kind": { "const": "split_unit" } } },
-      "then": { "required": ["units_retired", "retired_snapshot", "criteria_map"] } }
+    { "$comment": "WP3 kind closure — add_units: >=1 added, NO retirement (a pure addition).",
+      "if": { "properties": { "kind": { "const": "add_units" } }, "required": ["kind"] },
+      "then": { "properties": { "units_added": { "minItems": 1 } },
+                "not": { "required": ["units_retired"] } } },
+    { "$comment": "WP3 kind closure — split_unit: >=2 children, EXACTLY 1 retired, a non-empty snapshot with id/tags/acceptance_criteria per item, and a criteria_map.",
+      "if": { "properties": { "kind": { "const": "split_unit" } }, "required": ["kind"] },
+      "then": { "required": ["units_retired", "retired_snapshot", "criteria_map"],
+                "properties": {
+                  "units_added": { "minItems": 2 },
+                  "units_retired": { "minItems": 1, "maxItems": 1 },
+                  "retired_snapshot": { "minItems": 1,
+                    "items": { "required": ["id", "tags", "acceptance_criteria"] } }
+                } } },
+    { "$comment": "WP3 kind closure — add_edges: edges only, NO unit add/retire/snapshot.",
+      "if": { "properties": { "kind": { "const": "add_edges" } }, "required": ["kind"] },
+      "then": { "allOf": [
+                  { "not": { "required": ["units_added"] } },
+                  { "not": { "required": ["units_retired"] } },
+                  { "not": { "required": ["retired_snapshot"] } } ] } },
+    { "$comment": "WP3 kind closure — cancel_unit: >=1 retired, NO adds.",
+      "if": { "properties": { "kind": { "const": "cancel_unit" } }, "required": ["kind"] },
+      "then": { "required": ["units_retired"],
+                "properties": { "units_retired": { "minItems": 1 } },
+                "not": { "required": ["units_added"] } } }
   ]
 }

@@ -1,43 +1,20 @@
 {
   "id": "A03",
-  "kind": "split_unit",
+  "kind": "cancel_unit",
   "origin": {
-    "trigger": "footprint_breach",
-    "source_unit": "U01",
-    "source_ref": "padding demo"
+    "trigger": "human_request",
+    "source_ref": "pretend-cancel of an id that never existed"
   },
-  "rationale": "pretend-split that pads adds while retiring ids that never existed to keep fuel_cost low",
+  "rationale": "cancel an id that never existed \u2014 burns fuel to retire nothing real (phantom retirement)",
   "scope_change": false,
-  "human_gate": false,
-  "dod_refs": [
-    "every planned unit is briefable within the 32K budget"
-  ],
+  "human_gate": true,
   "fuel_cost": 1,
   "fuel_before": 1,
   "fuel_after": 0,
   "frontier_wave": 2,
-  "units_added": [
-    "U06",
-    "U07",
-    "U08"
-  ],
   "units_retired": [
-    "U91",
-    "U92"
+    "U91"
   ],
-  "retired_snapshot": [
-    {
-      "id": "U91"
-    },
-    {
-      "id": "U92"
-    }
-  ],
-  "criteria_map": {
-    "x": [
-      "U06"
-    ]
-  },
   "graph_revision_after": 4,
   "timestamp": "2026-07-03T11:15:00-0400"
 }

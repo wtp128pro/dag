@@ -245,6 +245,11 @@ def _audit_schema_self_check(sf, schema, rep):
               f"(enforced only under the jsonschema backend): {sorted(unimpl)}")
 
 def make_validator():
+    # DAG_FORCE_MINI=1 (WP9/G7) forces the stdlib mini-validator even where jsonschema is installed,
+    # so run_tests.sh can sweep BOTH backends on the same host (CI has jsonschema, which otherwise
+    # hides the fallback entirely). Behaviour-neutral: it only selects which validator function runs.
+    if os.environ.get("DAG_FORCE_MINI") == "1":
+        return _mini_validate, "built-in minimal validator (stdlib only) [DAG_FORCE_MINI]"
     try:
         import jsonschema  # type: ignore
         from jsonschema import Draft202012Validator
@@ -408,6 +413,7 @@ LABELS = [
     {"key": "i17_reconcile", "stem": "I17 amendment reconciliation", "invariant": "I17"},
     {"key": "i18_fuel_bound", "stem": "I18 fuel bound", "invariant": "I18"},
     {"key": "i18_records_required", "stem": "I18 amendment records required", "invariant": "I18"},
+    {"key": "i18_bookkeeping", "stem": "I18 amendment bookkeeping", "invariant": "I18"},
     {"key": "i19_scope", "stem": "I19 amendment scope", "invariant": "I19"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
@@ -1524,6 +1530,61 @@ def main(argv=None):
             else:
                 rep.ok(f"{LABEL_STEM['i18_records_required']} ({len(amendments)} record(s) back the amended graph)")
 
+        # ---- I18 amendment bookkeeping (WP3: G1/G2/G3/G12) — record identity + counters + frontier ----
+        # Previously dead data: duplicate ids / id↔filename decoupling (G1), graph_revision_after never
+        # read (G2), the expansion.amendments_applied integer never cross-checked (G3), and frontier_wave
+        # had no teeth (G12). All post-hoc/offline; REVISES the amendment-accounting surface upward.
+        if amendments:
+            book_ok = True
+            _seen_ids = {}
+            for _fn, _rec in amendments:
+                _rid = _rec.get("id")
+                _stem = _fn[:-5] if _fn.endswith(".json") else _fn
+                if _rid != _stem:
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_fn})",
+                             f"record id {_rid!r} != filename stem {_stem!r} — the id must equal its filename")
+                if _rid in _seen_ids:
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_fn})",
+                             f"duplicate amendment id {_rid!r} (already used by {_seen_ids[_rid]})")
+                else:
+                    _seen_ids[_rid] = _fn
+            for _idx, (_fn, _rec) in enumerate(amendments):
+                _gra = _as_int(_rec.get("graph_revision_after"))
+                if _gra != 2 + _idx:
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_rec.get('id')})",
+                             f"graph_revision_after={_rec.get('graph_revision_after')!r} != 2 + record_index({_idx}) = {2 + _idx}")
+            _expc = fsm.get("expansion") if isinstance(fsm, dict) else None
+            if isinstance(_expc, dict) and _expc.get("amendments_applied") is not None:
+                _cnt = _as_int(_expc.get("amendments_applied"))
+                if _cnt != len(amendments):
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']}",
+                             f"fsm-state.expansion.amendments_applied counter={_cnt} != |records|={len(amendments)}")
+            # frontier_wave teeth (G12): every added unit lands at or beyond the record's declared frontier.
+            if graph_doc is not None and isinstance(graph_doc.get("waves"), list):
+                _wof = {}
+                for _w in graph_doc.get("waves", []):
+                    for _uid in _w.get("units", []):
+                        _wof[_uid] = _as_int(_w.get("wave"))
+                for _fn, _rec in amendments:
+                    _fw = _as_int(_rec.get("frontier_wave"))
+                    if _fw is None:
+                        continue
+                    for _aid in (_rec.get("units_added", []) or []):
+                        _wv = _wof.get(_aid)
+                        if _wv is not None and _wv < _fw:
+                            book_ok = False
+                            rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_rec.get('id')})",
+                                     f"added unit {_aid} placed at wave {_wv} < record.frontier_wave {_fw} "
+                                     "— an amendment inserts only at/beyond the frontier (internal-consistency check; "
+                                     "dispatch timing stays Limitation J)")
+            if book_ok:
+                rep.ok(f"{LABEL_STEM['i18_bookkeeping']} ({len(amendments)} record(s): ids unique + filename-matched, "
+                       "graph_revision_after + counter consistent, frontier respected)")
+
         # Retired ids: split by source so attribution (below) can compare the two. `retired_ids` (their
         # union) preserves the pre-WP1 semantics every downstream I17 clause keys off.
         retired_from_records = set()
@@ -1769,12 +1830,16 @@ def main(argv=None):
                 rec_ok = False
                 rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
                          "cancel_unit requires human_gate==true (deleting planned scope is always human-gated)")
-            if kind in ("add_units", "split_unit"):
+            # dod_refs traceability — keyed on units_added being non-empty REGARDLESS of kind (WP3
+            # belt-and-braces: a relabeled kind that keeps units_added can no longer dodge the DoD trace;
+            # the schema kind-closure already forbids units_added on add_edges/cancel_unit, so this is
+            # defense-in-depth for any schema-valid record that materializes units).
+            if kind in ("add_units", "split_unit") or _rec.get("units_added"):
                 refs = _rec.get("dod_refs") or []
                 if not refs:
                     rec_ok = False
                     rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
-                             f"{kind} must carry a non-empty dod_refs tracing to definition_of_done")
+                             f"{kind} adds units but carries no dod_refs tracing to definition_of_done")
                 untraced = sorted(r for r in refs if r not in dod)
                 if untraced:
                     rec_ok = False
@@ -1783,6 +1848,14 @@ def main(argv=None):
                              f"definition_of_done {sorted(dod)}")
             if kind == "split_unit":
                 children = _rec.get("units_added", []) or []
+                # WP3: the snapshot must be EXACTLY the retired unit(s) (no fake/bare padding).
+                _snap_ids = {s.get("id") for s in (_rec.get("retired_snapshot", []) or []) if isinstance(s, dict)}
+                _ret_set = set(_rec.get("units_retired", []) or [])
+                if _snap_ids != _ret_set:
+                    rec_ok = False
+                    rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
+                             f"retired_snapshot ids {sorted(x for x in _snap_ids if x)} != units_retired "
+                             f"{sorted(_ret_set)} — the snapshot must be exactly the retired unit(s)")
                 child_tags = set()
                 for c in children:
                     if c in cur_units:
@@ -1799,6 +1872,7 @@ def main(argv=None):
                              f"split children tags {sorted(child_tags)} do not cover parent tags "
                              f"(missing {missing_tags}) — children collectively must carry ⊇ parent tags")
                 cmap = _rec.get("criteria_map") or {}
+                _children_set = set(children)
                 for crit in snap_crits:
                     targets = cmap.get(crit)
                     if not targets:
@@ -1807,10 +1881,14 @@ def main(argv=None):
                                  f"parent criterion {crit!r} is not a criteria_map key — every parent "
                                  "acceptance criterion must map to >=1 child")
                         continue
-                    if not any(t in cur_units for t in targets):
+                    # WP3: targets must be the split's OWN children (units_added), not any current unit
+                    # (state-machine.md §3.6 / schema description / SKILL all say "child").
+                    _noncild = [t for t in targets if t not in _children_set]
+                    if _noncild:
                         rec_ok = False
                         rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
-                                 f"criteria_map[{crit!r}]={targets} maps to no existing child unit")
+                                 f"criteria_map[{crit!r}] targets {_noncild} are not split children "
+                                 f"(units_added {sorted(_children_set)}) — a parent criterion maps only to its own children")
             if rec_ok:
                 rep.ok(f"{LABEL_STEM['i19_scope']} (amendments/{aid}: dod-traced, gated, split-covered)")
 

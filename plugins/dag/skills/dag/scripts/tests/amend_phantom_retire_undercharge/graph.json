@@ -19,6 +19,10 @@
         "U05"
       ],
       "amendment": "A02"
+    },
+    {
+      "id": "U91",
+      "amendment": "A03"
     }
   ],
   "v_tag": [
@@ -110,57 +114,6 @@
       "tags": [
         "core"
       ]
-    },
-    {
-      "id": "U06",
-      "title": "padding U06",
-      "goal": "real added unit",
-      "executor_persona": "A",
-      "verifier_persona": "B",
-      "deps": [
-        "U01"
-      ],
-      "est_footprint_tokens": 1000,
-      "acceptance_criteria": [
-        "x"
-      ],
-      "tags": [
-        "core"
-      ]
-    },
-    {
-      "id": "U07",
-      "title": "padding U07",
-      "goal": "real added unit",
-      "executor_persona": "A",
-      "verifier_persona": "B",
-      "deps": [
-        "U01"
-      ],
-      "est_footprint_tokens": 1000,
-      "acceptance_criteria": [
-        "x"
-      ],
-      "tags": [
-        "core"
-      ]
-    },
-    {
-      "id": "U08",
-      "title": "padding U08",
-      "goal": "real added unit",
-      "executor_persona": "A",
-      "verifier_persona": "B",
-      "deps": [
-        "U01"
-      ],
-      "est_footprint_tokens": 1000,
-      "acceptance_criteria": [
-        "x"
-      ],
-      "tags": [
-        "core"
-      ]
     }
   ],
   "edges": [
@@ -175,18 +128,6 @@
     {
       "from": "U01",
       "to": "U05"
-    },
-    {
-      "from": "U01",
-      "to": "U06"
-    },
-    {
-      "from": "U01",
-      "to": "U07"
-    },
-    {
-      "from": "U01",
-      "to": "U08"
     }
   ],
   "waves": [
@@ -201,10 +142,7 @@
       "units": [
         "U03",
         "U04",
-        "U05",
-        "U06",
-        "U07",
-        "U08"
+        "U05"
       ]
     }
   ]
