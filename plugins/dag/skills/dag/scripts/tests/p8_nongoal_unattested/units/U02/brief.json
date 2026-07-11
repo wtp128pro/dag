@@ -1,0 +1,32 @@
+{
+  "unit_id": "U02",
+  "title": "Design",
+  "wave": 2,
+  "depends_on": [
+    "U01"
+  ],
+  "persona": "Architect",
+  "budget_tokens": 18000,
+  "acceptance_criteria": [
+    "traceable to requirements"
+  ],
+  "context_pointers": [
+    "INPUT.md",
+    "CARTOGRAPHY.md"
+  ],
+  "outputs": [
+    "units/U02/debrief.json"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "design",
+    "core"
+  ],
+  "learnings_applied": [
+    "L1"
+  ],
+  "dod_refs": [
+    "the schema self-check (--self-check) passes"
+  ],
+  "non_goal_refs": []
+}

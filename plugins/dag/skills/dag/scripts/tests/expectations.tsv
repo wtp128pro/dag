@@ -120,3 +120,19 @@ escalate_vacuous_origin	1	ESCALATE origin provenance
 ledger_passed_no_evidence	1	no VALID verify.json
 selfcheck_all_false_note	0	acceptance_self_check vs verify (C6)
 i14_minor_on_sealed	0	minor coverage-first observation
+unit_dod_untraced	1	I20 unit dod_refs
+unit_dod_partial	1	I20 unit dod_refs
+unit_dod_brief_drift	1	I20 unit dod_refs
+unit_nongoal_untraced	1	I21 unit non_goal_refs
+unit_nongoal_partial	1	I21 unit non_goal_refs
+guardrail_pass_violated	1	I22 guardrail compliance
+guardrail_row_unregistered	1	I22 guardrail compliance
+guardrail_block_partial	1	I22 guardrail compliance
+guardrail_ref_uncovered	1	I22 guardrail compliance
+p8_dod_unclosed	1	I23 closure
+p8_nongoal_unattested	1	I23 closure
+p8_adopted_preclose	0	
+register_empty_structural	1	I24 register floor
+resolution_missing	1	resolution
+guardrail_chain_ok	0	
+legacy_prefeature_ok	0	

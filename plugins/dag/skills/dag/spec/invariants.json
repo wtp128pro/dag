@@ -540,7 +540,13 @@
       "validator_label_prefixes": [
         "I20 unit dod_refs"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "unit_dod_untraced",
+        "unit_dod_partial",
+        "unit_dod_brief_drift",
+        "guardrail_chain_ok",
+        "legacy_prefeature_ok"
+      ],
       "provenance": [
         "guardrails-1.8.0",
         "WP-1"
@@ -556,7 +562,12 @@
       "validator_label_prefixes": [
         "I21 unit non_goal_refs"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "unit_nongoal_untraced",
+        "unit_nongoal_partial",
+        "guardrail_chain_ok",
+        "legacy_prefeature_ok"
+      ],
       "provenance": [
         "guardrails-1.8.0",
         "WP-2"
@@ -572,7 +583,13 @@
       "validator_label_prefixes": [
         "I22 guardrail compliance"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "guardrail_pass_violated",
+        "guardrail_row_unregistered",
+        "guardrail_block_partial",
+        "guardrail_ref_uncovered",
+        "guardrail_chain_ok"
+      ],
       "provenance": [
         "guardrails-1.8.0",
         "WP-3"
@@ -588,7 +605,12 @@
       "validator_label_prefixes": [
         "I23 closure"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "p8_dod_unclosed",
+        "p8_nongoal_unattested",
+        "p8_adopted_preclose",
+        "guardrail_chain_ok"
+      ],
       "provenance": [
         "guardrails-1.8.0",
         "WP-4"
@@ -604,7 +626,10 @@
       "validator_label_prefixes": [
         "I24 register floor"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "register_empty_structural",
+        "guardrail_chain_ok"
+      ],
       "provenance": [
         "guardrails-1.8.0",
         "WP-5"
@@ -620,7 +645,10 @@
       "validator_label_prefixes": [
         "I25 resolution present"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "resolution_missing",
+        "guardrail_chain_ok"
+      ],
       "provenance": [
         "guardrails-1.8.0",
         "WP-6"
@@ -929,7 +957,7 @@
       "title": "IMP-07: malformed imported store context dropped (non-gating)",
       "tier": "discipline",
       "validator_label_prefixes": [
-        "MALFORMED (dropped, non-gating \u2014 imported store context)"
+        "MALFORMED (dropped, non-gating — imported store context)"
       ],
       "fixtures": [
         "store_malformed_nongating"
