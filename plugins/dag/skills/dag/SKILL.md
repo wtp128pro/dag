@@ -187,7 +187,13 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
 5. Fold the surviving imports into the run's `learnings.json` / `LEARNINGS.md` so Phase-5 briefs
    carry them (this is the one legitimate **pre-Phase-1** `learnings.json` write; the validator
    treats `learnings.json` as ledger bookkeeping — NOT a post-Phase-1 work-graph artifact — so it
-   does not trip the G-personas gate). Log the intake in `PROGRESS.md`.
+   does not trip the G-personas gate). **Stamp every folded import with `origin.store` (`"user"` or
+   `"project"`, matching the store it came from)** — this records its provenance, and the validator now
+   **corroborates** that stamp against actual store membership (the store loader records even a folded
+   id, so a genuine import is corroborated by the store it was copied from). An `origin.store` stamp
+   whose id is in NO store is treated as **forged** provenance and FAILs `I12 import provenance` (WP-C/B2),
+   so the stamp can no longer be used to self-exempt a run-local entry from I12 propagation. Log the
+   intake in `PROGRESS.md`.
 
 ---
 

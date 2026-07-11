@@ -68,3 +68,17 @@ tests/<name>` and check the exit code / RESULT):
   **Resolved by U08 (PR-8):** `scripts/run_tests.sh` now runs this pair automatically as a step
   (reusing `validate_run.make_validator()`, so no `jsonschema` is required), closing the "manual
   heredoc" gap (N-09).
+
+---
+
+## WP-C round-2 provenance/ledger hardening (C6 intentional non-gate)
+
+- **C6 — `acceptance_self_check` all-`met:false` + verifier PASS is a NOTE, not a FAIL (BY DESIGN).**
+  The executor's `debrief.acceptance_self_check` is its OWN advisory self-assessment; the **independent
+  verifier is authoritative** (prime-directive #3: decouple maker from checker). A debrief that marks
+  every criterion `met:false` while the independent verifier returns `PASS` is therefore a legitimate —
+  if noteworthy — state (an over-conservative or stale self-check does not overturn the verifier).
+  `validate_run.py` surfaces it as an advisory, **non-gating** NOTE (`acceptance_self_check vs verify
+  (C6)`) so a human can eyeball the divergence, but it never changes the exit code. Fixture
+  `selfcheck_all_false_note/` (exit 0, NOTE present). This is the deliberate boundary: the verifier's
+  verdict — not the executor's self-report — decides PASS/FAIL.

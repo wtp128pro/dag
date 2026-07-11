@@ -88,7 +88,8 @@
         "ledger_verdict_mismatch",
         "phase_underreport",
         "fsm_phantom_unit",
-        "fsm_dup_unit"
+        "fsm_dup_unit",
+        "ledger_passed_no_evidence"
       ],
       "provenance": [],
       "docs": [
@@ -335,6 +336,8 @@
         "regrounded_g_listed",
         "regrounded_g_unlisted",
         "learnings_forged_import",
+        "origin_store_forgery",
+        "forged_import_stamped",
         "p4_advisory/advisory_not_required",
         "p4_advisory/regrounded_required"
       ],
@@ -885,11 +888,13 @@
         "ESCALATE origin provenance"
       ],
       "fixtures": [
-        "escalate_no_origin"
+        "escalate_no_origin",
+        "escalate_vacuous_origin"
       ],
       "provenance": [
         "B9",
-        "D-A"
+        "D-A",
+        "C3"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -966,6 +971,23 @@
       "fixtures": [],
       "provenance": [],
       "docs": []
+    },
+    {
+      "id": "selfcheck",
+      "title": "selfcheck: debrief acceptance_self_check vs verifier verdict (advisory, non-gating)",
+      "tier": "attestation",
+      "validator_label_prefixes": [
+        "acceptance_self_check vs verify (C6)"
+      ],
+      "fixtures": [
+        "selfcheck_all_false_note"
+      ],
+      "provenance": [
+        "C6"
+      ],
+      "docs": [
+        "scripts/tests/LIMITATIONS.md"
+      ]
     }
   ]
 }

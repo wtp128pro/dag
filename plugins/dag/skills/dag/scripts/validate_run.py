@@ -453,6 +453,7 @@ LABELS = [
     {"key": "gpersonas_failclosed", "stem": "G-personas fail-closed", "invariant": "G-personas"},
     {"key": "gate_ordering", "stem": "gate ordering", "invariant": "gate-ordering"},
     {"key": "escalate_origin", "stem": "ESCALATE origin provenance", "invariant": "escalate-origin"},
+    {"key": "note_selfcheck", "stem": "acceptance_self_check vs verify (C6)", "invariant": "selfcheck", "emitted_via": "print"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -815,7 +816,11 @@ def main(argv=None):
                     eid = E.get("id")
                     if eid in have_ids:
                         # id already present (run-local re-derivation, or an earlier store file)
-                        # wins — do NOT force a duplicate into the propagation set.
+                        # wins — do NOT force a duplicate into the propagation set. WP-C/A4: but the id
+                        # DOES exist in a store, so record it in `store_ids` as CORROBORATION — an
+                        # honestly-folded import (copied run-local, so shadowed here) is then a genuine
+                        # store member for _import_provenance_ok, not a "forged by id spelling" false FAIL.
+                        store_ids.add(eid)
                         continue
                     have_ids.add(eid)
                     store_ids.add(eid)
@@ -871,6 +876,7 @@ def main(argv=None):
                 eid = E.get("id")
                 escope = _applies_frozenset(E)
                 if eid in have_ids:                    # id collision => project/run-local wins
+                    store_ids.add(eid)                 # WP-C/A4: still a genuine store member — corroborates origin.store
                     rep.ok(f"{LABEL_STEM['luser_override']}: user entry {eid} shadowed by a "
                            f"higher-precedence entry of the same id — dropped from propagation (project > user)")
                     u_over += 1
@@ -1633,6 +1639,22 @@ def main(argv=None):
                      "iteration>1 with a prior_feedback echo but changes_made is absent/empty — a "
                      "retry must record >=1 concrete change made in response to the prior verdict (AO-6)")
 
+    # C6 (WP-C): a debrief whose acceptance_self_check marks EVERY criterion met:false while its
+    # verify.json verdict is PASS is an internal inconsistency worth surfacing — but NON-GATING: the
+    # INDEPENDENT verifier is authoritative (the executor's self-check is advisory), so this is an
+    # advisory NOTE, never a FAIL (tests/LIMITATIONS.md documents the intent). Post-hoc/offline.
+    for uid in sorted(unit_docs):
+        _de6 = unit_docs[uid].get("debrief"); _ve6 = unit_docs[uid].get("verify")
+        if not (isinstance(_de6, dict) and isinstance(_ve6, dict)):
+            continue
+        _asc = _de6.get("acceptance_self_check")
+        if (isinstance(_asc, list) and _asc
+                and all(isinstance(x, dict) and x.get("met") is False for x in _asc)
+                and _ve6.get("verdict") == "PASS" and not args.quiet):
+            print(f"  NOTE  {LABEL_STEM['note_selfcheck']} (units/{uid}): debrief acceptance_self_check "
+                  f"marks all {len(_asc)} criteri(on/a) met:false but verify verdict=PASS — the "
+                  "independent verifier is authoritative (advisory, non-gating; LIMITATIONS.md)")
+
     # ======================= Bounded Graph Amendments (I17/I18/I19) =======================
     # All three are POST-HOC / OFFLINE predicates over the emitted amendment records + graph.json +
     # fsm-state.json. None gates a transition and none touches LT7 — so BGA PRESERVES the correction-
@@ -2311,18 +2333,29 @@ def main(argv=None):
             # origin.store provenance stamp (written by the Phase-0.5 intake). A G#-id entry with
             # NEITHER is forged provenance — fail CLOSED so a run-local L1 renamed G7 cannot dodge I12.
             def _import_provenance_ok(E, eid):
-                if eid in store_ids:
-                    return True
-                o = E.get("origin") if isinstance(E, dict) else None
-                return isinstance(o, dict) and o.get("store") in ("user", "project")
+                # WP-C/B2: an origin.store stamp is trusted ONLY when CORROBORATED by actual store
+                # membership (eid in store_ids — the loaders now record even shadowed/folded ids, A4).
+                # An uncorroborated origin.store self-stamp grants NOTHING; the id-in-store test is the
+                # single source of import provenance, so a run-local entry can no longer self-exempt.
+                return eid in store_ids
             active, advisory = [], []
             for E in learnings:
                 eid = E.get("id") if isinstance(E, dict) else None
+                _o = E.get("origin") if isinstance(E, dict) else None
+                _stamped = isinstance(_o, dict) and _o.get("store") in ("user", "project")
+                # WP-C/B2: an origin.store stamp with NO corroborating store entry is forged provenance
+                # — closing the sibling of the G8 id-spelling hole (adding origin.store to a run-local
+                # entry used to (a) exempt it from I12 propagation and (b) defeat the G8 import check).
+                if _stamped and eid not in store_ids:
+                    rep.fail(f"{LABEL_STEM['i12_provenance']}",
+                             f"{eid} carries an origin.store={_o.get('store')!r} stamp but its id is in NO "
+                             "learnings store (uncorroborated) — an origin.store self-stamp cannot forge "
+                             "import provenance (B2)")
                 if isinstance(eid, str) and eid.startswith("G") and not _import_provenance_ok(E, eid):
                     rep.fail(f"{LABEL_STEM['i12_provenance']}",
                              f"{eid} claims the import carve-out (G#-id) but was not loaded from a store "
-                             "and carries no origin.store provenance — the advisory/exempt tier cannot be "
-                             "forged by id spelling (G8)")
+                             "and carries no corroborated origin.store provenance — the advisory/exempt tier "
+                             "cannot be forged by id spelling (G8)")
                 _imported = _import_provenance_ok(E, eid) if isinstance(eid, str) else (eid in store_ids)
                 if isinstance(E, dict) and _imported and not _is_regrounded(E):
                     advisory.append(E)
@@ -2574,7 +2607,17 @@ def main(argv=None):
                 continue                       # pending/retired/etc — no terminal verdict to match
             _vd = unit_docs.get(_u.get("unit_id"), {}).get("verify")
             if _vd is None:
-                continue                       # verify absent (I9 handles that) — nothing to cross-check
+                # WP-C/C5: fail CLOSED — a TERMINAL ledger status (passed/failed) with no VALID
+                # verify.json is an unverifiable claim (the ledger asserts a verdict no verifier
+                # produced). The old `continue` let a run parked at P6 claim `U0X: passed` with zero
+                # evidence and still exit 0 (I9 only fires when a debrief exists; I10 only at P8/DONE).
+                # `executing`/`verifying` are NOT terminal (they map to None above), so the mid-loop
+                # NOTE case is untouched.
+                rep.fail(f"{LABEL_STEM['i2_status_verdict']} (units/{_u.get('unit_id')})",
+                         f"fsm units[] status {_u.get('status')!r} (terminal, expects verdict {_exp_v}) but "
+                         "no VALID verify.json — a passed/failed ledger status must be backed by the "
+                         "verifier's verdict")
+                continue
             if _vd.get("verdict") != _exp_v:
                 rep.fail(f"{LABEL_STEM['i2_status_verdict']} (units/{_u.get('unit_id')})",
                          f"fsm units[] status {_u.get('status')!r} but verify.json verdict={_vd.get('verdict')!r} "
@@ -2667,24 +2710,23 @@ def main(argv=None):
         elif _everdict == "FAIL" and _er == 2:
             _why = "retries==2 with FAIL verify (LT5)"
         else:
-            for _dn in ("disagreement.json", "disagreement.md"):
-                _dp = os.path.join(units_dir, _euid, _dn)
-                if os.path.exists(_dp):
-                    try:
-                        with open(_dp, encoding="utf-8") as _fh:
-                            _dt = _fh.read().lower()
-                        if "fuel" in _dt and ("exhaust" in _dt or "amendment" in _dt):
-                            _why = "disagreement dossier cites amendment-fuel exhaustion (BGA origin)"
-                            break
-                    except Exception:
-                        pass
+            # WP-C/C3: the amendment-fuel-exhaustion origin (BGA third origin) is proven by STRUCTURAL
+            # evidence, not a substring grep over dossier prose. The old check matched "fuel" + ("exhaust"
+            # | "amendment") anywhere in the dossier — so a dossier explicitly DENYING fuel use ("burned
+            # NO fuel at all") satisfied it. Require the fsm-state expansion object to show fuel actually
+            # exhausted: expansion present AND fuel_remaining == 0 (I18 accounting). Prose is no longer
+            # sufficient; migration note: an ESCALATE that formerly relied on dossier wording now needs
+            # the structural fuel evidence (consistent with F1's version-skew policy).
+            _exp = fsm.get("expansion") if isinstance(fsm, dict) else None
+            if isinstance(_exp, dict) and _as_int(_exp.get("fuel_remaining")) == 0:
+                _why = "amendment fuel exhausted (expansion.fuel_remaining == 0; BGA origin)"
         if _why:
             rep.ok(f"{LABEL_STEM['escalate_origin']} (units/{_euid}: {_why})")
         else:
             rep.fail(f"{LABEL_STEM['escalate_origin']} (units/{_euid})",
                      f"unit is in loop-state ESCALATE but no valid origin (verify verdict={_everdict!r}, "
-                     f"retries={_er}) — ESCALATE requires (retries==2 ∧ FAIL) or DISAGREE or a "
-                     "disagreement dossier citing amendment-fuel exhaustion (the three T10 origins)")
+                     f"retries={_er}) — ESCALATE requires (retries==2 ∧ FAIL) or DISAGREE or structural "
+                     "amendment-fuel exhaustion (expansion.fuel_remaining == 0); the three T10 origins")
 
     if post_p1:
         missing = []
