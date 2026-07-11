@@ -206,7 +206,21 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.6.0** — **Validator hardening (extra_check remediation)**: closes ten reproduced
+Current version: **1.7.0** — **Audit round 2 (extra_check remediation)**: closes a second wave of
+reproduced holes. The validator is **crash-hardened** (a schema-valid-but-malformed amendment snapshot,
+a GRAPH.md that is a directory, and duplicate `fsm-state.units[]` ids no longer traceback or become
+order-dependent). **Persona identity is enforced structurally, not just declared** — new `I1c`
+(debrief/verify personas must reconcile to the graph, maker ≠ checker at the artifact level), `I1d`
+(every working persona ∈ the confirmed roster), and panel **independence** (distinct verifiers, none the
+executor). **Provenance & ledger truth**: an `origin.store` stamp is trusted only when corroborated by
+real store membership (forged self-stamps FAIL); a terminal ledger status with no `verify.json` fails
+closed; the ESCALATE fuel-origin is proven by structural fuel evidence, not dossier prose. `I14/AO-2` is
+**severity-scoped** so coverage-first minor observations are reportable while a blocker/major regression
+on a sealed criterion still FAILs. Report-side budget honesty is defined **per-unit**
+(`within_budget := tokens_consumed ≤ brief.budget_tokens`), runs are stamped with a
+`validator_version` under a documented version-skew policy, and the **formal harness now asserts** the
+TLC state counts + Alloy 8/8 (a gutted model FAILs instead of vacuously passing). The fixture matrix
+grows to **119**, swept on **both** backends. **1.6.0** — **Validator hardening (extra_check remediation)**: closes ten reproduced
 false-PASS holes in the Bounded Graph Amendments enforcement and the core validator, and reconciles two
 guarantee narratives. BGA now has a real provenance backbone — an immutable `baseline_units` + `fuel_initial`
 seed reconciled against the amendment records (smuggled/phantom/fake-retired units and a deleted

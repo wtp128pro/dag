@@ -3,6 +3,63 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] — 2026-07-10
+
+**Audit round 2 (extra_check remediation)** — a second reproduction-driven pass that closes what the
+round-1 checkers could not see: validator crashes, discipline-only (declaration-only) persona identity,
+provenance/ledger self-stamping, a coverage-first vs. anti-oscillation contradiction, prompt-side budget
+drift, and a formal harness that asserted nothing. Every closed hole ships with a negative fixture +
+`expectations.tsv` row + SC6 mapping, passing under **both** schema backends. **All new predicates are
+post-hoc/offline over emitted artifacts — no live guard on the correction loop's sole back-edge LT7 — so
+the per-unit termination proof (Claims A–D) is PRESERVED verbatim.**
+
+### Added
+- **Crash & order-dependence hardening (WP-A / B1, B3, B5)** — `amendment.schema.json` pins
+  `retired_snapshot` item types (a `tags:7` snapshot no longer tracebacks I19; both backends), the
+  `GRAPH.md` read is wrapped (a directory/dangling-symlink GRAPH.md is a fail-closed I3 defect, not a
+  crash), and a new offline `I2 fsm units uniqueness` predicate rejects duplicate `fsm-state.units[]`
+  ids (which made I9/I4 order-dependent). `run_tests.sh` gains a global no-traceback regression guard.
+- **Structural persona identity (WP-B / C1, C2, C4)** — new offline predicates `I1c`
+  (`debrief.persona == graph.executor_persona`, `verify.verifier_persona == graph.verifier_persona`, and
+  the two distinct — maker ≠ checker at the artifact level), `I1d` (every working persona is a confirmed
+  `personas.json` roster member), and an `I16` extension requiring panel members to be pairwise-distinct
+  verifiers, none the executor. Mechanizes prime-directive #3 the same class as the round-1 `I1b`.
+- **Run-version stamp + policy (WP-E / F1)** — `init_run.sh` stamps `fsm-state.json.validator_version`
+  (new OPTIONAL schema field); `references/state-machine.md` §5 documents the version-skew policy
+  (archived runs are judged against their contemporaneous validator; current-validator findings on
+  older/unstamped runs are expected skew, not defects). The validator stays single-truth (no
+  version-gated downgrades).
+
+### Changed / Fixed
+- **Provenance & ledger truth (WP-C / B2+A4, C3, C5, C6)** — an `origin.store` stamp is trusted ONLY
+  when corroborated by real store membership (`store_ids` now records folded/shadowed ids); an
+  uncorroborated self-stamp FAILs `I12 import provenance` (closing the B2 forgery + the A4 honest-fold
+  false-positive with one mechanism). A terminal ledger status (`passed`/`failed`) with no valid
+  `verify.json` fails closed (C5). The ESCALATE amendment-fuel origin is proven by **structural**
+  evidence (`expansion.fuel_remaining == 0`), not a dossier substring grep (C3). A debrief with all
+  `acceptance_self_check` `met:false` beside a verifier PASS is an advisory, non-gating NOTE (C6).
+- **I14/AO-2 severity scoping (WP-D / A2, guarantee-REVISING)** — the `do_not_touch` intersection is
+  scoped to `blocker|major` defects, so a minor coverage-first observation on a sealed criterion is
+  reportable (advisory NOTE) while a blocker/major regression still FAILs — resolving the previously
+  unsatisfiable coverage-first ↔ AO-2 tension. No archived run's verdict flips.
+- **Per-unit budget honesty (WP-E / F2)** — `within_budget := tokens_consumed ≤ this unit's
+  brief.budget_tokens` (not the global 32K) is now defined in `templates/debrief.md`,
+  `debrief.schema.json`, and `SKILL.md`, matching the shipped `I5` check.
+- **Spec/prose truthing (WP-D / A1, A3, A5–A12)** — fuel-seed wording, import re-grounding `since_wave`,
+  the `expiry` "fails-OPEN" claim, the human-gate-flag qualification, the I10 graph-scope row, the
+  high-stakes assignment criteria, the DESIGN.md schema-backed enumeration, the `init_run.sh` learnings
+  header, and the P8/sign-off human-gate framing all corrected to match the shipped mechanics.
+- **Formal harness integrity (WP-F / D1–D5)** — `run_formal.sh` now **asserts** the TLC state counts
+  (853/408/36 and 2923/1608/156), the temporal-property line, and the literal `SUMMARY: 8/8`;
+  `AlloyRun.java` takes an expected command count (killing the implicit-`Default` hole) and counts Alloy
+  warnings as failures; arg parsing is robust; TLC's metadir is redirected to the cache (nothing written
+  to the repo). Harness mutation probes confirm a gutted model now FAILs. The `formal-models.md`
+  post-`Resolve` disclosure is corrected (disclosure-only; no model change).
+- **Docs (WP-G / E4, E5)** — `plugins/dag/README.md` "Verify the formal claims" now leads with
+  `bash scripts/run_formal.sh` (the one-command TLC + Alloy reproduction that shipped in **1.6.0** via
+  commit `30e1c13`, previously uncredited in either changelog), keeping the manual TLC steps as the
+  fallback; the root README layout gains `run_formal.sh`, `AlloyRun.java`, and the in-repo `wiki/` dir.
+
 ## [1.6.0] — 2026-07-10
 
 **Validator hardening (extra_check remediation)** — closes ten reproduced false-PASS holes in the
