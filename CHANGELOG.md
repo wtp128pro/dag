@@ -3,6 +3,27 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.9] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.7.0** — **Audit round 2 (extra_check remediation)**: closes a second wave of
+  reproduced holes the round-1 checkers could not see. The validator is **crash-hardened** (malformed
+  amendment snapshots, a directory `GRAPH.md`, and duplicate `fsm-state.units[]` ids no longer traceback
+  or become order-dependent). **Persona identity is enforced structurally** — new `I1c`
+  (artifact↔graph persona reconciliation, maker ≠ checker), `I1d` (roster membership), and panel
+  **independence** (distinct verifiers, none the executor). **Provenance & ledger truth**: an
+  `origin.store` stamp is trusted only when corroborated by real store membership (forged self-stamps
+  FAIL); a terminal ledger status with no `verify.json` fails closed; the ESCALATE fuel-origin is proven
+  by structural fuel evidence, not dossier prose. `I14/AO-2` is **severity-scoped** (minor coverage-first
+  observations reportable; blocker/major regressions on sealed criteria still FAIL). Report-side budget
+  honesty is defined **per-unit** (`within_budget := tokens_consumed ≤ brief.budget_tokens`), runs carry
+  a `validator_version` stamp under a documented version-skew policy, and the **formal harness now
+  asserts** the TLC state counts + Alloy 8/8 (a gutted model FAILs instead of vacuously passing). Every
+  new predicate is **post-hoc/offline** (no live LT7 guard), so the correction-loop **termination proof
+  is PRESERVED**; `I14/AO-2` **REVISES** (coverage-first satisfiability). Fixtures grow to **119**, swept
+  on **both** backends; `spec_check` SC1–SC7 green. See `plugins/dag/CHANGELOG.md` for the full per-WP
+  breakdown.
+
 ## [1.0.8] — 2026-07-10
 
 ### Changed

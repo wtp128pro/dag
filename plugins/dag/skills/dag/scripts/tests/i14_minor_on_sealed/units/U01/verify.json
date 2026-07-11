@@ -1,0 +1,30 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Skeptic",
+  "verdict": "PASS",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": ["brief.md", "debrief.json", "cited sources"],
+  "feedback": {
+    "summary": "The retry meets every acceptance criterion; one previously-sealed criterion carries a minor, disclosed coverage-first observation that does not overturn the PASS.",
+    "actionable_changes": [],
+    "do_not_touch": ["the maker!=checker mandate framing"]
+  },
+  "defects": [
+    { "severity": "minor", "criterion": "each with >=1 dated primary source",
+      "minimal_repro": "finding 7's source is a dated primary source, but the retrieval date is one day stale relative to the other twelve — a disclosed residual, not a criterion failure",
+      "fix_direction": "optionally re-pull finding 7 to normalize the retrieval date; not required to satisfy the criterion" }
+  ],
+  "socratic": {
+    "premise": "The retry's 13 findings each cite a dated primary source, satisfying the sourcing criterion.",
+    "counter": "Re-resolved every cited locator independently: all 13 resolve to dated primary sources; finding 7's date is merely one day staler, a disclosed minor residual, so the PASS HOLDS.",
+    "pivot": "If finding 7's source had failed to resolve the criterion would be unmet and the verdict would be FAIL, not a minor observation.",
+    "confidence": "high - every locator re-resolved to a dated primary source."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER from the sources directly: every criterion is met; the sole observation on the sealed sourcing criterion is a minor disclosed residual (A2 coverage-first)."
+  }
+}

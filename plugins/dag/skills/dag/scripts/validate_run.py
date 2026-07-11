@@ -385,6 +385,8 @@ LABELS = [
     {"key": "i3_dag_acyclic", "stem": "I3 DAG acyclic", "invariant": "I3"},
     {"key": "skip_i3_dag", "stem": "I3 DAG", "invariant": "I3", "emitted_via": "print"},
     {"key": "i1b_maker_checker", "stem": "I1b maker!=checker (persona distinctness)", "invariant": "I1b"},
+    {"key": "i1c_recon", "stem": "I1c artifact/declaration persona reconciliation", "invariant": "I1c"},
+    {"key": "i1d_roster", "stem": "I1d roster membership", "invariant": "I1d"},
     {"key": "i3c_dep_closure", "stem": "I3c dependency closure", "invariant": "I3c"},
     {"key": "i3_unit_unique", "stem": "I3 unit id uniqueness", "invariant": "I3"},
     {"key": "i3b_wave_layering", "stem": "I3b wave layering", "invariant": "I3b"},
@@ -445,11 +447,13 @@ LABELS = [
     {"key": "i2_ledger", "stem": "I2 ledger-is-truth", "invariant": "I2"},
     {"key": "i2_status_verdict", "stem": "I2 status vs verify verdict", "invariant": "I2"},
     {"key": "i2_units_subset", "stem": "I2 fsm units subset", "invariant": "I2"},
+    {"key": "i2_fsm_unit_unique", "stem": "I2 fsm units uniqueness", "invariant": "I2"},
     {"key": "i2_phase_floor", "stem": "I2 phase artifact floor", "invariant": "I2"},
     {"key": "gpersonas_nonskip", "stem": "G-personas non-skippable", "invariant": "G-personas"},
     {"key": "gpersonas_failclosed", "stem": "G-personas fail-closed", "invariant": "G-personas"},
     {"key": "gate_ordering", "stem": "gate ordering", "invariant": "gate-ordering"},
     {"key": "escalate_origin", "stem": "ESCALATE origin provenance", "invariant": "escalate-origin"},
+    {"key": "note_selfcheck", "stem": "acceptance_self_check vs verify (C6)", "invariant": "selfcheck", "emitted_via": "print"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -812,7 +816,11 @@ def main(argv=None):
                     eid = E.get("id")
                     if eid in have_ids:
                         # id already present (run-local re-derivation, or an earlier store file)
-                        # wins — do NOT force a duplicate into the propagation set.
+                        # wins — do NOT force a duplicate into the propagation set. WP-C/A4: but the id
+                        # DOES exist in a store, so record it in `store_ids` as CORROBORATION — an
+                        # honestly-folded import (copied run-local, so shadowed here) is then a genuine
+                        # store member for _import_provenance_ok, not a "forged by id spelling" false FAIL.
+                        store_ids.add(eid)
                         continue
                     have_ids.add(eid)
                     store_ids.add(eid)
@@ -868,6 +876,7 @@ def main(argv=None):
                 eid = E.get("id")
                 escope = _applies_frozenset(E)
                 if eid in have_ids:                    # id collision => project/run-local wins
+                    store_ids.add(eid)                 # WP-C/A4: still a genuine store member — corroborates origin.store
                     rep.ok(f"{LABEL_STEM['luser_override']}: user entry {eid} shadowed by a "
                            f"higher-precedence entry of the same id — dropped from propagation (project > user)")
                     u_over += 1
@@ -896,8 +905,11 @@ def main(argv=None):
     # Parse the bare `scope.expiry` string grammar `run | project | runs:N | date:<iso>` plus
     # the optional decay fields. An EXPIRED entry is EXCLUDED from propagation and REPORTED as
     # a skip — it is NEVER a hard-fail (an expired lesson simply reverts to today's
-    # re-derive-from-scratch behavior, the safe failure mode). Absent/unrecognized expiry is
-    # INERT (today's behavior), so existing entries (which carry no expiry) are untouched.
+    # re-derive-from-scratch behavior, the safe failure mode). An ABSENT expiry is INERT (existing
+    # entries carry none, so they are untouched). A5/WP-D: an UNRECOGNIZED expiry is NOT reached here
+    # inertly — since the N-08 schema pin it is a hard schema FAIL on a run-local entry (rejected before
+    # this runs) and reported+dropped on a store entry; so by the time _expiry_expired sees an entry,
+    # its expiry is either absent or grammar-valid.
     def _expiry_expired(E, from_store):
         sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
         exp = sc.get("expiry")
@@ -1117,6 +1129,73 @@ def main(argv=None):
             else:
                 rep.ok(f"{LABEL_STEM['i1b_maker_checker']} (units/{u.get('id')})")
 
+        # I1c artifact/declaration persona reconciliation (WP-B/C1) — I1b compares only the DECLARED
+        # graph personas; nothing tied the ACTUAL artifact personas to those declarations, so one
+        # persona could execute a unit AND verify it while I1b still printed PASS. For every unit with
+        # BOTH a debrief and a verify: debrief.persona must equal the graph executor_persona,
+        # verify.verifier_persona the graph verifier_persona, and the two artifact personas must DIFFER
+        # (maker != checker at the artifact level, not just in the graph). Offline/post-hoc; gates no
+        # transition. Mechanizes prime-directive #3 / I1 the same way I1b did — see Limitation D (a
+        # genuinely distinct MODEL behind a distinct persona LABEL stays unobservable).
+        _gunits_i1c = {u.get("id"): u for u in graph_doc.get("units", [])}
+        for uid in sorted(unit_docs):
+            _de = unit_docs[uid].get("debrief")
+            _ve = unit_docs[uid].get("verify")
+            if not (isinstance(_de, dict) and isinstance(_ve, dict)):
+                continue
+            _dp, _vp = _de.get("persona"), _ve.get("verifier_persona")
+            _gu = _gunits_i1c.get(uid)
+            _probs = []
+            if isinstance(_gu, dict):
+                if _dp != _gu.get("executor_persona"):
+                    _probs.append(f"debrief.persona {_dp!r} != graph executor_persona {_gu.get('executor_persona')!r}")
+                if _vp != _gu.get("verifier_persona"):
+                    _probs.append(f"verify.verifier_persona {_vp!r} != graph verifier_persona {_gu.get('verifier_persona')!r}")
+            if _dp is not None and _dp == _vp:
+                _probs.append(f"debrief.persona == verify.verifier_persona ({_dp!r}) — the executor also "
+                              "verified its own unit (maker == checker)")
+            if _probs:
+                rep.fail(f"{LABEL_STEM['i1c_recon']} (units/{uid})", "; ".join(_probs))
+            else:
+                rep.ok(f"{LABEL_STEM['i1c_recon']} (units/{uid})")
+
+        # I1d roster membership (WP-B/C2) — personas.schema.json's stated purpose ("enables the
+        # maker!=checker invariant to be checked structurally") was unrealized: every working persona
+        # (graph executor/verifier, brief/debrief.persona, verify.verifier_persona, panel members)
+        # could be a fabricated string absent from the confirmed roster. Require each to be a member of
+        # personas.json.roster. Runs only when a roster is present (its absence is G-personas' job).
+        # Offline/post-hoc; gates no transition. The roster is a confirmed-membership check, NOT proof
+        # the named model actually staffed the unit (Limitation D).
+        _personas = docs.get("personas")
+        if isinstance(_personas, dict):
+            _roster = {r.get("persona") for r in _personas.get("roster", []) if isinstance(r, dict)}
+            _working = {}   # persona -> first source that used it (deterministic report)
+            for u in graph_doc.get("units", []):
+                for _lbl, _k in (("graph executor", "executor_persona"), ("graph verifier", "verifier_persona")):
+                    _p = u.get(_k)
+                    if _p:
+                        _working.setdefault(_p, f"{_lbl} {u.get('id')}")
+            for uid in sorted(unit_docs):
+                _dd = unit_docs[uid]
+                for _doc, _k, _lbl in ((_dd.get("brief"), "persona", "brief"),
+                                       (_dd.get("debrief"), "persona", "debrief"),
+                                       (_dd.get("verify"), "verifier_persona", "verify")):
+                    if isinstance(_doc, dict) and _doc.get(_k):
+                        _working.setdefault(_doc.get(_k), f"{_lbl} units/{uid}")
+                _ve = _dd.get("verify")
+                if isinstance(_ve, dict):
+                    for _m in _ve.get("panel", []) or []:
+                        if isinstance(_m, dict) and _m.get("verifier_persona"):
+                            _working.setdefault(_m.get("verifier_persona"), f"panel units/{uid}")
+            _absent = sorted(p for p in _working if p not in _roster)
+            if _absent:
+                rep.fail(f"{LABEL_STEM['i1d_roster']}",
+                         f"working persona(s) {_absent} absent from the confirmed personas.json roster "
+                         f"{sorted(_roster)} — every executor/verifier/panel persona must be a confirmed "
+                         f"roster member (e.g. {_absent[0]!r} used by {_working[_absent[0]]})")
+            elif _working:
+                rep.ok(f"{LABEL_STEM['i1d_roster']} ({len(_working)} working persona(s) all in roster)")
+
         # I3c dependency closure (BGA — closes a pre-existing validator gap, EVALUATION §6).
         # Every `deps` element and every `edges[].from/to` MUST name a CURRENT unit id; a dangling
         # reference (incl. a retired id still referenced) becomes a phantom node in cycle detection,
@@ -1197,15 +1276,26 @@ def main(argv=None):
             if _i3b_ok:
                 rep.ok(f"{LABEL_STEM['i3b_wave_layering']} ({len(_wave_of)} unit(s) across {len(_waves)} wave(s); all edges rise)")
     if graph_md_exists:  # defense-in-depth on the prose graph
-        with open(graph_md, encoding="utf-8") as f:
-            md_text = f.read()
-        cyc = find_cycle(parse_graph_edges(md_text))
-        if cyc:
-            rep.fail(f"{LABEL_STEM['i3_dag_acyclic']} (GRAPH.md fenced)", "cycle: " + " → ".join(cyc))
-        elif graph_doc is None and md_has_unfenced_deps(md_text):
-            rep.fail(f"{LABEL_STEM['i3_dag_failclosed']}",
-                     "GRAPH.md declares dependencies OUTSIDE a code fence and no graph.json "
-                     "backs them — 0 edges parsed; refusing to pass")
+        # WP-A/B3: GRAPH.md as a directory or a dangling symlink raised IsADirectoryError/OSError here
+        # (open() was the sole unguarded loader), aborting the whole run with a traceback and silently
+        # disabling every downstream invariant. Wrap it like every other loader — an unreadable GRAPH.md
+        # is a fail-closed I3 defect, not a crash.
+        md_text = None
+        try:
+            with open(graph_md, encoding="utf-8") as f:
+                md_text = f.read()
+        except OSError as e:
+            rep.fail(f"{LABEL_STEM['i3_dag_acyclic']} (GRAPH.md)",
+                     f"GRAPH.md is present but unreadable ({e}) — a GRAPH.md that is a directory or a "
+                     "dangling symlink cannot back the DAG; refusing to pass")
+        if md_text is not None:
+            cyc = find_cycle(parse_graph_edges(md_text))
+            if cyc:
+                rep.fail(f"{LABEL_STEM['i3_dag_acyclic']} (GRAPH.md fenced)", "cycle: " + " → ".join(cyc))
+            elif graph_doc is None and md_has_unfenced_deps(md_text):
+                rep.fail(f"{LABEL_STEM['i3_dag_failclosed']}",
+                         "GRAPH.md declares dependencies OUTSIDE a code fence and no graph.json "
+                         "backs them — 0 edges parsed; refusing to pass")
     if not graph_md_exists and graph_doc is None and not post_decomposition and not args.quiet:
         print("  SKIP  I3 DAG: no GRAPH.md or graph.json present (pre-decomposition)")
 
@@ -1363,13 +1453,30 @@ def main(argv=None):
         dnt = pf.get("do_not_touch")
         if not dnt:                       # retry data absent (iteration 1 or no echo) — skip / no-op
             continue
-        crit = {df.get("criterion") for df in v.get("defects", [])}
-        overlap = sorted(x for x in (crit & set(dnt)) if x is not None)
-        if overlap:
+        # WP-D/A2 (REVISES I14/AO-2): scope the do_not_touch intersection to blocker|major defects.
+        # The old check intersected ALL defects regardless of severity, which was mutually
+        # UNSATISFIABLE with the coverage-first mandate (report every finding + its severity,
+        # methodology.md §Verification): reporting a minor observation on a previously-clean criterion
+        # was a hard I14 FAIL, yet suppressing it violated coverage-first — no compliant path existed.
+        # Scoping restores satisfiability while preserving AO-2's purpose (a retry must not CHURN
+        # settled work): a blocker/major on a sealed criterion is a real regression and still FAILs; a
+        # minor coverage-first observation is REPORTABLE (advisory NOTE, not a FAIL).
+        _dnt = set(dnt)
+        _bm = sorted(x for x in ({df.get("criterion") for df in v.get("defects", [])
+                                  if isinstance(df, dict) and df.get("severity") in ("blocker", "major")} & _dnt)
+                     if x is not None)
+        _minor = sorted(x for x in ({df.get("criterion") for df in v.get("defects", [])
+                                     if isinstance(df, dict) and df.get("severity") == "minor"} & _dnt)
+                        if x is not None)
+        if _bm:
             rep.fail(f"{LABEL_STEM['i14_ao2']} (units/{uid})",
-                     f"defect criteria {overlap} intersect prior_feedback.do_not_touch — a retry "
-                     "must not re-open what the prior iteration marked correct (AO-2)")
+                     f"blocker/major defect criteria {_bm} intersect prior_feedback.do_not_touch — a "
+                     "retry must not re-open (regress) what the prior iteration marked correct (AO-2)")
         else:
+            if _minor and not args.quiet:
+                print(f"  NOTE  {LABEL_STEM['i14_ao2']} (units/{uid}): minor coverage-first observation(s) "
+                      f"{_minor} on a previously-sealed criterion — REPORTABLE, not a re-opening "
+                      "(a blocker/major here would FAIL; A2 severity scoping)")
             rep.ok(f"{LABEL_STEM['i14_ao2']} (units/{uid})")
 
     # I13 socratic counter records an OUTCOME (debrief + verify)
@@ -1431,9 +1538,11 @@ def main(argv=None):
     CANON_LENSES = {"correctness", "reproduce", "guardrail"}
     R_MAX = 3
     _graph_unit_tags = {}
+    _graph_unit_exec = {}
     if graph_doc is not None:
         for _u in graph_doc.get("units", []):
             _graph_unit_tags[_u.get("id")] = set(_u.get("tags", []) or [])
+            _graph_unit_exec[_u.get("id")] = _u.get("executor_persona")
 
     def _discrete_majority(verdicts):
         """Strict discrete majority (mode) of a verdict list, or None on a tie / no-majority.
@@ -1482,6 +1591,23 @@ def main(argv=None):
                 rep.fail(f"{LABEL_STEM['i16_panel']} (units/{uid})",
                          f"panel lenses {sorted(l for l in lenses if l)} do not cover the canonical "
                          f"trio {sorted(CANON_LENSES)} — panel members must have DISTINCT lenses, not clones")
+            # WP-B/C4: panel INDEPENDENCE — distinct lenses alone did not stop a panel of three CLONES
+            # sharing one verifier_persona. verifier_persona is schema-optional, so check pairwise
+            # distinctness over the members that DECLARE one, and that none is the unit's executor
+            # persona (a panelist may not be the maker). Independence is the whole point of the panel.
+            _pv = [m.get("verifier_persona") for m in members if m.get("verifier_persona")]
+            if len(_pv) != len(set(_pv)):
+                panel_ok = False
+                _pv_dupes = sorted({p for p in _pv if _pv.count(p) > 1})
+                rep.fail(f"{LABEL_STEM['i16_panel']} (units/{uid})",
+                         f"panel verifier_persona(s) {_pv_dupes} appear on multiple members — an "
+                         "independent panel needs DISTINCT verifiers, not clones sharing one persona")
+            _exec_p = _graph_unit_exec.get(uid) or b.get("persona")
+            if _exec_p is not None and _exec_p in set(_pv):
+                panel_ok = False
+                rep.fail(f"{LABEL_STEM['i16_panel']} (units/{uid})",
+                         f"panel includes the unit's executor persona {_exec_p!r} — a panelist may not "
+                         "be the maker (maker != checker)")
             maj = _discrete_majority(verdicts)
             if maj is None:
                 # no strict majority => genuine split => must escalate as DISAGREE (AO-5), never softmax
@@ -1532,6 +1658,22 @@ def main(argv=None):
             rep.fail(f"{LABEL_STEM['i15_ao6']} (units/{uid})",
                      "iteration>1 with a prior_feedback echo but changes_made is absent/empty — a "
                      "retry must record >=1 concrete change made in response to the prior verdict (AO-6)")
+
+    # C6 (WP-C): a debrief whose acceptance_self_check marks EVERY criterion met:false while its
+    # verify.json verdict is PASS is an internal inconsistency worth surfacing — but NON-GATING: the
+    # INDEPENDENT verifier is authoritative (the executor's self-check is advisory), so this is an
+    # advisory NOTE, never a FAIL (tests/LIMITATIONS.md documents the intent). Post-hoc/offline.
+    for uid in sorted(unit_docs):
+        _de6 = unit_docs[uid].get("debrief"); _ve6 = unit_docs[uid].get("verify")
+        if not (isinstance(_de6, dict) and isinstance(_ve6, dict)):
+            continue
+        _asc = _de6.get("acceptance_self_check")
+        if (isinstance(_asc, list) and _asc
+                and all(isinstance(x, dict) and x.get("met") is False for x in _asc)
+                and _ve6.get("verdict") == "PASS" and not args.quiet):
+            print(f"  NOTE  {LABEL_STEM['note_selfcheck']} (units/{uid}): debrief acceptance_self_check "
+                  f"marks all {len(_asc)} criteri(on/a) met:false but verify verdict=PASS — the "
+                  "independent verifier is authoritative (advisory, non-gating; LIMITATIONS.md)")
 
     # ======================= Bounded Graph Amendments (I17/I18/I19) =======================
     # All three are POST-HOC / OFFLINE predicates over the emitted amendment records + graph.json +
@@ -1942,7 +2084,10 @@ def main(argv=None):
             if kind == "split_unit":
                 children = _rec.get("units_added", []) or []
                 # WP3: the snapshot must be EXACTLY the retired unit(s) (no fake/bare padding).
-                _snap_ids = {s.get("id") for s in (_rec.get("retired_snapshot", []) or []) if isinstance(s, dict)}
+                # WP-A/B1: only string ids (a non-string/unhashable id would crash the set comprehension;
+                # the schema now pins id:string, so this is belt-and-braces for degraded/no-schema mode).
+                _snap_ids = {s.get("id") for s in (_rec.get("retired_snapshot", []) or [])
+                             if isinstance(s, dict) and isinstance(s.get("id"), str)}
                 _ret_set = set(_rec.get("units_retired", []) or [])
                 if _snap_ids != _ret_set:
                     rec_ok = False
@@ -1952,12 +2097,22 @@ def main(argv=None):
                 child_tags = set()
                 for c in children:
                     if c in cur_units:
-                        child_tags |= set(cur_units[c].get("tags", []) or [])
+                        _ct = cur_units[c].get("tags", [])   # WP-A/B1: tolerate a non-list tags (graph.schema pins it; belt-and-braces)
+                        if isinstance(_ct, list):
+                            child_tags |= {t for t in _ct if isinstance(t, str)}
                 snap_tags, snap_crits = set(), []
                 for s in (_rec.get("retired_snapshot", []) or []):
                     if isinstance(s, dict):
-                        snap_tags |= set(s.get("tags", []) or [])
-                        snap_crits += [c for c in s.get("acceptance_criteria", []) if isinstance(c, str)]
+                        # WP-A/B1: guard non-list tags/acceptance_criteria — the schema now pins these to
+                        # array<string> (both backends), so a wrong-typed snapshot is DROPPED before it
+                        # reaches here; these isinstance guards are belt-and-braces so an unforeseen shape
+                        # in degraded/no-schema mode FAILs cleanly instead of raising a TypeError traceback.
+                        _st = s.get("tags", [])
+                        if isinstance(_st, list):
+                            snap_tags |= {t for t in _st if isinstance(t, str)}
+                        _sc = s.get("acceptance_criteria", [])
+                        if isinstance(_sc, list):
+                            snap_crits += [c for c in _sc if isinstance(c, str)]
                 missing_tags = sorted(snap_tags - child_tags)
                 if missing_tags:
                     rec_ok = False
@@ -2198,18 +2353,29 @@ def main(argv=None):
             # origin.store provenance stamp (written by the Phase-0.5 intake). A G#-id entry with
             # NEITHER is forged provenance — fail CLOSED so a run-local L1 renamed G7 cannot dodge I12.
             def _import_provenance_ok(E, eid):
-                if eid in store_ids:
-                    return True
-                o = E.get("origin") if isinstance(E, dict) else None
-                return isinstance(o, dict) and o.get("store") in ("user", "project")
+                # WP-C/B2: an origin.store stamp is trusted ONLY when CORROBORATED by actual store
+                # membership (eid in store_ids — the loaders now record even shadowed/folded ids, A4).
+                # An uncorroborated origin.store self-stamp grants NOTHING; the id-in-store test is the
+                # single source of import provenance, so a run-local entry can no longer self-exempt.
+                return eid in store_ids
             active, advisory = [], []
             for E in learnings:
                 eid = E.get("id") if isinstance(E, dict) else None
+                _o = E.get("origin") if isinstance(E, dict) else None
+                _stamped = isinstance(_o, dict) and _o.get("store") in ("user", "project")
+                # WP-C/B2: an origin.store stamp with NO corroborating store entry is forged provenance
+                # — closing the sibling of the G8 id-spelling hole (adding origin.store to a run-local
+                # entry used to (a) exempt it from I12 propagation and (b) defeat the G8 import check).
+                if _stamped and eid not in store_ids:
+                    rep.fail(f"{LABEL_STEM['i12_provenance']}",
+                             f"{eid} carries an origin.store={_o.get('store')!r} stamp but its id is in NO "
+                             "learnings store (uncorroborated) — an origin.store self-stamp cannot forge "
+                             "import provenance (B2)")
                 if isinstance(eid, str) and eid.startswith("G") and not _import_provenance_ok(E, eid):
                     rep.fail(f"{LABEL_STEM['i12_provenance']}",
                              f"{eid} claims the import carve-out (G#-id) but was not loaded from a store "
-                             "and carries no origin.store provenance — the advisory/exempt tier cannot be "
-                             "forged by id spelling (G8)")
+                             "and carries no corroborated origin.store provenance — the advisory/exempt tier "
+                             "cannot be forged by id spelling (G8)")
                 _imported = _import_provenance_ok(E, eid) if isinstance(eid, str) else (eid in store_ids)
                 if isinstance(E, dict) and _imported and not _is_regrounded(E):
                     advisory.append(E)
@@ -2461,7 +2627,17 @@ def main(argv=None):
                 continue                       # pending/retired/etc — no terminal verdict to match
             _vd = unit_docs.get(_u.get("unit_id"), {}).get("verify")
             if _vd is None:
-                continue                       # verify absent (I9 handles that) — nothing to cross-check
+                # WP-C/C5: fail CLOSED — a TERMINAL ledger status (passed/failed) with no VALID
+                # verify.json is an unverifiable claim (the ledger asserts a verdict no verifier
+                # produced). The old `continue` let a run parked at P6 claim `U0X: passed` with zero
+                # evidence and still exit 0 (I9 only fires when a debrief exists; I10 only at P8/DONE).
+                # `executing`/`verifying` are NOT terminal (they map to None above), so the mid-loop
+                # NOTE case is untouched.
+                rep.fail(f"{LABEL_STEM['i2_status_verdict']} (units/{_u.get('unit_id')})",
+                         f"fsm units[] status {_u.get('status')!r} (terminal, expects verdict {_exp_v}) but "
+                         "no VALID verify.json — a passed/failed ledger status must be backed by the "
+                         "verifier's verdict")
+                continue
             if _vd.get("verdict") != _exp_v:
                 rep.fail(f"{LABEL_STEM['i2_status_verdict']} (units/{_u.get('unit_id')})",
                          f"fsm units[] status {_u.get('status')!r} but verify.json verdict={_vd.get('verdict')!r} "
@@ -2475,6 +2651,22 @@ def main(argv=None):
             rep.fail(f"{LABEL_STEM['i2_status_verdict']}",
                      f"fsm loop.last_verdict={_lp.get('last_verdict')!r} != {_lp.get('unit_id')} "
                      f"verify.json verdict={_lvd.get('verdict')!r} — the ledger must match the verifier")
+    # B5 (WP-A): duplicate unit_id in fsm-state.units[] makes every last-wins consumer
+    # (_fsm_unit_status for the I9 mid-loop NOTE, _unit_retries for the I4/escalate cross-checks,
+    # the I2 subset check) ORDER-DEPENDENT — a shadowing duplicate can downgrade an I9 FAIL to a NOTE.
+    # This mirrors the I3 graph.json unit-id uniqueness fix (round 1); JSON Schema cannot express
+    # cross-item uniqueness on a derived key, so the validator is the only enforcement point.
+    # Offline/post-hoc — gates no transition.
+    if fsm and isinstance(fsm.get("units"), list):
+        _fids = [_u.get("unit_id") for _u in fsm["units"] if isinstance(_u, dict) and _u.get("unit_id") is not None]
+        if len(_fids) != len(set(_fids)):
+            _fdupes = sorted({x for x in _fids if _fids.count(x) > 1})
+            rep.fail(f"{LABEL_STEM['i2_fsm_unit_unique']}",
+                     f"duplicate unit_id(s) {_fdupes} in fsm-state.units[] — ids must be unique "
+                     "(status/retries consumers collapse duplicates last-wins, making I9/I4 verdicts "
+                     "order-dependent)")
+        else:
+            rep.ok(f"{LABEL_STEM['i2_fsm_unit_unique']} ({len(_fids)} unique fsm unit_id(s))")
     if fsm and isinstance(fsm.get("units"), list) and graph_doc is not None:
         _allowed_ids = {u.get("id") for u in graph_doc.get("units", [])}
         for _ru in (graph_doc.get("retired_units", []) or []):   # retired units legitimately leave units[]
@@ -2538,24 +2730,23 @@ def main(argv=None):
         elif _everdict == "FAIL" and _er == 2:
             _why = "retries==2 with FAIL verify (LT5)"
         else:
-            for _dn in ("disagreement.json", "disagreement.md"):
-                _dp = os.path.join(units_dir, _euid, _dn)
-                if os.path.exists(_dp):
-                    try:
-                        with open(_dp, encoding="utf-8") as _fh:
-                            _dt = _fh.read().lower()
-                        if "fuel" in _dt and ("exhaust" in _dt or "amendment" in _dt):
-                            _why = "disagreement dossier cites amendment-fuel exhaustion (BGA origin)"
-                            break
-                    except Exception:
-                        pass
+            # WP-C/C3: the amendment-fuel-exhaustion origin (BGA third origin) is proven by STRUCTURAL
+            # evidence, not a substring grep over dossier prose. The old check matched "fuel" + ("exhaust"
+            # | "amendment") anywhere in the dossier — so a dossier explicitly DENYING fuel use ("burned
+            # NO fuel at all") satisfied it. Require the fsm-state expansion object to show fuel actually
+            # exhausted: expansion present AND fuel_remaining == 0 (I18 accounting). Prose is no longer
+            # sufficient; migration note: an ESCALATE that formerly relied on dossier wording now needs
+            # the structural fuel evidence (consistent with F1's version-skew policy).
+            _exp = fsm.get("expansion") if isinstance(fsm, dict) else None
+            if isinstance(_exp, dict) and _as_int(_exp.get("fuel_remaining")) == 0:
+                _why = "amendment fuel exhausted (expansion.fuel_remaining == 0; BGA origin)"
         if _why:
             rep.ok(f"{LABEL_STEM['escalate_origin']} (units/{_euid}: {_why})")
         else:
             rep.fail(f"{LABEL_STEM['escalate_origin']} (units/{_euid})",
                      f"unit is in loop-state ESCALATE but no valid origin (verify verdict={_everdict!r}, "
-                     f"retries={_er}) — ESCALATE requires (retries==2 ∧ FAIL) or DISAGREE or a "
-                     "disagreement dossier citing amendment-fuel exhaustion (the three T10 origins)")
+                     f"retries={_er}) — ESCALATE requires (retries==2 ∧ FAIL) or DISAGREE or structural "
+                     "amendment-fuel exhaustion (expansion.fuel_remaining == 0); the three T10 origins")
 
     if post_p1:
         missing = []

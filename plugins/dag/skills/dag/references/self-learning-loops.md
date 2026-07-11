@@ -294,7 +294,9 @@ the loop (I14 / I15 in state-machine.md §4; the inline I14/I15 checks in `valid
 
 ```
 I14 (AO-2): ∀ unit, iter=n>1 with prior_feedback.do_not_touch present :
-              { verify.defects[].criterion } ∩ prior_feedback.do_not_touch == ∅
+              { defect.criterion | defect.severity ∈ {blocker,major} } ∩ prior_feedback.do_not_touch == ∅
+              (A2 severity-scoped: a minor coverage-first observation on a sealed criterion is
+               REPORTABLE — advisory NOTE, not a FAIL; only a blocker/major re-opening FAILs)
 I15 (AO-6): ∀ unit, iter=n>1 with a prior_feedback echo :
               prior_feedback.changes_made is present and non-empty
 ```
@@ -340,7 +342,7 @@ part of the required set — the §4.3 propagation predicate keys off `since_wav
 | `trigger` | string | **the verifiable outcome** that produced the lesson — e.g. `"U0X verify FAIL: <criterion>"`, a test result, or a cited finding id. MUST reference an external signal, **not** a self-assessment. |
 | `lesson` | string (1 sentence) | the generalizable rule |
 | `how_to_apply` | string | the concrete action a future brief takes |
-| `scope` | object | `{ applies_to: SelectorSet, excludes: [unit-id...], expiry: "run \| project \| runs:N \| date:<iso>" }` — the **anti-over-fit guard** (§6.2); the loader-side grammar `validate_run.py` enforces (`_expiry_expired`), any other value is inert |
+| `scope` | object | `{ applies_to: SelectorSet, excludes: [unit-id...], expiry: "run \| project \| runs:N \| date:<iso>" }` — the **anti-over-fit guard** (§6.2); the loader-side grammar `validate_run.py` enforces (`_expiry_expired`). Since the N-08 schema pin, an unrecognized `expiry` on a **run-local** entry is a hard **schema FAIL** (the `scope.expiry` `pattern`); on a **store** entry it is reported + dropped (non-gating) |
 | `evidence` | locator | external signal: `verify.json` path / a cited finding id / command→output |
 | `promotable` *(optional)* | bool | **optional**, not in the canonical required set; marks an entry eligible to be lifted to `CLAUDE.md`/a skill at Phase-8 sign-off |
 
@@ -482,7 +484,15 @@ discovery/merge/promotion at *runtime* is prose the model executes.
   This is the **AO-4** tie: an un-re-grounded import is **not** an external signal that binds briefs —
   only a run-local authored entry, or an import you have re-grounded to a THIS-run signal, is. A
   re-grounded import re-enters `active` and is governed by I12 (incl. the 04/G1 ≥2-carrier carve-out)
-  exactly like a run-local entry. `grounding` is an **optional** top-level `$defs/entry` field
+  exactly like a run-local entry. **Re-grounding `since_wave` (A3):** because re-grounding happens
+  mid-run, on activation set the entry's `since_wave` to the earliest wave whose briefs are **not yet
+  generated** — NOT the imported default of `1` (or verify every earlier matching brief already cites
+  it). I12 binds a unit iff `unit.wave ≥ since_wave`, so a re-grounded import pinned at `since_wave = 1`
+  would retroactively require propagation into already-executed wave-1 briefs — and re-briefing an
+  executed unit is forbidden (02/P4 has-no-debrief guard; it re-opens executed work, breaking AO-1 /
+  forward-only). Pinning `since_wave` to the current brief frontier makes a re-grounded import
+  forward-only, exactly like a mid-run authored learning. `grounding` is an **optional** top-level
+  `$defs/entry` field
   (load-bearing value `"re-grounded"`; inert on run-local authored entries). Absent store ⇒ `store_ids`
   empty, no `G#` ids ⇒ advisory empty ⇒ `active` == today's set ⇒ zero behavior change. **Honest
   boundary:** re-grounding is keyed on this same-project `grounding` marker — a local trust signal,
@@ -496,8 +506,10 @@ discovery/merge/promotion at *runtime* is prose the model executes.
 - **`expiry` — loader-side grammar, not a schema enum (03/P3).** `scope.expiry` parses as
   `run|project|runs:N|date:<iso>`; an expired entry (a `runs:N` budget exhausted via `applied_count`,
   a past `date:`, or a `run`-scoped entry loaded from a store) is EXCLUDED from propagation and
-  REPORTED (label `learnings expiry (03/P3): <id> EXCLUDED …`), never a hard-fail. An unparseable /
-  unrecognized `expiry` fails **OPEN** (inert) — never a crash, never a silent exclusion.
+  REPORTED (label `learnings expiry (03/P3): <id> EXCLUDED …`), never a hard-fail. Since the N-08 schema
+  pin an **unrecognized `expiry` on a run-local entry is a hard schema FAIL** (the `scope.expiry`
+  `pattern`); on a **store** entry it is reported + dropped (non-gating) — never a crash, never a silent
+  exclusion.
 - **Decay / GC (04/G5).** `max_idle_runs`/`last_applied_run`/`last_confirmed`/`applied_count` drive
   idle-decay, EXTENDING the P3 traversal (one loop, not a duplicate). Today it is DECIDABLE only for
   `max_idle_runs == 0` on a store-loaded, not-applied/confirmed-this-run entry (label
@@ -526,13 +538,20 @@ Each is stated so it is either mechanically checkable or a hard structural rule.
 - **AO-1 Monotone counter (no reset).** `retries` is append-only within a unit; only LT7
   writes it, only `+1`. ⇒ the variant `V` of §2 strictly descends; no path re-inflates the
   budget. *This is the mechanical core of both termination and anti-oscillation.*
-- **AO-2 Never re-verify a PASSED claim.** A criterion once `PASS` enters
-  `feedback.do_not_touch`; a retry MUST NOT re-open it and the verifier MUST NOT
-  re-litigate it. Specified as `retry-verify.defects[].criterion ∩ prior.do_not_touch = ∅` and now
+- **AO-2 Never re-verify a PASSED claim — but coverage-first still reports (A2 severity-scoped).** A
+  criterion once `PASS` enters `feedback.do_not_touch`; a retry MUST NOT **regress** it. Specified as
+  `retry-verify.defects[severity∈{blocker,major}].criterion ∩ prior.do_not_touch = ∅` and now
   **validator-checked, post-hoc**, by predicate **I14** in `validate_run.py` (label
   `I14 AO-2 do_not_touch disjointness (units/<uid>)`): for a `debrief.iteration>1` it fails **closed**
-  on a non-empty intersection of `verify.defects[].criterion` with the retry's
-  `debrief.prior_feedback.do_not_touch`. It is an offline read that **gates no transition** (a live
+  on a non-empty intersection of the retry's **blocker/major** `verify.defects[].criterion` with the
+  retry's `debrief.prior_feedback.do_not_touch`. **A2 (REVISES I14/AO-2):** the intersection is scoped
+  to `blocker|major` because intersecting ALL severities was mutually unsatisfiable with the
+  coverage-first mandate (methodology.md §Verification — report every finding + its severity): a
+  genuine `minor` regression/observation on a previously-clean criterion had to be either FILED (a hard
+  I14 FAIL) or SUPPRESSED (a coverage-first violation), with no compliant path. Scoping preserves AO-2's
+  purpose — a retry must not CHURN settled work — while making a `minor` coverage-first observation on a
+  sealed criterion REPORTABLE (an advisory NOTE, not a FAIL); a `blocker/major` on a sealed criterion is
+  a real regression and still FAILs. It is an offline read that **gates no transition** (a live
   guard on LT7 would leave `RETRY` with no out-edge → deadlock, breaking §2 Claim D — the 02/P1 FLAG),
   so AO-1 still owns halt. Kills pass→fail→pass ping-pong. (Even if the verifier flip-flops, AO-1 still
   forces halt.) **Named Limitation — I14/I15 data-availability (L1):** I14 fires *only when the retry's
@@ -570,14 +589,19 @@ Each is stated so it is either mechanically checkable or a hard structural rule.
   `verify.executor_reasoning_seen == false` is an invariant. When the unit runs a **panel** (PR1),
   *every* panelist is independent per this rule, and each retry re-panels afresh.
 
-**PR1 note — the I6 PASS revision interacts cleanly with AO-2/I14.** I6's PASS clause is REVISED for
-coverage-first: a PASS may now carry `minor` observations (but no blocker/major). This does **not**
-weaken AO-2: the auto-seeded `do_not_touch` (02/P6) is *(brief criteria) − (this verify's
-`defects[].criterion`)*, so a criterion carrying even a `minor` defect is (correctly) **not** sealed
-into `do_not_touch` — a later retry is still permitted to touch it, while I14 keeps a retry's defects
-disjoint from the criteria that were genuinely clean. A PASS ends the loop (LT3), so its `do_not_touch`
-binds no retry anyway. The revision is a **content-rule change on the verify artifact** (I6), not an
-FSM/guard change — it PRESERVES termination (verdict enum unchanged; the §1.3 partition is untouched).
+**PR1 note — the I6 PASS revision interacts cleanly with AO-2/I14 (completed by A2's severity scoping).**
+I6's PASS clause is REVISED for coverage-first: a PASS may now carry `minor` observations (but no
+blocker/major). This does **not** weaken AO-2: the auto-seeded `do_not_touch` (02/P6) is *(brief
+criteria) − (this verify's `defects[].criterion`)*, so a criterion carrying even a `minor` defect is
+(correctly) **not** sealed into `do_not_touch` — a later retry is still permitted to touch it, while
+I14 keeps a retry's **blocker/major** defects disjoint from the criteria that were genuinely clean.
+**A2 completes this alignment:** before A2, I14 intersected ALL severities, so a `minor` coverage-first
+observation on a criterion that *was* sealed still hard-FAILed I14 — leaving no compliant path (file it
+⇒ I14 FAIL; suppress it ⇒ coverage-first violation). Scoping I14 to `blocker|major` closes that gap: a
+`minor` on a sealed criterion is now REPORTABLE (advisory NOTE), a `blocker/major` still FAILs. A PASS
+ends the loop (LT3), so its `do_not_touch` binds no retry anyway. Both revisions are **content-rule
+changes on the verify artifact** (I6/I14), not FSM/guard changes — they PRESERVE termination (verdict
+enum unchanged; the §1.3 partition is untouched).
 
 ---
 

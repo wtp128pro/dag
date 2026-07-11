@@ -469,8 +469,15 @@ harder).**
   fresh loop after a human decision) and the **P2/P3/P4 rollback targets** T11 lists in
   state-machine.md are **out of model scope**. This is safety-preserving: `Resolve` never
   advances forward past a gate and changes no `gate` entry, so `GateOrdering` still holds; the
-  omitted recovery/rollback edges would only add more (still gate-respecting) behavior. In-model,
-  the post-`Resolve` P6 state is a stutter-absorbing terminal rather than a re-armed loop.
+  omitted recovery/rollback edges would only add more (still gate-respecting) behavior. **Disclosure
+  correction (D4/WP-F):** the earlier claim that the post-`Resolve` P6 state is a "stutter-absorbing
+  terminal" was FALSE — `Resolve` does NOT consume the escalation, so from post-`Resolve` P6 the loop
+  can escalate again and the model admits an **infinite P6↔P7 ping-pong** for a single escalation (a
+  temporal-property probe confirms this). This is **harmless** here: the phase machine claims only
+  **safety** (`GateOrdering` + the per-unit loop bound / fuel bound carry termination), and every
+  P6↔P7 cycle is gate-respecting, so no checked property is affected. We deliberately do NOT change the
+  model semantics to forbid the re-entry — that would be a guarantee-touching state-space edit for zero
+  proof value (per the CLAUDE.md guarantee-touching rule, this stays disclosure-only).
   **BGA note:** an ESCALATE-origin amendment (a P7 resolution that amends the graph — an
   `amendment.origin.trigger` of `p7_resolution`) folds into this same out-of-scope `Resolve`
   simplification. The model's `Amend` re-arms only from `lstate="DONE"` (an autonomous, mid-P6
@@ -492,7 +499,7 @@ These are model-scoping choices, surfaced rather than hidden; the properties pro
 
 ## Residual — invariants that are NOT formalizable (semantic / model-judged)
 
-Directly inherited from `state-machine.md` §5 Limitations A–H — these are *semantic*
+Directly inherited from `state-machine.md` §5 Limitations A–K — these are *semantic*
 and **cannot** be captured in TLA+/Alloy:
 
 - **A. (the load-bearing one for Prop 4).** Whether the verifier was *truly* blind to

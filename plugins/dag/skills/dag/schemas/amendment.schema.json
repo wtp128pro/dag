@@ -69,7 +69,13 @@
                   "units_added": { "minItems": 2 },
                   "units_retired": { "minItems": 1, "maxItems": 1 },
                   "retired_snapshot": { "minItems": 1,
-                    "items": { "required": ["id", "tags", "acceptance_criteria"] } }
+                    "items": { "required": ["id", "tags", "acceptance_criteria"],
+                      "$comment": "WP-A/B1: pin inner types so a schema-VALID-but-wrong-shape snapshot (e.g. tags:7) can no longer reach validate_run.py's I19 set()/list ops and crash it — the mini backend evaluates these nested item properties too.",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "tags": { "type": "array", "items": { "type": "string" } },
+                        "acceptance_criteria": { "type": "array", "items": { "type": "string" } }
+                      } } }
                 } } },
     { "$comment": "WP3 kind closure — add_edges: edges only, NO unit add/retire/snapshot.",
       "if": { "properties": { "kind": { "const": "add_edges" } }, "required": ["kind"] },

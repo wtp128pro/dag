@@ -72,7 +72,10 @@ so most are dead weight until their phase arrives.
    `decomposition_approved` after P4, `signoff_confirmed` after P8 — `personas_confirmed` after P1),
    and bump `updated_at`. The validator's REQUIRED_GATES and its WP5 artifact→phase-floor check will
    FAIL a run whose ledger under-reports the phase or omits a gate flag. **Never self-set a gate flag
-   to skip a human gate** — a flag is your attestation the human actually decided (U3, below).
+   to skip a human gate** — a **human-gate** flag (`personas_confirmed`, `clarification_resolved`,
+   `signoff_confirmed` — the three human gates) is your attestation the human actually decided;
+   `cartography_done` and `decomposition_approved` are **mechanical** phase-completion flags, not human
+   attestations (U3, below).
 2. **Every executor gets a self-contained brief** and runs in an isolated subagent
    with a **≤ 32K-token context budget**. Atomize work until each unit fits.
 3. **Decouple the maker from the checker.** Every executor is checked by an
@@ -84,9 +87,11 @@ so most are dead weight until their phase arrives.
 5. **Gate on decisions that matter.** Pause for the human at: persona/clarification,
    any *material* disagreement, and final sign-off. Otherwise proceed and log.
    **Non-interactive runs (U3):** if no human can answer a gate, the run MUST **halt at the gate and
-   report the pending question** — never self-set a gate flag to proceed. A gate flag is an attestation
-   the human decided; setting it without a human is a defect the validator cannot detect but you must not
-   commit. **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
+   report the pending question** — never self-set a gate flag to proceed. A **human-gate** flag
+   (`personas_confirmed`, `clarification_resolved`, `signoff_confirmed`) is an attestation the human
+   decided; setting it without a human is a defect the validator cannot detect but you must not
+   commit. (`cartography_done` and `decomposition_approved` are mechanical phase-completion flags, not
+   human attestations — no human touchpoint sits at cartography or decomposition.) **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
    unavailable, substitute a plain numbered question in your reply for the gate, and track unit state in
    `PROGRESS.md` instead of the task tools — the gates and the ledger are what matter, not the tool.
 6. **Learn within the run.** Capture generalizable lessons in LEARNINGS.md and inject
@@ -168,6 +173,13 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
    **Advisory until re-grounded (03/P4).** The shipped validator loads every imported cross-run
    entry as **advisory** — reported and voluntarily citable, but **not** force-injected by I12 — until
    you re-ground it to a THIS-run signal and mark it with the entry field `grounding: "re-grounded"`.
+   **On re-grounding, also set `since_wave` to the earliest wave whose briefs are NOT yet generated
+   (A3) — not the imported default of `1`** (or, if you keep an earlier `since_wave`, first verify every
+   earlier matching brief already cites the entry). Re-grounding happens mid-run, so binding it back to
+   wave 1 would demand I12 propagation into already-executed wave-1 briefs — and re-briefing an executed
+   unit is forbidden (it re-opens executed work, breaking AO-1 / the forward-only property). Setting
+   `since_wave` to the current brief frontier keeps the entry forward-only, exactly like a mid-run
+   authored learning.
    The I12 required-propagation predicate then runs over the **active** set only — run-local authored
    entries ∪ imported entries carrying `grounding == "re-grounded"` — while an advisory (un-re-grounded)
    import gets an `advisory import (not force-injected): <id>` report line (**U11:** emitted only once a
@@ -187,7 +199,13 @@ model-narrowing / decay / promotion as PASS/NOTE lines — it never gates a phas
 5. Fold the surviving imports into the run's `learnings.json` / `LEARNINGS.md` so Phase-5 briefs
    carry them (this is the one legitimate **pre-Phase-1** `learnings.json` write; the validator
    treats `learnings.json` as ledger bookkeeping — NOT a post-Phase-1 work-graph artifact — so it
-   does not trip the G-personas gate). Log the intake in `PROGRESS.md`.
+   does not trip the G-personas gate). **Stamp every folded import with `origin.store` (`"user"` or
+   `"project"`, matching the store it came from)** — this records its provenance, and the validator now
+   **corroborates** that stamp against actual store membership (the store loader records even a folded
+   id, so a genuine import is corroborated by the store it was copied from). An `origin.store` stamp
+   whose id is in NO store is treated as **forged** provenance and FAILs `I12 import provenance` (WP-C/B2),
+   so the stamp can no longer be used to self-exempt a run-local entry from I12 propagation. Log the
+   intake in `PROGRESS.md`.
 
 ---
 
@@ -319,7 +337,11 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    outputs, **acceptance criteria** — each of which **MUST trace to a Definition-of-Done
    item** (a unit whose criteria map to no DoD item is either scope creep or a DoD gap — fix
    one), **`tags`** (from the `V_tag` vocabulary seeded in GRAPH.md — required by
-   `graph.schema.json`, and the basis for tag-scoped learnings propagation), assigned
+   `graph.schema.json`, and the basis for tag-scoped learnings propagation). **Tag a unit
+   `high-stakes` (A9) when a wrong result is hard to reverse:** its failure is irreversible or
+   externally-visible, it is security-/safety-relevant, or it blocks ≥3 downstream units — the
+   `high-stakes` tag is the SOLE trigger of the mandatory Phase-6 panel-of-3 (I16), so assign it here,
+   deliberately. Also record the assigned
    **executor persona**, assigned **verifier persona**, estimated context footprint,
    **dependencies**, its **`wave`** (assigned by the topological sort in step 3 — required in each
    unit's `brief.json`), and **explicit out-of-scope / guardrails** carried down from the Non-Goals
@@ -393,7 +415,10 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
   cartography sections, decisions, and relevant LEARNINGS — quote only the few
   load-bearing facts inline;
 - the **evidence standard** for this unit's claim types (evidence-standards.md);
-- the **budget contract** (≤ 32K; "read only what this brief lists");
+- the **budget contract** (this unit's `brief.budget_tokens` — the ≤ 32K plan-side ceiling; "read only
+  what this brief lists"). **Report-side honesty is relative to THIS budget (F2):** in the debrief,
+  `within_budget := tokens_consumed ≤ brief.budget_tokens` — NOT the global 32K; report a real overrun
+  truthfully and set `within_budget: false` when you exceed *this brief's* budget (validate_run.py I5);
 - the **brief.json sidecar** (above): the orchestrator writes it beside `brief.md` before dispatch;
 - the **required debrief artifact**: produce `debrief.json` per templates/debrief.md (JSON-only).
 
@@ -462,6 +487,18 @@ call per unit, ideally in a single message). For **each unit**:
    its `panel[]`, purely for audit; the validator **validates any such file if present** (D-04) —
    schema-valid + blind + `unit_id` matching its directory — but never requires them and never lets
    them override the aggregated `verify.json` the correction loop reads.
+
+   **Persona identity is enforced, not just declared (WP-B, post-hoc mechanizations of PD-3 / I1 /
+   I16 — same class as the round-1 I1b graph check, all offline predicates that gate no transition).**
+   The maker≠checker discipline is now checked at the *artifact* layer and against the *roster*, not
+   only in the graph declaration: **I1c** requires a unit's `debrief.persona == graph.executor_persona`,
+   `verify.verifier_persona == graph.verifier_persona`, and the two DISTINCT (so one persona cannot
+   execute a unit and then verify it); **I1d** requires every working persona (graph executor/verifier,
+   `brief`/`debrief.persona`, `verify.verifier_persona`, panel members) to be a confirmed
+   `personas.json` roster member; and **I16** additionally requires panel members' `verifier_persona`s
+   to be pairwise DISTINCT and none equal to the executor (an independent panel, not clones behind
+   distinct lenses). All three are shape/identity checks — a genuinely distinct *model* behind a
+   distinct persona *label* stays unobservable to the validator (Limitation D).
 5. **Adjudicate — the bounded correction loop** (req 12). The loop is a state machine
    `EXECUTE → VERIFY → ADJUDICATE → {DONE | RETRY | ESCALATE}` with an exhaustive,
    mutually-exclusive guard table (full spec + termination proof + invariants:

@@ -36,6 +36,15 @@ fi
 RAW_LABEL="$1"
 BASE_DIR="${2:-$(pwd)}"
 
+# F1(a)/WP-E: resolve THIS plugin's version so the seeded fsm-state.json is stamped with the
+# validator_version that scaffolded it. Enables the version-skew policy (state-machine.md §5): a later
+# validator can tell which contemporaneous validator a run was written against. Best-effort — an
+# unresolvable version simply omits the (OPTIONAL) field, so a legacy/unstamped run is never penalized.
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+VALIDATOR_VERSION=$(python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1])).get("version",""))
+except Exception: pass' "$SCRIPT_DIR/../../../.claude-plugin/plugin.json" 2>/dev/null || true)
+
 # Kebab-case the label: lowercase, non-alnum -> '-', squeeze, trim leading, cap length.
 # N-18: cap to 40 chars FIRST, then trim any trailing hyphen the cut may have exposed (reordered,
 # so a truncated label never ends in '-').
@@ -132,8 +141,9 @@ EOF
 cat > "$RUN_DIR/LEARNINGS.md" <<EOF
 # Learnings Ledger — ${LABEL}
 
-> Append-only; keep entries GENERALIZABLE (scope ≥2 units) — one-offs go in a unit debrief.
-> Each entry is injected into later briefs.
+> Append-only; keep entries GENERALIZABLE — a \`tag:<T>\` scope needs ≥2 units carrying T and an \`all\`
+> scope needs ≥2 units, but a deliberate single-target unit-id (\`U0X\`) selector is always admissible.
+> One-off *patterns* go in a unit debrief. Each entry is injected into later briefs.
 
 | # | Timestamp | Lesson | Trigger (what went wrong) | How to apply going forward | Scope (applies_to / excludes / expiry) | since_wave | Evidence |
 |---|-----------|--------|---------------------------|----------------------------|----------------------------------------|------------|----------|
@@ -142,8 +152,15 @@ EOF
 # Seed the initial pipeline FSM state. Seeding all-false gates is valid at P0/P1 where no gate
 # is yet required: no loop substate yet, all gates false — the gate-ordering invariant fires
 # from P2 onward (personas_confirmed is required from P2; see references/state-machine.md).
+# F1(a): stamp validator_version when resolvable (a blank line if not — valid JSON, OPTIONAL field).
+if [ -n "$VALIDATOR_VERSION" ]; then
+  VV_LINE="  \"validator_version\": $(python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1]))' "$VALIDATOR_VERSION"),"
+else
+  VV_LINE=""
+fi
 cat > "$RUN_DIR/fsm-state.json" <<EOF
 { "run_dir": ${ABS_RUN_DIR_JSON}, "phase": "P0_BOOTSTRAP", "updated_at": "${ISO}",
+${VV_LINE}
   "gates": { "personas_confirmed": false, "clarification_resolved": false,
              "cartography_done": false, "decomposition_approved": false,
              "signoff_confirmed": false },

@@ -63,8 +63,10 @@ The skill dir itself additionally ships `schemas/*.schema.json` (incl. `amendmen
 driver (`run_formal.sh` fetches the TLC/Alloy jars to /tmp — BUILD tools, never vendored),
 `references/{methodology,evidence-standards,state-machine,socratic-protocol,self-learning-loops,formal-models,data-partitioning}.md`,
 and the `references/personas/` catalog (`index.json` + per-file persona JSON + `GUIDE.md`).
-Only the artifacts backed by a schema carry a machine-checkable `.json` (validity ≠ correctness):
-**`personas`, `clarifications`, `cartography`, `graph`, `fsm-state`, and `learnings`** — while
+Only the artifacts backed by a schema carry a machine-checkable `.json` (validity ≠ correctness): the
+top-level **`personas`, `clarifications`, `cartography`, `graph`, `fsm-state`, `learnings`**, plus the
+per-unit **`brief`, `debrief`, `verify`, `disagreement`** and the append-only
+**`amendments/A<NN>.json`** records (all schema-backed) — while
 `INPUT`/`PLAN`/`DECISIONS`/`PROGRESS`/`SYNTHESIS` are prose-only; the per-unit **debrief and verify
 are JSON-only** (nothing reads a second markdown copy). The validator resolves schemas relative to
 itself, so the run dir needs no schema copy.

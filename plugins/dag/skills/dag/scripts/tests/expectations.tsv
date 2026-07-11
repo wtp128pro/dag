@@ -107,3 +107,16 @@ amend_added_unreconciled	1	I17 amendment reconciliation
 amend_fake_retire	1	I17 amendment reconciliation
 amend_phantom_retire_undercharge	1	I17 amendment reconciliation
 amend_missing_baseline	1	baseline_units
+amend_snapshot_badtype	1	$.retired_snapshot
+graphmd_not_file	1	GRAPH.md is present but unreadable
+fsm_dup_unit	1	I2 fsm units uniqueness
+maker_eq_checker_artifacts	1	maker == checker
+panel_clone_verifiers	1	DISTINCT verifiers
+persona_roster_forgery	1	I1d roster membership
+persona_identity_ok	0	
+origin_store_forgery	1	cannot forge import provenance (B2)
+forged_import_stamped	1	cannot forge import provenance (B2)
+escalate_vacuous_origin	1	ESCALATE origin provenance
+ledger_passed_no_evidence	1	no VALID verify.json
+selfcheck_all_false_note	0	acceptance_self_check vs verify (C6)
+i14_minor_on_sealed	0	minor coverage-first observation

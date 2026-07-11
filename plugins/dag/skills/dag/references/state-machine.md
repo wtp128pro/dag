@@ -42,7 +42,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | `P5_BRIEFING`         | 5 Briefing         | units/*/brief.md    | linear |
 | `P6_EXECUTE_VERIFY`   | 6 Execute+Verify   | debrief.json, verify.json | **composite (loop)** |
 | `P7_DISAGREEMENT_GATE`| 7 Disagreement     | units/*/disagreement.md | human gate (as-needed) |
-| `P8_SYNTHESIS`        | 8 Synthesis        | SYNTHESIS.md        | linear |
+| `P8_SYNTHESIS`        | 8 Synthesis        | SYNTHESIS.md        | human gate (sign-off) |
 | `DONE`                | —                  | —                   | terminal |
 
 ### 1a. Phase-6 loop substates (`fsm-state.loop.state`), per unit — the loop's Q vocabulary
@@ -183,6 +183,8 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 |---|---|---|
 | **I1 Verifier independence** | Verifier never sees executor reasoning; verify.json `executor_reasoning_seen==false`. | schema `const:false` + validator; **but see Limitation A (self-attestation).** |
 | **I1b maker!=checker (persona distinctness)** | Every unit's `executor_persona` must differ from its `verifier_persona` (maker ≠ checker — prime-directive #3 + Alloy `DistinctMakerChecker`). | `validate_run.py` cross-checks `executor_persona != verifier_persona` over `graph.json` units and prints the label `I1b maker!=checker (persona distinctness)` (added in U04). Closes the previously-unenforced graph-level gap. *(Labeled **I1b** as the structural counterpart of **I1 Verifier independence** — both realize prime-directive #3, "decouple the maker from the checker". Genuine model-distinctness behind the persona label stays unenforceable — Limitation D.)* |
+| **I1c artifact/declaration persona reconciliation** (WP-B/C1) | For a unit with BOTH a `debrief.json` and a `verify.json`: `debrief.persona == graph.executor_persona`, `verify.verifier_persona == graph.verifier_persona`, AND `debrief.persona != verify.verifier_persona`. I1b compared only the DECLARED graph personas; nothing tied the ACTUAL artifact personas to them, so one persona could execute a unit AND verify it while I1b still printed PASS. | `validate_run.py` post-hoc/offline (label `I1c artifact/declaration persona reconciliation (units/<uid>)`); gates no transition ⇒ **PRESERVES** termination. Mechanizes prime-directive #3 / I1 at the artifact layer, the same class as the round-1 I1b graph-layer check. A genuinely distinct *model* behind a distinct persona label stays unobservable (Limitation D). Fixtures `maker_eq_checker_artifacts`/`persona_identity_ok`. |
+| **I1d roster membership** (WP-B/C2) | Every WORKING persona — graph `executor_persona`/`verifier_persona`, `brief`/`debrief.persona`, `verify.verifier_persona`, and every panel member's `verifier_persona` — must be a member of the confirmed `personas.json` roster. Realizes `personas.schema.json`'s stated purpose (previously any working persona could be a fabricated string absent from the roster). | `validate_run.py` post-hoc/offline (label `I1d roster membership`); runs only when a `personas.json` roster is present (its absence is G-personas' job); gates no transition ⇒ **PRESERVES** termination. Membership is a confirmed-roster check, NOT proof the named model staffed the unit (Limitation D). Fixtures `persona_roster_forgery`/`persona_identity_ok`. |
 | **I2 Ledger-is-truth** | Current state = disk (`fsm-state.json` + markdown), never model memory only. The ledger may not LIE about the artifacts (WP5): a `units[]` status of `passed`/`failed` matches the unit's verify verdict `PASS`/`FAIL` and `loop.last_verdict` matches its unit's verdict (G4); every `fsm-state.units[]` id is a graph unit or a retired id (G10); and artifacts imply a phase floor — an executed unit ⇒ `decomposition_approved` ∧ phase ≥ P5, `SYNTHESIS.md` ⇒ phase ∈ {P8, DONE} (G5). | validator confirms `fsm-state.json` parses & is valid, plus the post-hoc ledger↔verify / units-subset / phase-floor cross-checks. Fixtures `no_fsm_state`/`ledger_status_mismatch`/`ledger_verdict_mismatch`/`fsm_phantom_unit`/`phase_underreport`. |
 | **I3 DAG acyclic (fail-closed)** | The work graph has no dependency cycle; graph.json is authoritative. Unit ids are UNIQUE (WP5/B8 — a duplicate makes last-wins enforcement order-dependent). | validator: cycle on `edges ∪ unit-deps` + a `len(units) == len(set(ids))` uniqueness check; **GRAPH.md-present or post-decomposition ⇒ VALID graph.json REQUIRED** (unparseable/absent ⇒ non-zero exit). Closes E. Fixtures `unfenced_cycle`/`amend_cycle`/`dup_unit_id`. |
 | **I4 Loop bound** | `retries ≤ 2` per unit (≤3 executions); `iteration ≤ retries+1`. | schema `maximum:2` + validator cross-check — applied to the top-level `loop` slot **and** (D-02/IMP-11) to every `fsm-state.units[]` item that records its own optional per-unit `retries` (label `I4 units[] cross-check`), so parallel-wave units are each bounded, not just the most-recently-transitioned one. Both are post-hoc/offline (no LT7 guard). |
@@ -191,13 +193,13 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **I7 Single recommended option** | A disagreement dossier marks exactly ONE option recommended. | validator counts `recommended==true`. |
 | **I8 No open material ambiguity past P2** | Cannot advance past clarification with an open material item. | validator (clarifications extract). |
 | **I9 Every debriefed unit is verified** | A unit dir with a debrief (`.json` or `.md`) MUST have a verify.json with a verdict. | validator presence check. **Closes D.** |
-| **I10 Synthesis completeness** | At P8/DONE, every debriefed unit has verdict=PASS (none advances unverified/failed). | validator phase-gated presence+verdict check. **Closes D.** |
+| **I10 Synthesis completeness** | At P8/DONE, every **graph** unit has verdict=PASS (none advances unverified/failed). The enforced predicate iterates the `graph.json` units (BRK-02, §5; `spec/invariants.json`), NOT just the dirs that happen to carry a debrief — so a unit cannot be hidden by deleting its `debrief.json`. | validator phase-gated presence+verdict check over graph.json units (scoped to runs that materialized the `units/` tree). **Closes D.** |
 | **I11 Tag vocabulary** | Every unit/brief `tag` is a member of `V_tag_eff` (`graph.json.v_tag` ∪ the global registry `~/.claude/dag/tags.json` — 04/G1; absent/invalid ⇒ run-local `V_tag`). | validator membership check over `V_tag_eff`. **Domain widened by 04/G1 — Limitation G.** |
 | **I12 Learnings propagation** | Every unit created no earlier than a learning E and matched by E's scope selector — `all`, a unit-id (`U0X`), or `tag:T` — lists E in `learnings_applied`. Admission is selector-kind ASYMMETRIC: `all` admissible iff ≥2 graph units, `tag:T` iff ≥2 units carry T, a `U0X` selector always (single-target). An unrecognized selector kind is a hard `I12 selector` FAIL (BRK-08); `phaseN` was removed as unevaluable (BRK-09). | validator decidable predicate + admission gate (see `self-learning-loops.md` §4.3). Imported entries are EXEMPT from the ≥2-carrier re-proof via the 04/G1 carve-out but still propagation-checked. The import carve-out (WP5/G8) requires GENUINE provenance — actual store membership OR an `origin.store` stamp — not the `G#` id spelling; a bare `G#`-id with neither FAILs `I12 import provenance` (fixture `learnings_forged_import`), so a run-local `L1` renamed `G7` can no longer dodge propagation. |
 | **I13 Socratic counter records an outcome** | `debrief`/`verify` `socratic.counter` states an outcome, not a blank/"n/a" (mechanical sentinel allowed). | schema (4 keys + `confidence` regex) + validator counter-outcome check. **Shape only; genuineness = the independent COUNTER re-run (Limitation B).** |
-| **I14 AO-2 do_not_touch disjointness (post-hoc)** | For a retry (`debrief.iteration>1`), `verify.defects[].criterion` is disjoint from the retry's `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit. | `validate_run.py` offline predicate (label `I14 AO-2 do_not_touch disjointness (units/<uid>)`), added ring-02/P1. Gates no transition. **Presence now schema-required on retries (PR-6); content self-reported — Limitation F (narrowed).** |
+| **I14 AO-2 do_not_touch disjointness (post-hoc; A2 severity-scoped)** | For a retry (`debrief.iteration>1`), the retry's **blocker/major** `verify.defects[].criterion` is disjoint from the retry's `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit. A **minor** coverage-first observation on a sealed criterion is REPORTABLE (advisory NOTE), not a FAIL. | `validate_run.py` offline predicate (label `I14 AO-2 do_not_touch disjointness (units/<uid>)`), added ring-02/P1; **A2 (WP-D) REVISES** it to scope the intersection to `blocker\|major` (coverage-first satisfiability — see self-learning-loops.md AO-2). Gates no transition. **Presence now schema-required on retries (PR-6); content self-reported — Limitation F (narrowed).** Fixtures `ao2_do_not_touch` (major→FAIL) / `i14_minor_on_sealed` (minor→PASS+NOTE). |
 | **I15 AO-6 responsive change (post-hoc)** | For a retry carrying a `prior_feedback` echo, `debrief.prior_feedback.changes_made` is present and non-empty; else non-zero exit. | `validate_run.py` offline predicate (label `I15 AO-6 responsive change (units/<uid>)`), added ring-02/P2. Gates no transition. **Presence + non-emptiness of `changes_made` now schema-required on retries (PR-6)**, so this offline check is SUBSUMED for schema-valid retries and remains a degraded-mode (no-schema) backstop; `changes_made` *content* executor-self-attested. **Limitation F (narrowed).** |
-| **I16 Panel discipline (post-hoc, PR1)** | A `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); ANY panel's top-level `verdict` equals the **DISCRETE majority** of the panel verdicts (a no-majority split ⇒ `DISAGREE` — **no softmax**); `verify_rounds` (loop-until-dry) ∈ [1,3]. | `validate_run.py` offline predicate (label `I16 panel discipline (units/<uid>)`), added PR1. Gates **no** transition (never a live LT7 guard). Node-internal ⇒ **PRESERVES** termination. **Presence/shape-checked — genuine lens-diversity + real recall stay verifier judgment (Limitation H).** |
+| **I16 Panel discipline (post-hoc, PR1; independence WP-B/C4)** | A `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); ANY panel's top-level `verdict` equals the **DISCRETE majority** of the panel verdicts (a no-majority split ⇒ `DISAGREE` — **no softmax**); `verify_rounds` (loop-until-dry) ∈ [1,3]. **Panel INDEPENDENCE (WP-B):** the members' declared `verifier_persona`s must be pairwise DISTINCT (no clones behind distinct lenses) and none may equal the unit's executor persona (a panelist may not be the maker). | `validate_run.py` offline predicate (label `I16 panel discipline (units/<uid>)`), added PR1 (independence WP-B). Gates **no** transition (never a live LT7 guard). Node-internal ⇒ **PRESERVES** termination. **Presence/shape-checked — genuine lens-diversity + real recall stay verifier judgment (Limitation H).** |
 | **I-dod DoD/non-goals present** | Any post-clarification structural artifact (cartography, graph, units, or synthesis — `learnings.json` is deliberately excluded) requires a schema-valid `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is absent (methodology.md §Clarification). | validator artifact-driven presence check, fail-closed on absence — confirmed via the `missing_dod`/`postdecomp_no_dod`/`synthesis_no_dod`/`unfenced_cycle` fixtures. |
 | **I3b wave layering** (BGA) | When `graph.json.waves` is present: every unit appears in exactly one wave group (and no group names a non-unit), and every edge in `edges ∪ deps` rises strictly in wave (`wave(from) < wave(to)`). When amendments exist `waves` is REQUIRED (absent ⇒ FAIL); without amendments an absent `waves` ⇒ SKIP. Closes a pre-existing gap: `waves` was never cross-checked, so a layering-violating-yet-acyclic graph passed silently. | `validate_run.py` post-hoc/offline; runs whenever a graph is present; gates no transition ⇒ **PRESERVES** termination (+STRENGTHENS I3). Fixtures `amend_ok`/`amend_layering`. |
 | **I3c dependency closure** (BGA) | Every `deps` element and every `edges[].from/to` names a CURRENT `units[].id`; a dangling reference (incl. a retired id still referenced) ⇒ FAIL. Closes a pre-existing gap: a phantom endpoint became an invisible node in cycle detection. | `validate_run.py` post-hoc/offline; runs whenever a graph is present; gates no transition ⇒ **PRESERVES** termination (+STRENGTHENS I3). Fixtures `amend_ok`/`amend_dangling_dep`. |
@@ -216,7 +218,11 @@ validator requires `counter_reran_independently==true` and rejects a PASS whose
 ## 5. Mechanically-checked vs. semantic (honest boundary — validity ≠ correctness)
 `validate_run.py` mechanically enforces: schema-validity of every artifact; **I3 fail-closed
 DAG** (authoritative graph.json required past decomposition); **I1b maker!=checker**
-(persona-distinctness: `executor_persona != verifier_persona` per graph.json unit);
+(persona-distinctness: `executor_persona != verifier_persona` per graph.json unit); **I1c
+artifact/declaration persona reconciliation** (a unit with both artifacts: `debrief.persona ==
+graph.executor_persona`, `verify.verifier_persona == graph.verifier_persona`, and the two artifact
+personas DISTINCT — WP-B/C1); **I1d roster membership** (every working executor/verifier/panel persona
+∈ the confirmed `personas.json` roster — WP-B/C2);
 **I9/I10 missing-verification + synthesis-completeness rejection** (I10 iterates the graph.json
 units at P8/DONE so a unit cannot be hidden by deleting its debrief — BRK-02, scoped to runs that
 materialized the `units/` tree; I9 also rejects a verify-without-debrief — IMP-17); **G-brief offline
@@ -305,6 +311,27 @@ a live transition guard** (the 02/P1 deadlock lesson).
   work actually advances that DoD item stays the verifier/critique-pass backstop (the same shape as E
   for tags).
 
+### Version-skew policy — archived runs vs. the current validator (F1/WP-E)
+
+The validator is **single-truth**: it always applies the CURRENT invariant set, and it never
+downgrades or disables a check by a run's recorded version. To keep that honest without deadlocking
+old runs, `init_run.sh` stamps `fsm-state.json.validator_version` (F1(a); the OPTIONAL schema field)
+with the plugin version that scaffolded the run, and this policy holds:
+
+- **An archived run is judged against its CONTEMPORANEOUS validator.** When the current validator is
+  run over a run stamped with an OLDER `validator_version` (or an *unstamped* pre-1.7.0 run), any new
+  findings are **expected schema/invariant skew, NOT defects of that run** — the run was correct under
+  the validator it shipped with. Read such findings as "what would need to change to re-validate this
+  run today," not "this run was wrong."
+- **The stamp gates nothing.** An absent `validator_version` is judged exactly as before (legacy runs
+  are never penalized for lacking it); the stamp only *labels* provenance so future skew is legible.
+- **Dogfood/self-runs in THIS repo are the exception** (see F3 / CLAUDE.md): they must be validated
+  with the repo's own `scripts/validate_run.sh`, contemporaneously, so they are held to the current
+  bar rather than an installed plugin's stale copy.
+- Where a mechanical class of skew is cheaply fixable, a **clearly-labeled migration** may backfill
+  archived runs (the 1.3.0 signoff-backfill precedent; WP-E F1(c) backfills `.wip/`) — never fabricate
+  evidence a run did not actually produce (a missing artifact gets a dated annotation, not an invention).
+
 ## 6. Phase→state coverage (no orphan phases)
 Every SKILL.md phase 0–8 maps to exactly one state (§1), with **one deliberately-unmodeled
 sub-step: Phase 0.5 (learnings intake).** Phase 0.5 is a prose sub-step *within* `P0_BOOTSTRAP` —
@@ -321,6 +348,8 @@ mechanical guard set** — the validator cannot confirm a human picked a disagre
 guard text names G-signoff and its `signoff_confirmed` flag explicitly. The Phase-6 executor↔verifier loop maps to the loop substate
 machine (§1a/§2a, `EXECUTE·VERIFY·ADJUDICATE·RETRY·ESCALATE·DONE`). The as-needed Phase 7 maps to
 `P7_DISAGREEMENT_GATE` (entered via T10 from an ESCALATE — a DISAGREE-origin escalation, a
-retries-exhausted FAIL, or (BGA) amendment-fuel exhaustion; §1a — exited via T11). No phase, mechanical gate, or loop is unmodeled; the sole
-remaining human gate (G-resolve, T11) is modeled as a human gate, while G-signoff — formerly a human
-gate — is now the mechanical `gates.signoff_confirmed` guard required at DONE (D-06).
+retries-exhausted FAIL, or (BGA) amendment-fuel exhaustion; §1a — exited via T11). No phase, mechanical gate, or loop is unmodeled. **Sign-off (P8) remains a human gate** — the human
+must accept the deliverable — but its flag `gates.signoff_confirmed` is now **mechanically required at
+DONE** (D-06), so the validator checks the flag's PRESENCE (not its genuineness — the §5 attestation
+boundary), exactly as it does `personas_confirmed`. G-resolve (T11, disagreement) stays the one human
+gate with **no** mechanical flag the validator can check at all.

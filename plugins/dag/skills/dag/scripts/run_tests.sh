@@ -101,6 +101,14 @@ for PY in $INTERPRETERS; do
           *) ok=0; reason="${reason:+$reason; }missing pinned FAIL substring: $sub" ;;
         esac
       fi
+      # WP-A regression guard (B1/B3): the validator must NEVER abort with a Python traceback — a crash
+      # silently disables every downstream invariant. Any traceback in a fixture's output is a hard
+      # regression regardless of the expected exit code (a schema-valid-but-malformed artifact must FAIL
+      # cleanly, not crash).
+      case "$out" in
+        *"Traceback (most recent call last)"*)
+          ok=0; reason="${reason:+$reason; }validator emitted a Python TRACEBACK (crash)" ;;
+      esac
       if [ "$ok" -eq 1 ]; then
         n_pass=$((n_pass + 1))
       else

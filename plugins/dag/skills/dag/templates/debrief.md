@@ -29,7 +29,10 @@ never truncate to "fit" the schema.
   premise to break"`); `confidence` starts `high|medium|low`
 - `confidence` (`high|medium|low`) — the top-level unit confidence enum, distinct from the
   `socratic.confidence` sub-key above
-- `footprint{tokens_consumed, within_budget}`
+- `footprint{tokens_consumed, within_budget}` — `within_budget := tokens_consumed ≤ THIS unit's
+  `brief.budget_tokens`` (F2; **not** the global 32K). Report `tokens_consumed` truthfully (it has no
+  schema cap); set `within_budget: false` iff you exceeded *this brief's* `budget_tokens`. The validator
+  (I5) FAILs a `tokens_consumed > brief.budget_tokens` paired with `within_budget: true`.
 
 **Optional keys:** `acceptance_self_check[]` (`{criterion (required), met (required), evidence_ref
 (optional)}`), `assumptions[]`, `residual_risks[]`, `handoff_notes[]` (facts downstream briefs

@@ -21,6 +21,10 @@
       "type": "string",
       "description": "Optional: the model this run executed under (recorded so model-scoped learnings can bind). Absent => unrecorded."
     },
+    "validator_version": {
+      "type": "string",
+      "description": "OPTIONAL (F1/WP-E). The plugin/validator version that scaffolded this run (init_run.sh stamps it from .claude-plugin/plugin.json). Enables the version-skew policy (state-machine.md §5): the CURRENT validator's findings on a run stamped with an OLDER version are expected-skew, not defects. NEVER gates a check — an absent stamp (legacy/pre-1.7.0 runs) is judged exactly as before."
+    },
     "gates": {
       "type": "object",
       "additionalProperties": true,
@@ -76,7 +80,7 @@
     "expansion": {
       "type": "object",
       "additionalProperties": false,
-      "description": "OPTIONAL (Bounded Graph Amendments). The Phase-6 graph-amendment fuel budget. Seeded at Phase 4 (default min(N0,8), human-adjustable at the decomposition gate). 0 or absent => BGA disabled (today's behavior). fuel is monotone-decreasing: only an amendment writes it, mirroring the retries counter. validate_run.py I18 cross-checks fuel_remaining == fuel_initial - sum(amendment fuel_cost) and fuel_remaining >= 0. Top-level is additionalProperties:false, so this property must be declared.",
+      "description": "OPTIONAL (Bounded Graph Amendments). The Phase-6 graph-amendment fuel budget. Seeded at Phase 4 (default min(N0,8); a non-default value comes only from an explicit instruction at an earlier gate — decomposition has no human touchpoint, U2/D-C: exactly three human gates). 0 or absent => BGA disabled (today's behavior). fuel is monotone-decreasing: only an amendment writes it, mirroring the retries counter. validate_run.py I18 cross-checks fuel_remaining == fuel_initial - sum(amendment fuel_cost) and fuel_remaining >= 0. Top-level is additionalProperties:false, so this property must be declared.",
       "properties": {
         "fuel_initial": { "type": "integer", "minimum": 0, "maximum": 32 },
         "fuel_remaining": { "type": "integer", "minimum": 0, "maximum": 32 },

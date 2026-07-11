@@ -36,11 +36,48 @@
       ]
     },
     {
+      "id": "I1c",
+      "title": "I1c: artifact/declaration persona reconciliation (executor != verifier at the artifact level)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I1c artifact/declaration persona reconciliation"
+      ],
+      "fixtures": [
+        "maker_eq_checker_artifacts",
+        "persona_identity_ok"
+      ],
+      "provenance": [
+        "C1"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I1d",
+      "title": "I1d: every working persona is a confirmed personas.json roster member",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I1d roster membership"
+      ],
+      "fixtures": [
+        "persona_roster_forgery",
+        "persona_identity_ok"
+      ],
+      "provenance": [
+        "C2"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
       "id": "I2",
       "title": "I2: ledger-is-truth (fsm-state.json is authoritative)",
       "tier": "mechanical",
       "validator_label_prefixes": [
         "I2 fsm units subset",
+        "I2 fsm units uniqueness",
         "I2 ledger-is-truth",
         "I2 phase artifact floor",
         "I2 status vs verify verdict"
@@ -50,7 +87,9 @@
         "ledger_status_mismatch",
         "ledger_verdict_mismatch",
         "phase_underreport",
-        "fsm_phantom_unit"
+        "fsm_phantom_unit",
+        "fsm_dup_unit",
+        "ledger_passed_no_evidence"
       ],
       "provenance": [],
       "docs": [
@@ -70,7 +109,8 @@
       "fixtures": [
         "unfenced_cycle",
         "amend_cycle",
-        "dup_unit_id"
+        "dup_unit_id",
+        "graphmd_not_file"
       ],
       "provenance": [
         "E"
@@ -296,6 +336,8 @@
         "regrounded_g_listed",
         "regrounded_g_unlisted",
         "learnings_forged_import",
+        "origin_store_forgery",
+        "forged_import_stamped",
         "p4_advisory/advisory_not_required",
         "p4_advisory/regrounded_required"
       ],
@@ -350,11 +392,13 @@
       ],
       "fixtures": [
         "ao2_do_not_touch",
-        "ao2_disjoint"
+        "ao2_disjoint",
+        "i14_minor_on_sealed"
       ],
       "provenance": [
         "02/P1",
-        "AO-2"
+        "AO-2",
+        "A2"
       ],
       "docs": [
         "references/state-machine.md#4",
@@ -393,7 +437,8 @@
       "fixtures": [
         "panel_high_stakes_pass",
         "panel_majority_mismatch",
-        "panel_missing"
+        "panel_missing",
+        "panel_clone_verifiers"
       ],
       "provenance": [],
       "docs": [
@@ -477,7 +522,8 @@
         "amend_cancel_noop",
         "amend_bare_snapshot",
         "amend_noncild_criteria_map",
-        "amend_single_child_split"
+        "amend_single_child_split",
+        "amend_snapshot_badtype"
       ],
       "provenance": [
         "BGA",
@@ -844,11 +890,13 @@
         "ESCALATE origin provenance"
       ],
       "fixtures": [
-        "escalate_no_origin"
+        "escalate_no_origin",
+        "escalate_vacuous_origin"
       ],
       "provenance": [
         "B9",
-        "D-A"
+        "D-A",
+        "C3"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -925,6 +973,23 @@
       "fixtures": [],
       "provenance": [],
       "docs": []
+    },
+    {
+      "id": "selfcheck",
+      "title": "selfcheck: debrief acceptance_self_check vs verifier verdict (advisory, non-gating)",
+      "tier": "attestation",
+      "validator_label_prefixes": [
+        "acceptance_self_check vs verify (C6)"
+      ],
+      "fixtures": [
+        "selfcheck_all_false_note"
+      ],
+      "provenance": [
+        "C6"
+      ],
+      "docs": [
+        "scripts/tests/LIMITATIONS.md"
+      ]
     }
   ]
 }

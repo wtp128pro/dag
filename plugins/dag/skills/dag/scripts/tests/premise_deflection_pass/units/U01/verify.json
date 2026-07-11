@@ -1,6 +1,6 @@
 {
   "unit_id": "U01",
-  "verifier_persona": "Adversarial Reproducibility Auditor",
+  "verifier_persona": "Skeptic",
   "verdict": "PASS",
   "iteration": 2,
   "executor_reasoning_seen": false,
