@@ -57,9 +57,10 @@ files. This is what makes the run resumable and keeps Dag's own context lean.
 
 The skill dir itself additionally ships `schemas/*.schema.json` (incl. `amendment.schema.json` +
 `manifest.schema.json`), the SSR registry `spec/{fsm.json,invariants.json}` (+ their meta-schemas),
-`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh,spec_check.py}` (+ `tests/`, whose
-BGA runs carry `amendments/A<NN>.json`), the machine-checked models
-`formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als,Amendment.als}`,
+`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh,spec_check.py,run_formal.sh}`
+(+ `tests/`, whose BGA runs carry `amendments/A<NN>.json`), the machine-checked models
+`formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als,Amendment.als}` + the headless `formal/AlloyRun.java`
+driver (`run_formal.sh` fetches the TLC/Alloy jars to /tmp — BUILD tools, never vendored),
 `references/{methodology,evidence-standards,state-machine,socratic-protocol,self-learning-loops,formal-models,data-partitioning}.md`,
 and the `references/personas/` catalog (`index.json` + per-file persona JSON + `GUIDE.md`).
 Only the artifacts backed by a schema carry a machine-checkable `.json` (validity ≠ correctness):

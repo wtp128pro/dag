@@ -44,13 +44,21 @@ Amendments structural theorem (adding wave-layered units above their deps preser
 > `JAVA_HOME=$(/usr/libexec/java_home)`. Every command below sets it — harmless even when
 > `/usr/bin/java` already resolves to a real JDK.
 >
-> **`tla2tools.jar` and the Alloy jar are BUILD tools, not skill files** — both are fetched to
-> `/tmp`, never vendored into the repo. Download once:
+> **One-command reproduction:** `bash scripts/run_formal.sh --maxfuel32` fetches both jars (checksum-
+> verified), compiles the vendored `formal/AlloyRun.java` driver, and runs TLC (MaxFuel 2 and 32) + both
+> Alloy files headlessly, expecting 853/408/36, 2,923/1,608/156, and 8/8 — no display, nothing written
+> to the repo. The rest of this note documents what that script does by hand.
+>
+> **`tla2tools.jar` and the Alloy jar are BUILD tools, not skill files** — both are fetched to a cache
+> dir (default `/tmp`), never vendored into the repo. The Alloy `dist.jar` in particular bundles a
+> research-only SAT solver (Lingeling, *"evaluation and research purposes"*) and LGPL SAT4J, so it is
+> deliberately NOT committed. Download once:
 > `curl -L -o /tmp/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar`
 > `curl -L -o /tmp/alloy.jar https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar`
-> Alloy's default `java -jar alloy.jar` launches the GUI; drive it headlessly through the Alloy
-> Java API (`CompUtil.parseEverything_fromFile` → `TranslateAlloyToKodkod.execute_command`, default
-> SAT4J solver, `-Djava.awt.headless=true`), or open the file in the Analyzer and Execute All.
+> Alloy's default `java -jar alloy.jar` launches the GUI; the committed `formal/AlloyRun.java` drives it
+> headlessly through the Alloy Java API (`CompUtil.parseEverything_fromFile` →
+> `TranslateAlloyToKodkod.execute_command`, default SAT4J solver, `-Djava.awt.headless=true`) — or open
+> the file in the Analyzer and Execute All.
 
 **Proof-status legend:** *machine-checked* (a model checker explored the state space
 and reported no error) · *hand-proved* (a rigorous checkable argument; not run by a

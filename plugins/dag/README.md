@@ -87,7 +87,7 @@ skills/dag/
 │   └── formal-models.md           TLA+/Alloy models + proofs + check plan
 ├── schemas/                       JSON Schemas (Draft 2020-12) for every artifact
 ├── spec/                          descriptive SSR registry (fsm.json · invariants.json) — dev-time drift source
-├── formal/                        Pipeline.tla · Pipeline.cfg · WorkGraph.als · Amendment.als (BGA)
+├── formal/                        Pipeline.tla · Pipeline.cfg · WorkGraph.als · Amendment.als (BGA) · AlloyRun.java (headless driver)
 ├── templates/                     brief · debrief · verify · disagreement · personas · persona ·
 │                                  clarifications · cartography · graph · amendment
 └── scripts/
@@ -96,6 +96,7 @@ skills/dag/
     ├── validate_run.py            runnable validator — rejects malformed runs
     ├── run_tests.sh               the CI: HOME-isolated fixture sweep on both backends + spec_check
     ├── spec_check.py              dev-time prose↔spec↔code drift checker (SC1–SC7)
+    ├── run_formal.sh              one-command TLC + Alloy reproduction (fetches jars to /tmp)
     └── tests/                     fixtures proving each enforced rule (good/bad/amend_…)
 ```
 
