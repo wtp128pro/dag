@@ -292,6 +292,18 @@ Goal: eliminate every *material* lapse in the requirements before any work begin
    check fires once a run has ANY post-clarification structural artifact (cartography, graph,
    units, or synthesis) and then REQUIRES a schema-valid `clarifications.json` carrying non-empty
    `definition_of_done` AND `non_goals` — even if the file is absent — else a non-zero exit.
+   Two register-content floors ride alongside: (floor-1) the validator's **`I24`** reuses the
+   I-dod structural trigger — once structural work exists, an EMPTY `ambiguity_register` is a
+   FAIL. "No ambiguities found" is recorded as an ordinary register item, e.g.
+   `{"id": 1, "ambiguity": "none found after Socratic sweep", "materiality": "minor",
+   "resolved": true, "resolution": "task judged unambiguous because ..."}` — the `id` is an
+   **integer ≥ 1** (use the next unused one), never a string. The floor is validator-only (no
+   schema `minItems`, deliberately: mid-dialogue Phase-2 authoring and archived docs stay
+   schema-valid). (floor-2) a register item marked `materiality:"material"` AND
+   `resolved:true` MUST carry non-empty `resolution` text — a schema conditional plus the
+   validator's **`I25`** offline mirror, whose `.strip()` bar also rejects whitespace-only
+   text. Materiality is self-declared, so an all-`minor` register never binds I25 — an honest,
+   documented residual (references/state-machine.md §5), not a loophole to use.
 6. Write `CLARIFICATIONS.md`; fold resolved criteria into `PLAN.md` (Objective + Success
    criteria + **Definition of Done + Non-Goals/Guardrails**); log decisions.
 
@@ -336,7 +348,12 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 2. For each unit record: `id`, title, goal, **inputs** (which prior debriefs/artifacts),
    outputs, **acceptance criteria** — each of which **MUST trace to a Definition-of-Done
    item** (a unit whose criteria map to no DoD item is either scope creep or a DoD gap — fix
-   one), **`tags`** (from the `V_tag` vocabulary seeded in GRAPH.md — required by
+   one), **`dod_refs`** (the mechanical form of that trace — every unit lists ≥1
+   `definition_of_done` string it serves, each element **verbatim**, and mirrors the same list
+   into its `brief.json`; the validator's **I20** enforces this offline: adoption-closure —
+   once ANY unit carries the key, EVERY unit must — plus verbatim membership and the
+   graph↔brief mirror. A run that adopts the field nowhere stays green — the honest,
+   documented D1 residual, references/state-machine.md §5), **`tags`** (from the `V_tag` vocabulary seeded in GRAPH.md — required by
    `graph.schema.json`, and the basis for tag-scoped learnings propagation). **Tag a unit
    `high-stakes` (A9) when a wrong result is hard to reverse:** its failure is irreversible or
    externally-visible, it is security-/safety-relevant, or it blocks ≥3 downstream units — the
@@ -345,7 +362,12 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
    **executor persona**, assigned **verifier persona**, estimated context footprint,
    **dependencies**, its **`wave`** (assigned by the topological sort in step 3 — required in each
    unit's `brief.json`), and **explicit out-of-scope / guardrails** carried down from the Non-Goals
-   list so the executor and verifier both know what NOT to build.
+   list so the executor and verifier both know what NOT to build. **The carry-down is now
+   mechanical: emit `non_goal_refs` on every unit** (each element verbatim ∈ `non_goals`,
+   mirrored into the unit's `brief.json`). `[]` is the EXPLICIT "no non-goal applies to this
+   unit" statement; an ABSENT key, once any unit has adopted the field, is a closure FAIL —
+   the validator's **I21** makes forgot-vs-none-applicable mechanically distinguishable,
+   offline (same adoption-closure + membership + brief-mirror shape as I20).
 3. Build the **dependency DAG**; topologically sort into **waves** (units within a wave
    are independent → run in parallel). Reject cycles.
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
@@ -461,7 +483,17 @@ call per unit, ideally in a single message). For **each unit**:
    budget was respected, and run a **guardrail-compliance check** — confirm the unit shipped
    **no out-of-scope or gold-plated work**: every artifact must trace to an acceptance
    criterion (hence to a DoD item), and nothing on the unit's Non-Goals / guardrails list may
-   have been built (a delivered non-goal is a FAIL, not a bonus). **Then vet the `socratic` block for genuineness, not just presence:
+   have been built (a delivered non-goal is a FAIL, not a bonus). **Record that check as data:
+   the verifier emits a `guardrail_compliance` block in `verify.json`** — one row per relevant
+   non-goal, each row's `non_goal` **verbatim** ∈ `non_goals`, `status` ∈
+   `respected | violated | not-applicable` (optional `note`), covering at least every string in
+   the unit's `non_goal_refs`. The validator's **I22** enforces the block offline:
+   adoption-closure across verdict-bearing verifies, verbatim membership, `non_goal_refs`
+   coverage — and the decidable bite: **a `violated` row on a `PASS` verdict is a mechanical
+   FAIL** (the delivered-non-goal sentence above now has a mechanical counterpart). Honesty
+   boundary: I22 checks presence/shape only — whether a `respected` row is TRUE stays verifier
+   attestation, never a validator-proved fact (references/state-machine.md §5, Limitation L).
+   **Then vet the `socratic` block for genuineness, not just presence:
    FIRST confirm the executor's stated `premise` actually names the deliverable's
    load-bearing claim — if it names a safe, peripheral claim, that is *premise deflection*:
    reject the block and re-derive the true load-bearing premise. THEN independently re-run
@@ -642,7 +674,15 @@ Never resolve a material disagreement silently. Never hide an option because you
    that **all** acceptance criteria are met (cite the debrief/verify evidence for each).
    **Confirm the Definition of Done at task scope: every DoD item is met AND no item on the
    Non-Goals / Guardrails list was delivered** — a shipped non-goal blocks sign-off, it is
-   not a bonus.
+   not a bonus. **Mechanical counterpart (I23):** at P8/DONE — once the run adopted
+   `dod_refs` / `guardrail_compliance` — the validator FAILs any `definition_of_done` item
+   referenced by no PASS-verified unit, and any `non_goals` item carrying no
+   `respected`/`not-applicable` attestation from any PASS unit. **Remedy path when a
+   `cancel_unit` amendment strands a DoD item** (its only covering unit was cancelled): revise
+   the DoD through the existing amendment machinery (an I19-governed, `dod_refs`-carrying
+   amendment) — never fake coverage on an unrelated unit, and never hand-edit
+   `clarifications.json` post-hoc. (A run that never advances its recorded phase to P8 is
+   never bound by I23 — the plan-owned pre-P8 residual, references/state-machine.md §5.)
 2. Run a final **independent** adversarial verification of the whole.
 3. **Final sign-off gate** (`AskUserQuestion`): present the result, a decision-log
    summary, **the Definition-of-Done checklist with each item's met/unmet status and any
