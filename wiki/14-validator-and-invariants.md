@@ -2,7 +2,7 @@
 
 **Audience:** technical readers who want to know *exactly* what the runtime enforcement layer
 mechanically guarantees — and, just as important, what it deliberately does **not**. Every claim
-here carries a `path:line` locator into the 1.3.0 tree that a verifier can open; the wiki's own
+here carries a `path:line` locator into the 1.7.0 tree that a verifier can open; the wiki's own
 rule is that an unresolved locator is a defect.
 
 **TL;DR.** `scripts/validate_run.py` is `dag`'s **external correctness signal** — the one part of
@@ -10,7 +10,7 @@ the pipeline whose verdict does not come from a model's judgment. It reads a run
 schema-validates every artifact, then checks the FSM invariants that schemas alone cannot express,
 and **exits non-zero on any violation**. It is invoked as an **explicit Bash step** the skill must
 call (Prime Directive 7), *not* a passive platform hook. What it enforces is **shape and structure**
-— the invariant catalog **I1..I16 + I1b + I-dod** and the guard-ordering gates. What it cannot
+— the full invariant catalog **I1..I19 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates. What it cannot
 enforce is **truth of content**: whether a PASS is *correct*, whether evidence resolves, whether a
 lens was *genuinely* applied. The single sentence to carry away, repeated verbatim across the repo:
 **validity ≠ correctness**
@@ -48,7 +48,8 @@ parse and conform, that the DAG is acyclic, that no unit advanced unverified —
 is *right* ([`DESIGN.md` §6.4](../plugins/dag/skills/dag/DESIGN.md), limitation 4). §7 below is the
 exhaustive, honest list of what stays out of reach.
 
-**(3) It is *offline / post-hoc* — it gates no live transition.** Every 1.2.0/1.3.0 invariant is a
+**(3) It is *offline / post-hoc* — it gates no live transition.** Every invariant in the catalog —
+through the 1.7.0 Bounded-Graph-Amendments and audit-round-2 additions — is a
 predicate over *already-emitted* artifacts. Crucially, **none of them is a live guard on the
 correction loop's sole back-edge `LT7 (RETRY→EXECUTE)`** — a live guard there could leave `RETRY`
 with no enabled out-edge and deadlock the loop, breaking the termination proof. Keeping enforcement
@@ -60,7 +61,7 @@ deadlock lesson).
 flowchart LR
   ART["run dir artifacts<br/>(JSON extracts + markdown ledger)"] --> V["validate_run.py<br/>(explicit Bash step, Prime Directive 7)"]
   V -->|"schema layer"| S["Draft-2020-12 schema validity<br/>(jsonschema OR stdlib mini)"]
-  V -->|"invariant layer"| I["I1..I16 + I1b + I-dod<br/>+ guard-ordering gates"]
+  V -->|"invariant layer"| I["I1..I19 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates"]
   S --> EX{"exit code"}
   I --> EX
   EX -->|0| OK["ok — shape + structure sound"]
@@ -140,10 +141,10 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I16 + I1b + I-dod
+## 4. The invariant catalog — I1..I19 + I1b/I1c/I1d/I3b/I3c + I-dod
 
 This is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
-(`:144-164`), mapped to its enforcement site in the validator and to the honest **A–H** limitation
+(`:182-208`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
 (§7) where one applies. Read the "Limit." column as *"this check is shape/structure; the named
 limitation is the correctness question it does not touch."* Every row is a **mechanical check of
 form** — none of them certifies that the content is *true*.
@@ -152,6 +153,8 @@ form** — none of them certifies that the content is *true*.
 |---|---|---|---|---|
 | **I1** Verifier independence | `verify.executor_reasoning_seen == false` | schema `const:false` + validator (defense-in-depth) | [`:1044-1051`](../plugins/dag/skills/dag/scripts/validate_run.py) | **A** |
 | **I1b** maker ≠ checker | `executor_persona != verifier_persona` for every `graph.json` unit | validator cross-check over graph units | [`:960-966`](../plugins/dag/skills/dag/scripts/validate_run.py) | **D** |
+| **I1c** artifact/declaration persona reconciliation | for a unit with **both** a `debrief.json` and a `verify.json`: `debrief.persona == graph.executor_persona`, `verify.verifier_persona == graph.verifier_persona`, **and** the two artifact personas distinct (I1b compared only the *declared* graph personas) | validator post-hoc cross-check | [`:1132-1160`](../plugins/dag/skills/dag/scripts/validate_run.py) | **D** |
+| **I1d** roster membership | every *working* persona — graph `executor`/`verifier`, `debrief.persona`, `verify.verifier_persona`, every panel member — is a member of the confirmed `personas.json` roster | validator post-hoc membership check; runs only when a roster is present | [`:1162-1197`](../plugins/dag/skills/dag/scripts/validate_run.py) | **D** |
 | **I2** Ledger-is-truth | an absent `fsm-state.json` alongside other run artifacts is a violation | validator presence/parse check | [`:1682-1694`](../plugins/dag/skills/dag/scripts/validate_run.py) | — |
 | **I3** DAG acyclic (fail-closed) | no cycle on `edges ∪ unit-deps`; authoritative `graph.json` **required** past decomposition | validator `find_cycle` (iterative DFS, N-12) + fail-closed absence check | [`:935-978`](../plugins/dag/skills/dag/scripts/validate_run.py) | (closes E) |
 | **I4** Loop bound | `retries ≤ 2`; `iteration ≤ retries+1`; **plus (D-02)** every `fsm-state.units[]` item that records its own `retries` is bounded too; and any `verify.iteration > 3` FAILs | schema `maximum:2` + validator cross-check (top-level **and** per-unit) | [`:981-998`](../plugins/dag/skills/dag/scripts/validate_run.py), [`:1009-1028`](../plugins/dag/skills/dag/scripts/validate_run.py) (units[]), [`:1034-1039`](../plugins/dag/skills/dag/scripts/validate_run.py) (ceiling) | — |
@@ -169,6 +172,11 @@ form** — none of them certifies that the content is *true*.
 | **I15** AO-6 responsive change **(post-hoc)** | on a retry carrying a `prior_feedback` echo: `changes_made` present + non-empty | validator **offline** predicate; gates no transition | [`:1255-1269`](../plugins/dag/skills/dag/scripts/validate_run.py) | **F** |
 | **I16** Panel discipline **(post-hoc, PR1)** | a `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct **correctness/reproduce/guardrail** lenses); the top-level `verdict` equals the **DISCRETE majority** (a split ⇒ `DISAGREE` — **no softmax**); `verify_rounds ∈ [1,3]` | validator **offline** predicate; node-internal ⇒ gates no transition | [`:1154-1244`](../plugins/dag/skills/dag/scripts/validate_run.py) | **H** |
 | **I-dod** DoD/non-goals present | any post-clarification structural artifact (cartography / graph / units / synthesis) requires a valid `clarifications.json` with **non-empty** `definition_of_done` **and** `non_goals` — **fail-closed even if the file is absent** | validator artifact-driven presence check | [`:1601-1644`](../plugins/dag/skills/dag/scripts/validate_run.py) | — |
+| **I3b** wave layering **(BGA)** | when `graph.json.waves` is present, every unit sits in exactly one wave and every edge rises strictly in wave (`wave(from) < wave(to)`); `waves` is REQUIRED once amendments exist | validator post-hoc, run whenever a graph is present (STRENGTHENS I3) | [`:1234-1250`](../plugins/dag/skills/dag/scripts/validate_run.py) | — |
+| **I3c** dependency closure **(BGA)** | every `deps`/`edges` endpoint names a **current** `units[].id`; a dangling (or retired-but-still-referenced) endpoint FAILs | validator post-hoc, run whenever a graph is present (STRENGTHENS I3) | [`:1199-1233`](../plugins/dag/skills/dag/scripts/validate_run.py) | — |
+| **I17** frozen executed prefix + reconciliation **(BGA)** | no amendment touches a unit with a `debrief`/`verify`; against the immutable `graph.json.baseline_units`, `set(units[]) ∪ retired == set(baseline) ∪ ⋃ units_added`; every executed unit's current graph entry still matches its immutable `brief.json` (title / wave / deps / persona / tags / criteria) | validator post-hoc; gates no transition | [`:1800-1934`](../plugins/dag/skills/dag/scripts/validate_run.py) | **J** |
+| **I18** fuel bound + records-required **(BGA)** | `expansion.fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0`; each record's `fuel_cost == max(1, \|added\| − \|retired\|)`; `revision == 1 + \|records\|`; the append-only `amendments/A<NN>.json` records must be present and chained (`fuel_before`/`fuel_after`) whenever amendment evidence exists | validator post-hoc; gates no transition; machine-checked by the TLC `Quiesce` property | [`:1730-2017`](../plugins/dag/skills/dag/scripts/validate_run.py) | — |
+| **I19** amendment scope + kind closure **(BGA)** | schema kind-closure per `kind` (`add_units` / `split_unit` / `add_edges` / `cancel_unit`); `dod_refs` verbatim ∈ `definition_of_done`; `scope_change ⇒ human_gate`; `cancel_unit ⇒ human_gate`; split children cover the retired snapshot | validator post-hoc; gates no transition | [`:2040-2145`](../plugins/dag/skills/dag/scripts/validate_run.py) | **I**, **K** |
 
 Two seams the catalog above threads but that deserve their own line:
 
@@ -206,6 +214,48 @@ Two seams the catalog above threads but that deserve their own line:
   `panel_high_stakes_pass` → 0, `panel_missing` and `panel_majority_mismatch` → 1,
   [`expectations.tsv:10,43-44`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv)). I16 is
   **post-hoc/offline** and node-internal, so it **PRESERVES** termination.
+
+### 4.2 The Bounded Graph Amendments block and the 1.7.0 audit-round-2 hardening
+
+Everything added since 1.3.0 keeps the offline discipline — **no new check is a live guard on
+`LT7`**, so the correction-loop termination proof still holds *verbatim*
+([`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md); the CLAUDE.md
+deadlock lesson).
+
+- **Bounded Graph Amendments — I3b/I3c/I17/I18/I19.** The Phase-6 work graph may grow mid-run
+  (`add_units` / `split_unit` / `add_edges`; `cancel_unit` is human-gated) through append-only
+  `amendments/A<NN>.json` records (schema `amendment.schema.json`; see
+  [page 15](15-artifacts-and-schemas.md)). Five offline invariants police it: wave-layering (**I3b**),
+  dependency-closure (**I3c**), the frozen executed prefix + baseline reconciliation + content anchor
+  (**I17**), the monotone **fuel** budget + tamper-evident `fuel_before`/`fuel_after` chain (**I18**),
+  and amendment scope + kind closure (**I19**). Termination is preserved by the fuel bound — total
+  units `≤ N₀ + fuel₀`, exactly as `retries ≤ 2` bounds the correction loop — and fuel exhaustion
+  routes to `ESCALATE`, never a stuck state.
+- **Persona reconciliation (I1c/I1d) + panel independence.** I1b compared only the *declared* graph
+  personas; **I1c** ties the *actual* artifact personas (`debrief.persona`, `verify.verifier_persona`)
+  to the graph and to each other, and **I1d** requires every working persona to be a confirmed-roster
+  member. **I16** gained a panel-**independence** check — the panel's verifier personas must be
+  pairwise distinct and none may be the executor
+  ([`:1594-1604`](../plugins/dag/skills/dag/scripts/validate_run.py); fixture `panel_clone_verifiers`).
+- **`origin.store` corroboration (I12).** An `origin.store` import stamp is trusted only when a real
+  learnings-store entry corroborates it; an uncorroborated self-stamp is forged provenance and FAILs
+  ([`:2358-2377`](../plugins/dag/skills/dag/scripts/validate_run.py); fixture `origin_store_forgery`).
+- **Fail-closed terminal ledger (C5).** A unit at a terminal ledger status with no valid `verify.json`
+  fails **closed** ([`:2244-2251`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+- **Structural ESCALATE fuel-origin (C3).** The amendment-fuel-exhaustion `ESCALATE` origin is proven
+  by **structural** evidence — `expansion.fuel_remaining == 0` — not by dossier prose
+  ([`:2733-2749`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+- **I14 severity scoping + per-unit budget + `units[]` uniqueness.** I14's `do_not_touch` disjointness
+  is now scoped to `blocker`/`major` defects (a `minor` coverage-first note on a sealed criterion is a
+  reportable NOTE, not a FAIL); I5's within-budget honesty is tied to each unit's *own*
+  `brief.budget_tokens` ([`:1403-1419`](../plugins/dag/skills/dag/scripts/validate_run.py)); and a
+  duplicate `fsm-state.units[]` id now FAILs under I2
+  ([`:2660-2669`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+- **Optional `validator_version` stamp.** `init_run.sh` stamps `fsm-state.json.validator_version`. The
+  validator stays **single-truth** (it always applies the current invariant set and never downgrades a
+  check by a run's recorded version); the stamp only *labels* provenance, so findings on an archived
+  run stamped with an older version read as *expected skew*, not defects — the version-skew policy
+  ([`state-machine.md` §5](../plugins/dag/skills/dag/references/state-machine.md)).
 
 ---
 
@@ -251,11 +301,13 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   deterministically absent, and cleans it on exit
   ([`run_tests.sh:38-46`](../plugins/dag/skills/dag/scripts/run_tests.sh)). A `--real-home` escape
   hatch exists only for manually exercising the global-store (G1/G2) paths.
-- **What it sweeps.** A schema self-check (13 schemas well-formed), then **every fixture row** in
-  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — 54 fixtures
-  at 1.3.0 (48→54 across the release) — on **each available backend** (system `python3`, plus a
-  `jsonschema`-capable interpreter if `DAG_TEST_VENV` points at one; it **never pip-installs**),
-  plus the `manifest.schema.json` instance pair (N-09)
+- **What it sweeps.** A schema self-check (14 schemas well-formed), then **every fixture row** in
+  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **119 fixtures
+  at 1.7.0** (54→119 across the BGA + audit-round-2 releases) — on **BOTH backends, unconditionally**:
+  the normal backend (`jsonschema` if importable, else the stdlib mini) **and** a forced
+  `DAG_FORCE_MINI=1` pass, so the pure-stdlib fallback is exercised even on hosts (CI) where
+  `jsonschema` is installed and would otherwise hide it (the harness **never pip-installs**; a
+  `DAG_TEST_VENV` may add a second interpreter), plus the `manifest.schema.json` instance pair (N-09)
   ([`run_tests.sh:50-134`](../plugins/dag/skills/dag/scripts/run_tests.sh)).
 - **The pinning contract.** Each `expectations.tsv` row is
   `fixture-path ⟨TAB⟩ expected-exit ⟨TAB⟩ required-FAIL-substring`. The harness fails if a fixture's
@@ -263,20 +315,33 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   ([`run_tests.sh:74-99`](../plugins/dag/skills/dag/scripts/run_tests.sh);
   [`expectations.tsv:1-3`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv)). This is why
   the fixtures are cited throughout this page — each one is an executable proof that a specific check
-  fires (17 rows expect exit 0, 37 expect exit 1 with a pinned message). It exits non-zero if **any**
+  fires (22 rows expect exit 0, 97 expect exit 1 with a pinned message). It exits non-zero if **any**
   fixture, the manifest pair, or the self-check mismatches
   ([`run_tests.sh:136-144`](../plugins/dag/skills/dag/scripts/run_tests.sh)).
+- **The dev-time drift + formal layer (same CI, never at validation time).** Two tools sit **outside**
+  `validate_run.py` and never run during run validation. (1) The **SSR spec-registry drift check**:
+  `spec/fsm.json` + `spec/invariants.json` descriptively mirror the FSM transition tables and the
+  invariant registry, and [`scripts/spec_check.py`](../plugins/dag/skills/dag/scripts/spec_check.py)
+  diffs them against the prose tables and the validator's `LABELS` via **SC1–SC7** (SC1 label↔registry
+  bidirectional, SC2 FSM-table row-diff, SC3 `REQUIRED_GATES`, SC4 constants, SC5 example validation,
+  SC6 fixture-coverage, SC7 TLA-pragma presence) — run under `run_tests.sh`. **`spec/` is never read at
+  runtime** (it stays off SKILL.md's lazy-load path), so the drift check PRESERVES every guarantee.
+  (2) **One-command formal reproduction**:
+  [`scripts/run_formal.sh`](../plugins/dag/skills/dag/scripts/run_formal.sh) fetches the TLC + Alloy
+  jars (checksum-verified) and reproduces the machine-checked layer — TLC over `Pipeline.cfg` plus the
+  Alloy driver over `WorkGraph.als` + `Amendment.als` (**8/8** commands as-expected) — **asserting** the
+  advertised model-checker counts rather than echoing them.
 
 ---
 
-## 7. What the validator CANNOT enforce — the honest A–H list
+## 7. What the validator CANNOT enforce — the honest A–K list
 
 This is the load-bearing seam, enumerated verbatim from
-[`state-machine.md` §5](../plugins/dag/skills/dag/references/state-machine.md) (`:200-244`) and
+[`state-machine.md` §5](../plugins/dag/skills/dag/references/state-machine.md) (`:253-312`) and
 mirrored in [`DESIGN.md` §6.4](../plugins/dag/skills/dag/DESIGN.md). Everything in §3–§6 is a check
 of **shape or structure**; none of the following is mechanically decidable, and each stays a
 human/verifier judgment. **Validity ≠ correctness.** (The older wiki listed **A–G**; **H** was added
-with I16.)
+with I16, and **I/J/K** with Bounded Graph Amendments.)
 
 - **A — verifier true-blindness.** Whether the verifier was *truly* blind to executor reasoning.
   `const:false` / `premise_check` are **self-attestations, not platform guarantees** — no passive
@@ -313,7 +378,18 @@ with I16.)
   deadlock the loop. Note too that `verify_rounds` is **optional**: I16 bounds it *only when present*,
   so an omitted field leaves the internal loop-until-dry round count unaudited (VERIFY is a single
   LT2 transition regardless, so termination is unaffected)
-  ([`state-machine.md:233-244`](../plugins/dag/skills/dag/references/state-machine.md)).
+  ([`state-machine.md:286-297`](../plugins/dag/skills/dag/references/state-machine.md)).
+- **I — `human_gate` genuineness (BGA).** Whether a `human_gate` on a scope-change/cancel was a
+  *genuine* human decision. `amendment.human_gate == true` (I19) is a **presence-checked attestation**
+  — like `signoff_confirmed` / `personas_confirmed` — not proof a human approved (the A/D boundary).
+- **J — `frontier_wave` dispatch timing (BGA).** Whether an amendment's `frontier_wave` reflects the
+  *real* dispatch frontier. WP3 gives it internal-consistency teeth (every `units_added` lands at
+  `wave ≥ frontier_wave`, I18) and I17's content anchor pins each executed unit's `wave`/`deps` to its
+  immutable `brief.json`, but the validator cannot reconstruct dispatch *timing* from artifacts, so
+  `frontier_wave` as a claim *about* that timing stays attested.
+- **K — split serves its `dod_refs` (BGA).** Whether a new/split unit *genuinely serves* its cited
+  `dod_refs`. I19 checks verbatim **string membership** in `definition_of_done` (decidable), not
+  semantic traceability — the same shape as **E** for tags.
 
 **Reading the seam correctly.** A green `validate_run.py` exit tells you the artifacts are
 *well-shaped and the run obeyed the rules* — schema-valid, acyclic DAG, no unverified unit, gates in

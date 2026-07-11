@@ -144,8 +144,12 @@ verbatim from [`state-machine.md` §5](../plugins/dag/skills/dag/references/stat
 | (schema) | Schema-validity of every artifact |
 | **I1** | `executor_reasoning_seen` has the `const:false` *shape* (a self-attestation — see Limit. A) |
 | **I1b** | maker ≠ checker: `executor_persona != verifier_persona` per graph.json unit (persona *label* only — Limit. D) |
+| **I1c** | Artifact↔graph persona reconciliation: `debrief.persona == graph.executor_persona`, `verify.verifier_persona == graph.verifier_persona`, and the two distinct — maker ≠ checker at the *artifact* level, not just the declared graph labels (still persona-label only — Limit. D) |
+| **I1d** | Roster membership: every working persona (graph executor/verifier, brief/debrief, verify, each panel member) ∈ the confirmed `personas.json` roster (membership, not genuine-model staffing — Limit. D) |
 | **I2** | Ledger parses: `fsm-state.json` is present and valid |
 | **I3** | Fail-closed DAG acyclicity on `edges ∪ unit-deps`; authoritative `graph.json` required past decomposition |
+| **I3b** | Wave layering: every unit in exactly one wave group and every `edges ∪ deps` edge rises strictly in wave (`wave(from) < wave(to)`); `waves` REQUIRED once amendments exist (post-hoc offline, +STRENGTHENS I3) |
+| **I3c** | Dependency closure: every `deps`/`edges` endpoint names a current `units[].id`; a dangling or retired reference FAILs (post-hoc offline, +STRENGTHENS I3) |
 | **I4** | Loop bound `retries ≤ 2`, cross-check `iteration ≤ retries+1` |
 | **I5** | Budget cap `≤ 32000` on declared `budget_tokens` / `est_footprint_tokens` |
 | **I6** | Evidence-bound verdicts: FAIL names ≥1 defect whose criterion ∈ brief; PASS ⇒ **no blocker/major defect** (REVISED coverage-first, PR1 — was `defects==[]`; a PASS may now carry `minor` observations) |
@@ -159,12 +163,15 @@ verbatim from [`state-machine.md` §5](../plugins/dag/skills/dag/references/stat
 | **I14** | AO-2 `do_not_touch` disjointness, post-hoc offline (presence-gated + self-reported — Limit. F) |
 | **I15** | AO-6 responsive-change presence, post-hoc offline (self-attested — Limit. F) |
 | **I16** | Panel discipline, post-hoc offline (PR1): a `high-stakes` unit's `verify.json` carries a `panel[]` (≥3 members, distinct correctness/reproduce/guardrail lenses); the top-level `verdict` equals the **discrete majority** of the panel verdicts (a split ⇒ `DISAGREE`, no softmax); `verify_rounds ∈ [1,3]` (presence/shape only — genuine lens-diversity is Limit. H) |
+| **I17** | BGA frozen executed prefix: no amendment touches a debriefed/verified unit; reconciled against the immutable `graph.json.baseline_units` (`set(units) ∪ retired == baseline ∪ ⋃ units_added`); every executed unit's graph entry matches its immutable `brief.json` (post-hoc offline) |
+| **I18** | BGA fuel bound: `fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + `fuel_before`/`fuel_after` tamper chain + records-required trigger + revision/`amendments_applied` bookkeeping (schema max 32 — the runtime backstop for the `Quiesce`/`FuelBound` design-time property) |
+| **I19** | BGA amendment scope + kind closure: per-kind schema closure; `dod_refs` verbatim ∈ `definition_of_done`; `scope_change`/`cancel_unit` ⇒ `human_gate==true`; split-child coverage (presence/attestation only — genuine DoD-service and real human approval stay unobservable) |
 | **I-dod** | Definition-of-Done + Non-Goals present once any post-clarification structural artifact exists (fail-closed even if `clarifications.json` absent) |
 | (attestation) | The `premise_check` attestation: `counter_reran_independently==true`, PASS rejected if `is_load_bearing==false`; gate-ordering of `phase` vs `gates` |
 
 ### 3.2 The machine-checked design-time properties (TLA+/Alloy)
 
-Four properties are proved at the level of the *rules*, each tagged at its true strength
+Five properties are proved at the level of the *rules*, each tagged at its true strength
 ([`formal-models.md` properties table](../plugins/dag/skills/dag/references/formal-models.md)):
 
 | Property | Tool | Proof status |
@@ -173,13 +180,19 @@ Four properties are proved at the level of the *rules*, each tagged at its true 
 | Bounded-loop termination (I4) | TLC | **machine-checked (in scope)** + hand-proved (variant) |
 | DAG acyclicity (I3) | Alloy | **machine-checked (in scope)**, no counterexample + hand-proved |
 | Verifier independence (I1) | Alloy | **asserted (consistent)** + machine-checked, no counterexample |
+| Bounded-amendment quiescence (I18) | TLC + Alloy | **machine-checked (in scope)**, non-vacuous vs keep-fuel mutant + hand-proved (fuel variant) |
 
-"**In scope**" is load-bearing. TLC explored a *bounded* state space — 328 distinct reachable
-states, depth 28, "no error has been found"
+"**In scope**" is load-bearing. TLC explored a *bounded* state space — 408 distinct reachable
+states, depth 36, "no error has been found"
 ([`formal-models.md` TLC transcript](../plugins/dag/skills/dag/references/formal-models.md)) —
 and Alloy checked within a finite scope (`for 7 but 5 Int`)
 ([`formal-models.md` §3 check command](../plugins/dag/skills/dag/references/formal-models.md)).
-That is **not** "proved for all inputs." And note property 4 is **asserted (consistent)**, not
+That same TLC run now discharges **two** temporal properties — bounded-loop `Termination` **and**
+the bounded-amendment `Quiesce` (`<>[](lstate ∈ {DONE,ESCALATE})`: the fuel-bounded graph
+amendments cannot re-arm the loop forever) — plus the `FuelBound` safety invariant, both added
+with Bounded Graph Amendments and machine-checked non-vacuously against a keep-fuel mutant
+([`formal-models.md` §5](../plugins/dag/skills/dag/references/formal-models.md)). That is **not**
+"proved for all inputs." And note property 4 is **asserted (consistent)**, not
 a derived theorem: the model *encodes* verifier independence by fiat and shows it satisfiable
 with a witness instance — it does not derive it
 ([`formal-models.md` §4](../plugins/dag/skills/dag/references/formal-models.md)).

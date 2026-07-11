@@ -87,7 +87,7 @@ A saved persona needs **no separate registration** — the next `/dag:dag` run p
 
 ### What kind of thing this repo is
 
-The repo is a **Claude Code plugin marketplace** — a catalog you add once, then install plugins from (`README.md:1-6`). The marketplace is named **`dag`** and lives at repo `wtp128pro/dag` (`README.md:6`). It currently hosts one plugin, also named `dag` (`.claude-plugin/marketplace.json:1-30`). Yes — the marketplace and the plugin share the name; that's why the install target reads `dag@dag` (see below).
+The repo is a **Claude Code plugin marketplace** — a catalog you add once, then install plugins from (`README.md:1-6`). The marketplace is named **`dag`** and lives at repo `wtp128pro/dag` (`README.md:6`). It currently hosts one plugin, also named `dag` (`.claude-plugin/marketplace.json:1-32`). Yes — the marketplace and the plugin share the name; that's why the install target reads `dag@dag` (see below).
 
 ### Install in three steps
 
@@ -116,12 +116,12 @@ This is the one that bites. The plugin version is mirrored in **six** places, an
 
 1. `plugins/dag/.claude-plugin/plugin.json` — plugin `version`
 2. `plugins/dag/CHANGELOG.md` — a new plugin entry
-3. `plugins/dag/README.md` — the `Current version:` line (currently `1.3.0` at `plugins/dag/README.md:186`)
+3. `plugins/dag/README.md` — the `Current version:` line (currently `1.7.0` at `plugins/dag/README.md:209`)
 4. `.claude-plugin/marketplace.json` — the plugin entry `version` **and** the top-level catalog `version` (two edits in one file: `marketplace.json:13` and `marketplace.json:7`)
-5. `README.md` (root) — the plugin-table version cell (currently `1.3.0` at `README.md:12`)
+5. `README.md` (root) — the plugin-table version cell (currently `1.7.0` at `README.md:12`)
 6. `CHANGELOG.md` (root) — a new catalog entry
 
-Convention (`CLAUDE.md`): a new skill/feature is a **minor** plugin bump; each catalog release is a **patch** bump of the marketplace top-level version. That is why the two version fields differ today — the **plugin** is at `1.3.0` (`plugin.json:4`, `marketplace.json:13`, `README.md:12`, `plugins/dag/README.md:186`) while the **catalog/marketplace top-level** is at `1.0.5` (`marketplace.json:7`). They are two independent counters that happen to live in the same manifest.
+Convention (`CLAUDE.md`): a new skill/feature is a **minor** plugin bump; each catalog release is a **patch** bump of the marketplace top-level version. That is why the two version fields differ today — the **plugin** is at `1.7.0` (`plugin.json:4`, `marketplace.json:13`, `README.md:12`, `plugins/dag/README.md:209`) while the **catalog/marketplace top-level** is at `1.0.9` (`marketplace.json:7`). They are two independent counters that happen to live in the same manifest.
 
 ```mermaid
 flowchart TD

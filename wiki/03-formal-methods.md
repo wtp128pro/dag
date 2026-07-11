@@ -186,8 +186,8 @@ check needs is carried by `SPECIFICATION Spec`'s `WF_vars(LoopNext)`
 
 ## 5. The TLC run — one command, both TLA+ properties
 
-Both TLA+ properties are checked by a single command
-(`references/formal-models.md` lines 64–68):
+The TLA+ properties are checked by a single command
+(`references/formal-models.md` lines 85–89):
 
 ```sh
 export JAVA_HOME=$(/usr/libexec/java_home)
@@ -195,34 +195,57 @@ export JAVA_HOME=$(/usr/libexec/java_home)
     -config formal/Pipeline.cfg formal/Pipeline.tla
 ```
 
-**Reported TLC result** (2026-07-06, TLC 2.19, JDK 25.0.3 — *after* the BRK-11 `ToEscalate`
-fix; `references/formal-models.md` lines 71–92), quoted verbatim:
+> **One command reproduces all of this (plugin 1.7.0).** `bash scripts/run_formal.sh` now fetches
+> both jars (checksum-verified), runs TLC and both Alloy files headlessly, and — as of WP-F/D1 —
+> **asserts** the literal state counts (853 / 408 / depth 36), the "2 branches of temporal properties"
+> line, and Alloy's `SUMMARY: 8/8`; a gutted `.cfg`/`.als` now FAILs instead of passing vacuously. Add
+> `--maxfuel32` to also run the parametric MaxFuel=32 check
+> (`references/formal-models.md` §Tool-status, lines 47–50). The rest of this section is what that
+> script does by hand.
+
+**Reported TLC result** (2026-07-10, TLC 2.19, JDK 25.0.3 — *after* adding the Bounded Graph
+Amendments `Amend` action, the `fuel` variable, the `FuelBound` invariant, and the `Quiesce`
+property; `references/formal-models.md` lines 91–104), quoted verbatim:
 
 ```
-Progress(28): 715 states generated, 328 distinct states found, 0 states left on queue.
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Implied-temporal checking--satisfiability problem has 2 branches.
+Finished computing initial states: 1 distinct state generated ...
+Progress(36): 853 states generated, 408 distinct states found, 0 states left on queue.
+Checking 2 branches of temporal properties for the complete state space with 816 total distinct states
+Finished checking temporal properties in 00s
 Model checking completed. No error has been found.
-715 states generated, 328 distinct states found, 0 states left on queue.
-The depth of the complete state graph search is 28.
+853 states generated, 408 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 36.
 ```
 
-So: **715 states generated, 328 distinct, search depth 28, no error, TLC 2.19 on JDK 25.**
+So: **853 states generated, 408 distinct, search depth 36, no error, TLC 2.19 on JDK 25.**
 The empty queue means the *complete* reachable state space was explored, so every
-`INVARIANT` (`TypeOK`, `GateOrdering`, `LoopBound`, `VariantOK`, `BackEdgeGuarded`) held in
-every reachable state and the temporal `Termination` held on every fair behavior
-(`references/formal-models.md` lines 85–92).
+`INVARIANT` (`TypeOK`, `GateOrdering`, `LoopBound`, `VariantOK`, `BackEdgeGuarded`, **`FuelBound`**)
+held in every reachable state and **both** temporal properties — `Termination` and the
+Bounded-Graph-Amendments **`Quiesce`** (the "2 branches of temporal properties" line) — held on
+every fair behavior (`references/formal-models.md` lines 106–116). Pinning `MaxFuel = 2` in
+`Pipeline.cfg` keeps those counts stable; re-running the identical model with `MaxFuel = 32` (the
+shipped runtime ceiling) only lengthens the same terminating behaviours — **2,923 generated / 1,608
+distinct / depth 156, no error** (both temporal branches still hold; all six invariants pass)
+(`references/formal-models.md` §"`MaxFuel` scope (F1)", lines 418–425).
 
-**Why 328 and not 327 — the BRK-11 `ToEscalate` fix.** The reachable-state count grew by
-*exactly one* from the prior run, and the delta is fully accounted for. `ToEscalate` (the T10
-edge P6→P7) previously guarded on `verdict = "DISAGREE"` only, so a *retries-exhausted FAIL*
-escalation — an `lstate="ESCALATE"` reached via LT5 (`verdict=FAIL ∧ retries==2`) — could never
-leave Phase 6 and stuttered there forever. The fix widens the guard to
-`verdict ∈ {"DISAGREE","FAIL"}`, so **both** ESCALATE origins now reach the Phase-7 human gate
-(`formal/Pipeline.tla` lines 115–120; `references/state-machine.md` §1a lines 51–55, T10 line
-83). That admits exactly one new reachable state — `phase=P7 ∧ verdict=FAIL ∧ retries=2` —
-enlarging the space 327 → 328 (depth unchanged at 28). As a deliberate regression probe, the
-invariant `P7OnlyViaDisagree ≡ (phase="P7") ⇒ (verdict="DISAGREE")`, which *held* on the
-pre-fix model, now **reports a violation on purpose**: P7 is reachable from a FAIL-origin
-escalate (`references/formal-models.md` lines 88–92).
+**Historical context — why 328 and not 327 (the BRK-11 `ToEscalate` fix).** Before the Bounded
+Graph Amendments, the model checked at **715 generated / 328 distinct / depth 28** with a *single*
+`Termination` branch, and that 328 was itself one distinct state larger than an earlier 327. The
+delta was fully accounted for: `ToEscalate` (the T10 edge P6→P7) previously guarded on
+`verdict = "DISAGREE"` only, so a *retries-exhausted FAIL* escalation — an `lstate="ESCALATE"`
+reached via LT5 (`verdict=FAIL ∧ retries==2`) — could never leave Phase 6 and stuttered there
+forever. Widening the guard to `verdict ∈ {"DISAGREE","FAIL"}` routed **both** ESCALATE origins to
+the Phase-7 human gate, admitting exactly one new reachable state
+(`phase=P7 ∧ verdict=FAIL ∧ retries=2`) and enlarging the space 327 → 328
+(`references/state-machine.md` §1a, T10; the regression probe
+`P7OnlyViaDisagree ≡ (phase="P7") ⇒ (verdict="DISAGREE")`, which *held* on the pre-fix model, now
+**reports a violation on purpose**). **This is now history:** the current model is **408 distinct**
+(not 328), because the BGA **`fuel`** budget + the **`FuelBound`** invariant + the **`Quiesce`**
+bounded-amendment-quiescence property grew the reachable space to **853 / 408 / depth 36** with a
+*second* temporal branch. That FAIL-origin escalate is simply **subsumed** in the 408-state count —
+it is no longer the headline delta (`references/formal-models.md` lines 106–116).
 
 **Did the liveness test have teeth?** A liveness property can pass *vacuously*. The
 project records an adversarial non-vacuity check (`references/formal-models.md` lines
@@ -332,8 +355,8 @@ Alloy check would **not** prove the *real system* enforces independence. See Res
 
 ## 7. Same invariants, two layers — and the honest residual
 
-The two layers guard the *same* four invariants from different angles
-(`references/formal-models.md` §"Consistency", lines 309–317). This is the runtime split
+The two layers guard the *same* core invariants from different angles
+(`references/formal-models.md` §"Consistency", lines 437–444). This is the runtime split
 the acceptance criteria ask to be named explicitly:
 
 | Invariant | Design-time proof (this page) | Runtime enforcement (`validate_run.py`) |
@@ -342,10 +365,14 @@ the acceptance criteria ask to be named explicitly:
 | Loop bound / termination (I4) | Prop 2 `Termination`+`LoopBound` (TLC, in scope) | `retries ≤ 2`, `iteration ≤ retries+1` |
 | DAG acyclic (I3) | Prop 3 `Acyclic` (hand-proved + Alloy, in scope) | fail-closed cycle detection on `edges ∪ deps` |
 | Verifier independence (I1) | Prop 4 `Independence` (asserted, consistent) | `executor_reasoning_seen const:false` + I1b `maker!=checker` |
+| Bounded-amendment quiescence (I18, BGA) | `Quiesce` (TLC, in scope; non-vacuous vs a keep-fuel mutant) + `Amendment.als` wave-layering (Alloy, in scope) | I18 fuel bound (`fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + revision/`amendments_applied` bookkeeping) |
 | Sign-off gate (D-06) | precedence `gate["P8"] ⇒ DONE` covered by Prop 1's `GateOrdering`; the `signoff_confirmed` *flag itself* is runtime-only | `REQUIRED_GATES`: `gates.signoff_confirmed` **required at `DONE`** — a run at DONE without it is INVALID (`references/state-machine.md` §3 lines 136–142, T12 line 85) |
 
 The runtime validator additionally enforces a fleet of data-shape invariants the models
-don't model — I5–I7, I9, **I11–I16**, and **I-dod**. Three of these are the post-hoc,
+don't model — I5–I7, I9, **I11–I16**, **I-dod**, the persona-identity reconciliations
+**I1c**/**I1d**, and the Bounded Graph Amendments frozen-prefix + scope + graph-closure checks
+(**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I19** (plus
+**I1b**/**I1c**/**I1d**/**I3b**/**I3c** and **I-dod**). Three of these — I14, I15, I16 — are the post-hoc,
 *offline* checks added since the earlier releases; each gates **no** transition (and never
 guards the sole back-edge LT7), so each **preserves** the termination proof
 (`references/state-machine.md` §4 lines 161–163):
@@ -401,14 +428,14 @@ load-bearing claim.
   calling Property 4 "proved," calling an Alloy check unbounded, or asserting an
   all-inputs/unbounded proof.
 - **COUNTER (decoupled hunt + outcome).** I re-checked each property's status word against
-  the source table (`references/formal-models.md` lines 49–54) *independently of my prose*:
+  the source table (`references/formal-models.md` lines 68–74) *independently of my prose*:
   Prop 4 is labeled *machine-checked + asserted (structural, consistent)* there, and this
-  page says exactly that (§6b) rather than "proved"; the TLC numbers (715/328/28) are quoted
-  verbatim from lines 77–82; the Alloy scopes are quoted from `formal/WorkGraph.als` lines
+  page says exactly that (§6b) rather than "proved"; the TLC numbers (853/408/36) are quoted
+  verbatim from lines 94–104; the Alloy scopes are quoted from `formal/WorkGraph.als` lines
   86–89. **Outcome: premise HOLDS** — no claim found exceeding its source; no unbounded
   all-inputs proof is asserted anywhere on the page.
-- **PIVOT.** If the source proof-status table (`references/formal-models.md` lines 49–54) or
-  the TLC transcript (lines 71–92) said something different from what I transcribed, the
+- **PIVOT.** If the source proof-status table (`references/formal-models.md` lines 68–74) or
+  the TLC transcript (lines 91–116) said something different from what I transcribed, the
   page's faithfulness claim would flip. The page is pinned to those exact lines.
 - **RESIDUAL / confidence.** *high* — every claim carries a repo-file locator and I did not
   re-run the tools myself; I report the transcript and scopes as the repo records them, which
