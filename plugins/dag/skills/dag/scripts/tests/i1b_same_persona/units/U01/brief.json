@@ -3,7 +3,7 @@
   "title": "Modern-research landscape",
   "wave": 1,
   "depends_on": [],
-  "persona": "Agent-Orchestration Researcher",
+  "persona": "Researcher",
   "budget_tokens": 32000,
   "acceptance_criteria": ["10-14 findings", "each with >=1 dated primary source"],
   "context_pointers": ["INPUT.md", "CARTOGRAPHY.md"],

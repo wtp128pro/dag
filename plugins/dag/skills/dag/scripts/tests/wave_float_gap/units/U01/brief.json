@@ -3,7 +3,7 @@
   "title": "Modern-research landscape",
   "wave": 1.0,
   "depends_on": [],
-  "persona": "Agent-Orchestration Researcher",
+  "persona": "Researcher",
   "budget_tokens": 32000,
   "acceptance_criteria": [
     "10-14 findings",

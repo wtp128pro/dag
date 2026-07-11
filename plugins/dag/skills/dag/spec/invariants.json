@@ -36,6 +36,42 @@
       ]
     },
     {
+      "id": "I1c",
+      "title": "I1c: artifact/declaration persona reconciliation (executor != verifier at the artifact level)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I1c artifact/declaration persona reconciliation"
+      ],
+      "fixtures": [
+        "maker_eq_checker_artifacts",
+        "persona_identity_ok"
+      ],
+      "provenance": [
+        "C1"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I1d",
+      "title": "I1d: every working persona is a confirmed personas.json roster member",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I1d roster membership"
+      ],
+      "fixtures": [
+        "persona_roster_forgery",
+        "persona_identity_ok"
+      ],
+      "provenance": [
+        "C2"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
       "id": "I2",
       "title": "I2: ledger-is-truth (fsm-state.json is authoritative)",
       "tier": "mechanical",
@@ -396,7 +432,8 @@
       "fixtures": [
         "panel_high_stakes_pass",
         "panel_majority_mismatch",
-        "panel_missing"
+        "panel_missing",
+        "panel_clone_verifiers"
       ],
       "provenance": [],
       "docs": [

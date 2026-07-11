@@ -385,6 +385,8 @@ LABELS = [
     {"key": "i3_dag_acyclic", "stem": "I3 DAG acyclic", "invariant": "I3"},
     {"key": "skip_i3_dag", "stem": "I3 DAG", "invariant": "I3", "emitted_via": "print"},
     {"key": "i1b_maker_checker", "stem": "I1b maker!=checker (persona distinctness)", "invariant": "I1b"},
+    {"key": "i1c_recon", "stem": "I1c artifact/declaration persona reconciliation", "invariant": "I1c"},
+    {"key": "i1d_roster", "stem": "I1d roster membership", "invariant": "I1d"},
     {"key": "i3c_dep_closure", "stem": "I3c dependency closure", "invariant": "I3c"},
     {"key": "i3_unit_unique", "stem": "I3 unit id uniqueness", "invariant": "I3"},
     {"key": "i3b_wave_layering", "stem": "I3b wave layering", "invariant": "I3b"},
@@ -1118,6 +1120,73 @@ def main(argv=None):
             else:
                 rep.ok(f"{LABEL_STEM['i1b_maker_checker']} (units/{u.get('id')})")
 
+        # I1c artifact/declaration persona reconciliation (WP-B/C1) — I1b compares only the DECLARED
+        # graph personas; nothing tied the ACTUAL artifact personas to those declarations, so one
+        # persona could execute a unit AND verify it while I1b still printed PASS. For every unit with
+        # BOTH a debrief and a verify: debrief.persona must equal the graph executor_persona,
+        # verify.verifier_persona the graph verifier_persona, and the two artifact personas must DIFFER
+        # (maker != checker at the artifact level, not just in the graph). Offline/post-hoc; gates no
+        # transition. Mechanizes prime-directive #3 / I1 the same way I1b did — see Limitation D (a
+        # genuinely distinct MODEL behind a distinct persona LABEL stays unobservable).
+        _gunits_i1c = {u.get("id"): u for u in graph_doc.get("units", [])}
+        for uid in sorted(unit_docs):
+            _de = unit_docs[uid].get("debrief")
+            _ve = unit_docs[uid].get("verify")
+            if not (isinstance(_de, dict) and isinstance(_ve, dict)):
+                continue
+            _dp, _vp = _de.get("persona"), _ve.get("verifier_persona")
+            _gu = _gunits_i1c.get(uid)
+            _probs = []
+            if isinstance(_gu, dict):
+                if _dp != _gu.get("executor_persona"):
+                    _probs.append(f"debrief.persona {_dp!r} != graph executor_persona {_gu.get('executor_persona')!r}")
+                if _vp != _gu.get("verifier_persona"):
+                    _probs.append(f"verify.verifier_persona {_vp!r} != graph verifier_persona {_gu.get('verifier_persona')!r}")
+            if _dp is not None and _dp == _vp:
+                _probs.append(f"debrief.persona == verify.verifier_persona ({_dp!r}) — the executor also "
+                              "verified its own unit (maker == checker)")
+            if _probs:
+                rep.fail(f"{LABEL_STEM['i1c_recon']} (units/{uid})", "; ".join(_probs))
+            else:
+                rep.ok(f"{LABEL_STEM['i1c_recon']} (units/{uid})")
+
+        # I1d roster membership (WP-B/C2) — personas.schema.json's stated purpose ("enables the
+        # maker!=checker invariant to be checked structurally") was unrealized: every working persona
+        # (graph executor/verifier, brief/debrief.persona, verify.verifier_persona, panel members)
+        # could be a fabricated string absent from the confirmed roster. Require each to be a member of
+        # personas.json.roster. Runs only when a roster is present (its absence is G-personas' job).
+        # Offline/post-hoc; gates no transition. The roster is a confirmed-membership check, NOT proof
+        # the named model actually staffed the unit (Limitation D).
+        _personas = docs.get("personas")
+        if isinstance(_personas, dict):
+            _roster = {r.get("persona") for r in _personas.get("roster", []) if isinstance(r, dict)}
+            _working = {}   # persona -> first source that used it (deterministic report)
+            for u in graph_doc.get("units", []):
+                for _lbl, _k in (("graph executor", "executor_persona"), ("graph verifier", "verifier_persona")):
+                    _p = u.get(_k)
+                    if _p:
+                        _working.setdefault(_p, f"{_lbl} {u.get('id')}")
+            for uid in sorted(unit_docs):
+                _dd = unit_docs[uid]
+                for _doc, _k, _lbl in ((_dd.get("brief"), "persona", "brief"),
+                                       (_dd.get("debrief"), "persona", "debrief"),
+                                       (_dd.get("verify"), "verifier_persona", "verify")):
+                    if isinstance(_doc, dict) and _doc.get(_k):
+                        _working.setdefault(_doc.get(_k), f"{_lbl} units/{uid}")
+                _ve = _dd.get("verify")
+                if isinstance(_ve, dict):
+                    for _m in _ve.get("panel", []) or []:
+                        if isinstance(_m, dict) and _m.get("verifier_persona"):
+                            _working.setdefault(_m.get("verifier_persona"), f"panel units/{uid}")
+            _absent = sorted(p for p in _working if p not in _roster)
+            if _absent:
+                rep.fail(f"{LABEL_STEM['i1d_roster']}",
+                         f"working persona(s) {_absent} absent from the confirmed personas.json roster "
+                         f"{sorted(_roster)} — every executor/verifier/panel persona must be a confirmed "
+                         f"roster member (e.g. {_absent[0]!r} used by {_working[_absent[0]]})")
+            elif _working:
+                rep.ok(f"{LABEL_STEM['i1d_roster']} ({len(_working)} working persona(s) all in roster)")
+
         # I3c dependency closure (BGA — closes a pre-existing validator gap, EVALUATION §6).
         # Every `deps` element and every `edges[].from/to` MUST name a CURRENT unit id; a dangling
         # reference (incl. a retired id still referenced) becomes a phantom node in cycle detection,
@@ -1443,9 +1512,11 @@ def main(argv=None):
     CANON_LENSES = {"correctness", "reproduce", "guardrail"}
     R_MAX = 3
     _graph_unit_tags = {}
+    _graph_unit_exec = {}
     if graph_doc is not None:
         for _u in graph_doc.get("units", []):
             _graph_unit_tags[_u.get("id")] = set(_u.get("tags", []) or [])
+            _graph_unit_exec[_u.get("id")] = _u.get("executor_persona")
 
     def _discrete_majority(verdicts):
         """Strict discrete majority (mode) of a verdict list, or None on a tie / no-majority.
@@ -1494,6 +1565,23 @@ def main(argv=None):
                 rep.fail(f"{LABEL_STEM['i16_panel']} (units/{uid})",
                          f"panel lenses {sorted(l for l in lenses if l)} do not cover the canonical "
                          f"trio {sorted(CANON_LENSES)} — panel members must have DISTINCT lenses, not clones")
+            # WP-B/C4: panel INDEPENDENCE — distinct lenses alone did not stop a panel of three CLONES
+            # sharing one verifier_persona. verifier_persona is schema-optional, so check pairwise
+            # distinctness over the members that DECLARE one, and that none is the unit's executor
+            # persona (a panelist may not be the maker). Independence is the whole point of the panel.
+            _pv = [m.get("verifier_persona") for m in members if m.get("verifier_persona")]
+            if len(_pv) != len(set(_pv)):
+                panel_ok = False
+                _pv_dupes = sorted({p for p in _pv if _pv.count(p) > 1})
+                rep.fail(f"{LABEL_STEM['i16_panel']} (units/{uid})",
+                         f"panel verifier_persona(s) {_pv_dupes} appear on multiple members — an "
+                         "independent panel needs DISTINCT verifiers, not clones sharing one persona")
+            _exec_p = _graph_unit_exec.get(uid) or b.get("persona")
+            if _exec_p is not None and _exec_p in set(_pv):
+                panel_ok = False
+                rep.fail(f"{LABEL_STEM['i16_panel']} (units/{uid})",
+                         f"panel includes the unit's executor persona {_exec_p!r} — a panelist may not "
+                         "be the maker (maker != checker)")
             maj = _discrete_majority(verdicts)
             if maj is None:
                 # no strict majority => genuine split => must escalate as DISAGREE (AO-5), never softmax

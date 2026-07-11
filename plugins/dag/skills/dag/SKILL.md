@@ -462,6 +462,18 @@ call per unit, ideally in a single message). For **each unit**:
    its `panel[]`, purely for audit; the validator **validates any such file if present** (D-04) —
    schema-valid + blind + `unit_id` matching its directory — but never requires them and never lets
    them override the aggregated `verify.json` the correction loop reads.
+
+   **Persona identity is enforced, not just declared (WP-B, post-hoc mechanizations of PD-3 / I1 /
+   I16 — same class as the round-1 I1b graph check, all offline predicates that gate no transition).**
+   The maker≠checker discipline is now checked at the *artifact* layer and against the *roster*, not
+   only in the graph declaration: **I1c** requires a unit's `debrief.persona == graph.executor_persona`,
+   `verify.verifier_persona == graph.verifier_persona`, and the two DISTINCT (so one persona cannot
+   execute a unit and then verify it); **I1d** requires every working persona (graph executor/verifier,
+   `brief`/`debrief.persona`, `verify.verifier_persona`, panel members) to be a confirmed
+   `personas.json` roster member; and **I16** additionally requires panel members' `verifier_persona`s
+   to be pairwise DISTINCT and none equal to the executor (an independent panel, not clones behind
+   distinct lenses). All three are shape/identity checks — a genuinely distinct *model* behind a
+   distinct persona *label* stays unobservable to the validator (Limitation D).
 5. **Adjudicate — the bounded correction loop** (req 12). The loop is a state machine
    `EXECUTE → VERIFY → ADJUDICATE → {DONE | RETRY | ESCALATE}` with an exhaustive,
    mutually-exclusive guard table (full spec + termination proof + invariants:
