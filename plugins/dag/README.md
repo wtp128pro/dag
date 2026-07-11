@@ -138,9 +138,20 @@ Run the commands in this section **from a checkout of this repo** (e.g. `git clo
 `cd dag/plugins/dag`) — the `cd skills/dag` paths are repo-relative, not paths inside an installed
 plugin.
 
-The "machine-checked" claim above isn't asked to be taken on faith — you can re-run the TLC model
-check yourself in seconds. It needs a JDK; TLA+'s `tla2tools.jar` is a build tool fetched to `/tmp`,
-never vendored into the skill.
+The "machine-checked" claim above isn't asked to be taken on faith — you can re-run the whole TLC +
+Alloy suite yourself in seconds. It needs a JDK; the toolchain jars (TLA+'s `tla2tools.jar` and the
+Alloy dist jar) are build tools fetched to `/tmp`, never vendored into the skill.
+
+**One command** (fetches the jars checksum-verified, runs TLC + the headless Alloy driver, and
+**asserts** the expected state counts and command totals — not just exit codes):
+
+```sh
+cd skills/dag
+bash scripts/run_formal.sh            # TLC (MaxFuel=2) + Alloy 8/8; add --maxfuel32 for the parametric run
+```
+
+Expect `RESULT: PASS (TLC + Alloy machine-checks green; numbers asserted)`. To drive TLC by hand
+instead (the fallback the script wraps):
 
 ```sh
 curl -L -o /tmp/tla2tools.jar \
