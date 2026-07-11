@@ -132,8 +132,9 @@ EOF
 cat > "$RUN_DIR/LEARNINGS.md" <<EOF
 # Learnings Ledger — ${LABEL}
 
-> Append-only; keep entries GENERALIZABLE (scope ≥2 units) — one-offs go in a unit debrief.
-> Each entry is injected into later briefs.
+> Append-only; keep entries GENERALIZABLE — a `tag:<T>` scope needs ≥2 units carrying T and an `all`
+> scope needs ≥2 units, but a deliberate single-target unit-id (`U0X`) selector is always admissible.
+> One-off *patterns* go in a unit debrief. Each entry is injected into later briefs.
 
 | # | Timestamp | Lesson | Trigger (what went wrong) | How to apply going forward | Scope (applies_to / excludes / expiry) | since_wave | Evidence |
 |---|-----------|--------|---------------------------|----------------------------|----------------------------------------|------------|----------|

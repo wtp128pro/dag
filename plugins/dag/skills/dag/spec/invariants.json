@@ -392,11 +392,13 @@
       ],
       "fixtures": [
         "ao2_do_not_touch",
-        "ao2_disjoint"
+        "ao2_disjoint",
+        "i14_minor_on_sealed"
       ],
       "provenance": [
         "02/P1",
-        "AO-2"
+        "AO-2",
+        "A2"
       ],
       "docs": [
         "references/state-machine.md#4",

@@ -184,7 +184,7 @@ wave of independent units and just more waves, so the DAG and its acyclicity are
 judgment-heavy fork — mechanical-uniform work is a script dag *orchestrates*, not units it shards).
 
 **Seed the amendment fuel budget here (Bounded Graph Amendments).** Decomposition also sets
-`fsm-state.expansion.fuel_initial` (default `min(N0, 8)`, human-adjustable at the gate; `0`/absent =
+`fsm-state.expansion.fuel_initial` (default `min(N0, 8)`, non-default only via an explicit instruction at an earlier gate — there is no human touchpoint at decomposition (U2/D-C: exactly three human gates); `0`/absent =
 off) — how many *bounded* graph amendments Phase 6 may make when executed work surfaces unknowns,
 without a full re-decomposition. The graph is no longer frozen-for-good at T6: it may **grow under
 mechanical constraints** — `add_units` / `split_unit` / `add_edges` (autonomous, DoD-traced) and

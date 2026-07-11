@@ -492,7 +492,7 @@ These are model-scoping choices, surfaced rather than hidden; the properties pro
 
 ## Residual — invariants that are NOT formalizable (semantic / model-judged)
 
-Directly inherited from `state-machine.md` §5 Limitations A–H — these are *semantic*
+Directly inherited from `state-machine.md` §5 Limitations A–K — these are *semantic*
 and **cannot** be captured in TLA+/Alloy:
 
 - **A. (the load-bearing one for Prop 4).** Whether the verifier was *truly* blind to

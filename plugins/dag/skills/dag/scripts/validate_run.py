@@ -905,8 +905,11 @@ def main(argv=None):
     # Parse the bare `scope.expiry` string grammar `run | project | runs:N | date:<iso>` plus
     # the optional decay fields. An EXPIRED entry is EXCLUDED from propagation and REPORTED as
     # a skip — it is NEVER a hard-fail (an expired lesson simply reverts to today's
-    # re-derive-from-scratch behavior, the safe failure mode). Absent/unrecognized expiry is
-    # INERT (today's behavior), so existing entries (which carry no expiry) are untouched.
+    # re-derive-from-scratch behavior, the safe failure mode). An ABSENT expiry is INERT (existing
+    # entries carry none, so they are untouched). A5/WP-D: an UNRECOGNIZED expiry is NOT reached here
+    # inertly — since the N-08 schema pin it is a hard schema FAIL on a run-local entry (rejected before
+    # this runs) and reported+dropped on a store entry; so by the time _expiry_expired sees an entry,
+    # its expiry is either absent or grammar-valid.
     def _expiry_expired(E, from_store):
         sc = E.get("scope") if isinstance(E.get("scope"), dict) else {}
         exp = sc.get("expiry")
@@ -1450,13 +1453,30 @@ def main(argv=None):
         dnt = pf.get("do_not_touch")
         if not dnt:                       # retry data absent (iteration 1 or no echo) — skip / no-op
             continue
-        crit = {df.get("criterion") for df in v.get("defects", [])}
-        overlap = sorted(x for x in (crit & set(dnt)) if x is not None)
-        if overlap:
+        # WP-D/A2 (REVISES I14/AO-2): scope the do_not_touch intersection to blocker|major defects.
+        # The old check intersected ALL defects regardless of severity, which was mutually
+        # UNSATISFIABLE with the coverage-first mandate (report every finding + its severity,
+        # methodology.md §Verification): reporting a minor observation on a previously-clean criterion
+        # was a hard I14 FAIL, yet suppressing it violated coverage-first — no compliant path existed.
+        # Scoping restores satisfiability while preserving AO-2's purpose (a retry must not CHURN
+        # settled work): a blocker/major on a sealed criterion is a real regression and still FAILs; a
+        # minor coverage-first observation is REPORTABLE (advisory NOTE, not a FAIL).
+        _dnt = set(dnt)
+        _bm = sorted(x for x in ({df.get("criterion") for df in v.get("defects", [])
+                                  if isinstance(df, dict) and df.get("severity") in ("blocker", "major")} & _dnt)
+                     if x is not None)
+        _minor = sorted(x for x in ({df.get("criterion") for df in v.get("defects", [])
+                                     if isinstance(df, dict) and df.get("severity") == "minor"} & _dnt)
+                        if x is not None)
+        if _bm:
             rep.fail(f"{LABEL_STEM['i14_ao2']} (units/{uid})",
-                     f"defect criteria {overlap} intersect prior_feedback.do_not_touch — a retry "
-                     "must not re-open what the prior iteration marked correct (AO-2)")
+                     f"blocker/major defect criteria {_bm} intersect prior_feedback.do_not_touch — a "
+                     "retry must not re-open (regress) what the prior iteration marked correct (AO-2)")
         else:
+            if _minor and not args.quiet:
+                print(f"  NOTE  {LABEL_STEM['i14_ao2']} (units/{uid}): minor coverage-first observation(s) "
+                      f"{_minor} on a previously-sealed criterion — REPORTABLE, not a re-opening "
+                      "(a blocker/major here would FAIL; A2 severity scoping)")
             rep.ok(f"{LABEL_STEM['i14_ao2']} (units/{uid})")
 
     # I13 socratic counter records an OUTCOME (debrief + verify)

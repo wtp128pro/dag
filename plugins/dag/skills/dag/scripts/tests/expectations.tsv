@@ -119,3 +119,4 @@ forged_import_stamped	1	cannot forge import provenance (B2)
 escalate_vacuous_origin	1	ESCALATE origin provenance
 ledger_passed_no_evidence	1	no VALID verify.json
 selfcheck_all_false_note	0	acceptance_self_check vs verify (C6)
+i14_minor_on_sealed	0	minor coverage-first observation
