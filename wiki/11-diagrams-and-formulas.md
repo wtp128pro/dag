@@ -33,8 +33,10 @@ point of the gate ordering.
 
 **Source of truth:** `references/state-machine.md` §1 (states table), §2 (transition table T1–T12),
 §3 (guards). Machine-checked complement: the `GateOrdering` safety invariant in
-`formal/Pipeline.tla` — *machine-checked (in scope)* by TLC over 328 reachable states
-(`formal-models.md` §1 transcript, 2026-07-06: 715 generated / 328 distinct / depth 28).
+`formal/Pipeline.tla` — *machine-checked (in scope)* by TLC over 408 reachable states
+(`formal-models.md` § "The TLC run" transcript, 2026-07-10: 853 generated / 408 distinct / depth 36,
+across two temporal branches — `Termination` and the Bounded-Graph-Amendments `Quiesce` — with the
+`FuelBound` invariant alongside the five safety invariants).
 
 ```mermaid
 stateDiagram-v2
@@ -213,6 +215,7 @@ above (`retries`, `V`, `E` = a learnings entry, `U` = a unit).
 | `V = 2 − retries`,  `V ∈ {0,1,2}` | the well-founded variant (default `MAX_RETRIES = 2`; `V = N − retries` for any finite N) | `self-learning-loops.md` §2 Claim B; §6.4 |
 | `V' = V − 1` on LT7 | strict descent: the sole back-edge increments `retries`, so `V` drops by exactly 1; no other edge changes `retries` (AO-1) | `self-learning-loops.md` §2 Claim B; §5 AO-1 |
 | back-edge guard: `V > 0`  (i.e. `retries < 2`, LT4) | LT7 is reachable only via LT4; at `V = 0` the back-edge is disabled and only terminals (LT3/LT5/LT6) remain | `self-learning-loops.md` §2 Claim C |
+| `fuel ∈ 0..MaxFuel`, `fuel' = fuel − 1` per `Amend` (default `MaxFuel = 2`, runtime ceiling 32) | the **second** well-founded variant added by Bounded Graph Amendments: bounds pipeline-level re-arming (`DONE → EXECUTE` via `Amend`) so the graph grows at most `MaxFuel` times; `Amend` is disabled at `fuel = 0` (invariant `FuelBound`, property `Quiesce`) | `formal-models.md` § 5; `state-machine.md` §4 I18 |
 
 **Transition bound** (`self-learning-loops.md` §2 "Bound"):
 
@@ -229,6 +232,16 @@ floor-bounded variant whose back-edge is disabled at the floor, `ADJUDICATE`'s g
 (no deadlock), and both terminals are reachable (§2 Claims A–D). *Hand-proved* (§2) and
 *machine-checked (in scope)* by TLC, with an adversarial non-vacuity mutant (`Broken.tla`) that TLC
 does flag (`formal-models.md` §2).
+
+**Bounded Graph Amendments — the fuel variant (Property 5).** Amendment re-arming is bounded by the
+*second* well-founded variant `fuel ∈ 0..MaxFuel` (invariant `FuelBound`): `Amend` spends one unit of
+fuel and is disabled at `fuel = 0`, so the pipeline eventually *stays* terminal — property `Quiesce`
+(`<>[](lstate ∈ {DONE,ESCALATE})`), the second temporal branch TLC checks. Total transitions
+≤ 12·(N0 + fuel₀) + fuel₀ — finite. TLC pins `MaxFuel = 2` (853 / 408 / depth 36); re-running the
+identical model at the runtime ceiling `MaxFuel = 32` only lengthens the same terminating behaviours —
+**2,923 / 1,608 / depth 156, still no error** (`formal-models.md` § 5 and §"`MaxFuel` scope (F1)").
+`Quiesce` is non-vacuous vs a keep-fuel mutant — the fuel analogue of `Broken.tla`
+(`formal-models.md` § 5).
 
 ### 5.2 Learnings propagation
 

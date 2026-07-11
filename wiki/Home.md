@@ -4,7 +4,7 @@
 
 **TL;DR.** `dag` is a Claude Code skill that runs a hard task through a gated, multi-phase pipeline instead of answering in one shot. It splits the maker from the checker, refuses claims that carry no admissible evidence, and keeps all state on disk so nothing is rediscovered ([`plugins/dag/skills/dag/SKILL.md`](../plugins/dag/skills/dag/SKILL.md), Prime directives, lines 56–94). The rest of this wiki explains that machine from the ground up.
 
-*This wiki describes `dag` as of **plugin 1.3.0 / catalog 1.0.5** ([`plugin.json`](../plugins/dag/.claude-plugin/plugin.json) line 4; [`marketplace.json`](../.claude-plugin/marketplace.json) line 7 = catalog, line 13 = plugin). Every `file:line` locator below is re-resolved against that tree — an unresolved locator is a bug.*
+*This wiki describes `dag` as of **plugin 1.7.0 / catalog 1.0.9** ([`plugin.json`](../plugins/dag/.claude-plugin/plugin.json) line 4; [`marketplace.json`](../.claude-plugin/marketplace.json) line 7 = catalog, line 13 = plugin). Every `file:line` locator below is re-resolved against that tree — an unresolved locator is a bug. This in-repo `wiki/` directory is the wiki's authoritative home — 16 git-tracked pages (this `Home.md` plus `01`–`15`); there is no separate GitHub wiki repo.*
 
 ## The one-paragraph pitch
 
@@ -16,21 +16,23 @@ Start at the intuition and climb toward the proofs. Each page stands on its own,
 
 1. [`01-layman-intuition.md`](01-layman-intuition.md) — the whole idea with no jargon: why one-shot answers are risky and what "split the maker from the checker" buys you.
 2. [`02-llm-workings.md`](02-llm-workings.md) — just enough about how LLMs actually behave (fluent but fallible) to see *why* `dag` is shaped the way it is.
-3. [`03-formal-methods.md`](03-formal-methods.md) — what "formal method" means here, and the vocabulary (FSM, invariant, proof) the later pages lean on.
+3. [`03-formal-methods.md`](03-formal-methods.md) — what "formal method" means here, and the vocabulary (FSM, invariant, proof — plus the newer *bounded graph amendments* and *quiescence* ideas) the later pages lean on.
 4. [`04-self-learning-loops.md`](04-self-learning-loops.md) — the bounded correction loop: retry, escalate, and learn within a run without ever looping forever.
 5. [`05-learnings.md`](05-learnings.md) — how a lesson is captured, generalized (the ≥2-unit gate), and propagated into later briefs so nothing is rediscovered.
 6. [`06-verification.md`](06-verification.md) — the independent adversarial verifier: what it checks, how it refutes, and the PASS/FAIL/DISAGREE contract.
 7. [`07-accuracy.md`](07-accuracy.md) — the anti-hallucination stance: adaptive evidence standards and "no claim without admissible evidence."
 8. [`08-how-it-fits.md`](08-how-it-fits.md) — the nine phases end to end, and how the ledger threads them together.
 9. [`09-personas-and-marketplace.md`](09-personas-and-marketplace.md) — personas as reusable lenses, and how `dag` ships as a Claude Code plugin/marketplace.
-10. [`10-proof-appendix.md`](10-proof-appendix.md) — the TLA+/Alloy proof layer and exactly *what* is proved (and what is not).
+10. [`10-proof-appendix.md`](10-proof-appendix.md) — the TLA+/Alloy proof layer and exactly *what* is proved (and what is not), now including the Bounded-Graph-Amendment models (Alloy [`Amendment.als`](../plugins/dag/skills/dag/formal/Amendment.als) and the TLA+ `Quiesce` quiescence property in [`Pipeline.tla`](../plugins/dag/skills/dag/formal/Pipeline.tla)), reproducible in one command via [`scripts/run_formal.sh`](../plugins/dag/skills/dag/scripts/run_formal.sh).
 11. [`11-diagrams-and-formulas.md`](11-diagrams-and-formulas.md) — the pipeline diagrams and formulas collected in one reference.
 12. [`12-large-dataset-partitioning.md`](12-large-dataset-partitioning.md) — when the data is bigger than the context window: map-reduce the work onto the DAG (*partition the work, not the context*), then verify a stratified sample and log what you didn't check.
 13. [`13-cross-run-persistence.md`](13-cross-run-persistence.md) — how a lesson outlives its run: the project/user learning stores, imports that stay *advisory* until re-grounded, and expiry/decay so stale advice ages out.
-14. [`14-validator-and-invariants.md`](14-validator-and-invariants.md) — the runtime validator (`validate_run.py`) and the full I1–I16 invariant catalog it checks over each run's ledger (a mix of mechanically-enforced invariants and FSM guards) — plus the honest list of what it *cannot* check.
-15. [`15-artifacts-and-schemas.md`](15-artifacts-and-schemas.md) — the run-directory ledger and the 13 JSON schemas: what every on-disk artifact is, and the exact shape the validator holds it to.
+14. [`14-validator-and-invariants.md`](14-validator-and-invariants.md) — the runtime validator (`validate_run.py`) and the full **I1–I19 (+ I1b/I1c/I1d/I3b/I3c) + I-dod** invariant catalog (plus the guard-ordering gates) it checks over each run's ledger — a mix of mechanically-enforced invariants and FSM guards, now including the Bounded-Graph-Amendment checks (I3b/I3c/I17/I18/I19) — plus the honest list of what it *cannot* check.
+15. [`15-artifacts-and-schemas.md`](15-artifacts-and-schemas.md) — the run-directory ledger and the 14 JSON schemas: what every on-disk artifact is, and the exact shape the validator holds it to — plus the Structured Spec Registry (SSR: [`spec/fsm.json`](../plugins/dag/skills/dag/spec/fsm.json) + [`spec/invariants.json`](../plugins/dag/skills/dag/spec/invariants.json), a descriptive mirror of the FSM/invariants held drift-free at dev time by [`scripts/spec_check.py`](../plugins/dag/skills/dag/scripts/spec_check.py)'s SC1–SC7 checks under `run_tests.sh`, and *not* read at runtime).
 
 If you only read one page, read [`01-layman-intuition.md`](01-layman-intuition.md). If you are about to *change* the formal machinery, read [`04-self-learning-loops.md`](04-self-learning-loops.md), [`10-proof-appendix.md`](10-proof-appendix.md), and [`14-validator-and-invariants.md`](14-validator-and-invariants.md) first — the first two are the proof, the third is the runtime check that keeps every run inside it.
+
+**New machinery, and where to find it.** Three capabilities post-date this wiki's earlier pins; the pages above already fold them in: **Bounded Graph Amendments** (BGA — fuel-budgeted, append-only mid-run growth of the work graph, with a machine-checked quiescence property) run through the formal-methods (3), self-learning-loops (4), proof-appendix (10, Alloy `Amendment.als` + TLA+ `Quiesce`), and validator (14, invariants I3b/I3c/I17/I18/I19) pages; the **Structured Spec Registry** (SSR — the descriptive `spec/fsm.json` + `spec/invariants.json` mirror, kept drift-free at dev time by [`scripts/spec_check.py`](../plugins/dag/skills/dag/scripts/spec_check.py)'s SC1–SC7 checks and *not* read at runtime) is covered on the artifacts-and-schemas page (15); and the one-command formal reproduction [`scripts/run_formal.sh`](../plugins/dag/skills/dag/scripts/run_formal.sh) (fetches the TLC/Alloy jars checksum-verified and asserts the expected counts) lives on the proof-appendix page (10).
 
 ## A note on proof status — read every guarantee at its true strength
 

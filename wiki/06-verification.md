@@ -78,6 +78,18 @@ verifier *actually* never saw the reasoning — that is a **self-attestation**, 
 (consistent)*, not a platform guarantee. The schema itself says so at line 17: *"Self-attestation,
 not a platform guarantee (see state-machine Limitation A)."* See §9.
 
+**Structural persona identity (1.7.0 — I1c / I1d).** I1/I1b compare only the *declared* graph
+personas; nothing tied the *actual* artifact personas to them, so one persona could execute a unit
+*and* verify it while I1b still printed PASS. 1.7.0 closes that at the artifact layer. **I1c**
+reconciles the emitted artifacts against the graph: for a unit carrying both a `debrief.json` and a
+`verify.json`, `debrief.persona == graph.executor_persona`, `verify.verifier_persona ==
+graph.verifier_persona`, and the two are **distinct** — maker ≠ checker at the *artifact* layer, not
+merely in the declaration. **I1d** requires every *working* persona — each unit's executor/verifier,
+each `brief`/`debrief` persona, and every panel member — to be a member of the confirmed
+`personas.json` roster, so a working persona can no longer be a fabricated string absent from it
+(`references/state-machine.md` I1c/I1d, lines 186–187). Both are post-hoc/offline and gate no
+transition; a genuinely distinct *model* behind a distinct label stays unobservable (Limitation D).
+
 ### Data-flow: what the verifier can and cannot touch
 
 ```mermaid
@@ -202,6 +214,14 @@ the verifier is never structurally incentivized to hide it. The schema encodes t
 — its overview calls this the *coverage-first* clause, and the PASS `allOf` forces every PASS defect
 to be `minor`-only (`schemas/verify.schema.json`, description line 5; `allOf` lines 139–149).
 
+**Coverage-first reaches the anti-oscillation guard, too (1.7.0 — I14/AO-2 severity scoping).** The
+retry-time AO-2 check (**I14**) forbids a retry from re-opening a criterion a prior verdict sealed
+into `feedback.do_not_touch`. 1.7.0 **scopes that disjointness to `blocker|major`**: a *minor*
+coverage-first observation on a sealed criterion is now **reportable** (an advisory NOTE), not a
+FAIL — otherwise coverage-first (report *every* defect) and anti-oscillation (don't churn sealed
+work) would be jointly unsatisfiable. A `blocker`/`major` defect landing back on a `do_not_touch`
+criterion is still a non-zero exit (`references/state-machine.md` I14, line 200).
+
 **The no-vague-FAIL rule.** You cannot fail a unit with a shrug. A FAIL is *schema-invalid* unless
 it carries at least one `defect` — and each defect must name a `severity`
 (blocker/major/minor) and a `criterion` (schema `defects.items`, lines 65–79) — **and**
@@ -291,6 +311,13 @@ Three facts make this a mechanism, not a slogan:
   correctness/reproduce/guardrail trio) whose discrete majority equals the top-level `verdict`
   (`references/state-machine.md` I16, line 163). Being post-hoc, it can never sit as a live guard on
   the loop's sole back-edge and deadlock it — the same discipline as I14/I15.
+- **Independence, not just distinct lenses (1.7.0 — I16 extension).** Distinct lenses alone did not
+  stop a panel of three *clones* — three copies of one persona behind the correctness / reproduce /
+  guardrail labels. 1.7.0 extends I16 to require the members' declared `verifier_persona`s to be
+  **pairwise distinct** *and* **none equal to the unit's executor persona** — a panelist may not be
+  the maker, and there are no clones behind the lenses (`references/state-machine.md` I16, line 202).
+  Independence is the whole point of the panel; like the rest of I16 it is presence/shape-checked and
+  gates no transition.
 
 **Loop-until-dry (a bounded recall sweep).** Inside one VERIFY node the verifier may run repeated
 adversarial rounds that **accumulate** defects until a round surfaces **no new defect** ("dry") or it
