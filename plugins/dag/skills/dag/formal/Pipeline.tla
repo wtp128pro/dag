@@ -5,9 +5,10 @@
 (*                                                                            *)
 (* Source of truth mirrored here:                                             *)
 (*   - references/state-machine.md  : phase/gate FSM, guards G-*, invariants  *)
-(*                                    I1-I16 (+ I1b, I-dod); TLC checks the    *)
-(*                                    structural/temporal subset (gate         *)
-(*                                    ordering, loop bound, variant).          *)
+(*                                    I1-I19 (incl. I1b/I3b/I3c/I17/I18/I19    *)
+(*                                    + I-dod); TLC checks the structural/      *)
+(*                                    temporal subset (gate ordering, loop      *)
+(*                                    bound, variant, fuel quiescence).         *)
 (*   - references/self-learning-loops.md : the executor<->verifier bounded     *)
 (*                                    loop (U05 states Q, table 1.3, variant). *)
 (*                                                                            *)
@@ -134,8 +135,10 @@ Resolve ==  \* spec: T11
   /\ phase' = "P6"
   /\ UNCHANGED <<gate, lstate, retries, verdict, fuel>>
 
-\* spec: T4 T7 — intentionally unmodeled self-loops (unfair stutter): T4 (P2 blocking on
-\* open ambiguity) and T7 (P4 re-split) are UNFAIR self-loops with no modeling action.
+\* spec-unmodeled: T4 T7 — intentionally unmodeled self-loops (unfair stutter): T4 (P2 blocking on
+\* open ambiguity) and T7 (P4 re-split) are UNFAIR self-loops with no modeling action. (D12: retagged
+\* from `\* spec:` so SC7 reports them as intentionally-unmodeled rather than counting a comment as a
+\* modeled action.)
 PhaseNext ==
   \/ \E p \in SpinePhases : Complete(p)
   \/ LinkP6
@@ -214,6 +217,9 @@ TermStutter  == LoopTerminal /\ UNCHANGED vars
 (* like the human gates) — NO weak-fairness on Amend; termination rests on fuel strictly      *)
 (* decreasing, not on Amend being forced. An ESCALATE-origin amendment (a P7 resolution that  *)
 (* amends) folds into the out-of-scope `Resolve` simplification (b) — see formal-models.md.   *)
+\* spec-unmodeled: Amend — F2: `Amend` is the one FSM-bearing action with no T*/LT* id in
+\* spec/fsm.json (BGA is node-internal to P6, not a modeled pipeline transition). This marker is
+\* informational (SC7 finds no T/LT id here, so it neither adds nor requires coverage).
 Amend ==
   /\ phase = "P6"
   /\ gate["P6"] = FALSE

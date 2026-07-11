@@ -1,0 +1,28 @@
+{
+  "unit_id": "U01",
+  "title": "Modern-research landscape",
+  "wave": 1,
+  "depends_on": [],
+  "persona": "Agent-Orchestration Researcher",
+  "budget_tokens": 32000,
+  "acceptance_criteria": [
+    "10-14 findings",
+    "each with >=1 dated primary source"
+  ],
+  "context_pointers": [
+    "INPUT.md",
+    "CARTOGRAPHY.md"
+  ],
+  "outputs": [
+    "units/U01/debrief.json"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "research",
+    "core",
+    "bogus-tag"
+  ],
+  "learnings_applied": [
+    "L1"
+  ]
+}

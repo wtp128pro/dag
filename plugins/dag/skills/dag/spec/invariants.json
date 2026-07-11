@@ -25,8 +25,12 @@
       "validator_label_prefixes": [
         "I1b maker!=checker (persona distinctness)"
       ],
-      "fixtures": [],
-      "provenance": [],
+      "fixtures": [
+        "i1b_same_persona"
+      ],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
@@ -36,10 +40,17 @@
       "title": "I2: ledger-is-truth (fsm-state.json is authoritative)",
       "tier": "mechanical",
       "validator_label_prefixes": [
-        "I2 ledger-is-truth"
+        "I2 fsm units subset",
+        "I2 ledger-is-truth",
+        "I2 phase artifact floor",
+        "I2 status vs verify verdict"
       ],
       "fixtures": [
-        "no_fsm_state"
+        "no_fsm_state",
+        "ledger_status_mismatch",
+        "ledger_verdict_mismatch",
+        "phase_underreport",
+        "fsm_phantom_unit"
       ],
       "provenance": [],
       "docs": [
@@ -53,11 +64,13 @@
       "validator_label_prefixes": [
         "I3 DAG",
         "I3 DAG acyclic",
-        "I3 DAG fail-closed (E)"
+        "I3 DAG fail-closed (E)",
+        "I3 unit id uniqueness"
       ],
       "fixtures": [
         "unfenced_cycle",
-        "amend_cycle"
+        "amend_cycle",
+        "dup_unit_id"
       ],
       "provenance": [
         "E"
@@ -74,6 +87,7 @@
         "I3b wave layering"
       ],
       "fixtures": [
+        "amend_ok",
         "amend_layering"
       ],
       "provenance": [],
@@ -89,6 +103,7 @@
         "I3c dependency closure"
       ],
       "fixtures": [
+        "amend_ok",
         "amend_dangling_dep"
       ],
       "provenance": [],
@@ -111,20 +126,31 @@
         "bad",
         "fail",
         "units_loop_ok",
-        "units_loop_overrun"
+        "units_loop_overrun",
+        "iteration_ceiling"
       ],
-      "provenance": [],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
     },
     {
       "id": "I5",
-      "title": "I5: per-unit budget cap <= 32K tokens",
-      "tier": "schema",
-      "validator_label_prefixes": [],
-      "fixtures": [],
-      "provenance": [],
+      "title": "I5: per-unit budget cap <= 32K tokens + within-budget honesty",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I5 within-budget honesty"
+      ],
+      "fixtures": [
+        "within_budget_dishonest",
+        "overrun_honest",
+        "overrun_dishonest"
+      ],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
@@ -134,12 +160,14 @@
       "title": "I6: PASS coverage-first / FAIL names a genuine defect",
       "tier": "schema",
       "validator_label_prefixes": [
+        "I6 FAIL actionable change",
         "I6 FAIL defect",
         "I6 PASS coverage-first"
       ],
       "fixtures": [
         "pass_with_minor",
-        "pass_with_major_rejected"
+        "pass_with_major_rejected",
+        "fail_blank_actionable"
       ],
       "provenance": [],
       "docs": [
@@ -153,8 +181,12 @@
       "validator_label_prefixes": [
         "I7 single recommended option"
       ],
-      "fixtures": [],
-      "provenance": [],
+      "fixtures": [
+        "disagreement_two_recommended"
+      ],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
@@ -167,8 +199,12 @@
         "I8 no open material ambiguity",
         "I8 open material ambiguity"
       ],
-      "fixtures": [],
-      "provenance": [],
+      "fixtures": [
+        "open_material_ambiguity"
+      ],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
@@ -184,9 +220,13 @@
       ],
       "fixtures": [
         "missing_verify",
-        "verify_without_debrief"
+        "verify_without_debrief",
+        "i9_midloop_note",
+        "disagreement_on_pass"
       ],
-      "provenance": [],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
@@ -198,8 +238,13 @@
       "validator_label_prefixes": [
         "I10 synthesis completeness"
       ],
-      "fixtures": [],
-      "provenance": [],
+      "fixtures": [
+        "i10_missing_unit_at_done",
+        "i10_stray_unit_at_done"
+      ],
+      "provenance": [
+        "G6"
+      ],
       "docs": [
         "references/state-machine.md#4"
       ]
@@ -212,9 +257,12 @@
         "I11 global tag registry (G1)",
         "I11 tag vocabulary"
       ],
-      "fixtures": [],
+      "fixtures": [
+        "tag_not_in_vocab"
+      ],
       "provenance": [
-        "G1"
+        "G1",
+        "G6"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -228,6 +276,7 @@
         "I12 admission carve-out (G1)",
         "I12 learnings admission gate",
         "I12 learnings propagation",
+        "I12 import provenance",
         "I12 learnings since_wave",
         "I12 model narrowing (04/G4)",
         "I12 selector",
@@ -246,6 +295,7 @@
         "wave_float_gap",
         "regrounded_g_listed",
         "regrounded_g_unlisted",
+        "learnings_forged_import",
         "p4_advisory/advisory_not_required",
         "p4_advisory/regrounded_required"
       ],
@@ -319,11 +369,13 @@
         "I15 AO-6 responsive change"
       ],
       "fixtures": [
-        "ao6_no_changes"
+        "ao6_no_changes",
+        "retry_no_echo"
       ],
       "provenance": [
         "02/P1",
-        "AO-6"
+        "AO-6",
+        "G6"
       ],
       "docs": [
         "references/state-machine.md#4",
@@ -350,18 +402,31 @@
     },
     {
       "id": "I17",
-      "title": "I17: frozen executed prefix under amendment",
+      "title": "I17: frozen executed prefix + amendment reconciliation under amendment",
       "tier": "mechanical",
       "validator_label_prefixes": [
+        "I17 amendment reconciliation",
         "I17 frozen executed prefix",
-        "I17 frozen prefix"
+        "I17 frozen prefix",
+        "I17 frozen-content anchor"
       ],
       "fixtures": [
         "amend_frozen",
-        "amend_orphan"
+        "amend_orphan",
+        "amend_smuggled_unit",
+        "amend_phantom_add",
+        "amend_added_unreconciled",
+        "amend_fake_retire",
+        "amend_phantom_retire_undercharge",
+        "amend_missing_baseline",
+        "amend_edit_executed",
+        "amend_rewave_executed",
+        "amend_rewire_executed"
       ],
       "provenance": [
-        "BGA"
+        "BGA",
+        "WP1",
+        "WP4"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -369,17 +434,30 @@
     },
     {
       "id": "I18",
-      "title": "I18: amendment fuel conservation bound",
+      "title": "I18: amendment fuel conservation bound + records-required trigger",
       "tier": "mechanical",
       "validator_label_prefixes": [
+        "I18 amendment bookkeeping",
+        "I18 amendment records required",
         "I18 fuel bound"
       ],
       "fixtures": [
         "amend_fuel_overrun",
-        "amend_no_fuel_seed"
+        "amend_no_fuel_seed",
+        "amend_records_deleted",
+        "amend_fuel_widen",
+        "amend_fuel_chain_break",
+        "amend_dup_amendment_id",
+        "amend_id_file_mismatch",
+        "amend_bogus_revision_after",
+        "amend_dead_counter",
+        "amend_wave1_insert"
       ],
       "provenance": [
-        "BGA"
+        "BGA",
+        "WP1",
+        "WP2",
+        "WP3"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -387,17 +465,23 @@
     },
     {
       "id": "I19",
-      "title": "I19: amendment scope traceability and gating",
+      "title": "I19: amendment scope traceability, kind closure, and gating",
       "tier": "mechanical",
       "validator_label_prefixes": [
         "I19 amendment scope"
       ],
       "fixtures": [
         "amend_dod_untraced",
-        "amend_cancel_ungated"
+        "amend_cancel_ungated",
+        "amend_kind_dodge",
+        "amend_cancel_noop",
+        "amend_bare_snapshot",
+        "amend_noncild_criteria_map",
+        "amend_single_child_split"
       ],
       "provenance": [
-        "BGA"
+        "BGA",
+        "WP3"
       ],
       "docs": [
         "references/state-machine.md#4"
@@ -612,8 +696,12 @@
       "validator_label_prefixes": [
         "unit_id mismatch"
       ],
-      "fixtures": [],
-      "provenance": [],
+      "fixtures": [
+        "unit_id_dir_mismatch"
+      ],
+      "provenance": [
+        "G6"
+      ],
       "docs": []
     },
     {
@@ -749,6 +837,24 @@
       "docs": []
     },
     {
+      "id": "escalate-origin",
+      "title": "ESCALATE origin provenance (retries==2 & FAIL, DISAGREE, or amendment-fuel exhaustion)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "ESCALATE origin provenance"
+      ],
+      "fixtures": [
+        "escalate_no_origin"
+      ],
+      "provenance": [
+        "B9",
+        "D-A"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
       "id": "gate-ordering",
       "title": "gate-ordering: phase gates satisfied in order (incl. sign-off)",
       "tier": "mechanical",
@@ -788,9 +894,13 @@
         "premise-check attested"
       ],
       "fixtures": [
-        "p05_intake_before_personas"
+        "p05_intake_before_personas",
+        "premise_not_reran",
+        "premise_deflection_pass"
       ],
-      "provenance": [],
+      "provenance": [
+        "G6"
+      ],
       "docs": []
     },
     {

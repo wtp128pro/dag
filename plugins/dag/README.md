@@ -82,17 +82,22 @@ skills/dag/
 │   ├── evidence-standards.md      adaptive anti-hallucination rulebook
 │   ├── socratic-protocol.md       Socratic move-set — referenced by every prompt; applied selectively
 │   ├── self-learning-loops.md     bounded executor↔verifier loop + termination
+│   ├── data-partitioning.md       map-reduce onto the DAG for large-dataset passes
 │   ├── state-machine.md           the pipeline FSM: states · transitions · invariants
 │   └── formal-models.md           TLA+/Alloy models + proofs + check plan
 ├── schemas/                       JSON Schemas (Draft 2020-12) for every artifact
-├── formal/                        Pipeline.tla · Pipeline.cfg · WorkGraph.als
-├── templates/                     brief · debrief · verify · disagreement · personas ·
-│                                  clarifications · cartography · graph
+├── spec/                          descriptive SSR registry (fsm.json · invariants.json) — dev-time drift source
+├── formal/                        Pipeline.tla · Pipeline.cfg · WorkGraph.als · Amendment.als (BGA) · AlloyRun.java (headless driver)
+├── templates/                     brief · debrief · verify · disagreement · personas · persona ·
+│                                  clarifications · cartography · graph · amendment
 └── scripts/
     ├── init_run.sh                deterministic dated run-dir + ledger + fsm-state seed
     ├── validate_run.sh            enforcement entry point (python3 prober → validate_run.py)
     ├── validate_run.py            runnable validator — rejects malformed runs
-    └── tests/                     fixtures proving each enforced rule (good/bad/…)
+    ├── run_tests.sh               the CI: HOME-isolated fixture sweep on both backends + spec_check
+    ├── spec_check.py              dev-time prose↔spec↔code drift checker (SC1–SC7)
+    ├── run_formal.sh              one-command TLC + Alloy reproduction (fetches jars to /tmp)
+    └── tests/                     fixtures proving each enforced rule (good/bad/amend_…)
 ```
 
 ## Design principles
@@ -146,11 +151,13 @@ export JAVA_HOME=$(/usr/libexec/java_home)   # macOS; on Linux point JAVA_HOME a
     -config formal/Pipeline.cfg formal/Pipeline.tla
 ```
 
-Expect `Model checking completed. No error has been found.` across **327 distinct states** — that
-confirms the safety invariants (gate ordering, retry bound ≤ 2, well-founded loop variant) and the
-bounded-loop **termination** property. The full annotated transcript, the invariant→property
-traceability, and the Alloy structural models (`formal/WorkGraph.als`, whose `check` commands are
-hand-run in the Alloy Analyzer) are documented in
+Expect `Model checking completed. No error has been found.` across **853 states generated / 408
+distinct / depth 36** (shipped `MaxFuel = 2`; verified parametric at `MaxFuel = 32` → 2,923 / 1,608 /
+depth 156) — that confirms the safety invariants (gate ordering, retry bound ≤ 2, well-founded loop
+variant, **`FuelBound`**) and **both** temporal properties: bounded-loop **`Termination`** and
+bounded-amendment **`Quiesce`**. The full annotated transcript, the invariant→property traceability,
+and the Alloy structural models (`formal/WorkGraph.als` + the BGA `formal/Amendment.als`, whose `check`
+commands run headless via the Alloy Java API — SAT4J, `-Djava.awt.headless=true`) are documented in
 [`references/formal-models.md`](references/formal-models.md).
 
 The validator has an executable, HOME-isolated fixture suite (the repo has no CI — this is it):
@@ -162,8 +169,13 @@ bash scripts/run_tests.sh   # every tests/ fixture on each validator backend; no
 
 It runs `validate_run.py` over every `scripts/tests/` fixture, pins each expected exit code + FAIL
 line via `scripts/tests/expectations.tsv`, checks `manifest.schema.json` against its instance pair,
-and stubs `$HOME` so results never depend on your real `~/.claude/dag/` (finding IMP-16). Set
-`DAG_TEST_VENV=/path/to/venv` (a venv with `jsonschema` installed) to also run the jsonschema backend.
+and stubs `$HOME` so results never depend on your real `~/.claude/dag/` (finding IMP-16). The sweep
+runs on **both** validator backends — the normal one (jsonschema if importable) and, unconditionally,
+a forced pass with `DAG_FORCE_MINI=1` (the stdlib fallback), so the fallback is exercised even where
+jsonschema is installed. It then runs the **SSR drift checker** twice: `spec_check.py` (SC1–SC7:
+registry↔labels, FSM-table↔`spec/fsm.json` row-diff, gate map, constants, examples, fixture coverage,
+TLA pragmas) on the real tree, plus its negative-fixture overlays. Set `DAG_TEST_VENV=/path/to/venv`
+(a venv with `jsonschema` installed) to add a second jsonschema-capable interpreter to the matrix.
 
 ## Install
 
@@ -183,7 +195,20 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.5.0** — **Structured Spec Registry + Drift Checks (SSR)**: a descriptive, dev-time spec
+Current version: **1.6.0** — **Validator hardening (extra_check remediation)**: closes ten reproduced
+false-PASS holes in the Bounded Graph Amendments enforcement and the core validator, and reconciles two
+guarantee narratives. BGA now has a real provenance backbone — an immutable `baseline_units` + `fuel_initial`
+seed reconciled against the amendment records (smuggled/phantom/fake-retired units and a deleted
+`amendments/` dir all FAIL now), a `fuel_before`/`fuel_after` tamper-evidence chain, per-kind amendment
+schema closure + split/child semantics, and a frozen-content anchor pinning every executed unit's graph
+entry to its immutable `brief.json`. The core validator gains duplicate-unit-id detection, ledger↔verify
+cross-checks, artifact-driven phase floors, forgery-proof learnings-import provenance, honest-overrun
+tying, and non-blank actionable-change enforcement. ESCALATE's third origin (amendment-fuel exhaustion) is
+documented and provenance-checked; I9 is status-aware (a mid-loop debrief-with-no-verify is a NOTE, not a
+FAIL). Every new check is **post-hoc/offline** (no live LT7 guard) so the correction-loop **termination
+proof is PRESERVED**; the BGA pipeline bound and I17/I18/I19 surfaces **REVISE upward** (strictly stronger).
+The fixture matrix grows to **106**, swept on **both** backends (jsonschema + a forced stdlib-mini pass);
+TLC re-verifies 853/408/depth 36 (and 2,923/1,608/depth 156 at `MaxFuel=32`), Alloy 8/8. **1.5.0** — **Structured Spec Registry + Drift Checks (SSR)**: a descriptive, dev-time spec
 registry (`spec/fsm.json` + `spec/invariants.json`) that records the `state-machine.md` transition rows
 (T*/LT*) and the I* invariants as machine-readable data, plus a drift checker `scripts/spec_check.py`
 (**SC1–SC7**, wired into `scripts/run_tests.sh`) that diffs the FSM tables, dereferences schema

@@ -9,6 +9,8 @@
   "scope_change": false,
   "human_gate": false,
   "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
   "frontier_wave": 2,
   "units_retired": [
     "U05"

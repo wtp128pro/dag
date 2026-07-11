@@ -128,7 +128,10 @@ seven rows of §1.3 — no other row points backward.
 Define `V = MAX_RETRIES − retries = 2 − retries`. Since `0 ≤ retries ≤ 2`, `V ∈ {0,1,2}` —
 a non-negative integer, bounded below by 0. LT7 executes `retries := retries+1`, so each
 cycle traversal does `V := V − 1`: **strictly decreasing by exactly 1**. No other
-transition changes `retries` (Claim A + the monotone rule in §1.2), so `V` never increases.
+transition changes `retries` **within a unit's loop instance** (Claim A + the monotone rule in §1.2),
+so `V` never increases. (D3 scope note: in the composed BGA machine `Amend` initializes a *fresh*
+unit's `retries` to 0 before its loop begins — it never mutates an in-flight counter, so this claim
+holds per unit instance and the variant argument is untouched — see §6.1 and the BGA FLAG.)
 
 **Claim C — the back-edge is guarded by `V > 0`.**
 LT7 is reachable only through LT4, whose guard is `retries < 2`, i.e. `V > 0`. So the cycle
@@ -174,9 +177,12 @@ so wall-clock work is finite too. ∎
 > **FLAG — Bounded Graph Amendments, classified PRESERVES (per-unit) / REVISES (pipeline-level bound).**
 > BGA lets Phase 6 grow the work graph (`add_units`/`split_unit`/`add_edges`; `cancel_unit` human-gated)
 > via append-only `amendments/A<NN>.json` records. **Per-unit Claims A–D hold verbatim** — no new row
-> enters the §1.3 table, no second back-edge is added, and **only LT7 writes `retries`**; a newly added
-> or split unit simply runs the same `EXECUTE→VERIFY→ADJUDICATE` loop from scratch, so the
-> correction-loop termination proof is **PRESERVED**. What **REVISES** is the *pipeline-level*
+> enters the §1.3 table, no second back-edge is added, and — **scoped to a single unit's loop instance**
+> (D3) — **only LT7 writes `retries`**. (In the *composed* machine `Amend` also touches the counter, but
+> only to **initialize a fresh unit's** `retries` to 0 — it never mutates an in-flight unit's counter and
+> adds no back-edge, so the per-unit variant `V = 2 − retries` is untouched.) A newly added or split unit
+> simply runs the same `EXECUTE→VERIFY→ADJUDICATE` loop from scratch, so the correction-loop termination
+> proof is **PRESERVED**. What **REVISES** is the *pipeline-level*
 > finiteness bound (§6.4): the total unit count is no longer a fixed `N` chosen at decomposition — it is
 > bounded above by **N0 + fuel₀**, where `fuel₀ = expansion.fuel_initial` (schema max 32). **Migration
 > argument:** `fuel` has the *identical* well-founded-counter shape as `retries` — monotone-decreasing
@@ -577,16 +583,21 @@ FSM/guard change — it PRESERVES termination (verdict enum unchanged; the §1.3
 
 ## 6. Socratic self-interrogation (run before finalizing)
 
-**6.1 Could this still fail to terminate or oscillate?** Constructing a non-terminating
-trace requires either (a) a second cycle — none exists, §2 Claim A enumerates all edges; or
-(b) traversing the one cycle infinitely — impossible, its back-edge strictly descends a
-floor-bounded variant disabled at the floor (Claims B–C). The subtle oscillation risk
-(verifier flip-flops pass↔fail on the same criterion) is neutralized by **AO-2** +
+**6.1 Could this still fail to terminate or oscillate?** *Per unit instance*, constructing a
+non-terminating trace requires either (a) a second cycle — none exists **within a unit's loop**, §2
+Claim A enumerates all its edges; or (b) traversing the one cycle infinitely — impossible, its
+back-edge strictly descends a floor-bounded variant disabled at the floor (Claims B–C). The subtle
+oscillation risk (verifier flip-flops pass↔fail on the same criterion) is neutralized by **AO-2** +
 **AO-1**: even a flip-flopping verifier cannot prevent halt, because `retries` rises
-regardless of verdict content. **No non-terminating trace exists.** The PR1 panel + loop-until-dry
-sweep do not change this: both are **bounded node-internal work inside `VERIFY`** (a fixed fan-out of
-3; ≤ `R_max = 3` rounds), adding no edge and **never writing `retries`** — so Claims A–D and the
-oscillation argument hold unchanged (§2 FLAG).
+regardless of verdict content. **No non-terminating per-unit trace exists.** **(D3 — BGA composed
+machine.)** BGA's `Amend` *does* add a second cycle at the *pipeline* level (`DONE→EXECUTE` re-arm), so
+"none exists" is scoped to the per-unit loop, not the whole machine. That pipeline cycle is itself
+bounded by a *second* well-founded variant — `fuel ∈ 0..MaxFuel`, decremented only by `Amend`, which is
+guarded `fuel > 0` — so after ≤ fuel₀ re-arms `Amend` is permanently disabled and the machine quiesces
+(machine-checked by the TLC `Quiesce` property; formal-models.md §Quiesce). Total transitions ≤
+12·(N0 + fuel₀) + fuel₀ — finite. The PR1 panel + loop-until-dry sweep do not change this: both are
+**bounded node-internal work inside `VERIFY`** (a fixed fan-out of 3; ≤ `R_max = 3` rounds), adding no
+edge and **never writing `retries`** — so Claims A–D and the oscillation argument hold unchanged (§2 FLAG).
 
 **6.2 Where would injected "learning" HURT a downstream brief?** A lesson over-fit from a
 one-off — e.g. *"a unit needed `python3.11` f-string syntax"* — blindly injected into a

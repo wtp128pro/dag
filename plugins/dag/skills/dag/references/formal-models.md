@@ -1,9 +1,9 @@
 <!-- formal-models.md — a DESIGN-TIME formal-model proof layer on
-     top of the runtime validator (scripts/validate_run.py). For each of 4 core
-     invariants: the formal statement, a rigorous hand-proof, the exact model-check
+     top of the runtime validator (scripts/validate_run.py). For each of the 5 core
+     model-checked properties: the formal statement, a rigorous hand-proof, the exact model-check
      command, and honest tool-status. ADD-ONLY: references existing invariants
-     (state-machine.md I1-I16 + I1b/I-dod, self-learning-loops.md, graph/verify schemas); modifies
-     no validator/schema/prose. -->
+     (state-machine.md I1-I19 incl. I1b/I3b/I3c/I17/I18/I19 + I-dod, self-learning-loops.md,
+     graph/verify schemas); modifies no validator/schema/prose. -->
 
 # Formal Models — TLA+ / Alloy proof layer
 
@@ -44,13 +44,21 @@ Amendments structural theorem (adding wave-layered units above their deps preser
 > `JAVA_HOME=$(/usr/libexec/java_home)`. Every command below sets it — harmless even when
 > `/usr/bin/java` already resolves to a real JDK.
 >
-> **`tla2tools.jar` and the Alloy jar are BUILD tools, not skill files** — both are fetched to
-> `/tmp`, never vendored into the repo. Download once:
+> **One-command reproduction:** `bash scripts/run_formal.sh --maxfuel32` fetches both jars (checksum-
+> verified), compiles the vendored `formal/AlloyRun.java` driver, and runs TLC (MaxFuel 2 and 32) + both
+> Alloy files headlessly, expecting 853/408/36, 2,923/1,608/156, and 8/8 — no display, nothing written
+> to the repo. The rest of this note documents what that script does by hand.
+>
+> **`tla2tools.jar` and the Alloy jar are BUILD tools, not skill files** — both are fetched to a cache
+> dir (default `/tmp`), never vendored into the repo. The Alloy `dist.jar` in particular bundles a
+> research-only SAT solver (Lingeling, *"evaluation and research purposes"*) and LGPL SAT4J, so it is
+> deliberately NOT committed. Download once:
 > `curl -L -o /tmp/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar`
 > `curl -L -o /tmp/alloy.jar https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar`
-> Alloy's default `java -jar alloy.jar` launches the GUI; drive it headlessly through the Alloy
-> Java API (`CompUtil.parseEverything_fromFile` → `TranslateAlloyToKodkod.execute_command`, default
-> SAT4J solver, `-Djava.awt.headless=true`), or open the file in the Analyzer and Execute All.
+> Alloy's default `java -jar alloy.jar` launches the GUI; the committed `formal/AlloyRun.java` drives it
+> headlessly through the Alloy Java API (`CompUtil.parseEverything_fromFile` →
+> `TranslateAlloyToKodkod.execute_command`, default SAT4J solver, `-Djava.awt.headless=true`) — or open
+> the file in the Analyzer and Execute All.
 
 **Proof-status legend:** *machine-checked* (a model checker explored the state space
 and reported no error) · *hand-proved* (a rigorous checkable argument; not run by a
@@ -359,6 +367,19 @@ Classification (self-learning-loops.md §2 FLAG): the **per-unit correction-loop
 well-founded-counter shape as `retries`). `GateOrdering` **PRESERVES** — `Amend` is guarded on
 `gate["P6"]=FALSE` and writes neither `phase` nor any `gate` entry, so no gate can be bypassed.
 
+**Model simplification — the third ESCALATE origin (WP6/B9).** SKILL.md and `state-machine.md` route a
+*third* ESCALATE origin to Phase 7: **amendment-fuel exhaustion** (`fuel==0` + an amendment still
+needed). This origin is **NOT a modeled transition** in `Pipeline.tla`: `Amend`'s guard `fuel>0`
+simply *disables* re-arming at the floor, and the loop's own `LEscFail`/`LEscDisagree` (LT5/LT6) are
+the only edges into `ESCALATE`; `Quiesce` + `TermStutter` prove the machine still halts. So the third
+origin is a **documentation/enumeration** addition at the SKILL/state-machine layer, deliberately
+abstracted away in the formal model (the halt it induces is already covered by `Quiesce`). Its
+provenance is instead checked *post-hoc* by `validate_run.py` (`ESCALATE origin provenance`).
+**Classification: REVISES** the ESCALATE-origin enumeration (documentation-level); **PRESERVES**
+`Termination`/`Quiesce` (fuel exhaustion halts either way). This joins the two pre-existing
+model simplifications noted above ((a) the single representative loop; (b) T11 rollback edges
+existing in TLA prose but not the transition relation).
+
 **Non-vacuity (adversarial — does `Quiesce` have teeth?).** The load-bearing point: `Termination`
 (`EXECUTE ~> {DONE,ESCALATE}`) alone would **NOT** catch unbounded amendment — each re-armed lap still
 terminates, so `Termination` stays true; only the *run* fails to quiesce. Demonstrated on a throwaway
@@ -393,6 +414,21 @@ drive `Amendment.als` headless via the Alloy Java API (default SAT4J, `-Djava.aw
 never `java -jar` (GUI). **Tool-status:** **machine-checked** — TLC 2.19 (`Quiesce` liveness, complete
 408-state space, non-vacuous vs the keep-fuel mutant) + Alloy 6 (`Amendment.als`, no counterexample) +
 hand-proved.
+
+> **`MaxFuel` scope (F1 — why cfg stays at 2).** The shipped `Pipeline.cfg` pins `MaxFuel = 2` so the
+> documented state counts stay stable (853 generated / 408 distinct / depth 36). The fuel argument is
+> parametric (the well-founded variant `fuel ∈ 0..MaxFuel` above), so a larger ceiling only lengthens
+> the same terminating behaviours — verified by re-running with `MaxFuel = 32` (the shipped runtime
+> ceiling): **2,923 generated / 1,608 distinct / depth 156, `No error has been found`** (both `Quiesce`
+> and `Termination` still hold; all six INVARIANTs pass). Reproduce by copying `Pipeline.cfg`, editing
+> `MaxFuel` to 32, and running TLC with that temp cfg — the committed cfg is deliberately left at 2
+> (D-E), so no documented count changes.
+
+> **SAT4J scope wall (F3 — for a future re-checker).** The Alloy `check`s run at scope 7 (`for 7 but
+> 5 Int`). The bundled SAT4J solver's cost grows steeply with scope: the closure checks complete in
+> **4–15 s at scope 7** but **80–360 s at scope 8** and **> 26 min with no verdict at scope 9** — a
+> scope-9 timeout is the solver wall, NOT a regression. Keep the committed scope at 7; escalate scope
+> only with a native solver (e.g. MiniSat/Glucose via JNI) if deeper assurance is ever needed.
 
 ---
 

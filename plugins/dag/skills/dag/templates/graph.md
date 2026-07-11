@@ -59,8 +59,11 @@ waved through (a missing or unverifiable DAG blocks the run).
 - Every unit's estimated footprint ≤ 32K after atomization? <yes | re-split list>
 
 ## Fuel budget (Bounded Graph Amendments)
-- `expansion.fuel_initial` = <default `min(N0, 8)`; human-adjustable at this gate; `0`/absent = BGA off>.
+- `expansion.fuel_initial` = <default `min(N0, 8)`; `0`/absent = BGA off>.
   This bounds how many graph amendments Phase 6 may make when executed work surfaces unknowns.
+  (Decomposition is a **linear self-critique** phase — NOT one of the three human gates, D-C/U2 — so
+  this default stands unless the user gave an explicit fuel instruction at an earlier gate; there is no
+  separate "adjust fuel" human touchpoint here.)
 
 ## Amendments (appended in Phase 6 — only if the graph is amended)
 When executed work surfaces an unknown, the graph may grow under mechanical constraints. Record each

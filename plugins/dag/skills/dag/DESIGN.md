@@ -55,9 +55,12 @@ files. This is what makes the run resumable and keeps Dag's own context lean.
 └── SYNTHESIS.md     final rolled-up deliverable (Phase 8)
 ```
 
-The skill dir itself additionally ships `schemas/*.schema.json`,
-`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh}` (+ `tests/`), the
-machine-checked models `formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als}`,
+The skill dir itself additionally ships `schemas/*.schema.json` (incl. `amendment.schema.json` +
+`manifest.schema.json`), the SSR registry `spec/{fsm.json,invariants.json}` (+ their meta-schemas),
+`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh,spec_check.py,run_formal.sh}`
+(+ `tests/`, whose BGA runs carry `amendments/A<NN>.json`), the machine-checked models
+`formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als,Amendment.als}` + the headless `formal/AlloyRun.java`
+driver (`run_formal.sh` fetches the TLC/Alloy jars to /tmp — BUILD tools, never vendored),
 `references/{methodology,evidence-standards,state-machine,socratic-protocol,self-learning-loops,formal-models,data-partitioning}.md`,
 and the `references/personas/` catalog (`index.json` + per-file persona JSON + `GUIDE.md`).
 Only the artifacts backed by a schema carry a machine-checkable `.json` (validity ≠ correctness):
@@ -164,12 +167,18 @@ verify are flagged so we don't launder them into facts — practicing req 10 on 
 7. **Bounded Graph Amendments are attestation-checked, not semantically proven.** BGA lets the
    Phase-6 graph grow, but the three semantic guarantees stay human/verifier judgment (validity ≠
    correctness): `human_gate` is a **presence-checked attestation** (like `signoff_confirmed`) — the
-   validator cannot prove a human actually approved a scope-change/cancel; `frontier_wave` is
-   **attested** (the validator cannot reconstruct dispatch timing); and `dod_refs` verbatim matching
-   is **string membership**, not semantic traceability — that a new unit *genuinely* serves its cited
-   DoD item stays the verifier/critique-pass backstop. What IS mechanical and fail-closed: the frozen
-   executed prefix (I17), the fuel bound (I18), acyclicity + wave layering + dependency closure
-   (I3/I3b/I3c), and DoD string membership + the human-gate flag's presence (I19).
+   validator cannot prove a human actually approved a scope-change/cancel; a record's `frontier_wave` is
+   internally-consistency-checked against the graph (WP3: every `units_added` lands at `wave ≥
+   frontier_wave`) but the *dispatch timing* it stands for is still **attested** (Limitation J); and
+   `dod_refs` verbatim matching is **string membership**, not semantic traceability — that a new unit
+   *genuinely* serves its cited DoD item stays the verifier/critique-pass backstop (Limitation K). What
+   IS mechanical and fail-closed: the frozen executed prefix (I17 — including the WP1 baseline
+   reconciliation and the WP4 executed-unit content anchor against `brief.json`: `title`/`wave`/`deps`/
+   `persona`/`tags`/`acceptance_criteria`; `goal`/`est_footprint_tokens` are not brief-carried and stay
+   attested), the fuel bound + tamper-evidence + bookkeeping (I18 — seed anchor, `fuel_before`/`fuel_after`
+   chain, records-required, id/filename/revision/counter/frontier), acyclicity + wave layering +
+   dependency closure (I3/I3b/I3c), and per-kind schema closure + split semantics + DoD string membership
+   + the human-gate flag's presence (I19).
 
 ## 7. How to run
 
@@ -204,7 +213,7 @@ The skill creates the run dir, walks the phases, and pauses at the gates that ma
   **project > user > curated**), still behind the human gate. A documented convention —
   **no loader script**, and **not** a required run artifact (meta-validated by `--self-check` only).
 
-**Authoring rule L1 (a durable maintenance discipline).**
+**Authoring rule AR-1 (a durable maintenance discipline; D11 — renamed from "L1" to avoid colliding with Learning `L1` and the I-dod enforcement Layer-1/Layer-2).**
 > Any claim that a change *mirrors / covers / matches* an existing construct, or is
 > *complete / non-skippable / all*, MUST be verified by **enumerating that construct exactly and
 > re-reading/re-running it** before asserting it — and prefer **precise scope wording over
@@ -212,7 +221,7 @@ The skill creates the run dir, walks the phases, and pauses at the gates that ma
 > spot that enumerates it (SKILL.md, methodology.md, the schema `description`, the template, the
 > CHANGELOG) in the same change, or the "coverage" claim silently drifts.
 
-**L1 now has a dev-time backstop (Structured Spec Registry + Drift Checks, SSR).** The formerly
+**AR-1 now has a dev-time backstop (Structured Spec Registry + Drift Checks, SSR).** The formerly
 discipline-only "update every prose spot in the same change" clause is now **machine-checked at dev
 time**: `scripts/spec_check.py` diffs the FSM tables and schema constants against a descriptive
 registry (`spec/fsm.json` + `spec/invariants.json`) — **SC2** row-diffs the transition/invariant
@@ -222,7 +231,7 @@ pointer to its live schema value, **SC1** cross-checks every table label against
 presence checks that catch *drift*, not semantic proofs that a claim is *correct*** — the same
 validity ≠ correctness boundary as the runtime validator (§4). They run under `scripts/run_tests.sh`
 and add **no** runtime read: `spec/` and `spec_check.py` are **dev-time only**, never on the skill's
-lazy-load path (SKILL.md is unchanged). So L1's "mirror" discipline now *fails a test* when a table row
+lazy-load path (SKILL.md is unchanged). So AR-1's "mirror" discipline now *fails a test* when a table row
 or a constant pointer drifts, instead of resting solely on the author re-reading the construct.
 
 *Why this rule exists:* adversarial verification once caught the `I-dod` trigger claiming to

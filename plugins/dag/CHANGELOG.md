@@ -3,6 +3,44 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] — 2026-07-10
+
+**Validator hardening (extra_check remediation)** — closes ten reproduced false-PASS holes in the
+Bounded Graph Amendments (BGA) enforcement and the core validator, plus two guarantee-narrative
+contradictions, prose↔spec drift, test-coverage gaps, and stale docs. Every reproduced false PASS is an
+anti-hallucination-layer defect (the "adversary" is the executing model drifting), so all are fixed
+fail-closed. **All new predicates are post-hoc/offline over emitted artifacts — no live guard on the
+correction loop's sole back-edge LT7 — so the per-unit termination proof (Claims A–D) is PRESERVED
+verbatim; the BGA pipeline-level bound and the I17/I18/I19 surfaces REVISE upward (strictly stronger).**
+
+- **BGA provenance backbone (B1/B2/B3):** immutable `graph.json.baseline_units` (schema-required once
+  `revision > 1`) reconciled against the amendment records — `set(units[]) ∪ retired == baseline ∪ ⋃
+  units_added`, retirement existence + disjointness + attribution; and a records-required trigger so
+  amendment EVIDENCE (revision/applied/retired/fuel-spent) forces the `amendments/A<NN>.json` records to
+  exist and stay in sync (deleting `amendments/` no longer launders provenance).
+- **Fuel tamper-evidence (B4):** immutable `graph.json.fuel_initial` seed anchor + a per-record
+  `fuel_before`/`fuel_after` chain from seed to `fuel_remaining` (widening fuel mid-run FAILs).
+- **Amendment schema closure + semantics (B6/B7/G1/G2/G3/G12):** per-kind `allOf` closure (add_units /
+  split_unit / add_edges / cancel_unit); split snapshot==retired, `criteria_map` targets ⊆ own children,
+  ≥2 children; belt-and-braces dod_refs on any record that adds units; id uniqueness + id==filename +
+  `graph_revision_after`==2+index + `expansion.amendments_applied`==|records| + `frontier_wave` teeth.
+- **Frozen-prefix content anchor (B5):** every executed unit's graph entry must match its immutable
+  `brief.json` (title/wave/deps/persona/tags/acceptance_criteria).
+- **Core validator hardening (B8/G4/G5/G8/G9/G10/G11):** duplicate-unit-id detection; ledger status↔verify
+  verdict cross-check; artifact-driven phase floor; forgery-proof learnings-import provenance
+  (`origin.store`, not a `G#` id spelling); within-budget honesty vs the unit's own brief budget; fsm
+  units ⊆ graph; non-blank `actionable_changes`.
+- **Guarantee narratives (B9/B10):** the third ESCALATE origin (amendment-fuel exhaustion) is documented
+  (prose + `spec/fsm.json` T10 `$comment` + formal-models note) and provenance-checked; I9 is status-aware
+  (a mid-loop debrief-with-no-verify at P6 with fsm status executing/verifying is a NOTE, not a FAIL).
+- **Drift, operability, harness, formal tidy:** D1–D12 prose/spec fixes; SKILL.md operability (U1–U11);
+  one negative fixture per previously-uncovered branch; `run_tests.sh` now sweeps **both** backends
+  unconditionally (`DAG_FORCE_MINI`); SC7 distinguishes modeled vs `spec-unmodeled` pragmas.
+
+Proof: the fixture matrix grows to **106**, all green on **both** validator backends; `spec_check.py`
+SC1–SC7 PASS; TLC re-verifies **853/408/depth 36 — No error** (and **2,923/1,608/depth 156** at
+`MaxFuel=32`); Alloy **8/8** commands as-expected.
+
 ## [1.5.0] — 2026-07-10
 
 **Structured Spec Registry + Drift Checks (SSR)** — a descriptive, dev-time spec registry plus a drift

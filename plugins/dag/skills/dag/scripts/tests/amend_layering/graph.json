@@ -5,6 +5,11 @@
     "A01",
     "A02"
   ],
+  "baseline_units": [
+    "U01",
+    "U02"
+  ],
+  "fuel_initial": 2,
   "retired_units": [
     {
       "id": "U02",

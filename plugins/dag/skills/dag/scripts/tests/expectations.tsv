@@ -65,3 +65,45 @@ amend_fuel_overrun	1	I18
 amend_no_fuel_seed	1	I18
 amend_dod_untraced	1	I19
 amend_cancel_ungated	1	I19
+amend_records_deleted	1	I18 amendment records required
+amend_fuel_widen	1	graph.json.fuel_initial=2
+amend_fuel_chain_break	1	fuel chain break
+amend_kind_dodge	1	I18 amendment records required
+amend_cancel_noop	1	units_retired
+amend_bare_snapshot	1	acceptance_criteria
+amend_noncild_criteria_map	1	not split children
+amend_single_child_split	1	I18 amendment records required
+amend_dup_amendment_id	1	I18 amendment bookkeeping
+amend_id_file_mismatch	1	I18 amendment bookkeeping
+amend_bogus_revision_after	1	graph_revision_after=99
+amend_dead_counter	1	counter=0 != |records|=2
+amend_wave1_insert	1	record.frontier_wave 2
+amend_edit_executed	1	I17 frozen-content anchor
+amend_rewave_executed	1	I17 frozen-content anchor
+amend_rewire_executed	1	I17 frozen-content anchor
+dup_unit_id	1	I3 unit id uniqueness
+ledger_status_mismatch	1	I2 status vs verify verdict
+ledger_verdict_mismatch	1	I2 status vs verify verdict
+phase_underreport	1	I2 phase artifact floor
+learnings_forged_import	1	I12 import provenance
+within_budget_dishonest	1	I5 within-budget honesty
+fsm_phantom_unit	1	I2 fsm units subset
+fail_blank_actionable	1	actionable_changes
+i9_midloop_note	0
+escalate_no_origin	1	ESCALATE origin provenance
+i1b_same_persona	1	I1b maker!=checker
+unit_id_dir_mismatch	1	unit_id mismatch
+disagreement_two_recommended	1	I7 single recommended option
+open_material_ambiguity	1	I8 open material ambiguity
+i10_missing_unit_at_done	1	I10 synthesis completeness
+i10_stray_unit_at_done	1	I10 synthesis completeness
+tag_not_in_vocab	1	I11 tag vocabulary
+iteration_ceiling	1	I4 iteration ceiling
+premise_not_reran	1	premise re-run
+premise_deflection_pass	1	premise deflection
+amend_smuggled_unit	1	I17 amendment reconciliation
+amend_phantom_add	1	I17 amendment reconciliation
+amend_added_unreconciled	1	I17 amendment reconciliation
+amend_fake_retire	1	I17 amendment reconciliation
+amend_phantom_retire_undercharge	1	I17 amendment reconciliation
+amend_missing_baseline	1	baseline_units

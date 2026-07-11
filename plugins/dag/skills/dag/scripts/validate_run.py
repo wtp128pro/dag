@@ -245,6 +245,11 @@ def _audit_schema_self_check(sf, schema, rep):
               f"(enforced only under the jsonschema backend): {sorted(unimpl)}")
 
 def make_validator():
+    # DAG_FORCE_MINI=1 (WP9/G7) forces the stdlib mini-validator even where jsonschema is installed,
+    # so run_tests.sh can sweep BOTH backends on the same host (CI has jsonschema, which otherwise
+    # hides the fallback entirely). Behaviour-neutral: it only selects which validator function runs.
+    if os.environ.get("DAG_FORCE_MINI") == "1":
+        return _mini_validate, "built-in minimal validator (stdlib only) [DAG_FORCE_MINI]"
     try:
         import jsonschema  # type: ignore
         from jsonschema import Draft202012Validator
@@ -381,6 +386,7 @@ LABELS = [
     {"key": "skip_i3_dag", "stem": "I3 DAG", "invariant": "I3", "emitted_via": "print"},
     {"key": "i1b_maker_checker", "stem": "I1b maker!=checker (persona distinctness)", "invariant": "I1b"},
     {"key": "i3c_dep_closure", "stem": "I3c dependency closure", "invariant": "I3c"},
+    {"key": "i3_unit_unique", "stem": "I3 unit id uniqueness", "invariant": "I3"},
     {"key": "i3b_wave_layering", "stem": "I3b wave layering", "invariant": "I3b"},
     {"key": "skip_i3b_wave", "stem": "I3b wave layering", "invariant": "I3b", "emitted_via": "print"},
     # FSM invariants — loop bounds
@@ -393,6 +399,8 @@ LABELS = [
     {"key": "i1_verifier_indep", "stem": "I1 verifier independence", "invariant": "I1"},
     {"key": "i6_fail_defect", "stem": "I6 FAIL defect", "invariant": "I6"},
     {"key": "i6_pass", "stem": "I6 PASS coverage-first", "invariant": "I6"},
+    {"key": "i6_actionable", "stem": "I6 FAIL actionable change", "invariant": "I6"},
+    {"key": "i5_within_budget", "stem": "I5 within-budget honesty", "invariant": "I5"},
     {"key": "i14_ao2", "stem": "I14 AO-2 do_not_touch disjointness", "invariant": "I14"},
     {"key": "i13_counter", "stem": "I13 socratic counter", "invariant": "I13"},
     {"key": "premise_rerun", "stem": "premise re-run", "invariant": "premise-check"},
@@ -405,7 +413,11 @@ LABELS = [
     # Bounded Graph Amendments
     {"key": "i17_frozen", "stem": "I17 frozen prefix", "invariant": "I17"},
     {"key": "i17_frozen_ok", "stem": "I17 frozen executed prefix", "invariant": "I17"},
+    {"key": "i17_reconcile", "stem": "I17 amendment reconciliation", "invariant": "I17"},
+    {"key": "i17_anchor", "stem": "I17 frozen-content anchor", "invariant": "I17"},
     {"key": "i18_fuel_bound", "stem": "I18 fuel bound", "invariant": "I18"},
+    {"key": "i18_records_required", "stem": "I18 amendment records required", "invariant": "I18"},
+    {"key": "i18_bookkeeping", "stem": "I18 amendment bookkeeping", "invariant": "I18"},
     {"key": "i19_scope", "stem": "I19 amendment scope", "invariant": "I19"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
@@ -420,6 +432,7 @@ LABELS = [
     {"key": "i12_since_wave", "stem": "I12 learnings since_wave", "invariant": "I12"},
     {"key": "i12_model_narrow", "stem": "I12 model narrowing (04/G4)", "invariant": "I12"},
     {"key": "i12_selector", "stem": "I12 selector", "invariant": "I12"},
+    {"key": "i12_provenance", "stem": "I12 import provenance", "invariant": "I12"},
     {"key": "i12_admission_carveout", "stem": "I12 admission carve-out (G1)", "invariant": "I12"},
     {"key": "i12_admission_gate", "stem": "I12 learnings admission gate", "invariant": "I12"},
     {"key": "i12_propagation", "stem": "I12 learnings propagation", "invariant": "I12"},
@@ -430,9 +443,13 @@ LABELS = [
     {"key": "i8_noopen", "stem": "I8 no open material ambiguity", "invariant": "I8"},
     {"key": "idod", "stem": "I-dod DoD/non-goals present", "invariant": "I-dod"},
     {"key": "i2_ledger", "stem": "I2 ledger-is-truth", "invariant": "I2"},
+    {"key": "i2_status_verdict", "stem": "I2 status vs verify verdict", "invariant": "I2"},
+    {"key": "i2_units_subset", "stem": "I2 fsm units subset", "invariant": "I2"},
+    {"key": "i2_phase_floor", "stem": "I2 phase artifact floor", "invariant": "I2"},
     {"key": "gpersonas_nonskip", "stem": "G-personas non-skippable", "invariant": "G-personas"},
     {"key": "gpersonas_failclosed", "stem": "G-personas fail-closed", "invariant": "G-personas"},
     {"key": "gate_ordering", "stem": "gate ordering", "invariant": "gate-ordering"},
+    {"key": "escalate_origin", "stem": "ESCALATE origin provenance", "invariant": "escalate-origin"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -1106,6 +1123,19 @@ def main(argv=None):
         # so fail closed. Runs whenever a graph is present (NOT amendment-gated) — verified inert on
         # all 54 legacy fixtures (their graph.json has no dangling deps/edges). Offline/post-hoc.
         _unit_ids = {u.get("id") for u in graph_doc.get("units", [])}
+        # B8 (WP5): duplicate unit ids in graph.json.units[] make enforcement ORDER-DEPENDENT — every
+        # downstream consumer collapses units into a dict/set (last-entry-wins), so a duplicate can
+        # smuggle a benign copy past a tag-scoped check (e.g. hide a high-stakes panel requirement).
+        # JSON Schema cannot express cross-item uniqueness on a derived key; the validator is the only
+        # enforcement point. Offline/post-hoc.
+        _id_list = [u.get("id") for u in graph_doc.get("units", [])]
+        if len(_id_list) != len(_unit_ids):
+            _dupe_ids = sorted({x for x in _id_list if _id_list.count(x) > 1})
+            rep.fail(f"{LABEL_STEM['i3_unit_unique']}",
+                     f"duplicate unit id(s) {_dupe_ids} in graph.json units[] — ids must be unique "
+                     "(enforcement collapses duplicates last-wins, making verdicts order-dependent)")
+        else:
+            rep.ok(f"{LABEL_STEM['i3_unit_unique']} ({len(_unit_ids)} unique unit id(s))")
         _dangling = set()
         for u in graph_doc.get("units", []):
             for d in u.get("deps", []):
@@ -1264,6 +1294,39 @@ def main(argv=None):
                          f"defect criteria {bad} not in brief.acceptance_criteria")
             else:
                 rep.ok(f"{LABEL_STEM['i6_fail_defect']} criteria drawn from brief (units/{uid})")
+
+    # I6 FAIL actionable change (WP5: G11) — a FAIL must name >=1 NON-BLANK actionable change (AO-3).
+    # `actionable_changes: [" "]` satisfies the schema minLength:1 but is not actionable; apply the same
+    # .strip() non-blank test the I15 counterpart already uses (the schema now also pins pattern "\\S",
+    # so this is defense-in-depth). Offline/post-hoc.
+    for uid, d in unit_docs.items():
+        v = d.get("verify")
+        if v and v.get("verdict") == "FAIL":
+            _ac = (v.get("feedback") or {}).get("actionable_changes") or []
+            if not any(isinstance(x, str) and x.strip() for x in _ac):
+                rep.fail(f"{LABEL_STEM['i6_actionable']} (units/{uid})",
+                         "FAIL feedback.actionable_changes has no non-blank entry — a FAIL must name "
+                         "≥1 concrete change (AO-3; a whitespace-only string is not actionable)")
+            else:
+                rep.ok(f"{LABEL_STEM['i6_actionable']} (units/{uid})")
+
+    # I5 within-budget honesty (WP5: G9) — the schema only forces within_budget:false ABOVE the global
+    # 32000 ceiling; a unit briefed 16000 that consumed 20000 with within_budget:true still passes.
+    # Tie the honesty signal to the unit's OWN brief.budget_tokens: consumed > budget with within_budget
+    # true is a dishonest report (undermines the IMP-04/re-atomization signal). Offline/post-hoc.
+    for uid, d in unit_docs.items():
+        dbf, b = d.get("debrief"), d.get("brief")
+        if not isinstance(dbf, dict) or not isinstance(b, dict):
+            continue
+        _fp = dbf.get("footprint") or {}
+        _tc = _as_int(_fp.get("tokens_consumed"))
+        _bt = _as_int(b.get("budget_tokens"))
+        if _tc is not None and _bt is not None and _tc > _bt and _fp.get("within_budget") is True:
+            rep.fail(f"{LABEL_STEM['i5_within_budget']} (units/{uid})",
+                     f"debrief.footprint.within_budget==true but tokens_consumed={_tc} > "
+                     f"brief.budget_tokens={_bt} — an over-budget unit must report within_budget:false (I5/IMP-04)")
+        elif _tc is not None and _bt is not None:
+            rep.ok(f"{LABEL_STEM['i5_within_budget']} (units/{uid}: {_tc} within brief budget {_bt} or honestly flagged)")
 
     # I6 PASS coverage-first (REVISED, PR1) — a PASS MAY carry `minor` observations (report every
     # finding + severity, filter downstream) but MUST NOT carry a blocker/major defect. The schema's
@@ -1477,18 +1540,172 @@ def main(argv=None):
     # pipeline-level unit-count bound (total units <= N0 + fuel0). They are INERT when amendments/ is
     # absent (empty `amendments`), so every legacy run is byte-for-byte unaffected. (The live guard
     # they deliberately are NOT is the 02/P1 deadlock lesson — mirrors I14/I15/I16.)
-    if amendments:
-        # Retired ids: the union of every amendment's units_retired and graph.json.retired_units[].id.
-        retired_ids = set()
+    # B1 (WP1) fail-closed trigger: the append-only amendments/A<NN>.json records are the SOLE
+    # provenance for an amended graph, so deleting amendments/ must NOT launder the guarantee. Compute
+    # whether graph.json / fsm-state.json bear amendment EVIDENCE (revision>1, a non-empty
+    # amendments_applied or retired_units, or fuel spent); if so, the block runs EVEN when `amendments`
+    # is empty, and the records-required check below FAILs closed. Still post-hoc/offline over emitted
+    # artifacts — no live LT7 guard — so BGA PRESERVES the termination proof (Claims A-D verbatim).
+    amendment_evidence = False
+    _ev_reasons = []
+    if graph_doc is not None:
+        _rev0 = _as_int(graph_doc.get("revision"))
+        if _rev0 is not None and _rev0 > 1:
+            amendment_evidence = True; _ev_reasons.append(f"graph.revision={_rev0}>1")
+        if graph_doc.get("amendments_applied"):
+            amendment_evidence = True; _ev_reasons.append(f"amendments_applied={graph_doc.get('amendments_applied')}")
+        if graph_doc.get("retired_units"):
+            amendment_evidence = True; _ev_reasons.append("graph.retired_units non-empty")
+    _exp0 = fsm.get("expansion") if isinstance(fsm, dict) else None
+    if isinstance(_exp0, dict):
+        _fi0, _fr0 = _as_int(_exp0.get("fuel_initial")), _as_int(_exp0.get("fuel_remaining"))
+        if _fi0 is not None and _fr0 is not None and _fr0 != _fi0:
+            amendment_evidence = True; _ev_reasons.append(f"fuel spent ({_fi0}->{_fr0})")
+
+    if amendments or amendment_evidence:
+        record_ids = [_rec.get("id") for _fn, _rec in amendments]
+
+        # ---- B1 records-required trigger — evidence with absent/desynced records => FAIL (I18) ----
+        if amendment_evidence:
+            applied = list(graph_doc.get("amendments_applied", []) or []) if graph_doc is not None else []
+            _rev = _as_int(graph_doc.get("revision")) if graph_doc is not None else None
+            _probs = []
+            if len(amendments) != len(applied):
+                _probs.append(f"|records|={len(amendments)} != |amendments_applied|={len(applied)}")
+            if _rev is not None and len(amendments) != _rev - 1:
+                _probs.append(f"|records|={len(amendments)} != revision-1={_rev - 1}")
+            if record_ids != applied:
+                _probs.append(f"record ids {record_ids} != amendments_applied {applied}")
+            if _probs:
+                rep.fail(f"{LABEL_STEM['i18_records_required']}",
+                         "amendment evidence present (" + "; ".join(_ev_reasons) + ") but amendment "
+                         "records missing/desynced: " + "; ".join(_probs) + " — the append-only "
+                         "amendments/A<NN>.json records are the sole provenance and may never be "
+                         "deleted or desynced from graph.json")
+            else:
+                rep.ok(f"{LABEL_STEM['i18_records_required']} ({len(amendments)} record(s) back the amended graph)")
+
+        # ---- I18 amendment bookkeeping (WP3: G1/G2/G3/G12) — record identity + counters + frontier ----
+        # Previously dead data: duplicate ids / id↔filename decoupling (G1), graph_revision_after never
+        # read (G2), the expansion.amendments_applied integer never cross-checked (G3), and frontier_wave
+        # had no teeth (G12). All post-hoc/offline; REVISES the amendment-accounting surface upward.
+        if amendments:
+            book_ok = True
+            _seen_ids = {}
+            for _fn, _rec in amendments:
+                _rid = _rec.get("id")
+                _stem = _fn[:-5] if _fn.endswith(".json") else _fn
+                if _rid != _stem:
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_fn})",
+                             f"record id {_rid!r} != filename stem {_stem!r} — the id must equal its filename")
+                if _rid in _seen_ids:
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_fn})",
+                             f"duplicate amendment id {_rid!r} (already used by {_seen_ids[_rid]})")
+                else:
+                    _seen_ids[_rid] = _fn
+            for _idx, (_fn, _rec) in enumerate(amendments):
+                _gra = _as_int(_rec.get("graph_revision_after"))
+                if _gra != 2 + _idx:
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_rec.get('id')})",
+                             f"graph_revision_after={_rec.get('graph_revision_after')!r} != 2 + record_index({_idx}) = {2 + _idx}")
+            _expc = fsm.get("expansion") if isinstance(fsm, dict) else None
+            if isinstance(_expc, dict) and _expc.get("amendments_applied") is not None:
+                _cnt = _as_int(_expc.get("amendments_applied"))
+                if _cnt != len(amendments):
+                    book_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_bookkeeping']}",
+                             f"fsm-state.expansion.amendments_applied counter={_cnt} != |records|={len(amendments)}")
+            # frontier_wave teeth (G12): every added unit lands at or beyond the record's declared frontier.
+            if graph_doc is not None and isinstance(graph_doc.get("waves"), list):
+                _wof = {}
+                for _w in graph_doc.get("waves", []):
+                    for _uid in _w.get("units", []):
+                        _wof[_uid] = _as_int(_w.get("wave"))
+                for _fn, _rec in amendments:
+                    _fw = _as_int(_rec.get("frontier_wave"))
+                    if _fw is None:
+                        continue
+                    for _aid in (_rec.get("units_added", []) or []):
+                        _wv = _wof.get(_aid)
+                        if _wv is not None and _wv < _fw:
+                            book_ok = False
+                            rep.fail(f"{LABEL_STEM['i18_bookkeeping']} (amendments/{_rec.get('id')})",
+                                     f"added unit {_aid} placed at wave {_wv} < record.frontier_wave {_fw} "
+                                     "— an amendment inserts only at/beyond the frontier (internal-consistency check; "
+                                     "dispatch timing stays Limitation J)")
+            if book_ok:
+                rep.ok(f"{LABEL_STEM['i18_bookkeeping']} ({len(amendments)} record(s): ids unique + filename-matched, "
+                       "graph_revision_after + counter consistent, frontier respected)")
+
+        # Retired ids: split by source so attribution (below) can compare the two. `retired_ids` (their
+        # union) preserves the pre-WP1 semantics every downstream I17 clause keys off.
+        retired_from_records = set()
         for _fn, _rec in amendments:
             for _rid in (_rec.get("units_retired", []) or []):
-                retired_ids.add(_rid)
+                retired_from_records.add(_rid)
+        retired_from_graph = set()
         if graph_doc is not None:
             for _ru in (graph_doc.get("retired_units", []) or []):
                 if isinstance(_ru, dict) and _ru.get("id"):
-                    retired_ids.add(_ru.get("id"))
+                    retired_from_graph.add(_ru.get("id"))
+        retired_ids = retired_from_records | retired_from_graph
         current_unit_ids = ({u.get("id") for u in graph_doc.get("units", [])}
                             if graph_doc is not None else set())
+
+        # ---- I17 amendment reconciliation (WP1: B2/B3) — the unit-set accounting that makes the
+        # revised pipeline bound (executed units <= N0 + fuel0) REAL. Without it, amendment ops are
+        # taken on faith: units can be smuggled into units[] with no amendment, phantom-added (recorded
+        # but never materialized), or phantom-retired (paying fuel to retire ids that never existed).
+        # Runs only when a valid graph carries the immutable baseline (schema requires it once
+        # revision>1). Offline/post-hoc; REVISES I17 upward (strictly stronger surface). ----
+        if graph_doc is not None and graph_doc.get("baseline_units") is not None:
+            baseline = set(graph_doc.get("baseline_units", []) or [])
+            added_all = set()
+            for _fn, _rec in amendments:
+                for _aid in (_rec.get("units_added", []) or []):
+                    added_all.add(_aid)
+            recon_ok = True
+            # (1) exact unit-set equation, both directions.
+            lhs = current_unit_ids | retired_ids
+            rhs = baseline | added_all
+            if lhs != rhs:
+                recon_ok = False
+                _smuggled = sorted(lhs - rhs)    # in graph but neither baseline nor added by a record
+                _phantom = sorted(rhs - lhs)     # baseline/added by a record but absent from the graph
+                rep.fail(f"{LABEL_STEM['i17_reconcile']}",
+                         "unit-set mismatch: (units[] ∪ retired) != (baseline_units ∪ ⋃ units_added) — "
+                         f"unaccounted-for in graph {_smuggled}; recorded but missing {_phantom}")
+            # (2) retirement existence — a retired id must have existed (baseline or an earlier add),
+            #     order-aware so add-then-retire within the same run is legitimate.
+            _existed = set(baseline)
+            for _fn, _rec in amendments:
+                for _rid in (_rec.get("units_retired", []) or []):
+                    if _rid not in _existed:
+                        recon_ok = False
+                        rep.fail(f"{LABEL_STEM['i17_reconcile']} (amendments/{_rec.get('id')})",
+                                 f"retires {_rid} which never existed (not in baseline_units nor any "
+                                 "earlier amendment's units_added) — a phantom retirement inflates the bound")
+                for _aid in (_rec.get("units_added", []) or []):
+                    _existed.add(_aid)
+            # (3) disjointness — a retired id must be GONE from the current units[].
+            _still = sorted(retired_ids & current_unit_ids)
+            if _still:
+                recon_ok = False
+                rep.fail(f"{LABEL_STEM['i17_reconcile']}",
+                         f"retired id(s) {_still} still present in units[] — a retired unit must be "
+                         "removed from the current graph (else N <= N0 + fuel0 has no floor)")
+            # (4) attribution — graph.retired_units[].id == ⋃ records' units_retired, both directions.
+            if retired_from_graph != retired_from_records:
+                recon_ok = False
+                rep.fail(f"{LABEL_STEM['i17_reconcile']}",
+                         f"graph.retired_units ids {sorted(retired_from_graph)} != ⋃ amendment "
+                         f"units_retired {sorted(retired_from_records)} — retirement bookkeeping desynced")
+            if recon_ok:
+                rep.ok(f"{LABEL_STEM['i17_reconcile']} (units[] ∪ retired == baseline ∪ adds; "
+                       f"{len(baseline)} baseline + {len(added_all)} added)")
 
         # ---- I17 frozen executed prefix — amendments touch only the not-yet-started future ----
         # (1) a retired unit dir may hold at most brief.md/brief.json (no debrief/verify — a retired
@@ -1535,6 +1752,44 @@ def main(argv=None):
         if i17_ok:
             rep.ok(f"{LABEL_STEM['i17_frozen_ok']} ({len(retired_ids)} retired id(s); no executed unit touched)")
 
+        # ---- I17 frozen-content anchor (WP4: B5) — an EXECUTED unit's current graph entry must still
+        # match its immutable brief.json (the contract written at dispatch). A post-execution rewrite of
+        # an executed unit's title/wave/deps/persona/tags/acceptance_criteria in graph.json is caught.
+        # `goal` and `est_footprint_tokens` are NOT brief-carried (the brief has budget_tokens, a distinct
+        # ceiling), so they remain attested — Limitation J covers the residual dispatch-timing surface.
+        # Offline/post-hoc; REVISES I17 upward. ----
+        if graph_doc is not None:
+            _gunits = {u.get("id"): u for u in graph_doc.get("units", [])}
+            _gwave = {}
+            for _w in (graph_doc.get("waves") or []):
+                for _uid in _w.get("units", []):
+                    _gwave[_uid] = _as_int(_w.get("wave"))
+            for uid in sorted(unit_dirs_with_debrief):
+                b = unit_docs.get(uid, {}).get("brief")
+                gu = _gunits.get(uid)
+                if not isinstance(b, dict) or not isinstance(gu, dict):
+                    continue                       # no brief (G-brief already FAILs) or unit not in graph (I17 orphan)
+                _mism = []
+                if gu.get("title") != b.get("title"):
+                    _mism.append(f"title {gu.get('title')!r} != brief {b.get('title')!r}")
+                _bw = _as_int(b.get("wave"))
+                if _gwave.get(uid) is not None and _bw is not None and _gwave.get(uid) != _bw:
+                    _mism.append(f"wave {_gwave.get(uid)} != brief {_bw}")
+                if sorted(gu.get("deps", []) or []) != sorted(b.get("depends_on", []) or []):
+                    _mism.append(f"deps {sorted(gu.get('deps', []) or [])} != brief depends_on {sorted(b.get('depends_on', []) or [])}")
+                if gu.get("executor_persona") != b.get("persona"):
+                    _mism.append(f"executor_persona {gu.get('executor_persona')!r} != brief persona {b.get('persona')!r}")
+                if sorted(gu.get("tags", []) or []) != sorted(b.get("tags", []) or []):
+                    _mism.append(f"tags {sorted(gu.get('tags', []) or [])} != brief {sorted(b.get('tags', []) or [])}")
+                if list(gu.get("acceptance_criteria", []) or []) != list(b.get("acceptance_criteria", []) or []):
+                    _mism.append("acceptance_criteria differ from brief")
+                if _mism:
+                    rep.fail(f"{LABEL_STEM['i17_anchor']} (units/{uid})",
+                             "executed unit's graph entry diverges from its frozen brief.json: " + "; ".join(_mism)
+                             + " — an amendment may not modify/re-wave/rewire an executed unit")
+                else:
+                    rep.ok(f"{LABEL_STEM['i17_anchor']} (units/{uid}: graph entry matches frozen brief)")
+
         # ---- I18 fuel bound — the termination-preserving budget (mirrors retries<=2 structurally) ----
         # fuel_remaining == fuel_initial - Σ fuel_cost >= 0; each record's fuel_cost == max(1,
         # |units_added| - |units_retired|); graph.json.revision == 1 + |records|; graph.json.
@@ -1579,6 +1834,46 @@ def main(argv=None):
                 if fuel_remaining < 0:
                     i18_ok = False
                     rep.fail(f"{LABEL_STEM['i18_fuel_bound']}", f"fuel_remaining={fuel_remaining} < 0 (fuel exhausted/overrun)")
+
+            # ---- Fuel tamper-evidence (WP2: B4) — immutable seed anchor + per-record fuel chain ----
+            # The old I18 arithmetic reads expansion.fuel_initial at face value, so widening it mid-run
+            # (fuel_initial 2->3 to buy a 3rd amendment) passes. Anchor it to the immutable
+            # graph.json.fuel_initial (written once at T6), and chain each record's fuel_before/fuel_after
+            # from fuel_initial to fuel_remaining so a spoofed seed or a broken link is caught. REVISES
+            # I18 upward; still post-hoc/offline (no LT7 guard) => termination PRESERVED.
+            if graph_doc is not None and graph_doc.get("fuel_initial") is not None:
+                g_fi = _as_int(graph_doc.get("fuel_initial"))
+                if fuel_initial is not None and g_fi is not None and fuel_initial != g_fi:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']}",
+                             f"expansion.fuel_initial={fuel_initial} != immutable graph.json.fuel_initial={g_fi} "
+                             "— the fuel seed is fixed at T6; widening it mid-run is tamper-evident (B4)")
+            _prev_after = fuel_initial   # A01.fuel_before must equal the seed
+            for _fn, _rec in amendments:
+                _fb = _as_int(_rec.get("fuel_before"))
+                _fa = _as_int(_rec.get("fuel_after"))
+                _fc = _as_int(_rec.get("fuel_cost"))
+                if _fb is None or _fa is None:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']} (amendments/{_rec.get('id')})",
+                             "fuel_before/fuel_after must be integers — the fuel chain is unverifiable")
+                    _prev_after = None
+                    continue
+                if _prev_after is not None and _fb != _prev_after:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']} (amendments/{_rec.get('id')})",
+                             f"fuel chain break: fuel_before={_fb} != prior fuel_after/fuel_initial={_prev_after}")
+                if _fc is not None and _fa != _fb - _fc:
+                    i18_ok = False
+                    rep.fail(f"{LABEL_STEM['i18_fuel_bound']} (amendments/{_rec.get('id')})",
+                             f"fuel chain break: fuel_after={_fa} != fuel_before={_fb} - fuel_cost={_fc} = {_fb - _fc}")
+                _prev_after = _fa
+            if amendments and _prev_after is not None and fuel_remaining is not None and _prev_after != fuel_remaining:
+                i18_ok = False
+                rep.fail(f"{LABEL_STEM['i18_fuel_bound']}",
+                         f"fuel chain break: last amendment fuel_after={_prev_after} != "
+                         f"expansion.fuel_remaining={fuel_remaining}")
+
             expect_rev = 1 + len(amendments)
             record_ids = [_rec.get("id") for _fn, _rec in amendments]
             if graph_doc is None:
@@ -1628,12 +1923,16 @@ def main(argv=None):
                 rec_ok = False
                 rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
                          "cancel_unit requires human_gate==true (deleting planned scope is always human-gated)")
-            if kind in ("add_units", "split_unit"):
+            # dod_refs traceability — keyed on units_added being non-empty REGARDLESS of kind (WP3
+            # belt-and-braces: a relabeled kind that keeps units_added can no longer dodge the DoD trace;
+            # the schema kind-closure already forbids units_added on add_edges/cancel_unit, so this is
+            # defense-in-depth for any schema-valid record that materializes units).
+            if kind in ("add_units", "split_unit") or _rec.get("units_added"):
                 refs = _rec.get("dod_refs") or []
                 if not refs:
                     rec_ok = False
                     rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
-                             f"{kind} must carry a non-empty dod_refs tracing to definition_of_done")
+                             f"{kind} adds units but carries no dod_refs tracing to definition_of_done")
                 untraced = sorted(r for r in refs if r not in dod)
                 if untraced:
                     rec_ok = False
@@ -1642,6 +1941,14 @@ def main(argv=None):
                              f"definition_of_done {sorted(dod)}")
             if kind == "split_unit":
                 children = _rec.get("units_added", []) or []
+                # WP3: the snapshot must be EXACTLY the retired unit(s) (no fake/bare padding).
+                _snap_ids = {s.get("id") for s in (_rec.get("retired_snapshot", []) or []) if isinstance(s, dict)}
+                _ret_set = set(_rec.get("units_retired", []) or [])
+                if _snap_ids != _ret_set:
+                    rec_ok = False
+                    rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
+                             f"retired_snapshot ids {sorted(x for x in _snap_ids if x)} != units_retired "
+                             f"{sorted(_ret_set)} — the snapshot must be exactly the retired unit(s)")
                 child_tags = set()
                 for c in children:
                     if c in cur_units:
@@ -1658,6 +1965,7 @@ def main(argv=None):
                              f"split children tags {sorted(child_tags)} do not cover parent tags "
                              f"(missing {missing_tags}) — children collectively must carry ⊇ parent tags")
                 cmap = _rec.get("criteria_map") or {}
+                _children_set = set(children)
                 for crit in snap_crits:
                     targets = cmap.get(crit)
                     if not targets:
@@ -1666,19 +1974,43 @@ def main(argv=None):
                                  f"parent criterion {crit!r} is not a criteria_map key — every parent "
                                  "acceptance criterion must map to >=1 child")
                         continue
-                    if not any(t in cur_units for t in targets):
+                    # WP3: targets must be the split's OWN children (units_added), not any current unit
+                    # (state-machine.md §3.6 / schema description / SKILL all say "child").
+                    _noncild = [t for t in targets if t not in _children_set]
+                    if _noncild:
                         rec_ok = False
                         rep.fail(f"{LABEL_STEM['i19_scope']} (amendments/{aid})",
-                                 f"criteria_map[{crit!r}]={targets} maps to no existing child unit")
+                                 f"criteria_map[{crit!r}] targets {_noncild} are not split children "
+                                 f"(units_added {sorted(_children_set)}) — a parent criterion maps only to its own children")
             if rec_ok:
                 rep.ok(f"{LABEL_STEM['i19_scope']} (amendments/{aid}: dod-traced, gated, split-covered)")
 
-    # I9 MISSING VERIFICATION (MUST-FIX D) — a debrief without a verify is REJECTED
+    # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
+    # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.
+    # Prime directive 7 mandates validating after each unit's debrief+verify PAIR, and parallel waves keep
+    # several units mid-loop; so when phase==P6_EXECUTE_VERIFY and fsm-state marks the unit
+    # `executing`/`verifying`, a not-yet-written verify is EXPECTED — emit a NOTE, not a FAIL. Everywhere
+    # else (any other phase, any other status, and ALWAYS at P8/DONE) it stays a hard FAIL; I10 still
+    # hard-fails unverified units at synthesis and WP5's I2 ledger cross-check catches a dishonest
+    # `passed`/`failed` status, so terminal verdicts are unchanged. REVISES I9's firing condition only.
+    _fsm_unit_status = {}
+    if fsm and isinstance(fsm.get("units"), list):
+        for _u in fsm["units"]:
+            if isinstance(_u, dict):
+                _fsm_unit_status[_u.get("unit_id")] = _u.get("status")
     for uid in sorted(unit_dirs_with_debrief):
         vpath = os.path.join(units_dir, uid, "verify.json")
         if not os.path.exists(vpath):
-            rep.fail(f"{LABEL_STEM['i9_missing']} (units/{uid})",
-                     "unit has a debrief but NO verify.json — unverified unit rejected")
+            _st = _fsm_unit_status.get(uid)
+            if phase == "P6_EXECUTE_VERIFY" and _st in ("executing", "verifying"):
+                if not args.quiet:
+                    print(f"  NOTE  {LABEL_STEM['i9_missing']} (units/{uid}): debrief present, verify PENDING "
+                          f"(fsm status {_st!r} at P6) — an in-flight unit mid-loop, not yet a defect")
+            else:
+                rep.fail(f"{LABEL_STEM['i9_missing']} (units/{uid})",
+                         f"debrief present but verify.json is MISSING (fsm status {_st!r}, phase {phase}) — "
+                         "an executed unit must be adversarially verified before the loop closes "
+                         "(only an executing/verifying unit at P6 is an expected mid-loop NOTE)")
         else:
             vd = unit_docs.get(uid, {}).get("verify")
             if vd is None:
@@ -1860,10 +2192,25 @@ def main(argv=None):
             def _is_regrounded(E):
                 g = E.get("grounding") if isinstance(E, dict) else None
                 return isinstance(g, str) and g.strip() == "re-grounded"
+            # G8 (WP5): the import carve-out (advisory tier + exemption from the >=2-carrier admission
+            # gate) may NOT be claimed by id spelling alone. An entry is a genuine import iff it was
+            # actually loaded from a store THIS run (eid in store_ids) OR it carries an explicit
+            # origin.store provenance stamp (written by the Phase-0.5 intake). A G#-id entry with
+            # NEITHER is forged provenance — fail CLOSED so a run-local L1 renamed G7 cannot dodge I12.
+            def _import_provenance_ok(E, eid):
+                if eid in store_ids:
+                    return True
+                o = E.get("origin") if isinstance(E, dict) else None
+                return isinstance(o, dict) and o.get("store") in ("user", "project")
             active, advisory = [], []
             for E in learnings:
                 eid = E.get("id") if isinstance(E, dict) else None
-                _imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
+                if isinstance(eid, str) and eid.startswith("G") and not _import_provenance_ok(E, eid):
+                    rep.fail(f"{LABEL_STEM['i12_provenance']}",
+                             f"{eid} claims the import carve-out (G#-id) but was not loaded from a store "
+                             "and carries no origin.store provenance — the advisory/exempt tier cannot be "
+                             "forged by id spelling (G8)")
+                _imported = _import_provenance_ok(E, eid) if isinstance(eid, str) else (eid in store_ids)
                 if isinstance(E, dict) and _imported and not _is_regrounded(E):
                     advisory.append(E)
                 else:
@@ -1906,11 +2253,12 @@ def main(argv=None):
                 # run's admission and was persisted), so re-imposing the >=2-run re-proof would
                 # WRONGLY reject it. An entry is imported/global iff its id was loaded from the
                 # project/global store rather than authored in-run (`eid in store_ids`), OR it bears
-                # the global-scoped `G#` id marker (learnings.schema: L# = run/project, G# = global).
+                # the global-scoped `G#` id marker — but ONLY with genuine provenance (WP5/G8: store
+                # membership or an origin.store stamp; a bare G#-id already FAILed I12 provenance above).
                 # Such entries are EXEMPT from the >=2-run re-proof — but are STILL FULLY governed by
                 # the propagation predicate below (force-inject only where the tag actually appears).
                 # The exemption is EXPLICIT (reported as a PASS-level carve-out line), NEVER silent.
-                _is_imported = (eid in store_ids) or (isinstance(eid, str) and eid.startswith("G"))
+                _is_imported = _import_provenance_ok(E, eid)
                 for sel in (E.get("scope", {}) or {}).get("applies_to", []):
                     # BRK-08 / D-03(a): the I12 predicate enforces the THREE documented SelectorSet
                     # kinds — `all` | unit-id (`U0X`) | `tag:T` — not `tag:` alone. An UNKNOWN selector
@@ -2097,6 +2445,117 @@ def main(argv=None):
         rep.fail(f"{LABEL_STEM['i2_ledger']}",
                  "fsm-state.json absent but run artifacts exist "
                  f"({_i2_signals}) — the FSM state must live on disk")
+
+    # I2 ledger-is-truth extensions (WP5) — the ledger must not LIE about what the artifacts show.
+    # G4: a units[] status of passed/failed must match the unit's verify.json verdict PASS/FAIL, and
+    #     loop.last_verdict must match loop.unit_id's verdict; G10: fsm units[] must be a subset of the
+    #     graph units (+ retired ids); G5: artifacts imply a minimum phase (the ledger can't under-report
+    #     `phase` to duck phase-keyed checks). All post-hoc/offline; REVISES the I2 surface upward.
+    _STATUS_VERDICT = {"passed": "PASS", "failed": "FAIL"}
+    if fsm and isinstance(fsm.get("units"), list):
+        for _u in fsm["units"]:
+            if not isinstance(_u, dict):
+                continue
+            _exp_v = _STATUS_VERDICT.get(_u.get("status"))
+            if _exp_v is None:
+                continue                       # pending/retired/etc — no terminal verdict to match
+            _vd = unit_docs.get(_u.get("unit_id"), {}).get("verify")
+            if _vd is None:
+                continue                       # verify absent (I9 handles that) — nothing to cross-check
+            if _vd.get("verdict") != _exp_v:
+                rep.fail(f"{LABEL_STEM['i2_status_verdict']} (units/{_u.get('unit_id')})",
+                         f"fsm units[] status {_u.get('status')!r} but verify.json verdict={_vd.get('verdict')!r} "
+                         f"(expected {_exp_v}) — the ledger must match the verifier")
+            else:
+                rep.ok(f"{LABEL_STEM['i2_status_verdict']} (units/{_u.get('unit_id')}: status matches verdict {_exp_v})")
+    if fsm and isinstance(fsm.get("loop"), dict):
+        _lp = fsm["loop"]
+        _lvd = unit_docs.get(_lp.get("unit_id"), {}).get("verify")
+        if _lp.get("last_verdict") is not None and _lvd is not None and _lvd.get("verdict") != _lp.get("last_verdict"):
+            rep.fail(f"{LABEL_STEM['i2_status_verdict']}",
+                     f"fsm loop.last_verdict={_lp.get('last_verdict')!r} != {_lp.get('unit_id')} "
+                     f"verify.json verdict={_lvd.get('verdict')!r} — the ledger must match the verifier")
+    if fsm and isinstance(fsm.get("units"), list) and graph_doc is not None:
+        _allowed_ids = {u.get("id") for u in graph_doc.get("units", [])}
+        for _ru in (graph_doc.get("retired_units", []) or []):   # retired units legitimately leave units[]
+            if isinstance(_ru, dict) and _ru.get("id"):
+                _allowed_ids.add(_ru.get("id"))
+        _phantom = sorted(_u.get("unit_id") for _u in fsm["units"]
+                          if isinstance(_u, dict) and _u.get("unit_id") not in _allowed_ids)
+        if _phantom:
+            rep.fail(f"{LABEL_STEM['i2_units_subset']}",
+                     f"fsm-state units[] names {_phantom} absent from graph units[] (and not retired) "
+                     "— the ledger must not invent units")
+        else:
+            rep.ok(f"{LABEL_STEM['i2_units_subset']} ({len(fsm['units'])} fsm unit(s) all in graph or retired)")
+    # G5: artifact-driven phase floor (mirrors the I-dod / G-personas artifact triggers).
+    _PHASE_RANK = {"P0_BOOTSTRAP": 0, "P1_PERSONAS": 1, "P2_CLARIFICATION": 2, "P3_CARTOGRAPHY": 3,
+                   "P4_DECOMPOSITION": 4, "P5_BRIEFING": 5, "P6_EXECUTE_VERIFY": 6,
+                   "P7_DISAGREEMENT_GATE": 7, "P8_SYNTHESIS": 8, "DONE": 9}
+    _prank = _PHASE_RANK.get(phase)
+    _executed = bool(unit_dirs_with_debrief) or any(unit_docs.get(u, {}).get("verify") for u in unit_docs)
+    if _executed and _prank is not None:
+        if _prank < 5:
+            rep.fail(f"{LABEL_STEM['i2_phase_floor']}",
+                     f"executed unit artifacts (debrief/verify) present but fsm phase={phase!r} (rank {_prank}) "
+                     "< P5_BRIEFING — the ledger under-reports the phase to duck phase-keyed checks")
+        if gates.get("decomposition_approved") is not True:
+            rep.fail(f"{LABEL_STEM['i2_phase_floor']}",
+                     "executed unit artifacts present but gates.decomposition_approved != true — "
+                     "execution cannot precede the decomposition gate")
+    if _exists("SYNTHESIS.md") and _prank is not None and phase not in ("P8_SYNTHESIS", "DONE"):
+        rep.fail(f"{LABEL_STEM['i2_phase_floor']}",
+                 f"SYNTHESIS.md present but fsm phase={phase!r} not in {{P8_SYNTHESIS, DONE}} — "
+                 "synthesis is a Phase-8 artifact")
+
+    # B9 (WP6): ESCALATE loop-state provenance — a unit recorded in loop-state ESCALATE must carry one of
+    # the THREE documented origins: retries==2 with a FAIL verify (LT5), a DISAGREE verify (LT6), or a
+    # disagreement dossier citing amendment-fuel exhaustion (the BGA third origin). Without this, an
+    # ESCALATE loop-state is unverifiable provenance. Post-hoc/offline; gates no transition — PRESERVES
+    # termination (fuel exhaustion halts either way). Inert unless a unit is actually in ESCALATE.
+    _escalated = set()
+    _unit_retries = {}
+    if fsm and isinstance(fsm.get("loop"), dict):
+        if fsm["loop"].get("state") == "ESCALATE":
+            _escalated.add(fsm["loop"].get("unit_id"))
+        if fsm["loop"].get("unit_id"):
+            _unit_retries[fsm["loop"].get("unit_id")] = _as_int(fsm["loop"].get("retries"))
+    if fsm and isinstance(fsm.get("units"), list):
+        for _u in fsm["units"]:
+            if not isinstance(_u, dict):
+                continue
+            if _u.get("loop_state") == "ESCALATE" or _u.get("status") == "escalated":
+                _escalated.add(_u.get("unit_id"))
+            if _u.get("retries") is not None:
+                _unit_retries[_u.get("unit_id")] = _as_int(_u.get("retries"))
+    for _euid in sorted(x for x in _escalated if x):
+        _ev = unit_docs.get(_euid, {}).get("verify")
+        _everdict = _ev.get("verdict") if isinstance(_ev, dict) else None
+        _er = _unit_retries.get(_euid)
+        _why = None
+        if _everdict == "DISAGREE":
+            _why = "DISAGREE verify (LT6)"
+        elif _everdict == "FAIL" and _er == 2:
+            _why = "retries==2 with FAIL verify (LT5)"
+        else:
+            for _dn in ("disagreement.json", "disagreement.md"):
+                _dp = os.path.join(units_dir, _euid, _dn)
+                if os.path.exists(_dp):
+                    try:
+                        with open(_dp, encoding="utf-8") as _fh:
+                            _dt = _fh.read().lower()
+                        if "fuel" in _dt and ("exhaust" in _dt or "amendment" in _dt):
+                            _why = "disagreement dossier cites amendment-fuel exhaustion (BGA origin)"
+                            break
+                    except Exception:
+                        pass
+        if _why:
+            rep.ok(f"{LABEL_STEM['escalate_origin']} (units/{_euid}: {_why})")
+        else:
+            rep.fail(f"{LABEL_STEM['escalate_origin']} (units/{_euid})",
+                     f"unit is in loop-state ESCALATE but no valid origin (verify verdict={_everdict!r}, "
+                     f"retries={_er}) — ESCALATE requires (retries==2 ∧ FAIL) or DISAGREE or a "
+                     "disagreement dossier citing amendment-fuel exhaustion (the three T10 origins)")
 
     if post_p1:
         missing = []

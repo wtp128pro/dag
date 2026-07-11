@@ -686,6 +686,7 @@ def sc6_fixture_coverage(ctx, rep):
 # disclaimer below is printed on every run so the guarantee is never overclaimed.
 # ---------------------------------------------------------------------------
 _SC7_PRAGMA = "\\* spec:"
+_SC7_UNMODELED_PRAGMA = "\\* spec-unmodeled:"   # D12: ids tagged on a COMMENT / intentionally unmodeled
 _SC7_ID_RE = re.compile(r"\b(?:LT|T)[0-9]+\b")
 
 
@@ -700,13 +701,23 @@ def sc7_tla_pragmas(ctx, rep):
         rep.fail("SC7", f"cannot read {rel}: {ex}")
         return
 
-    found = set()
+    # D12: two pragma forms. `\* spec:` tags an id realized by a modeled action; `\* spec-unmodeled:`
+    # tags an id that is DELIBERATELY not a modeled action (an unfair self-loop, or the BGA `Amend`
+    # re-arm that the model abstracts). Coverage is satisfied by EITHER form; the unmodeled ids are
+    # reported separately so "presence" no longer masks "tagged a comment, not an action" (the old drift).
+    modeled = set()
+    unmodeled = set()
     for line in text.splitlines():
+        uidx = line.find(_SC7_UNMODELED_PRAGMA)
+        if uidx != -1:                                  # spec-unmodeled is NOT a substring of spec:
+            unmodeled.update(_SC7_ID_RE.findall(line[uidx + len(_SC7_UNMODELED_PRAGMA):]))
+            continue
         idx = line.find(_SC7_PRAGMA)
         if idx == -1:
             continue
-        found.update(_SC7_ID_RE.findall(line[idx + len(_SC7_PRAGMA):]))
+        modeled.update(_SC7_ID_RE.findall(line[idx + len(_SC7_PRAGMA):]))
 
+    found = modeled | unmodeled
     expected = {f"T{i}" for i in range(1, 13)} | {f"LT{i}" for i in range(1, 8)}
     missing = sorted(expected - found, key=lambda s: (s.startswith("LT"), int(s.lstrip("LT"))))
     if missing:
@@ -714,7 +725,11 @@ def sc7_tla_pragmas(ctx, rep):
             rep.fail("SC7", f"missing pragma for {mid}")
         return
 
-    rep.ok("SC7 all T*/LT* ids present as \\* spec: pragmas (presence-check only)")
+    if unmodeled:
+        print("  SC7 intentionally-unmodeled (\\* spec-unmodeled:) ids: "
+              + ", ".join(sorted(unmodeled, key=lambda s: (s.startswith("LT"), int(s.lstrip("LT"))))))
+    rep.ok(f"SC7 all T*/LT* ids present as \\* spec:/spec-unmodeled: pragmas "
+           f"({len(modeled)} modeled, {len(unmodeled)} unmodeled; presence-check only)")
 
 
 # ---------------------------------------------------------------------------

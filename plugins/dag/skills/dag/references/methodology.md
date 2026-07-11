@@ -109,8 +109,8 @@ input-gap coverage: a resolution that names what to build but not what to steer 
 not resolved — cover both the what-to-do and the what-to-avoid for every material gap.
 
 **These are mechanically enforced in two layers**, so this is not advice you can skip. The
-schema fields are `definition_of_done` and `non_goals` (both required, non-empty). (L1) a
-present `clarifications.json` missing or emptying either field hard-fails the schema; (L2)
+schema fields are `definition_of_done` and `non_goals` (both required, non-empty). (Layer-1) a
+present `clarifications.json` missing or emptying either field hard-fails the schema; (Layer-2)
 the validator's `I-dod` check fires as soon as a run has ANY post-clarification structural
 artifact (cartography, graph, units, or synthesis) and then demands a schema-valid
 `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is
