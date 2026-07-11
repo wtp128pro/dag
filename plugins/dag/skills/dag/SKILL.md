@@ -415,7 +415,10 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
   cartography sections, decisions, and relevant LEARNINGS — quote only the few
   load-bearing facts inline;
 - the **evidence standard** for this unit's claim types (evidence-standards.md);
-- the **budget contract** (≤ 32K; "read only what this brief lists");
+- the **budget contract** (this unit's `brief.budget_tokens` — the ≤ 32K plan-side ceiling; "read only
+  what this brief lists"). **Report-side honesty is relative to THIS budget (F2):** in the debrief,
+  `within_budget := tokens_consumed ≤ brief.budget_tokens` — NOT the global 32K; report a real overrun
+  truthfully and set `within_budget: false` when you exceed *this brief's* budget (validate_run.py I5);
 - the **brief.json sidecar** (above): the orchestrator writes it beside `brief.md` before dispatch;
 - the **required debrief artifact**: produce `debrief.json` per templates/debrief.md (JSON-only).
 

@@ -21,6 +21,10 @@
       "type": "string",
       "description": "Optional: the model this run executed under (recorded so model-scoped learnings can bind). Absent => unrecorded."
     },
+    "validator_version": {
+      "type": "string",
+      "description": "OPTIONAL (F1/WP-E). The plugin/validator version that scaffolded this run (init_run.sh stamps it from .claude-plugin/plugin.json). Enables the version-skew policy (state-machine.md §5): the CURRENT validator's findings on a run stamped with an OLDER version are expected-skew, not defects. NEVER gates a check — an absent stamp (legacy/pre-1.7.0 runs) is judged exactly as before."
+    },
     "gates": {
       "type": "object",
       "additionalProperties": true,

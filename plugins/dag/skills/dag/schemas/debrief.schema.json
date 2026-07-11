@@ -64,7 +64,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["tokens_consumed", "within_budget"],
-      "description": "Actual token usage report. tokens_consumed has NO maximum (IMP-04/PR-6): a REAL overrun must be recordable truthfully rather than forced to lie under the old maximum:32000 cap. The plan-side 32K ceiling lives on brief.budget_tokens / graph.est_footprint_tokens (untouched — you still cannot PLAN >32K). The if/then below mirrors the semantic tie: any report of tokens_consumed>32000 MUST self-identify as over-budget (within_budget:false), so the re-atomization discipline (SKILL.md Scope note) consumes an honest signal.",
+      "description": "Actual token usage report. within_budget is defined RELATIVE TO THIS UNIT: within_budget := (tokens_consumed <= this unit's brief.budget_tokens), NOT the global 32K (F2). tokens_consumed has NO maximum (IMP-04/PR-6): a REAL overrun must be recordable truthfully rather than forced to lie under the old maximum:32000 cap. The plan-side 32K ceiling lives on brief.budget_tokens / graph.est_footprint_tokens (untouched — you still cannot PLAN >32K). validate_run.py I5 FAILs a tokens_consumed > brief.budget_tokens paired with within_budget:true. The if/then below is a coarser schema-only backstop (a schema cannot read the per-unit brief.budget_tokens): any report of tokens_consumed>32000 MUST ALSO self-identify as over-budget (within_budget:false), so the re-atomization discipline (SKILL.md Scope note) consumes an honest signal.",
       "properties": {
         "tokens_consumed": { "type": "integer", "minimum": 0 },
         "within_budget": { "type": "boolean" }

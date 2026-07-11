@@ -311,6 +311,27 @@ a live transition guard** (the 02/P1 deadlock lesson).
   work actually advances that DoD item stays the verifier/critique-pass backstop (the same shape as E
   for tags).
 
+### Version-skew policy — archived runs vs. the current validator (F1/WP-E)
+
+The validator is **single-truth**: it always applies the CURRENT invariant set, and it never
+downgrades or disables a check by a run's recorded version. To keep that honest without deadlocking
+old runs, `init_run.sh` stamps `fsm-state.json.validator_version` (F1(a); the OPTIONAL schema field)
+with the plugin version that scaffolded the run, and this policy holds:
+
+- **An archived run is judged against its CONTEMPORANEOUS validator.** When the current validator is
+  run over a run stamped with an OLDER `validator_version` (or an *unstamped* pre-1.7.0 run), any new
+  findings are **expected schema/invariant skew, NOT defects of that run** — the run was correct under
+  the validator it shipped with. Read such findings as "what would need to change to re-validate this
+  run today," not "this run was wrong."
+- **The stamp gates nothing.** An absent `validator_version` is judged exactly as before (legacy runs
+  are never penalized for lacking it); the stamp only *labels* provenance so future skew is legible.
+- **Dogfood/self-runs in THIS repo are the exception** (see F3 / CLAUDE.md): they must be validated
+  with the repo's own `scripts/validate_run.sh`, contemporaneously, so they are held to the current
+  bar rather than an installed plugin's stale copy.
+- Where a mechanical class of skew is cheaply fixable, a **clearly-labeled migration** may backfill
+  archived runs (the 1.3.0 signoff-backfill precedent; WP-E F1(c) backfills `.wip/`) — never fabricate
+  evidence a run did not actually produce (a missing artifact gets a dated annotation, not an invention).
+
 ## 6. Phase→state coverage (no orphan phases)
 Every SKILL.md phase 0–8 maps to exactly one state (§1), with **one deliberately-unmodeled
 sub-step: Phase 0.5 (learnings intake).** Phase 0.5 is a prose sub-step *within* `P0_BOOTSTRAP` —

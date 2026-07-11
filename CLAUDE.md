@@ -46,6 +46,17 @@ making changes to the pipeline's formal machinery.
   correction loop's sole back-edge `LT7 (RETRY→EXECUTE)` can leave `RETRY` with no enabled
   out-edge → deadlock, breaking Claim D of the termination proof.
 
+## Dogfooding — validate self-runs with the REPO's validator, not the installed plugin
+When a dag run is executed **inside this repo** (its run dir lands under `.wip/`), validate it with the
+repo's own checker — `bash plugins/dag/skills/dag/scripts/validate_run.sh <RUN_DIR>` — **never** the
+installed plugin's copy at `${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/`. The installed plugin can lag the
+repo, so a run may falsely "PASS" a stale validator while the current repo validator would fail it (F3:
+the 2026-07-06 remediate run "PASSed" the installed v1.1.1 while the contemporaneous repo validator
+failed it 7×). Archived `.wip/` runs are judged against their contemporaneous validator; current-validator
+findings on older/unstamped runs are **expected version-skew, not defects** (see
+`references/state-machine.md` §5 "Version-skew policy"; `fsm-state.json.validator_version` records which
+validator scaffolded each run).
+
 ## Versioning / releases — keep every mirror in sync
 The plugin version is mirrored in **six** places; a bump must update all of them together
 (precedent: commit 4b19c47):
