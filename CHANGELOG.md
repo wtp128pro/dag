@@ -3,6 +3,54 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.8] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.6.0** — **Validator hardening (extra_check remediation)**: closes ten reproduced
+  false-PASS holes in the Bounded Graph Amendments enforcement and the core validator (baseline +
+  reconciliation + records-required trigger; fuel seed anchor + `fuel_before`/`fuel_after` chain;
+  per-kind amendment schema closure + split/child semantics + bookkeeping; frozen-content anchor of
+  every executed unit against its `brief.json`; duplicate-unit-id detection; ledger↔verify cross-check;
+  artifact-driven phase floor; forgery-proof learnings-import provenance; within-budget honesty;
+  non-blank actionable-changes), documents the third ESCALATE origin (amendment-fuel exhaustion) and
+  makes I9 status-aware, sweeps the drift (D1–D12) + SKILL.md operability (U1–U11), adds a negative
+  fixture per previously-uncovered branch, and runs the fixture suite on **both** validator backends.
+  Every new check is **post-hoc/offline** (no live LT7 guard) so the correction-loop **termination proof
+  is PRESERVED**; the BGA pipeline bound and I17/I18/I19 **REVISE upward**. 106 fixtures green on both
+  backends; SC1–SC7 PASS; TLC 853/408/depth 36 (2,923/1,608/depth 156 at MaxFuel=32); Alloy 8/8.
+
+## [1.0.7] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.5.0** — **Structured Spec Registry + Drift Checks (SSR)**: a descriptive, dev-time
+  spec registry (`spec/fsm.json` + `spec/invariants.json`) recording the `state-machine.md` transition
+  rows (T*/LT*) and the I* invariants as machine-readable data, plus a drift checker
+  `scripts/spec_check.py` (**SC1–SC7**, wired into `scripts/run_tests.sh` as a clean-run step + a
+  6-negative-fixture step) that diffs the FSM tables, dereferences schema constant-pointers, validates
+  embedded worked examples, and presence-checks the TLA+ `\* spec:` pragma coverage. These are
+  diff / dereference / presence (drift-detection) checks — **not** semantic proofs of correctness. Also
+  ships a behaviour-neutral `validate_run.py` LABELS hoist and a `verify.md`-vs-schema dual-authority
+  fix (schema authoritative). Dev-time only — `spec/` + `spec_check.py` are never on the skill's
+  lazy-load path and SKILL.md gains no new runtime read; **PRESERVES** every guarantee (no FSM
+  state/edge/guard, no schema constraint, no enforcement behaviour changed — proof: byte-identical
+  64-fixture matrix on both backends + TLC 853/408/depth 36). See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
+## [1.0.6] — 2026-07-10
+
+### Changed
+- **`dag` plugin → 1.4.0** — **Bounded Graph Amendments (BGA)**: the Phase-6 work graph may grow under
+  mechanical constraints via append-only `amendments/A<NN>.json` records (`add_units`/`split_unit`/
+  `add_edges` autonomous + DoD-traced; `cancel_unit` human-gated), over the not-yet-started future only,
+  bounded by a monotone-decreasing fuel budget (total units ≤ N0 + fuel₀; exhaustion ⇒ ESCALATE). Five
+  new **post-hoc/offline** invariants (**I3b/I3c** — also closing two pre-existing validator gaps: `waves`
+  cross-check + dependency closure — and **I17/I18/I19**, none a live guard), a new `amendment.schema.json`
+  (14 schemas), 10 new fixtures (**54 → 64**), and a machine-checked TLA+ liveness property **`Quiesce`**
+  (TLC 853/408/depth 36; non-vacuous vs a keep-fuel mutant) plus a new Alloy `Amendment.als`. The per-unit
+  correction-loop termination proof is **PRESERVED** verbatim; only the pipeline-level unit-count bound
+  **REVISES** to N ≤ N0 + fuel₀ (fuel the same well-founded-counter shape as `retries`). See
+  [plugins/dag/CHANGELOG.md](plugins/dag/CHANGELOG.md).
+
 ## [1.0.5] — 2026-07-06
 
 ### Changed

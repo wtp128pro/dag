@@ -35,6 +35,13 @@ demand opposite machinery:
 If you cannot state, in one sentence, why a *fixed script* could not do the per-slice work, you are
 probably in the mechanical-uniform case — orchestrate a script.
 
+> **Not the same tool as Bounded Graph Amendments.** BGA (SKILL.md Phase 6 "Graph amendments
+> (bounded)") grows the graph by a *few reasoning units* when executed work surfaces an unknown, spent
+> from a small `expansion` fuel budget — it is **not** for dataset scale. A large-dataset pass stays a
+> manifest-driven **parametric map wave** (below), sized at decomposition; do **not** spend amendment
+> fuel to fan out over shards. The two mechanisms are deliberately separate — fuel bounds *discovered*
+> work, the manifest bounds *data* work — so neither blurs into the other (an explicit non-goal).
+
 ## 3. Pattern: map-reduce onto the DAG (judgment-heavy case)
 
 ### 3.1 Deterministic sharder (a script, not an LLM)

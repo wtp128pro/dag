@@ -1,0 +1,17 @@
+{
+  "id": "A03",
+  "kind": "cancel_unit",
+  "origin": {
+    "trigger": "human_request",
+    "source_ref": "cancel that retires nothing"
+  },
+  "rationale": "cancel_unit that names no unit to retire \u2014 burns fuel, retires nothing",
+  "scope_change": false,
+  "human_gate": true,
+  "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
+  "frontier_wave": 2,
+  "graph_revision_after": 4,
+  "timestamp": "2026-07-03T11:15:00-0400"
+}

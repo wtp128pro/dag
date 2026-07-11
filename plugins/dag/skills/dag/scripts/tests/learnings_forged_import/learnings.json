@@ -1,0 +1,15 @@
+[
+  {
+    "id": "G9",
+    "since_wave": 1,
+    "scope": {
+      "applies_to": [
+        "tag:core"
+      ]
+    },
+    "trigger": "A gate was found asserting its own success without an external signal.",
+    "lesson": "Decouple maker from checker; ground every gate in an external signal.",
+    "how_to_apply": "Every unit tagged core must apply L1 in learnings_applied.",
+    "evidence": "units/U01/verify.json premise_check.counter_reran_independently=true"
+  }
+]

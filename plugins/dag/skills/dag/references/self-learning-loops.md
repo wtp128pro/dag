@@ -128,7 +128,10 @@ seven rows of §1.3 — no other row points backward.
 Define `V = MAX_RETRIES − retries = 2 − retries`. Since `0 ≤ retries ≤ 2`, `V ∈ {0,1,2}` —
 a non-negative integer, bounded below by 0. LT7 executes `retries := retries+1`, so each
 cycle traversal does `V := V − 1`: **strictly decreasing by exactly 1**. No other
-transition changes `retries` (Claim A + the monotone rule in §1.2), so `V` never increases.
+transition changes `retries` **within a unit's loop instance** (Claim A + the monotone rule in §1.2),
+so `V` never increases. (D3 scope note: in the composed BGA machine `Amend` initializes a *fresh*
+unit's `retries` to 0 before its loop begins — it never mutates an in-flight counter, so this claim
+holds per unit instance and the variant argument is untouched — see §6.1 and the BGA FLAG.)
 
 **Claim C — the back-edge is guarded by `V > 0`.**
 LT7 is reachable only through LT4, whose guard is `retries < 2`, i.e. `V > 0`. So the cycle
@@ -171,6 +174,28 @@ so wall-clock work is finite too. ∎
 > by replacing the discrete split→DISAGREE routing with a thresholded/averaged score — collapsing the
 > exhaustive, mutually-exclusive `ADJUDICATE` guard partition — and is therefore forbidden (§3).
 
+> **FLAG — Bounded Graph Amendments, classified PRESERVES (per-unit) / REVISES (pipeline-level bound).**
+> BGA lets Phase 6 grow the work graph (`add_units`/`split_unit`/`add_edges`; `cancel_unit` human-gated)
+> via append-only `amendments/A<NN>.json` records. **Per-unit Claims A–D hold verbatim** — no new row
+> enters the §1.3 table, no second back-edge is added, and — **scoped to a single unit's loop instance**
+> (D3) — **only LT7 writes `retries`**. (In the *composed* machine `Amend` also touches the counter, but
+> only to **initialize a fresh unit's** `retries` to 0 — it never mutates an in-flight unit's counter and
+> adds no back-edge, so the per-unit variant `V = 2 − retries` is untouched.) A newly added or split unit
+> simply runs the same `EXECUTE→VERIFY→ADJUDICATE` loop from scratch, so the correction-loop termination
+> proof is **PRESERVED**. What **REVISES** is the *pipeline-level*
+> finiteness bound (§6.4): the total unit count is no longer a fixed `N` chosen at decomposition — it is
+> bounded above by **N0 + fuel₀**, where `fuel₀ = expansion.fuel_initial` (schema max 32). **Migration
+> argument:** `fuel` has the *identical* well-founded-counter shape as `retries` — monotone-decreasing
+> (only an amendment writes it, only `−fuel_cost`), floor-bounded at 0, and its floor disables further
+> amendment (fuel-exhaustion ⇒ ESCALATE, exactly the `retries == 2` pattern, never a stuck state). Total
+> loop transitions ≤ 12·(N0 + fuel₀) + fuel₀ amendment events — finite. Every amendment invariant
+> (I3b/I3c/I17/I18/I19) is an **offline validator predicate**, never a live guard on LT7 (the 02/P1
+> deadlock lesson). **The property with teeth:** the existing `Termination` (`EXECUTE ~> {DONE,ESCALATE}`)
+> alone would **NOT** catch unbounded amendment — each unit still terminates, the run never does; the new
+> machine-checked liveness property **`Quiesce == <>[](lstate ∈ {DONE,ESCALATE})`** is the one that
+> fails on a keep-fuel mutant (formal-models.md Property 5). Any unbounded counter is forbidden (§3),
+> exactly as softmaxing the PR1 panel is.
+
 > The load-bearing point the brief demands: the guarantee is **not** the cap. It is that
 > the *only* cycle strictly descends a well-founded, floor-bounded measure whose back-edge
 > is disabled at the floor, `ADJUDICATE`'s guards are exhaustive (no deadlock), and both
@@ -190,6 +215,7 @@ the machine seam encoded as `verify.schema.json`, which is top-level
 (structure the plumbing, not the reasoning). The block below is a VALID instance (a `FAIL`);
 strip the `//` comments to parse it.
 
+<!-- spec_check: verify.schema.json -->
 ```jsonc
 {
   "unit_id": "U07",                       // required, string matching ^U[0-9]{2,}$ (the unit under verification)
@@ -248,7 +274,7 @@ no FSM edge — §2 FLAG):
   verdicts (2-of-3); a split with no strict majority ⇒ `verdict == DISAGREE` (→ LT6 → ESCALATE, the
   AO-5 genuine-split route). **No softmax** — the aggregate is a discrete mode, never an averaged
   score (softmaxing the discrete guard partition would REVISE the §2 proof).
-- `verify_rounds: int 1..R_max` (`R_max = 3`) and `converged: bool` — the **loop-until-dry** sweep:
+- `verify_rounds: int 1..R_max` (`R_max = 3`; authoritative: verify.schema.json#/properties/verify_rounds/maximum) and `converged: bool` — the **loop-until-dry** sweep:
   run rounds accumulating defects until a round surfaces no new defect (`converged: true`) or the cap
   is hit (`converged: false`, coverage possibly incomplete). Bounded ⇒ finite (§2). I16 checks
   `1 ≤ verify_rounds ≤ R_max`.
@@ -557,16 +583,21 @@ FSM/guard change — it PRESERVES termination (verdict enum unchanged; the §1.3
 
 ## 6. Socratic self-interrogation (run before finalizing)
 
-**6.1 Could this still fail to terminate or oscillate?** Constructing a non-terminating
-trace requires either (a) a second cycle — none exists, §2 Claim A enumerates all edges; or
-(b) traversing the one cycle infinitely — impossible, its back-edge strictly descends a
-floor-bounded variant disabled at the floor (Claims B–C). The subtle oscillation risk
-(verifier flip-flops pass↔fail on the same criterion) is neutralized by **AO-2** +
+**6.1 Could this still fail to terminate or oscillate?** *Per unit instance*, constructing a
+non-terminating trace requires either (a) a second cycle — none exists **within a unit's loop**, §2
+Claim A enumerates all its edges; or (b) traversing the one cycle infinitely — impossible, its
+back-edge strictly descends a floor-bounded variant disabled at the floor (Claims B–C). The subtle
+oscillation risk (verifier flip-flops pass↔fail on the same criterion) is neutralized by **AO-2** +
 **AO-1**: even a flip-flopping verifier cannot prevent halt, because `retries` rises
-regardless of verdict content. **No non-terminating trace exists.** The PR1 panel + loop-until-dry
-sweep do not change this: both are **bounded node-internal work inside `VERIFY`** (a fixed fan-out of
-3; ≤ `R_max = 3` rounds), adding no edge and **never writing `retries`** — so Claims A–D and the
-oscillation argument hold unchanged (§2 FLAG).
+regardless of verdict content. **No non-terminating per-unit trace exists.** **(D3 — BGA composed
+machine.)** BGA's `Amend` *does* add a second cycle at the *pipeline* level (`DONE→EXECUTE` re-arm), so
+"none exists" is scoped to the per-unit loop, not the whole machine. That pipeline cycle is itself
+bounded by a *second* well-founded variant — `fuel ∈ 0..MaxFuel`, decremented only by `Amend`, which is
+guarded `fuel > 0` — so after ≤ fuel₀ re-arms `Amend` is permanently disabled and the machine quiesces
+(machine-checked by the TLC `Quiesce` property; formal-models.md §Quiesce). Total transitions ≤
+12·(N0 + fuel₀) + fuel₀ — finite. The PR1 panel + loop-until-dry sweep do not change this: both are
+**bounded node-internal work inside `VERIFY`** (a fixed fan-out of 3; ≤ `R_max = 3` rounds), adding no
+edge and **never writing `retries`** — so Claims A–D and the oscillation argument hold unchanged (§2 FLAG).
 
 **6.2 Where would injected "learning" HURT a downstream brief?** A lesson over-fit from a
 one-off — e.g. *"a unit needed `python3.11` f-string syntax"* — blindly injected into a
@@ -608,6 +639,14 @@ rarely help and intrinsic correction can *degrade* (arXiv:2310.01798). **Recomme
 added, so there is no second mirror to keep in sync. Crucially, the §2 proof is **parametric in any
 finite `N`** (variant `V = N − retries`), so configurability never weakens termination — a real
 property, not an assertion.
+
+**Pipeline-level parametricity (Bounded Graph Amendments).** The same shape lifts to the *pipeline*:
+the unit count is no longer a fixed `N` chosen at decomposition but is bounded by **N0 + fuel₀**, with
+`fuel` a *second* well-founded counter of the identical shape (monotone-decreasing, floor-bounded at 0,
+floor-disables-the-move — I18 / `expansion`, schema max 32). So the global bound ≤ 12·(N0 + fuel₀) + fuel₀
+amendment events is still finite and parametric; it is machine-checked **non-vacuously** by the TLC
+`Quiesce` property, which — unlike `Termination` — fails on a keep-fuel mutant (formal-models.md
+Property 5). The §2 FLAG carries the full PRESERVES (per-unit) / REVISES (pipeline-bound) classification.
 
 **6.5 Residual uncertainty (model-judged, not mechanically decidable).** The validator
 checks the *plumbing* — contract shape, the counter, `do_not_touch` disjointness, scope

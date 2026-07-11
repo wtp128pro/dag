@@ -58,7 +58,7 @@
       "required": ["actionable_changes"],
       "properties": {
         "summary": { "type": "string" },
-        "actionable_changes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "actionable_changes": { "type": "array", "items": { "type": "string", "minLength": 1, "pattern": "\\S" } },
         "do_not_touch": { "type": "array", "items": { "type": "string", "minLength": 1 } }
       }
     },

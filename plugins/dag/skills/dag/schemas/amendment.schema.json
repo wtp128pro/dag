@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/amendment.schema.json",
+  "title": "Graph amendment record (Bounded Graph Amendments)",
+  "description": "One append-only record per Phase-6 graph amendment, stored as amendments/A<NN>.json. The amended graph.json stays the authoritative DAG; this record is the provenance + the input to the validator's I17/I18/I19 offline checks. Records are never edited or deleted. NOTE: the human-gate policy (scope_change==true => human_gate==true; kind==cancel_unit => human_gate==true) is enforced by validate_run.py's I19 (state-machine.md §3.6), NOT by this schema's allOf — so an ungated cancel/scope-change reaches I19 and fails there with the I19 label (a schema-invalid record would be dropped before I19 runs). This schema keeps only the STRUCTURAL conditionals below (dod_refs presence for add/split; split shape).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "kind", "origin", "rationale", "scope_change", "human_gate", "fuel_cost", "fuel_before", "fuel_after", "graph_revision_after"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^A[0-9]{2,}$" },
+    "kind": { "enum": ["add_units", "split_unit", "add_edges", "cancel_unit"] },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trigger"],
+      "properties": {
+        "trigger": { "enum": ["debrief_handoff", "footprint_breach", "p7_resolution", "human_request"] },
+        "source_unit": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+        "source_ref": { "type": "string" }
+      }
+    },
+    "rationale": { "type": "string", "minLength": 1 },
+    "scope_change": { "type": "boolean" },
+    "human_gate": { "type": "boolean" },
+    "dod_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "fuel_cost": { "type": "integer", "minimum": 1 },
+    "fuel_before": { "type": "integer", "minimum": 0, "maximum": 32,
+      "description": "Fuel remaining BEFORE this amendment. WP2 tamper-evidence: validate_run.py I18 chains A01.fuel_before == expansion.fuel_initial, A(k+1).fuel_before == A(k).fuel_after." },
+    "fuel_after": { "type": "integer", "minimum": 0, "maximum": 32,
+      "description": "Fuel remaining AFTER this amendment. WP2: I18 requires fuel_after == fuel_before − fuel_cost, and the last record's fuel_after == expansion.fuel_remaining." },
+    "frontier_wave": { "type": "integer", "minimum": 1 },
+    "units_added": { "type": "array", "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } },
+    "units_retired": { "type": "array", "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } },
+    "edges_added": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "to": { "type": "string", "pattern": "^U[0-9]{2,}$" }
+        }
+      }
+    },
+    "retired_snapshot": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Verbatim copies of each retired unit object from the pre-amendment graph.json (I19 reads tags + acceptance_criteria from here)."
+    },
+    "criteria_map": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } },
+      "description": "split_unit only: parent acceptance criterion (verbatim key) -> child unit id(s) now covering it."
+    },
+    "graph_revision_after": { "type": "integer", "minimum": 2 },
+    "timestamp": { "type": "string" }
+  },
+  "allOf": [
+    { "$comment": "add_units/split_unit carry a non-empty dod_refs tracing to definition_of_done, and add >=1 unit.",
+      "if": { "properties": { "kind": { "enum": ["add_units", "split_unit"] } }, "required": ["kind"] },
+      "then": { "required": ["dod_refs", "units_added"], "properties": { "dod_refs": { "minItems": 1 } } } },
+    { "$comment": "WP3 kind closure — add_units: >=1 added, NO retirement (a pure addition).",
+      "if": { "properties": { "kind": { "const": "add_units" } }, "required": ["kind"] },
+      "then": { "properties": { "units_added": { "minItems": 1 } },
+                "not": { "required": ["units_retired"] } } },
+    { "$comment": "WP3 kind closure — split_unit: >=2 children, EXACTLY 1 retired, a non-empty snapshot with id/tags/acceptance_criteria per item, and a criteria_map.",
+      "if": { "properties": { "kind": { "const": "split_unit" } }, "required": ["kind"] },
+      "then": { "required": ["units_retired", "retired_snapshot", "criteria_map"],
+                "properties": {
+                  "units_added": { "minItems": 2 },
+                  "units_retired": { "minItems": 1, "maxItems": 1 },
+                  "retired_snapshot": { "minItems": 1,
+                    "items": { "required": ["id", "tags", "acceptance_criteria"] } }
+                } } },
+    { "$comment": "WP3 kind closure — add_edges: edges only, NO unit add/retire/snapshot.",
+      "if": { "properties": { "kind": { "const": "add_edges" } }, "required": ["kind"] },
+      "then": { "allOf": [
+                  { "not": { "required": ["units_added"] } },
+                  { "not": { "required": ["units_retired"] } },
+                  { "not": { "required": ["retired_snapshot"] } } ] } },
+    { "$comment": "WP3 kind closure — cancel_unit: >=1 retired, NO adds.",
+      "if": { "properties": { "kind": { "const": "cancel_unit" } }, "required": ["kind"] },
+      "then": { "required": ["units_retired"],
+                "properties": { "units_retired": { "minItems": 1 } },
+                "not": { "required": ["units_added"] } } }
+  ]
+}

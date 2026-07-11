@@ -4,13 +4,13 @@
     "name": "wtp128pro"
   },
   "description": "wtp128pro's personal Claude Code skills marketplace.",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "plugins": [
     {
       "name": "dag",
       "source": "./plugins/dag",
-      "description": "Gated, multi-phase task execution with FORMALLY-ENFORCED invariants (JSON Schemas + finite-state-machine spec + a runnable validator, plus a formal-model layer — TLA+ machine-checked with TLC, Alloy machine-checked with Kodkod/SAT4J): a universal Socratic move-set referenced by every prompt, applied selectively, clarification, contextual cartography, atomic work-unit DAG, budget-capped subagent executors with propose/critique personas, independent adversarial verification (default distinct-lens panel-of-3 on high-stakes units, coverage-first, loop-until-dry), formalized bounded self-learning loops, adaptive anti-hallucination evidence standards, large-dataset map-reduce partitioning, and a durable plan/decision/progress/learnings ledger.",
-      "version": "1.3.0",
+      "description": "Gated, multi-phase task execution with FORMALLY-ENFORCED invariants (JSON Schemas + finite-state-machine spec + a runnable validator, plus a formal-model layer — TLA+ machine-checked with TLC, Alloy machine-checked with Kodkod/SAT4J): a universal Socratic move-set referenced by every prompt, applied selectively, clarification, contextual cartography, atomic work-unit DAG, budget-capped subagent executors with propose/critique personas, independent adversarial verification (default distinct-lens panel-of-3 on high-stakes units, coverage-first, loop-until-dry), formalized bounded self-learning loops, bounded mid-run graph amendments (fuel-budgeted append-only work-graph growth, machine-checked quiescence), adaptive anti-hallucination evidence standards, large-dataset map-reduce partitioning, and a durable plan/decision/progress/learnings ledger.",
+      "version": "1.6.0",
       "author": {
         "name": "wtp128pro"
       },

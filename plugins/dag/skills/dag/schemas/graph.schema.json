@@ -66,6 +66,43 @@
         }
       }
     },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "OPTIONAL (Bounded Graph Amendments). The graph revision number: 1 at Phase-4 approval (T6), incremented by exactly 1 per applied amendment record. Absent => revision 1 (no amendments). Cross-checked by validate_run.py I18: revision == 1 + |amendment records|."
+    },
+    "amendments_applied": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^A[0-9]{2,}$" },
+      "description": "OPTIONAL (Bounded Graph Amendments). The amendment ids (A<NN>) applied to this graph, in order. I18 requires it to list exactly the amendments/A<NN>.json record ids in order; uniqueItems (WP3) forbids a duplicated id."
+    },
+    "baseline_units": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+      "description": "OPTIONAL (Bounded Graph Amendments). The revision-1 (T6) unit-id set: exactly units[] at Phase-4 approval, written ONCE and IMMUTABLE thereafter. REQUIRED once revision > 1 (schema allOf below). validate_run.py I17 reconciles set(units[]) ∪ set(retired) == set(baseline_units) ∪ ⋃ amendment units_added, so a smuggled or phantom-added/retired unit is caught. Absent => revision 1 (no amendments)."
+    },
+    "fuel_initial": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32,
+      "description": "OPTIONAL (Bounded Graph Amendments). The fuel seed written ONCE at Phase-4 approval (T6) and IMMUTABLE. Anchors the mutable fsm-state.expansion.fuel_initial: validate_run.py I18 (WP2) requires expansion.fuel_initial == graph.fuel_initial, so widening fuel mid-run (B4) is tamper-evident. REQUIRED once revision > 1 (schema allOf below)."
+    },
+    "retired_units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "replaced_by": { "type": "array", "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } },
+          "amendment": { "type": "string", "pattern": "^A[0-9]{2,}$" }
+        }
+      },
+      "description": "OPTIONAL (Bounded Graph Amendments). Units retired by a split_unit/cancel_unit amendment: {id, replaced_by[], amendment}. A retired id never reappears in units[] and (I17) never carries a debrief/verify."
+    },
     "socratic": {
       "type": "object",
       "additionalProperties": true,
@@ -78,5 +115,12 @@
         "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "$comment": "BGA (WP1/WP2): once the graph has been amended (revision > 1), both the immutable revision-1 baseline_units set (I17 reconciliation) and the immutable fuel_initial seed (I18 fuel anchor) MUST be present. revision 1 (or absent) => neither required.",
+      "if": { "properties": { "revision": { "minimum": 2 } }, "required": ["revision"] },
+      "then": { "required": ["baseline_units", "fuel_initial"] }
+    }
+  ]
 }

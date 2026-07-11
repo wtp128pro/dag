@@ -1,0 +1,32 @@
+{
+  "subject": "U03",
+  "question": "Should the formal model be TLA+/Alloy or an FSM transition table?",
+  "origin": "persona-persona",
+  "why_material": "Determines maintenance cost and whether the model is executable here.",
+  "options": [
+    {
+      "name": "FSM transition table",
+      "recommended": true,
+      "what_it_is": "A markdown transition table + a runtime checker script.",
+      "proposed_by": "Formal-Methods & Schema Engineer",
+      "evidence_for": "runs on a clean machine; no toolchain",
+      "evidence_against": "no exhaustive model-checking",
+      "consequences": "low ceremony, real enforcement",
+      "reversibility": "easy"
+    },
+    {
+      "name": "TLA+/Alloy",
+      "recommended": true,
+      "what_it_is": "A full formal model with a model checker.",
+      "proposed_by": "Purist",
+      "evidence_for": "exhaustive verification",
+      "evidence_against": "heavy dependency; not runnable here",
+      "consequences": "high ceremony",
+      "reversibility": "hard"
+    }
+  ],
+  "rollback_options": [
+    "Re-decompose (Phase 4)"
+  ],
+  "recommendation": "Adopt the FSM table as the model of record; defer TLA+ unless U02 requires it."
+}

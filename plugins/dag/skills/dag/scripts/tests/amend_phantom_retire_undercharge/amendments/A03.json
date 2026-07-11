@@ -1,0 +1,20 @@
+{
+  "id": "A03",
+  "kind": "cancel_unit",
+  "origin": {
+    "trigger": "human_request",
+    "source_ref": "pretend-cancel of an id that never existed"
+  },
+  "rationale": "cancel an id that never existed \u2014 burns fuel to retire nothing real (phantom retirement)",
+  "scope_change": false,
+  "human_gate": true,
+  "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
+  "frontier_wave": 2,
+  "units_retired": [
+    "U91"
+  ],
+  "graph_revision_after": 4,
+  "timestamp": "2026-07-03T11:15:00-0400"
+}

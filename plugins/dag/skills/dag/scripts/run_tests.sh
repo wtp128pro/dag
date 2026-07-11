@@ -15,6 +15,10 @@
 #   DAG_TEST_VENV   path to a venv whose bin/python has `jsonschema` installed; if set (or if the
 #                   system python3 imports jsonschema), the sweep also runs the jsonschema backend.
 #                   The runner NEVER pip-installs anything.
+# Backend matrix (G7): the fixture sweep runs UNCONDITIONALLY on both backends — the normal backend
+# (jsonschema if importable) AND a forced pass with DAG_FORCE_MINI=1 (the stdlib mini-validator), so
+# the fallback is exercised even on hosts (CI) where jsonschema is installed and would otherwise hide
+# it. spec_check + its negative fixtures run ONCE on the normal backend (their pins assume jsonschema).
 set -eu
 
 REAL_HOME=0
@@ -47,10 +51,10 @@ fi
 
 fail_total=0
 
-# Step 0: schema self-check (13 schemas well-formed).
+# Step 0: schema self-check (14 schemas well-formed).
 echo "== self-check =="
 if bash "$SCRIPTS_DIR/validate_run.sh" --self-check >/dev/null 2>&1; then
-  echo "  PASS  schema self-check (13 schemas)"
+  echo "  PASS  schema self-check (14 schemas)"
 else
   echo "  FAIL  schema self-check"
   fail_total=$((fail_total + 1))
@@ -66,40 +70,48 @@ fi
 
 backends_seen=""
 
+# Sweep the fixture matrix on each interpreter AND, unconditionally, a second time with
+# DAG_FORCE_MINI=1 (G7): the stdlib fallback validator is otherwise HIDDEN wherever jsonschema is
+# installed (i.e. exactly where CI runs), so force it so both backends are exercised on every host.
+# make_validator() picks the backend; this only selects which one. spec_check + spec_check negative
+# fixtures below run ONCE (not forced-mini) — their pinned substrings assume the jsonschema backend.
 for PY in $INTERPRETERS; do
-  # Sweep every expectations.tsv row with this interpreter.
-  backend=""
-  n_pass=0
-  n_fail=0
-  while IFS="$TAB" read -r path exp sub || [ -n "$path" ]; do
-    case "$path" in ''|'#'*) continue ;; esac
-    set +e
-    out=$("$PY" "$VR" "$TESTS_DIR/$path" </dev/null 2>&1)
-    rc=$?
-    set -e
-    if [ -z "$backend" ]; then
-      backend=$(printf '%s\n' "$out" | head -1 | sed 's/^validate_run.py — backend: //')
-      echo "== sweep ($PY) — backend: $backend =="
-    fi
-    ok=1
-    reason=""
-    if [ "$rc" -ne "$exp" ]; then ok=0; reason="exit $rc != expected $exp"; fi
-    if [ -n "$sub" ]; then
-      case "$out" in
-        *"$sub"*) : ;;
-        *) ok=0; reason="${reason:+$reason; }missing pinned FAIL substring: $sub" ;;
-      esac
-    fi
-    if [ "$ok" -eq 1 ]; then
-      n_pass=$((n_pass + 1))
-    else
-      n_fail=$((n_fail + 1))
-      echo "  FAIL  $path — $reason"
-    fi
-  done < "$EXP"
-  echo "  -> $PY [$backend]: $n_pass passed, $n_fail failed"
-  fail_total=$((fail_total + n_fail))
-  case "$backends_seen" in *"$backend"*) : ;; *) backends_seen="${backends_seen:+$backends_seen, }$backend" ;; esac
+  for FORCE_MINI in 0 1; do
+    if [ "$FORCE_MINI" -eq 1 ]; then FORCE_ENV="DAG_FORCE_MINI=1"; else FORCE_ENV=""; fi
+    # Sweep every expectations.tsv row with this interpreter + backend mode.
+    backend=""
+    n_pass=0
+    n_fail=0
+    while IFS="$TAB" read -r path exp sub || [ -n "$path" ]; do
+      case "$path" in ''|'#'*) continue ;; esac
+      set +e
+      out=$(env $FORCE_ENV "$PY" "$VR" "$TESTS_DIR/$path" </dev/null 2>&1)
+      rc=$?
+      set -e
+      if [ -z "$backend" ]; then
+        backend=$(printf '%s\n' "$out" | head -1 | sed 's/^validate_run.py — backend: //')
+        echo "== sweep ($PY${FORCE_ENV:+ +$FORCE_ENV}) — backend: $backend =="
+      fi
+      ok=1
+      reason=""
+      if [ "$rc" -ne "$exp" ]; then ok=0; reason="exit $rc != expected $exp"; fi
+      if [ -n "$sub" ]; then
+        case "$out" in
+          *"$sub"*) : ;;
+          *) ok=0; reason="${reason:+$reason; }missing pinned FAIL substring: $sub" ;;
+        esac
+      fi
+      if [ "$ok" -eq 1 ]; then
+        n_pass=$((n_pass + 1))
+      else
+        n_fail=$((n_fail + 1))
+        echo "  FAIL  $path — $reason"
+      fi
+    done < "$EXP"
+    echo "  -> $PY${FORCE_ENV:+ +$FORCE_ENV} [$backend]: $n_pass passed, $n_fail failed"
+    fail_total=$((fail_total + n_fail))
+    case "$backends_seen" in *"$backend"*) : ;; *) backends_seen="${backends_seen:+$backends_seen, }$backend" ;; esac
+  done
 done
 
 # manifest_examples (N-09): schemas/manifest.schema.json is not auto-run against a run dir, so
@@ -132,6 +144,23 @@ mrc=$?
 set -e
 printf '%s\n' "$mout"
 if [ "$mrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
+
+# spec_check (dev-time prose<->spec<->code drift checker, U05-U07: SC1-SC7). Static check,
+# run ONCE (not per-backend, like manifest_examples). A non-zero exit folds into fail_total,
+# so any drift FAILs this harness. spec_check lives HERE only — never in validate_run.py's
+# run path (it never reads spec/). PRESERVES (test infrastructure only, no enforcement change).
+echo "== spec_check (clean run on real tree) =="
+set +e; scout=$(python3 "$SCRIPTS_DIR/spec_check.py" 2>&1); scrc=$?; set -e
+printf '%s\n' "$scout"
+if [ "$scrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
+
+# spec_check negative fixtures (U09): each overlay mutant must FAIL its pinned SC check on a
+# throwaway temp-root copy (the real tree is never written). The runner self-locates and
+# consumes scripts/tests/spec_check/expectations.tsv; a non-zero exit folds into fail_total.
+echo "== spec_check negative fixtures =="
+set +e; sfout=$(bash "$SCRIPTS_DIR/tests/spec_check/run_fixtures.sh" 2>&1); sfrc=$?; set -e
+printf '%s\n' "$sfout"
+if [ "$sfrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
 
 echo "== summary =="
 echo "backends exercised: ${backends_seen:-none}"

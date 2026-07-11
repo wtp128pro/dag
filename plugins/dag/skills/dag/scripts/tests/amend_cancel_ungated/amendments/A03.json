@@ -1,0 +1,20 @@
+{
+  "id": "A03",
+  "kind": "cancel_unit",
+  "origin": {
+    "trigger": "human_request",
+    "source_ref": "U05 turned out unnecessary"
+  },
+  "rationale": "U05 (a split child) is no longer needed; cancel it. NOTE: human_gate is false here \u2014 the bug this fixture exercises (cancel is always human-gated).",
+  "scope_change": false,
+  "human_gate": false,
+  "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
+  "frontier_wave": 2,
+  "units_retired": [
+    "U05"
+  ],
+  "graph_revision_after": 4,
+  "timestamp": "2026-07-03T11:15:00-0400"
+}

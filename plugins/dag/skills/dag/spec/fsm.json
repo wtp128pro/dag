@@ -1,0 +1,68 @@
+{
+  "$comment": "Descriptive spec — diffed by scripts/spec_check.py (dev-time), NEVER read by validate_run.py. PRESERVES.",
+  "states": [
+    "P0_BOOTSTRAP",
+    "P1_PERSONAS",
+    "P2_CLARIFICATION",
+    "P3_CARTOGRAPHY",
+    "P4_DECOMPOSITION",
+    "P5_BRIEFING",
+    "P6_EXECUTE_VERIFY",
+    "P7_DISAGREEMENT_GATE",
+    "P8_SYNTHESIS",
+    "DONE"
+  ],
+  "loop_states": [
+    "EXECUTE",
+    "VERIFY",
+    "ADJUDICATE",
+    "RETRY",
+    "ESCALATE",
+    "DONE"
+  ],
+  "transitions": [
+    { "id": "T1",  "from": "P0_BOOTSTRAP",         "event": "input_captured",       "guard_id": "G-input",       "to": "P1_PERSONAS",          "back_edge": false },
+    { "id": "T2",  "from": "P1_PERSONAS",          "event": "user_confirms_roster", "guard_id": "G-personas",    "to": "P2_CLARIFICATION",     "back_edge": false },
+    { "id": "T3",  "from": "P2_CLARIFICATION",     "event": "ambiguities_resolved", "guard_id": "G-clarify",     "to": "P3_CARTOGRAPHY",       "back_edge": false },
+    { "id": "T4",  "from": "P2_CLARIFICATION",     "event": "material_open",        "guard_id": "G-clarify",     "to": "P2_CLARIFICATION",     "back_edge": false },
+    { "id": "T5",  "from": "P3_CARTOGRAPHY",       "event": "map_done",             "guard_id": "G-cartography", "to": "P4_DECOMPOSITION",     "back_edge": false },
+    { "id": "T6",  "from": "P4_DECOMPOSITION",     "event": "graph_approved",       "guard_id": "G-dag",         "to": "P5_BRIEFING",          "back_edge": false },
+    { "id": "T7",  "from": "P4_DECOMPOSITION",     "event": "cycle_or_oversize",    "guard_id": "G-dag",         "to": "P4_DECOMPOSITION",     "back_edge": false },
+    { "id": "T8",  "from": "P5_BRIEFING",          "event": "briefs_written",       "guard_id": "G-brief",       "to": "P6_EXECUTE_VERIFY",    "back_edge": false },
+    { "id": "T9",  "from": "P6_EXECUTE_VERIFY",    "event": "all_units_passed",     "guard_id": "G-verified",    "to": "P8_SYNTHESIS",         "back_edge": false },
+    { "id": "T10", "from": "P6_EXECUTE_VERIFY",    "event": "escalation_raised",    "guard_id": "G-escalate",    "to": "P7_DISAGREEMENT_GATE", "back_edge": false, "$comment": "ESCALATE has THREE documented origins routed here (WP6/B9): LT5 (retries==2 & FAIL), LT6 (DISAGREE), and BGA amendment-fuel exhaustion (fuel==0 + amendment still needed -> Phase 7). The fuel-exhaustion origin is a documentation/enumeration addition, NOT a modeled transition - the loop-level spec (LT5/LT6) and Pipeline.tla (Amend disabled at fuel==0; Quiesce covers the halt) are unchanged. Classification: REVISES the origin enumeration; PRESERVES termination." },
+    { "id": "T11", "from": "P7_DISAGREEMENT_GATE", "event": "user_decides",         "guard_id": "G-resolve",     "to": "P6_EXECUTE_VERIFY",    "back_edge": false, "$comment": "D9: the modeled resume target is P6, but SKILL.md/state-machine.md also allow the human to resolve a disagreement by rolling back to P2 (re-clarify), P3 (re-map), or P4 (re-decompose). Those rollback targets exist in prose only — they are a model simplification (formal-models.md), NOT modeled edges here. This annotation discloses the abstraction so the machine-readable spec matches the prose." },
+    { "id": "T12", "from": "P8_SYNTHESIS",         "event": "synthesis_done",       "guard_id": "G-signoff",     "to": "DONE",                 "back_edge": false },
+
+    { "id": "LT1", "from": "EXECUTE",    "event": "execute_done",       "guard_id": null,           "to": "VERIFY",     "back_edge": false },
+    { "id": "LT2", "from": "VERIFY",     "event": "verify_done",        "guard_id": "G-independent", "to": "ADJUDICATE", "back_edge": false },
+    { "id": "LT3", "from": "ADJUDICATE", "event": "verdict_pass",       "guard_id": null,           "to": "DONE",       "back_edge": false },
+    { "id": "LT4", "from": "ADJUDICATE", "event": "fail_retries_lt_2",  "guard_id": "G-retry",       "to": "RETRY",      "back_edge": false },
+    { "id": "LT5", "from": "ADJUDICATE", "event": "fail_retries_eq_2",  "guard_id": "G-retry",       "to": "ESCALATE",   "back_edge": false },
+    { "id": "LT6", "from": "ADJUDICATE", "event": "verdict_disagree",   "guard_id": null,           "to": "ESCALATE",   "back_edge": false },
+    { "id": "LT7", "from": "RETRY",      "event": "retry_prepared",     "guard_id": null,           "to": "EXECUTE",    "back_edge": true }
+  ],
+  "guards": [
+    { "id": "G-personas",    "gate_flag": "personas_confirmed",      "required_from_phase": "P2_CLARIFICATION" },
+    { "id": "G-clarify",     "gate_flag": "clarification_resolved",  "required_from_phase": "P3_CARTOGRAPHY" },
+    { "id": "G-cartography", "gate_flag": "cartography_done",        "required_from_phase": "P4_DECOMPOSITION" },
+    { "id": "G-dag",         "gate_flag": "decomposition_approved",  "required_from_phase": "P5_BRIEFING" },
+    { "id": "G-signoff",     "gate_flag": "signoff_confirmed",       "required_from_phase": "DONE" },
+    { "id": "G-input",       "gate_flag": null },
+    { "id": "G-brief",       "gate_flag": null },
+    { "id": "G-independent", "gate_flag": null },
+    { "id": "G-retry",       "gate_flag": null },
+    { "id": "G-verified",    "gate_flag": null },
+    { "id": "G-escalate",    "gate_flag": null },
+    { "id": "G-resolve",     "gate_flag": null }
+  ],
+  "constants": [
+    { "name": "retries_max_loop",    "pointer": "fsm-state.schema.json#/properties/loop/properties/retries/maximum",             "expected_value": 2 },
+    { "name": "retries_max_unit",    "pointer": "fsm-state.schema.json#/properties/units/items/properties/retries/maximum",      "expected_value": 2 },
+    { "name": "fuel_max_initial",    "pointer": "fsm-state.schema.json#/properties/expansion/properties/fuel_initial/maximum",   "expected_value": 32 },
+    { "name": "fuel_max_remaining",  "pointer": "fsm-state.schema.json#/properties/expansion/properties/fuel_remaining/maximum", "expected_value": 32 },
+    { "name": "budget_tokens_max",   "pointer": "brief.schema.json#/properties/budget_tokens/maximum",                          "expected_value": 32000 },
+    { "name": "verify_rounds_max",   "pointer": "verify.schema.json#/properties/verify_rounds/maximum",                         "expected_value": 3 },
+    { "name": "panel_min_size",      "pointer": "verify.schema.json#/properties/panel/minItems",                                "expected_value": 3 }
+  ]
+}

@@ -1,0 +1,930 @@
+{
+  "$comment": "DESCRIPTIVE registry, diffed at dev time by scripts/spec_check.py (SC1). NEVER read by validate_run.py (PRESERVES every guarantee). Grouping derived mechanically from validate_run.LABELS.",
+  "entries": [
+    {
+      "id": "I1",
+      "title": "I1: verifier/panelist independence (executor reasoning unseen)",
+      "tier": "schema",
+      "validator_label_prefixes": [
+        "I1 panelist independence",
+        "I1 verifier independence"
+      ],
+      "fixtures": [
+        "panelist_files_ok",
+        "panelist_reasoning_seen"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I1b",
+      "title": "I1b: maker != checker (persona distinctness)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I1b maker!=checker (persona distinctness)"
+      ],
+      "fixtures": [
+        "i1b_same_persona"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I2",
+      "title": "I2: ledger-is-truth (fsm-state.json is authoritative)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I2 fsm units subset",
+        "I2 ledger-is-truth",
+        "I2 phase artifact floor",
+        "I2 status vs verify verdict"
+      ],
+      "fixtures": [
+        "no_fsm_state",
+        "ledger_status_mismatch",
+        "ledger_verdict_mismatch",
+        "phase_underreport",
+        "fsm_phantom_unit"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I3",
+      "title": "I3: work graph is an acyclic, fail-closed DAG",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I3 DAG",
+        "I3 DAG acyclic",
+        "I3 DAG fail-closed (E)",
+        "I3 unit id uniqueness"
+      ],
+      "fixtures": [
+        "unfenced_cycle",
+        "amend_cycle",
+        "dup_unit_id"
+      ],
+      "provenance": [
+        "E"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I3b",
+      "title": "I3b: wave layering respects dependency order",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I3b wave layering"
+      ],
+      "fixtures": [
+        "amend_ok",
+        "amend_layering"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I3c",
+      "title": "I3c: dependency closure (no dangling deps)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I3c dependency closure"
+      ],
+      "fixtures": [
+        "amend_ok",
+        "amend_dangling_dep"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I4",
+      "title": "I4: iteration ceiling and loop-bound cross-check",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I4 iteration ceiling",
+        "I4 loop bound",
+        "I4 loop cross-check",
+        "I4 units[] cross-check",
+        "I4 units[] loop bound"
+      ],
+      "fixtures": [
+        "bad",
+        "fail",
+        "units_loop_ok",
+        "units_loop_overrun",
+        "iteration_ceiling"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I5",
+      "title": "I5: per-unit budget cap <= 32K tokens + within-budget honesty",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I5 within-budget honesty"
+      ],
+      "fixtures": [
+        "within_budget_dishonest",
+        "overrun_honest",
+        "overrun_dishonest"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I6",
+      "title": "I6: PASS coverage-first / FAIL names a genuine defect",
+      "tier": "schema",
+      "validator_label_prefixes": [
+        "I6 FAIL actionable change",
+        "I6 FAIL defect",
+        "I6 PASS coverage-first"
+      ],
+      "fixtures": [
+        "pass_with_minor",
+        "pass_with_major_rejected",
+        "fail_blank_actionable"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I7",
+      "title": "I7: exactly one recommended option",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I7 single recommended option"
+      ],
+      "fixtures": [
+        "disagreement_two_recommended"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I8",
+      "title": "I8: no open material ambiguity survives clarification",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I8 no open material ambiguity",
+        "I8 open material ambiguity"
+      ],
+      "fixtures": [
+        "open_material_ambiguity"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I9",
+      "title": "I9: every executed unit has verification and a debrief",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I9 missing verification",
+        "I9 verification present",
+        "I9 verify-without-debrief"
+      ],
+      "fixtures": [
+        "missing_verify",
+        "verify_without_debrief",
+        "i9_midloop_note",
+        "disagreement_on_pass"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I10",
+      "title": "I10: synthesis completeness over all units",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I10 synthesis completeness"
+      ],
+      "fixtures": [
+        "i10_missing_unit_at_done",
+        "i10_stray_unit_at_done"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I11",
+      "title": "I11: global tag registry and controlled tag vocabulary",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I11 global tag registry (G1)",
+        "I11 tag vocabulary"
+      ],
+      "fixtures": [
+        "tag_not_in_vocab"
+      ],
+      "provenance": [
+        "G1",
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I12",
+      "title": "I12: learnings admission gate, selector, and advisory propagation",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I12 admission carve-out (G1)",
+        "I12 learnings admission gate",
+        "I12 learnings propagation",
+        "I12 import provenance",
+        "I12 learnings since_wave",
+        "I12 model narrowing (04/G4)",
+        "I12 selector",
+        "advisory import (not force-injected)"
+      ],
+      "fixtures": [
+        "selector_all_ok",
+        "selector_all_gap",
+        "selector_unit_gap",
+        "selector_unknown",
+        "scope_model_narrow",
+        "scope_model_match",
+        "bad_learnings",
+        "learnings_gap",
+        "supersedes",
+        "wave_float_gap",
+        "regrounded_g_listed",
+        "regrounded_g_unlisted",
+        "learnings_forged_import",
+        "p4_advisory/advisory_not_required",
+        "p4_advisory/regrounded_required"
+      ],
+      "provenance": [
+        "BRK-09",
+        "04/G4"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I13",
+      "title": "I13: socratic self-interrogation carries a genuine counter",
+      "tier": "schema",
+      "validator_label_prefixes": [
+        "I13 socratic counter"
+      ],
+      "fixtures": [
+        "cartography_socratic_ok",
+        "cartography_socratic_blank",
+        "graph_socratic_blank"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I-dod",
+      "title": "I-dod: Definition-of-Done and non-goals are present",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I-dod DoD/non-goals present"
+      ],
+      "fixtures": [
+        "missing_dod",
+        "postdecomp_no_dod",
+        "synthesis_no_dod"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I14",
+      "title": "I14: AO-2 do_not_touch disjointness (never re-verify a PASS)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I14 AO-2 do_not_touch disjointness"
+      ],
+      "fixtures": [
+        "ao2_do_not_touch",
+        "ao2_disjoint"
+      ],
+      "provenance": [
+        "02/P1",
+        "AO-2"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "I15",
+      "title": "I15: AO-6 responsive change on retry",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I15 AO-6 responsive change"
+      ],
+      "fixtures": [
+        "ao6_no_changes",
+        "retry_no_echo"
+      ],
+      "provenance": [
+        "02/P1",
+        "AO-6",
+        "G6"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "I16",
+      "title": "I16: panel discipline and loop-until-dry bound",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I16 loop-until-dry bound",
+        "I16 panel discipline"
+      ],
+      "fixtures": [
+        "panel_high_stakes_pass",
+        "panel_majority_mismatch",
+        "panel_missing"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I17",
+      "title": "I17: frozen executed prefix + amendment reconciliation under amendment",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I17 amendment reconciliation",
+        "I17 frozen executed prefix",
+        "I17 frozen prefix",
+        "I17 frozen-content anchor"
+      ],
+      "fixtures": [
+        "amend_frozen",
+        "amend_orphan",
+        "amend_smuggled_unit",
+        "amend_phantom_add",
+        "amend_added_unreconciled",
+        "amend_fake_retire",
+        "amend_phantom_retire_undercharge",
+        "amend_missing_baseline",
+        "amend_edit_executed",
+        "amend_rewave_executed",
+        "amend_rewire_executed"
+      ],
+      "provenance": [
+        "BGA",
+        "WP1",
+        "WP4"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I18",
+      "title": "I18: amendment fuel conservation bound + records-required trigger",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I18 amendment bookkeeping",
+        "I18 amendment records required",
+        "I18 fuel bound"
+      ],
+      "fixtures": [
+        "amend_fuel_overrun",
+        "amend_no_fuel_seed",
+        "amend_records_deleted",
+        "amend_fuel_widen",
+        "amend_fuel_chain_break",
+        "amend_dup_amendment_id",
+        "amend_id_file_mismatch",
+        "amend_bogus_revision_after",
+        "amend_dead_counter",
+        "amend_wave1_insert"
+      ],
+      "provenance": [
+        "BGA",
+        "WP1",
+        "WP2",
+        "WP3"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I19",
+      "title": "I19: amendment scope traceability, kind closure, and gating",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I19 amendment scope"
+      ],
+      "fixtures": [
+        "amend_dod_untraced",
+        "amend_cancel_ungated",
+        "amend_kind_dodge",
+        "amend_cancel_noop",
+        "amend_bare_snapshot",
+        "amend_noncild_criteria_map",
+        "amend_single_child_split"
+      ],
+      "provenance": [
+        "BGA",
+        "WP3"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "AO-1",
+      "title": "AO-1: monotone iteration counter, never reset",
+      "tier": "discipline",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "AO-2",
+      "title": "AO-2: never re-verify a PASS (mechanized via I14)",
+      "tier": "discipline",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [
+        "02/P1"
+      ],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "AO-3",
+      "title": "AO-3: no vague FAIL (structured defect required)",
+      "tier": "schema",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "AO-4",
+      "title": "AO-4: external-signal gate before adjudication",
+      "tier": "discipline",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "AO-5",
+      "title": "AO-5: genuine split escalates to a human",
+      "tier": "discipline",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "AO-6",
+      "title": "AO-6: retry requires new evidence / responsive change (via I15)",
+      "tier": "discipline",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [
+        "02/P1"
+      ],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "AO-7",
+      "title": "AO-7: verifier independence re-established each iteration",
+      "tier": "schema",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/self-learning-loops.md#5"
+      ]
+    },
+    {
+      "id": "A",
+      "title": "Limitation A: attestation is verifier-blind",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "B",
+      "title": "Limitation B: PASS correctness, locators, and socratic genuineness unverifiable",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "C",
+      "title": "Limitation C: token-report truthfulness is self-reported",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "D",
+      "title": "Limitation D: genuine model-behind-persona is unverifiable",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "E",
+      "title": "Limitation E: a tag denotes a real pattern only by discipline",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "F",
+      "title": "Limitation F: I14/I15 authoritativeness rests on honest artifacts",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "G",
+      "title": "Limitation G: V_tag_eff trust carve-out",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "H",
+      "title": "Limitation H: panel presence checked, not substance",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "I",
+      "title": "Limitation I: human_gate genuineness unverifiable",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "J",
+      "title": "Limitation J: frontier_wave assumption",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "K",
+      "title": "Limitation K: split serves dod_refs only by discipline",
+      "tier": "semantic",
+      "validator_label_prefixes": [],
+      "fixtures": [],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#5"
+      ]
+    },
+    {
+      "id": "D21",
+      "title": "Unit-id consistency: debrief unit_id matches its directory",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "unit_id mismatch"
+      ],
+      "fixtures": [
+        "unit_id_dir_mismatch"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": []
+    },
+    {
+      "id": "G-brief",
+      "title": "G-brief: every decomposed unit has an offline brief before execution",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "G-brief offline"
+      ],
+      "fixtures": [
+        "missing_brief",
+        "done_missing_unit"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#3"
+      ]
+    },
+    {
+      "id": "G-personas",
+      "title": "G-personas: persona-selection gate is fail-closed and non-skippable",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "G-personas fail-closed",
+        "G-personas non-skippable"
+      ],
+      "fixtures": [
+        "missing_personas"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#3"
+      ]
+    },
+    {
+      "id": "G2",
+      "title": "G2: user learnings-store discovery and override precedence",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "learnings user-store discovered",
+        "learnings user-store override (G2)"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "G2"
+      ],
+      "docs": [
+        "references/state-machine.md#3"
+      ]
+    },
+    {
+      "id": "G3",
+      "title": "G3: learning promotion is advisory (print-only, non-gating)",
+      "tier": "attestation",
+      "validator_label_prefixes": [
+        "G3 promotion (advisory)"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "G3"
+      ],
+      "docs": [
+        "references/state-machine.md#3"
+      ]
+    },
+    {
+      "id": "G5",
+      "title": "G5: learnings decay / garbage-collection",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "learnings decay/GC (04/G5)"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "04/G5"
+      ],
+      "docs": [
+        "references/state-machine.md#3"
+      ]
+    },
+    {
+      "id": "IMP-07",
+      "title": "IMP-07: malformed imported store context dropped (non-gating)",
+      "tier": "discipline",
+      "validator_label_prefixes": [
+        "MALFORMED (dropped, non-gating \u2014 imported store context)"
+      ],
+      "fixtures": [
+        "store_malformed_nongating"
+      ],
+      "provenance": [],
+      "docs": []
+    },
+    {
+      "id": "N-15",
+      "title": "N-15: unimplemented schema keyword tolerated by mini-validator",
+      "tier": "discipline",
+      "validator_label_prefixes": [
+        "schema (mini-validator unimplemented keyword)"
+      ],
+      "fixtures": [],
+      "provenance": [],
+      "docs": []
+    },
+    {
+      "id": "P3",
+      "title": "P3: learnings expiry grammar (03/P3)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "learnings expiry (03/P3)"
+      ],
+      "fixtures": [
+        "expiry_excluded",
+        "expiry_bad_grammar"
+      ],
+      "provenance": [
+        "03/P3"
+      ],
+      "docs": []
+    },
+    {
+      "id": "P5",
+      "title": "P5: learnings contradiction detection (03/P5)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "contradiction (03/P5)",
+        "learnings contradiction (03/P5)"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "03/P5"
+      ],
+      "docs": []
+    },
+    {
+      "id": "escalate-origin",
+      "title": "ESCALATE origin provenance (retries==2 & FAIL, DISAGREE, or amendment-fuel exhaustion)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "ESCALATE origin provenance"
+      ],
+      "fixtures": [
+        "escalate_no_origin"
+      ],
+      "provenance": [
+        "B9",
+        "D-A"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "gate-ordering",
+      "title": "gate-ordering: phase gates satisfied in order (incl. sign-off)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "gate ordering"
+      ],
+      "fixtures": [
+        "gate_skip",
+        "signoff_missing",
+        "signoff_ok"
+      ],
+      "provenance": [],
+      "docs": [
+        "references/state-machine.md#3"
+      ]
+    },
+    {
+      "id": "learnings",
+      "title": "learnings: non-canonical learnings.json shape tolerated",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "learnings.json non-canonical shape tolerated (bare single-entry object wrapped as [entry])"
+      ],
+      "fixtures": [
+        "learnings_bare_object"
+      ],
+      "provenance": [],
+      "docs": []
+    },
+    {
+      "id": "premise-check",
+      "title": "premise-check: intake premise deflection re-run and attested",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "premise deflection",
+        "premise re-run",
+        "premise-check attested"
+      ],
+      "fixtures": [
+        "p05_intake_before_personas",
+        "premise_not_reran",
+        "premise_deflection_pass"
+      ],
+      "provenance": [
+        "G6"
+      ],
+      "docs": []
+    },
+    {
+      "id": "schema",
+      "title": "schema: artifacts validate against their JSON Schemas",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "schema",
+        "valid against"
+      ],
+      "fixtures": [],
+      "provenance": [],
+      "docs": []
+    },
+    {
+      "id": "store",
+      "title": "store: learnings-store discovered",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "learnings-store discovered"
+      ],
+      "fixtures": [],
+      "provenance": [],
+      "docs": []
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "run_label": "amend-ok-fixture",
+  "revision": 4,
+  "amendments_applied": [
+    "A01",
+    "A02",
+    "A03"
+  ],
+  "baseline_units": [
+    "U01",
+    "U02"
+  ],
+  "fuel_initial": 3,
+  "retired_units": [
+    {
+      "id": "U02",
+      "replaced_by": [
+        "U04",
+        "U05"
+      ],
+      "amendment": "A02"
+    },
+    {
+      "id": "U05",
+      "replaced_by": [],
+      "amendment": "A03"
+    }
+  ],
+  "v_tag": [
+    "research",
+    "design",
+    "schema",
+    "validator",
+    "formal",
+    "core"
+  ],
+  "units": [
+    {
+      "id": "U01",
+      "title": "Research",
+      "goal": "map the landscape",
+      "executor_persona": "Researcher",
+      "verifier_persona": "Skeptic",
+      "deps": [],
+      "outputs": [
+        "units/U01/debrief.json"
+      ],
+      "est_footprint_tokens": 21000,
+      "acceptance_criteria": [
+        "10-14 findings with sources"
+      ],
+      "tags": [
+        "research",
+        "core"
+      ]
+    },
+    {
+      "id": "U03",
+      "title": "Coverage unit (added by A01)",
+      "goal": "cover the gap U01 surfaced",
+      "executor_persona": "Validator Engineer",
+      "verifier_persona": "Adversarial Auditor",
+      "deps": [
+        "U01"
+      ],
+      "outputs": [
+        "units/U03/debrief.json"
+      ],
+      "est_footprint_tokens": 16000,
+      "acceptance_criteria": [
+        "the surfaced gap is covered by a check"
+      ],
+      "tags": [
+        "validator",
+        "core"
+      ]
+    },
+    {
+      "id": "U04",
+      "title": "Design part A (split child of U02)",
+      "goal": "score approaches \u2014 layer A",
+      "executor_persona": "Architect",
+      "verifier_persona": "Pragmatist",
+      "deps": [
+        "U01"
+      ],
+      "outputs": [
+        "units/U04/debrief.json"
+      ],
+      "est_footprint_tokens": 12000,
+      "acceptance_criteria": [
+        "traceable to requirements"
+      ],
+      "tags": [
+        "design",
+        "core"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "U01",
+      "to": "U03"
+    },
+    {
+      "from": "U01",
+      "to": "U04"
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "units": [
+        "U01"
+      ]
+    },
+    {
+      "wave": 2,
+      "units": [
+        "U03",
+        "U04"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "A03",
+  "kind": "add_units",
+  "origin": {
+    "trigger": "debrief_handoff",
+    "source_unit": "U01"
+  },
+  "rationale": "buy a 3rd amendment by widening the fuel seed after the fact",
+  "scope_change": false,
+  "human_gate": false,
+  "dod_refs": [
+    "the coverage gap U01 surfaced is handled by a dedicated unit"
+  ],
+  "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
+  "frontier_wave": 2,
+  "units_added": [
+    "U06"
+  ],
+  "graph_revision_after": 4,
+  "timestamp": "2026-07-03T11:15:00-0400"
+}

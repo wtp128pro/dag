@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/spec/invariants.schema.json",
+  "title": "Invariant registry spec (descriptive registry)",
+  "description": "Constrains spec/invariants.json — a DESCRIPTIVE registry of the pipeline invariants (I*, I-dod, AO-1..7, Limitations A..K) with their soundness tier, the validate_run.py label prefixes that mechanize them, backing fixtures, prose provenance, and doc anchors. Diffed at dev time by scripts/spec_check.py (SC1 tier/label-coverage policy, plus provenance/doc/fixture cross-checks) against references/state-machine.md §4/§5, references/self-learning-loops.md §5, DESIGN.md §4/§6, formal-models.md, and the hoisted validate_run.py LABELS table. This schema is NOT read by validate_run.py and adds NO constraint to the run-validation path (PRESERVES every guarantee). The 'label prefixes empty only for non-mechanical tiers' rule is SC1 POLICY, deliberately NOT encoded here — the schema stays permissive so validator_label_prefixes MAY be empty for any tier.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entries"],
+  "properties": {
+    "$comment": {
+      "type": "string",
+      "description": "OPTIONAL. Free-form caveat that this file is descriptive/diffed, never enforced by validate_run.py."
+    },
+    "note": {
+      "type": "string",
+      "description": "OPTIONAL. Alias of $comment for the 'descriptive, not enforced' caveat."
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "tier", "validator_label_prefixes", "fixtures", "provenance", "docs"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Invariant id, e.g. 'I1', 'I1b', 'I-dod', 'AO-2', or a Limitation letter 'A'..'K'. Format policy is an SC concern, not a schema constraint."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short human-readable statement of the invariant."
+          },
+          "tier": {
+            "type": "string",
+            "enum": ["mechanical", "schema", "attestation", "discipline", "semantic"],
+            "description": "Soundness tier: mechanical (checked in validate_run.py), schema (JSON-Schema-enforced), attestation (self-attested flag), discipline (process rule, not mechanized), semantic (a documented Limitation A..K)."
+          },
+          "validator_label_prefixes": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "The validate_run.py LABELS prefixes that mechanize this invariant (byte-identical label stems). MAY be empty — the 'empty allowed only for non-mechanical tiers' rule is SC1 policy, intentionally not a schema constraint."
+          },
+          "fixtures": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Paths of test fixtures (under scripts/tests/) that exercise this invariant. MAY be empty."
+          },
+          "provenance": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Canonical prose provenance sites (file + section/line span) the invariant is derived from. MAY be empty."
+          },
+          "docs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Doc anchors for the invariant, each 'file#anchor' or 'file:section'. MAY be empty."
+          }
+        }
+      },
+      "description": "The invariant registry, one closed object per invariant."
+    }
+  }
+}

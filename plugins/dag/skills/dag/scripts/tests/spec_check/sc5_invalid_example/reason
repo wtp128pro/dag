@@ -1,0 +1,2 @@
+SC5: templates/persona.json drops required key 'name' (persona.schema.json required: name, role, description).
+=> FAIL SC5: templates/persona.json invalid against persona.schema.json: $: 'name' is a required property

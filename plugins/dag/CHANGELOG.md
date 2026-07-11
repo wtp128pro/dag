@@ -3,6 +3,132 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] — 2026-07-10
+
+**Validator hardening (extra_check remediation)** — closes ten reproduced false-PASS holes in the
+Bounded Graph Amendments (BGA) enforcement and the core validator, plus two guarantee-narrative
+contradictions, prose↔spec drift, test-coverage gaps, and stale docs. Every reproduced false PASS is an
+anti-hallucination-layer defect (the "adversary" is the executing model drifting), so all are fixed
+fail-closed. **All new predicates are post-hoc/offline over emitted artifacts — no live guard on the
+correction loop's sole back-edge LT7 — so the per-unit termination proof (Claims A–D) is PRESERVED
+verbatim; the BGA pipeline-level bound and the I17/I18/I19 surfaces REVISE upward (strictly stronger).**
+
+- **BGA provenance backbone (B1/B2/B3):** immutable `graph.json.baseline_units` (schema-required once
+  `revision > 1`) reconciled against the amendment records — `set(units[]) ∪ retired == baseline ∪ ⋃
+  units_added`, retirement existence + disjointness + attribution; and a records-required trigger so
+  amendment EVIDENCE (revision/applied/retired/fuel-spent) forces the `amendments/A<NN>.json` records to
+  exist and stay in sync (deleting `amendments/` no longer launders provenance).
+- **Fuel tamper-evidence (B4):** immutable `graph.json.fuel_initial` seed anchor + a per-record
+  `fuel_before`/`fuel_after` chain from seed to `fuel_remaining` (widening fuel mid-run FAILs).
+- **Amendment schema closure + semantics (B6/B7/G1/G2/G3/G12):** per-kind `allOf` closure (add_units /
+  split_unit / add_edges / cancel_unit); split snapshot==retired, `criteria_map` targets ⊆ own children,
+  ≥2 children; belt-and-braces dod_refs on any record that adds units; id uniqueness + id==filename +
+  `graph_revision_after`==2+index + `expansion.amendments_applied`==|records| + `frontier_wave` teeth.
+- **Frozen-prefix content anchor (B5):** every executed unit's graph entry must match its immutable
+  `brief.json` (title/wave/deps/persona/tags/acceptance_criteria).
+- **Core validator hardening (B8/G4/G5/G8/G9/G10/G11):** duplicate-unit-id detection; ledger status↔verify
+  verdict cross-check; artifact-driven phase floor; forgery-proof learnings-import provenance
+  (`origin.store`, not a `G#` id spelling); within-budget honesty vs the unit's own brief budget; fsm
+  units ⊆ graph; non-blank `actionable_changes`.
+- **Guarantee narratives (B9/B10):** the third ESCALATE origin (amendment-fuel exhaustion) is documented
+  (prose + `spec/fsm.json` T10 `$comment` + formal-models note) and provenance-checked; I9 is status-aware
+  (a mid-loop debrief-with-no-verify at P6 with fsm status executing/verifying is a NOTE, not a FAIL).
+- **Drift, operability, harness, formal tidy:** D1–D12 prose/spec fixes; SKILL.md operability (U1–U11);
+  one negative fixture per previously-uncovered branch; `run_tests.sh` now sweeps **both** backends
+  unconditionally (`DAG_FORCE_MINI`); SC7 distinguishes modeled vs `spec-unmodeled` pragmas.
+
+Proof: the fixture matrix grows to **106**, all green on **both** validator backends; `spec_check.py`
+SC1–SC7 PASS; TLC re-verifies **853/408/depth 36 — No error** (and **2,923/1,608/depth 156** at
+`MaxFuel=32`); Alloy **8/8** commands as-expected.
+
+## [1.5.0] — 2026-07-10
+
+**Structured Spec Registry + Drift Checks (SSR)** — a descriptive, dev-time spec registry plus a drift
+checker that catch prose↔schema↔model drift at development time. Everything added is dev-time-only
+test/CI infrastructure: no FSM state/edge/guard, no schema constraint, and no runtime-validation
+behaviour changed, so every guarantee is **PRESERVED** verbatim (proof: a byte-identical 64-fixture
+matrix on both validator backends + TLC **853/408/depth 36 No error**).
+
+### Added
+- **Structured Spec Registry + Drift Checks (SSR).** Added a descriptive, dev-time spec registry
+  (`spec/fsm.json` + `spec/invariants.json`) that records the `state-machine.md` transition rows
+  (T*/LT*) and the I* invariants as machine-readable data — a dev-time source-of-record, **NOT** a
+  runtime artifact and **NOT** on the skill's lazy-load path.
+- **Drift checker `scripts/spec_check.py` (SC1–SC7),** wired into `scripts/run_tests.sh` (a clean-run
+  step + a negative-fixtures step): SC1 label↔registry, SC2 FSM-table row-diff, SC4 constant-pointer
+  dereference `(authoritative: <schema>#/<path>)`, SC5 embedded worked-example validation, SC7
+  `\* spec:` T*/LT* pragma presence-coverage in `Pipeline.tla`. All are diff / dereference / presence
+  (drift-detection) checks — **not** semantic proofs of correctness (SC7 confirms each id is
+  *mentioned* as a pragma, not that the action faithfully models the transition). Any drift folds into
+  the harness fail gate (non-zero exit); six negative fixtures pin one FAIL apiece.
+
+### Changed
+- **Behaviour-neutral `validate_run.py` LABELS hoist** — check labels moved to a shared table so
+  `spec_check.py` can cross-reference them; no runtime-validation behaviour changed.
+- **Docs de-dup / consistency:** templates & embedded worked examples are now machine-validated against
+  their schemas; the `verify.md`-vs-schema dual-authority ambiguity is resolved (schema authoritative,
+  template illustrative). Descriptive notes added to `DESIGN.md` §9 (the L1 authoring-rule backstop),
+  the `state-machine.md` header, and `formal-models.md` (the `\* spec:` pragma + SC7 presence-check).
+
+### Guarantee classification
+- **PRESERVES every guarantee:** no FSM state/edge/guard, no schema constraint, and no enforcement
+  behaviour changed. `spec/` + `spec_check.py` are dev-time only; SKILL.md gains no new runtime read.
+  Proof = byte-identical 64/64 fixture matrix on both backends, spec_check clean (SC1–SC7 PASS), and
+  TLC 853/408/depth 36 / Alloy 6 checks + 2 runs all unchanged from baseline.
+
+## [1.4.0] — 2026-07-10
+
+**Bounded Graph Amendments (BGA)** — the Phase-6 work graph may now grow under mechanical constraints, so
+discovered work no longer forces a full re-decomposition, a budget-breaching cram, or a silent DoD gap.
+Amendments are append-only records (`amendments/A<NN>.json`) of four whitelisted kinds — `add_units` /
+`split_unit` / `add_edges` (autonomous, DoD-traced) and `cancel_unit` (human-gated) — over the
+**not-yet-started future only** (a unit whose correction loop has begun is frozen). A monotone-decreasing
+**fuel** budget (`fsm-state.expansion`, schema max 32) bounds total units at N0 + fuel₀; fuel exhaustion
+routes to ESCALATE. Every new invariant is **post-hoc / offline** — no FSM edge, no live guard on the sole
+`RETRY→EXECUTE` back-edge (LT7) — so the per-unit correction-loop termination proof is **PRESERVED**
+verbatim; only the pipeline-level unit-count bound is **REVISED** (fixed finite N → N ≤ N0 + fuel₀), with
+fuel the identical well-founded-counter shape as `retries`.
+
+### Added
+- **`schemas/amendment.schema.json`** — the append-only amendment record (14 schemas total; self-check
+  green on both the built-in and `jsonschema` backend). `graph.schema.json` gains optional `revision` /
+  `amendments_applied` / `retired_units`; `fsm-state.schema.json` gains an optional `expansion` object and
+  a `retired` unit status. All additive — the 54 legacy fixtures are byte-unchanged.
+- **Five post-hoc validator invariants** in `validate_run.py`: **I3b** wave layering + **I3c** dependency
+  closure (run whenever a graph is present — they also close two pre-existing gaps: `waves` was never
+  cross-checked, and a dangling dep/edge endpoint was never flagged); **I17** frozen executed prefix,
+  **I18** fuel bound (`fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + revision/`amendments_applied`
+  bookkeeping), **I19** amendment scope (`dod_refs` verbatim ∈ `definition_of_done` + human-gate on
+  scope-change/cancel + split coverage). None gates a transition.
+- **10 new fixtures** (54 → 64), swept on both backends: `amend_ok` (rev-3 graph: an `add_units` + a
+  `split_unit`, correct fuel ledger, layered waves, retired parent kept brief-only) and nine negatives
+  pinning `I3` / `I3b` / `I3c` / `I17` (×2) / `I18` (×2) / `I19` (×2).
+- **Formal Property 5 — bounded-amendment quiescence.** `Pipeline.tla` gains a `MaxFuel` constant, a
+  `fuel` variable, an `Amend` action, the `FuelBound` invariant, and the liveness property **`Quiesce`**
+  `<>[](lstate ∈ {DONE,ESCALATE})`. TLC is green (**853 states / 408 distinct / depth 36**, up from
+  715/328/28); a throwaway keep-fuel mutant fails `Quiesce` while still passing `Termination` — the
+  external signal that `Quiesce`, not `Termination`, has teeth for BGA. New Alloy `formal/Amendment.als`
+  proves amendment layering-preservation ⇒ acyclicity (headless, no counterexample); `WorkGraph.als`
+  untouched.
+
+### Changed
+- Docs threaded end-to-end (authoring rule L1): SKILL.md Phase 4 fuel seeding + Phase 6 "Graph amendments
+  (bounded)"; `state-machine.md` (I3b/I3c/I17/I18/I19 rows, a "no new transition" note, Limitations
+  I/J/K); `self-learning-loops.md` §2 FLAG + §6.4; `formal-models.md` Property 5 + every stale TLC count
+  updated; `methodology.md`, `data-partitioning.md` (BGA is **not** a dataset-sharding tool), `DESIGN.md`,
+  `templates/graph.md` + new `templates/amendment.json`.
+
+### Guarantee classification
+- Per-unit correction-loop termination (Claims A–D): **PRESERVES** (verbatim — no loop edge/state/guard;
+  only LT7 writes `retries`).
+- Pipeline-level finiteness ("fixed finite N"): **REVISES** → N ≤ N0 + fuel₀ (fuel monotone-decreasing,
+  schema-capped, validator-cross-checked; machine-checked by `Quiesce`).
+- GateOrdering safety: **PRESERVES** (`Amend` guarded on `gate["P6"]=FALSE`, writes no phase/gate).
+- I3 acyclicity: **PRESERVES + STRENGTHENS** (full-graph re-check per revision; I3b/I3c added).
+- AO-1..7: **PRESERVES** (the frozen executed prefix forbids re-opening executed work).
+- Live-guard prohibition (02/P1): **HONORED** (I3b/I3c/I17/I18/I19 are all offline predicates; violations
+  route to a non-zero exit, never a transition guard).
+
 ## [1.3.0] — 2026-07-06
 
 Five-track audit remediation of the two skills (`dag`, `personas`): thirteen work units run through

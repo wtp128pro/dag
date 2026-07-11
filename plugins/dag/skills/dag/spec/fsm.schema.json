@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/spec/fsm.schema.json",
+  "title": "Pipeline FSM spec (descriptive registry)",
+  "description": "Constrains spec/fsm.json — a DESCRIPTIVE mirror of the pipeline finite-state machine (states, the loop sub-machine, the T*/LT* transition table, guards and their fsm-state gate flags, and pointer-checked numeric constants). Diffed at dev time by scripts/spec_check.py (SC1–SC4) against references/state-machine.md §2/§3, references/self-learning-loops.md §1.3, the SKILL.md phase-gate prose, validate_run.py REQUIRED_GATES, and the *.schema.json constants it dereferences. This schema is NOT read by validate_run.py and adds NO constraint to the run-validation path (PRESERVES every guarantee). Sole authority over policy (e.g. LT7 is the unique back_edge) stays with spec_check; the schema only fixes the record SHAPE.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["states", "loop_states", "transitions", "guards", "constants"],
+  "properties": {
+    "$comment": {
+      "type": "string",
+      "description": "OPTIONAL. Free-form caveat that this file is descriptive/diffed, never enforced by validate_run.py."
+    },
+    "note": {
+      "type": "string",
+      "description": "OPTIONAL. Alias of $comment for the 'descriptive, not enforced' caveat."
+    },
+    "states": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "The pipeline state ids (>=10). Plain string ids; the SC checker owns any membership/naming policy."
+    },
+    "loop_states": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["EXECUTE", "VERIFY", "ADJUDICATE", "RETRY", "ESCALATE", "DONE"]
+      },
+      "description": "The 6 correction-loop states (EXECUTE, VERIFY, ADJUDICATE, RETRY, ESCALATE, DONE). Enumerated because this set is fixed by the termination proof; spec_check still diffs it against self-learning-loops §1.3."
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "event", "guard_id", "to", "back_edge"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(T[0-9]+|LT[0-9]+)$",
+            "description": "Transition id: T<n> (top-level pipeline edge) or LT<n> (loop edge)."
+          },
+          "from": { "type": "string", "minLength": 1, "description": "Source state id." },
+          "event": { "type": "string", "minLength": 1, "description": "Triggering event." },
+          "guard_id": {
+            "type": ["string", "null"],
+            "description": "The id of a guard in guards[] that must hold, or null for an unguarded edge (e.g. the sole back_edge LT7 stays UNGUARDED — deadlock lesson 02/P1)."
+          },
+          "to": { "type": "string", "minLength": 1, "description": "Destination state id." },
+          "back_edge": {
+            "type": "boolean",
+            "description": "true iff this edge is a back edge (loops toward an earlier state). Exactly one edge (LT7 RETRY->EXECUTE) is a back_edge; that count/identity policy is an SC concern, not a schema constraint."
+          },
+          "$comment": {
+            "type": "string",
+            "description": "OPTIONAL free-text annotation (not read by SC2's structural row-diff). Used e.g. on T10 to document the BGA amendment-fuel-exhaustion ESCALATE origin (WP6/B9)."
+          }
+        }
+      },
+      "description": "The T*/LT* transition table, one closed object per edge."
+    },
+    "guards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "gate_flag"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Guard id, e.g. 'G-personas'."
+          },
+          "gate_flag": {
+            "type": ["string", "null"],
+            "description": "The fsm-state gate flag this guard establishes (e.g. 'personas_selected'), or null if the guard sets no persisted flag."
+          },
+          "required_from_phase": {
+            "type": "string",
+            "minLength": 1,
+            "description": "OPTIONAL. The state id from which this guard's gate flag is required (a member of states[]). Present when the guard establishes an fsm-state gate flag; SC3 diffs this against validate_run.py REQUIRED_GATES."
+          }
+        }
+      },
+      "description": "The guard table (G-personas … G-signoff), each naming its gate flag."
+    },
+    "constants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "pointer", "expected_value"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable constant name, e.g. 'retries max (loop)'."
+          },
+          "pointer": {
+            "type": "string",
+            "pattern": "^[^#]+#/",
+            "description": "A JSON Pointer into a schema, of the form '<schema-file>#/json/pointer' (e.g. 'fsm-state.schema.json#/properties/loop/properties/retries/maximum'). SC4 dereferences it and diffs the resolved value against expected_value. Only pointer-expressible constants live here — code-only invariants (I18 conservation, I4 ceiling, I16 panel logic) MUST NOT be recorded as a constant."
+          },
+          "expected_value": {
+            "type": ["number", "string", "boolean"],
+            "description": "The value expected at pointer (number/string/bool). SC4 asserts dereference(pointer) == expected_value."
+          }
+        }
+      },
+      "description": "Pointer-checked constants: name + JSON Pointer into a schema + the expected value at that pointer."
+    }
+  }
+}

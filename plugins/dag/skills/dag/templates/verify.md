@@ -1,7 +1,10 @@
 <!-- VERIFY ARTIFACT GUIDE — the INDEPENDENT verifier produces units/<id>/verify.json ONLY
      (JSON-only; no verify.md). It saw brief.md + debrief.json + the produced artifacts, NEVER the
      executor's reasoning/chain-of-thought. Mandate: REFUTE (coverage-first) — a verifier that only
-     confirms is malfunctioning. Schema: schemas/verify.schema.json.
+     confirms is malfunctioning. Schema: schemas/verify.schema.json — the AUTHORITATIVE field list;
+     this template is ILLUSTRATIVE (a field guide that tracks the schema; the schema wins on any
+     drift). Distinct from the bottom note "verify.json is authoritative", which is about the produced
+     ARTIFACT, not this field list — both hold.
 
      ACCURACY NOTE: do the adversarial work FREE-FORM in your reply FIRST, THEN write verify.json.
      Optionally persist that work in the `audit_notes` string; the load-bearing outputs are the

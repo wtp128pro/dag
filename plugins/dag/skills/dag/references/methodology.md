@@ -109,8 +109,8 @@ input-gap coverage: a resolution that names what to build but not what to steer 
 not resolved — cover both the what-to-do and the what-to-avoid for every material gap.
 
 **These are mechanically enforced in two layers**, so this is not advice you can skip. The
-schema fields are `definition_of_done` and `non_goals` (both required, non-empty). (L1) a
-present `clarifications.json` missing or emptying either field hard-fails the schema; (L2)
+schema fields are `definition_of_done` and `non_goals` (both required, non-empty). (Layer-1) a
+present `clarifications.json` missing or emptying either field hard-fails the schema; (Layer-2)
 the validator's `I-dod` check fires as soon as a run has ANY post-clarification structural
 artifact (cartography, graph, units, or synthesis) and then demands a schema-valid
 `clarifications.json` with non-empty `definition_of_done` AND `non_goals`, even if the file is
@@ -182,6 +182,17 @@ applied over a manifest of shard locators (a map wave), fanned back in by a redu
 wave of independent units and just more waves, so the DAG and its acyclicity are unchanged. See
 [data-partitioning.md](data-partitioning.md) (and first decide the mechanical-uniform vs
 judgment-heavy fork — mechanical-uniform work is a script dag *orchestrates*, not units it shards).
+
+**Seed the amendment fuel budget here (Bounded Graph Amendments).** Decomposition also sets
+`fsm-state.expansion.fuel_initial` (default `min(N0, 8)`, human-adjustable at the gate; `0`/absent =
+off) — how many *bounded* graph amendments Phase 6 may make when executed work surfaces unknowns,
+without a full re-decomposition. The graph is no longer frozen-for-good at T6: it may **grow under
+mechanical constraints** — `add_units` / `split_unit` / `add_edges` (autonomous, DoD-traced) and
+`cancel_unit` (human-gated) — over the **not-yet-started future only** (a unit whose correction loop
+has begun is frozen, I17), bounded by that monotone-decreasing fuel (total units ≤ N0 + fuel₀; fuel
+exhaustion ⇒ ESCALATE). This generalizes the 02/P4 guarded-re-brief safety line. Procedure + kinds
+table: SKILL.md Phase 6 "Graph amendments (bounded)"; invariants: references/state-machine.md §4
+(I3b/I3c/I17/I18/I19); termination classification: references/self-learning-loops.md §2 FLAG.
 
 ---
 

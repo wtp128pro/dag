@@ -1,0 +1,2 @@
+SC1 REVERSE gap: mechanical registry entry id 'I2' (a distinct LABELS[].invariant group) removed from spec/invariants.json.
+=> FAIL SC1: label group 'I2' has no invariants.json entry

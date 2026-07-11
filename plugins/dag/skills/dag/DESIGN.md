@@ -51,12 +51,16 @@ files. This is what makes the run resumable and keeps Dag's own context lean.
 │   ├── debrief.json     structured result OUT            (JSON-only — verifier + downstream read this)
 │   ├── verify.json      independent adversarial report   (JSON-only — adjudication reads this)
 │   └── disagreement.md  (only if escalated)              (+ disagreement.json)
+├── amendments/A<NN>.json  bounded graph-amendment records (Phase 6, BGA) — append-only, one per amendment; graph.json stays authoritative
 └── SYNTHESIS.md     final rolled-up deliverable (Phase 8)
 ```
 
-The skill dir itself additionally ships `schemas/*.schema.json`,
-`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh}` (+ `tests/`), the
-machine-checked models `formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als}`,
+The skill dir itself additionally ships `schemas/*.schema.json` (incl. `amendment.schema.json` +
+`manifest.schema.json`), the SSR registry `spec/{fsm.json,invariants.json}` (+ their meta-schemas),
+`scripts/{init_run.sh,validate_run.sh,validate_run.py,run_tests.sh,spec_check.py,run_formal.sh}`
+(+ `tests/`, whose BGA runs carry `amendments/A<NN>.json`), the machine-checked models
+`formal/{Pipeline.tla,Pipeline.cfg,WorkGraph.als,Amendment.als}` + the headless `formal/AlloyRun.java`
+driver (`run_formal.sh` fetches the TLC/Alloy jars to /tmp — BUILD tools, never vendored),
 `references/{methodology,evidence-standards,state-machine,socratic-protocol,self-learning-loops,formal-models,data-partitioning}.md`,
 and the `references/personas/` catalog (`index.json` + per-file persona JSON + `GUIDE.md`).
 Only the artifacts backed by a schema carry a machine-checkable `.json` (validity ≠ correctness):
@@ -81,7 +85,7 @@ notes. This is how "no rediscovery" (req 13) and the budget cap (req 7) are both
 | 1 | Socratic dialogue for personas | SKILL Phase 1; methodology §Socratic; **references/socratic-protocol.md** (one move-set, 2 modes); references/personas/ (index.json + per-file JSON) | Hybrid roster proposed, user confirms via AskUserQuestion gate; questioning is *selective* (material surfaces only), not a ritual; the answered `socratic` block is schema-checked (`schemas/debrief.schema.json` + `schemas/verify.schema.json`) and its genuineness re-verified in Phase 6; the **persona gate is mechanically non-skippable** — `validate_run.py` requires `gates.personas_confirmed` from Phase 2 on and rejects a confirmed flag unbacked by a valid `personas.json` (G-personas / T2), so "right-sizing" cannot drop it |
 | 2 | Clarification analysis eliminating lapses | SKILL Phase 2; methodology §Clarification; templates/clarifications.md | Ambiguity register ranked by materiality; material items gated to user |
 | 3 | Detailed cartography | SKILL Phase 3; templates/cartography.md | Cartographer subagent(s) produce annotated map |
-| 4 | Atomic units + dependency graph | SKILL Phase 4; methodology §Decomposition; templates/graph.md; **schemas/graph.schema.json** | Atomicity tests, DAG, topological waves, critique pass; the validator parses `graph.json` **fail-closed** — an unparseable/empty graph or a cycle is rejected; units carry `tags ⊆ V_tag` for pattern-scoped learning |
+| 4 | Atomic units + dependency graph | SKILL Phase 4; methodology §Decomposition; templates/graph.md; **schemas/graph.schema.json**; **Bounded Graph Amendments**: SKILL Phase 6 "Graph amendments (bounded)"; **schemas/amendment.schema.json** | Atomicity tests, DAG, topological waves, critique pass; the validator parses `graph.json` **fail-closed** — an unparseable/empty graph or a cycle is rejected; units carry `tags ⊆ V_tag` for pattern-scoped learning. The Phase-6 graph may **grow under mechanical constraints** via append-only `amendments/A<NN>.json` (kinds `add_units`/`split_unit`/`add_edges`; `cancel_unit` human-gated), bounded by a monotone-decreasing `expansion` fuel budget and validated post-hoc by **I3b** (wave layering) / **I3c** (dependency closure) / **I17** (frozen executed prefix) / **I18** (fuel bound) / **I19** (amendment scope) — none a live transition guard, so the correction-loop termination proof is PRESERVED (total units ≤ N0 + fuel₀) |
 | 5 | Structured briefing per unit | SKILL Phase 5; templates/brief.md | Self-contained contract; footprint validated |
 | 6 | Structured debriefing consumed up the line | templates/debrief.md; handoff notes | Evidence table + handoff notes feed downstream briefs |
 | 7 | Subagent, ≤32K context budget | SKILL Phase 6 + Prime Directive 2; brief "budget contract"; **schemas/brief.schema.json** (`budget_tokens maximum: 32000`) | Atomic scope + read-only-what's-listed + self-reported footprint checked by verifier; the *declared* budget is now schema-hard-checked. **(Real consumption still disciplinary — see Limitations §1.)** |
@@ -160,6 +164,21 @@ verify are flagged so we don't launder them into facts — practicing req 10 on 
    high-stakes/complex work; for trivial tasks it is overkill — say so and offer to skip.
 6. **Interactive by design.** Because of the Socratic gates, this runs in the foreground,
    not as a fire-and-forget background job.
+7. **Bounded Graph Amendments are attestation-checked, not semantically proven.** BGA lets the
+   Phase-6 graph grow, but the three semantic guarantees stay human/verifier judgment (validity ≠
+   correctness): `human_gate` is a **presence-checked attestation** (like `signoff_confirmed`) — the
+   validator cannot prove a human actually approved a scope-change/cancel; a record's `frontier_wave` is
+   internally-consistency-checked against the graph (WP3: every `units_added` lands at `wave ≥
+   frontier_wave`) but the *dispatch timing* it stands for is still **attested** (Limitation J); and
+   `dod_refs` verbatim matching is **string membership**, not semantic traceability — that a new unit
+   *genuinely* serves its cited DoD item stays the verifier/critique-pass backstop (Limitation K). What
+   IS mechanical and fail-closed: the frozen executed prefix (I17 — including the WP1 baseline
+   reconciliation and the WP4 executed-unit content anchor against `brief.json`: `title`/`wave`/`deps`/
+   `persona`/`tags`/`acceptance_criteria`; `goal`/`est_footprint_tokens` are not brief-carried and stay
+   attested), the fuel bound + tamper-evidence + bookkeeping (I18 — seed anchor, `fuel_before`/`fuel_after`
+   chain, records-required, id/filename/revision/counter/frontier), acyclicity + wave layering +
+   dependency closure (I3/I3b/I3c), and per-kind schema closure + split semantics + DoD string membership
+   + the human-gate flag's presence (I19).
 
 ## 7. How to run
 
@@ -194,13 +213,26 @@ The skill creates the run dir, walks the phases, and pauses at the gates that ma
   **project > user > curated**), still behind the human gate. A documented convention —
   **no loader script**, and **not** a required run artifact (meta-validated by `--self-check` only).
 
-**Authoring rule L1 (a durable maintenance discipline).**
+**Authoring rule AR-1 (a durable maintenance discipline; D11 — renamed from "L1" to avoid colliding with Learning `L1` and the I-dod enforcement Layer-1/Layer-2).**
 > Any claim that a change *mirrors / covers / matches* an existing construct, or is
 > *complete / non-skippable / all*, MUST be verified by **enumerating that construct exactly and
 > re-reading/re-running it** before asserting it — and prefer **precise scope wording over
 > absolutes**. When you broaden a check (e.g. the `I-dod` trigger union), update **every** prose
 > spot that enumerates it (SKILL.md, methodology.md, the schema `description`, the template, the
 > CHANGELOG) in the same change, or the "coverage" claim silently drifts.
+
+**AR-1 now has a dev-time backstop (Structured Spec Registry + Drift Checks, SSR).** The formerly
+discipline-only "update every prose spot in the same change" clause is now **machine-checked at dev
+time**: `scripts/spec_check.py` diffs the FSM tables and schema constants against a descriptive
+registry (`spec/fsm.json` + `spec/invariants.json`) — **SC2** row-diffs the transition/invariant
+tables against the registry, **SC4** dereferences each `(authoritative: <schema>#/<path>)` constant
+pointer to its live schema value, **SC1** cross-checks every table label against the registry, and
+**SC5** validates the embedded worked examples against their schemas. These are **diff / dereference /
+presence checks that catch *drift*, not semantic proofs that a claim is *correct*** — the same
+validity ≠ correctness boundary as the runtime validator (§4). They run under `scripts/run_tests.sh`
+and add **no** runtime read: `spec/` and `spec_check.py` are **dev-time only**, never on the skill's
+lazy-load path (SKILL.md is unchanged). So AR-1's "mirror" discipline now *fails a test* when a table row
+or a constant pointer drifts, instead of resting solely on the author re-reading the construct.
 
 *Why this rule exists:* adversarial verification once caught the `I-dod` trigger claiming to
 "mirror the G-personas `post_p1` union" while enumerating a narrower set, and a debrief overstating

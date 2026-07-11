@@ -1,0 +1,27 @@
+{
+  "unit_id": "U03",
+  "title": "Coverage unit (added by A01)",
+  "wave": 2,
+  "depends_on": [
+    "U01"
+  ],
+  "persona": "Validator Engineer",
+  "budget_tokens": 32000,
+  "acceptance_criteria": [
+    "the surfaced gap is covered by a check"
+  ],
+  "context_pointers": [
+    "units/U01/debrief.json"
+  ],
+  "outputs": [
+    "units/U03/debrief.json"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "validator",
+    "core"
+  ],
+  "learnings_applied": [
+    "L1"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "id": "A02",
+  "kind": "split_unit",
+  "origin": {
+    "trigger": "footprint_breach",
+    "source_unit": "U02",
+    "source_ref": "U02 brief exceeds the 32K reasoning budget"
+  },
+  "rationale": "The unexecuted U02 could not be briefed within budget; split it into two scope-preserving children (U04, U05) that collectively cover its tags and acceptance criteria.",
+  "scope_change": false,
+  "human_gate": false,
+  "dod_refs": [
+    "every planned unit is briefable within the 32K budget"
+  ],
+  "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
+  "frontier_wave": 2,
+  "units_added": [
+    "U04",
+    "U05"
+  ],
+  "units_retired": [
+    "U02"
+  ],
+  "edges_added": [],
+  "retired_snapshot": [
+    {
+      "id": "U02",
+      "title": "Design",
+      "goal": "score approaches",
+      "executor_persona": "Architect",
+      "verifier_persona": "Pragmatist",
+      "deps": [
+        "U01"
+      ],
+      "outputs": [
+        "units/U02/debrief.json"
+      ],
+      "est_footprint_tokens": 18000,
+      "acceptance_criteria": [
+        "traceable to requirements"
+      ],
+      "tags": [
+        "design",
+        "core"
+      ]
+    }
+  ],
+  "criteria_map": {
+    "traceable to requirements": [
+      "U04"
+    ]
+  },
+  "graph_revision_after": 3,
+  "timestamp": "2026-07-03T10:45:00-0400"
+}

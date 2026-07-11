@@ -1,0 +1,9 @@
+# fixture-dir<TAB>expected-nonzero-exit<TAB>pinned FAIL substring (spec_check --quiet output)
+# Each fixture = the real skill dir + <fixture>/overlay/ laid on top, run via spec_check.py
+# --root TMP. Consumed by run_fixtures.sh (and, per U10, by run_tests.sh). Real tree unmutated.
+sc1_reverse	1	label group 'I2' has no invariants.json entry
+sc1_forward	1	mechanical entry 'I2' has empty/bogus label_prefixes: ['NONEXISTENT STEM ZZZ']
+sc2_mutant_row	1	references/state-machine.md: LT4 to 'ESCALATE' != spec 'RETRY'
+sc3_gate_drift	1	gate drift at DONE: spec-derived ['cartography_done', 'clarification_resolved', 'decomposition_approved', 'personas_confirmed'] != REQUIRED_GATES ['cartography_done', 'clarification_resolved', 'decomposition_approved', 'personas_confirmed', 'signoff_confirmed']
+sc4_stale_constant	1	stale constant 'retries_max_loop': pointer fsm-state.schema.json#/properties/loop/properties/retries/maximum dereferences to 2 != expected 3
+sc5_invalid_example	1	templates/persona.json invalid against persona.schema.json: $: 'name' is a required property

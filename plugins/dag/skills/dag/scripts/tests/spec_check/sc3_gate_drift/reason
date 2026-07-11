@@ -1,0 +1,2 @@
+SC3: spec/fsm.json guard G-signoff.gate_flag dropped (null); REQUIRED_GATES still lists signoff_confirmed at DONE.
+=> FAIL SC3: gate drift at DONE (spec-derived map lacks signoff_confirmed)
