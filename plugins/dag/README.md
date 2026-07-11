@@ -206,7 +206,16 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.7.0** — **Audit round 2 (extra_check remediation)**: closes a second wave of
+Current version: **1.8.0** — **Guardrail & clarification enforcement**: six new **offline** validator
+invariants (**I20–I25**) make the run's own declared guardrails mechanically checkable — per-unit
+`dod_refs`/`non_goal_refs` binding with graph↔brief mirror consistency, a `guardrail_compliance`
+attestation block on verdict-bearing verifies where a `violated` row on a PASS verdict is a
+**mechanical FAIL** (a delivered non-goal is a defect, not a bonus), P8 DoD/non-goal closure, an
+ambiguity-register content floor, and a resolution-required conditional for material resolved items
+(the release's **sole REVISES**, migration-argued). Adoption is opt-in: every new schema field is
+OPTIONAL, 4 templates scaffold adoption by default, and pre-feature-shape runs trip nothing. Every
+predicate is **post-hoc/offline** (no live LT7 guard) — the correction-loop **termination proof is
+PRESERVED**. The fixture matrix grows to **135**, swept on **both** backends. **1.7.0** — **Audit round 2 (extra_check remediation)**: closes a second wave of
 reproduced holes. The validator is **crash-hardened** (a schema-valid-but-malformed amendment snapshot,
 a GRAPH.md that is a directory, and duplicate `fsm-state.units[]` ids no longer traceback or become
 order-dependent). **Persona identity is enforced structurally, not just declared** — new `I1c`

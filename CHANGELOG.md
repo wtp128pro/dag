@@ -3,6 +3,26 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.10] — 2026-07-11
+
+### Changed
+- **`dag` plugin → 1.8.0** — **Guardrail & clarification enforcement**: the run's own declared
+  guardrails (DoD items, non-goals, ambiguity resolutions) become mechanically checkable via six new
+  **offline** validator invariants **I20–I25** — per-unit `dod_refs`/`non_goal_refs` binding with
+  graph↔brief mirror consistency (I20/I21), a `guardrail_compliance` attestation block on
+  verdict-bearing verifies where a **`violated` row on a PASS verdict is a mechanical FAIL** (I22),
+  P8 DoD/non-goal closure (I23), an ambiguity-register content floor (I24), and a
+  resolution-required conditional for material resolved items (I25 — the release's **sole REVISES**,
+  migration-argued). Groundwork: 4 schema changes (every new field OPTIONAL; nothing added to any
+  required list) + 4 templates scaffolding adoption by default. Every predicate is
+  **post-hoc/offline** (no live LT7 guard), so the correction-loop **termination proof is
+  PRESERVED**; adoption is opt-in and pre-feature runs trip nothing (`legacy_prefeature_ok`).
+  Fixtures grow **119 → 135**, swept on **both** backends; `spec_check` SC1–SC7 green. `SKILL.md` +
+  `references/state-machine.md` mirror the new mechanics (incl. Limitations **L–O** and the
+  version-skew postures: I20–I23 archive-silent, I24/I25 positive-evidence floors). See
+  `plugins/dag/CHANGELOG.md` for the full per-WP breakdown. The in-repo `wiki/` intentionally
+  remains at **1.7.0 / 1.0.9** this release (known lag; the wiki refresh is a follow-up).
+
 ## [1.0.9] — 2026-07-10
 
 ### Changed
