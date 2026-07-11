@@ -17,6 +17,13 @@
 > non-empty `definition_of_done` AND `non_goals` — to exist once ANY post-clarification structural
 > artifact exists (cartography, graph, units, or synthesis).
 
+> **Resolution required on resolved MATERIAL items (schema conditional + I25 mirror):** a register
+> row with `materiality: "material"` AND `resolved: true` MUST carry a non-empty `resolution`
+> string — `clarifications.json` is schema-INVALID without it (the item-level `allOf` conditional),
+> and the validator's **I25** mirror additionally rejects whitespace-only text. Record *how* the
+> item was closed (the user's answer @ timestamp, or the logged default + rationale) — never a bare
+> `resolved: true` on a material row.
+
 ## Definition of Done
 <!-- Testable exit checklist. Each bullet becomes one string in clarifications.json `definition_of_done`
      (array, minItems 1, each item non-empty). Phrase as an observable, checkable outcome. -->
