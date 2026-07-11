@@ -424,6 +424,11 @@ LABELS = [
     # FSM invariants — per-unit DoD / non-goal binding (guardrails 1.8.0)
     {"key": "unit_dod_refs", "stem": "I20 unit dod_refs", "invariant": "I20"},
     {"key": "unit_non_goal_refs", "stem": "I21 unit non_goal_refs", "invariant": "I21"},
+    # FSM invariants — guardrail compliance / P8 closure / content floors (guardrails 1.8.0)
+    {"key": "guardrail_compliance", "stem": "I22 guardrail compliance", "invariant": "I22"},
+    {"key": "p8_closure", "stem": "I23 closure", "invariant": "I23"},
+    {"key": "register_floor", "stem": "I24 register floor", "invariant": "I24"},
+    {"key": "resolution_present", "stem": "I25 resolution present", "invariant": "I25"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
     {"key": "i9_present", "stem": "I9 verification present", "invariant": "I9"},
@@ -2261,6 +2266,178 @@ def main(argv=None):
             if not _i21_failures:
                 rep.ok(f"{LABEL_STEM['unit_non_goal_refs']} ({len(_i21_bound)}/{len(_i21_units)} unit(s) "
                        "carry the key; refs verbatim in non_goals; brief mirrors consistent)")
+
+    # ---- Family B (guardrails 1.8.0, WP-3..WP-6): I22 guardrail compliance · I23 closure ----
+    # ---- · I24 register floor · I25 resolution present --------------------------------------
+    # All four are OFFLINE post-hoc predicates over emitted artifacts (no FSM edge or guard is
+    # touched — correction-loop termination Claim D unaffected), decidable at string level,
+    # stdlib-only, with NO validator_version branching. Firing posture per APPROVED_PLAN §4:
+    #   I22/I23 — adoption-gated on the NEW artifacts (a guardrail_compliance block in a
+    #     verify.json; dod_refs / the block at P8) ⇒ archived runs are silent;
+    #   I24/I25 — artifact-driven on POSITIVE evidence (the I-dod trigger-family precedent):
+    #     an archived run CAN newly flag (empty register after structural work / fake-resolved
+    #     material item) — expected §5 version skew, never a reason to edit the archive.
+    # Shared hoists (plan WP-4: "same map I22 builds — hoist and share one helper"):
+    #   _i22_verifies — uid -> RAW-parsed units/<uid>/verify.json carrying a "verdict" key.
+    #     Raw parse, not unit_docs: a parseable-but-schema-invalid verify already FAILs at the
+    #     schema layer above, but the compliance predicates must still see its verdict/rows —
+    #     fail-closed (the I20/I21 brief-mirror posture).
+    #   _i22_clar — the schema-VALID clarifications doc (membership sets for I22/I23).
+    #   _i22_clar_raw — the RAW-parsed clarifications.json (I24/I25 are backstops and must run
+    #     even when the doc is schema-invalid; I25 especially: the WP-6 schema conditional
+    #     makes I25's trip doc schema-INVALID, so docs['clarifications'] is None exactly when
+    #     the defect exists — only the raw parse can mirror it).
+    _i22_verifies = {}
+    for _i22_uid in sorted(unit_subdirs):
+        _i22_vp = os.path.join(units_dir, _i22_uid, "verify.json")
+        if os.path.exists(_i22_vp):
+            try:
+                _i22_vdoc = load_json(_i22_vp)
+            except Exception:
+                _i22_vdoc = None
+            if isinstance(_i22_vdoc, dict) and "verdict" in _i22_vdoc:
+                _i22_verifies[_i22_uid] = _i22_vdoc
+    _i22_clar = docs.get("clarifications")
+    _i22_clar_raw = None
+    _i22_cp = os.path.join(rd, "clarifications.json")
+    if os.path.exists(_i22_cp):
+        try:
+            _i22_clar_raw = load_json(_i22_cp)
+        except Exception:
+            _i22_clar_raw = None
+
+    # ---- I22 verify-time guardrail-compliance block (WP-3) ----
+    # Honesty boundary (labeled the same way in spec/invariants.json): presence, verbatim
+    # membership, coverage, and the violated+PASS clause are MECHANICAL; whether a `respected`
+    # row is TRUE stays verifier attestation (presence-not-genuineness). ADOPTION = any
+    # verdict-bearing verify carries the block; CLOSURE then requires every verdict-bearing
+    # verify to carry it (verdictless verifies are not bound — partial runs mid-wave stay
+    # incremental). The one decidable semantic clause mechanizes SKILL.md's "a delivered
+    # non-goal is a FAIL, not a bonus": a violated row on a PASS verdict is a defect.
+    _i22_ngset = ({x for x in _i22_clar.get("non_goals") or [] if isinstance(x, str)}
+                  if isinstance(_i22_clar, dict) else set())
+    _i22_gunits = ([u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
+                   if graph_doc is not None else [])
+    _i22_withblk = {u for u, v in _i22_verifies.items() if "guardrail_compliance" in v}
+    if _i22_withblk:                                                # ADOPTION
+        _i22_lacking = sorted(set(_i22_verifies) - _i22_withblk)
+        if _i22_lacking:                                            # CLOSURE
+            rep.fail(f"{LABEL_STEM['guardrail_compliance']}",
+                     f"adoption closure: verifies missing the block: {_i22_lacking}")
+    for _i22_uid in sorted(_i22_withblk):
+        _i22_v = _i22_verifies[_i22_uid]
+        # Raw-parse posture ⇒ rows can be ANY shape here (a schema-invalid verify still FAILs
+        # at the schema layer above, but must not crash this predicate): list-guard the block,
+        # dict-guard each row, and treat a non-string non_goal as fail-closed non-membership
+        # (never hash a potentially-unhashable value into the set).
+        _i22_gc = _i22_v.get("guardrail_compliance")
+        _i22_rows = ([r for r in _i22_gc if isinstance(r, dict)]
+                     if isinstance(_i22_gc, list) else [])
+        _i22_bad = [r.get("non_goal") for r in _i22_rows
+                    if not isinstance(r.get("non_goal"), str)
+                    or r.get("non_goal") not in _i22_ngset]
+        if _i22_bad:                                                # MEMBERSHIP
+            rep.fail(f"{LABEL_STEM['guardrail_compliance']} (units/{_i22_uid})",
+                     f"rows name strings not verbatim in non_goals: {_i22_bad}")
+        if (_i22_v.get("verdict") == "PASS"
+                and any(r.get("status") == "violated" for r in _i22_rows)):
+            rep.fail(f"{LABEL_STEM['guardrail_compliance']} (units/{_i22_uid})",  # DECIDABLE BITE
+                     "a violated non-goal row on a PASS verdict: a delivered non-goal is "
+                     "a FAIL, not a bonus")
+        _i22_unit = next((u for u in _i22_gunits if u.get("id") == _i22_uid), None)
+        if _i22_unit is not None and "non_goal_refs" in _i22_unit:  # COVERAGE (WP-2 synergy)
+            _i22_covered = {r.get("non_goal") for r in _i22_rows
+                            if isinstance(r.get("non_goal"), str)}
+            _i22_uncov = [g for g in (_i22_unit.get("non_goal_refs") or [])
+                          if g not in _i22_covered]
+            if _i22_uncov:
+                rep.fail(f"{LABEL_STEM['guardrail_compliance']} (units/{_i22_uid})",
+                         f"unit's non_goal_refs lack an attestation row: {_i22_uncov}")
+
+    # ---- I23 Phase-8 DoD / non-goal closure (WP-4) ----
+    # Mechanical counterpart of the synthesis obligations, double-gated: (gate 1) I10's phase
+    # condition VERBATIM (post-hoc fsm-state inspection exactly as I10 does — not a transition
+    # guard, so Claim D holds); (gate 2) adoption of the WP-1 / WP-3 artifacts respectively.
+    # Iterates GRAPH units, never dirs (BRK-02). Retired units are absent from
+    # graph.json.units[] and so correctly contribute no coverage. Violated-row policing at
+    # closure is unnecessary: I10 forces all units PASS at DONE and I22 already forbids
+    # violated+PASS.
+    if phase in ("P8_SYNTHESIS", "DONE") and unit_subdirs:
+        _i23_units = ([u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
+                      if graph_doc is not None else [])
+        _i23_verifies = {}                # uid -> parsed verify.json carrying a "verdict"
+        for _i23_u in _i23_units:         # (the I22 map, restricted to graph units)
+            _i23_uid = _i23_u.get("id")
+            if isinstance(_i23_uid, str) and _i23_uid in _i22_verifies:
+                _i23_verifies[_i23_uid] = _i22_verifies[_i23_uid]
+        _i23_pass_ids = sorted(u for u, v in _i23_verifies.items()
+                               if v.get("verdict") == "PASS")
+        _i23_pass_units = [u for u in _i23_units if u.get("id") in _i23_pass_ids]
+        if any("dod_refs" in u for u in _i23_units):                      # WP-1 adoption
+            _i23_covered = set()
+            for _i23_u in _i23_pass_units:
+                _i23_covered.update(x for x in (_i23_u.get("dod_refs") or [])
+                                    if isinstance(x, str))
+            _i23_dod = ((_i22_clar.get("definition_of_done") or [])
+                        if isinstance(_i22_clar, dict) else [])
+            _i23_unmet = [d for d in _i23_dod if d not in _i23_covered]
+            if _i23_unmet:
+                rep.fail(f"{LABEL_STEM['p8_closure']}",
+                         f"DoD items referenced by no PASS-verified unit: {_i23_unmet}")
+        if any("guardrail_compliance" in v for v in _i23_verifies.values()):  # WP-3 adoption
+            _i23_att = set()
+            for _i23_uid in _i23_pass_ids:
+                _i23_gc = _i23_verifies[_i23_uid].get("guardrail_compliance")
+                for _i23_r in (_i23_gc if isinstance(_i23_gc, list) else []):
+                    if (isinstance(_i23_r, dict)
+                            and _i23_r.get("status") in ("respected", "not-applicable")
+                            and isinstance(_i23_r.get("non_goal"), str)):
+                        _i23_att.add(_i23_r.get("non_goal"))
+            _i23_ng = ((_i22_clar.get("non_goals") or [])
+                       if isinstance(_i22_clar, dict) else [])
+            _i23_unatt = [g for g in _i23_ng if g not in _i23_att]
+            if _i23_unatt:
+                rep.fail(f"{LABEL_STEM['p8_closure']}",
+                         "non-goals with no respected/not-applicable attestation from any "
+                         f"PASS unit: {_i23_unatt}")
+
+    # ---- I24 artifact-driven ambiguity-register floor (WP-5) ----
+    # I-dod trigger-set reused VERBATIM (union of cartography / graph / units / synthesis;
+    # learnings.json stays EXCLUDED — the Phase-0.5 deadlock). Validator-only floor: NO schema
+    # minItems (a schema floor would hard-fail legitimate mid-dialogue pure-P2 authoring and
+    # make archived empty-register docs schema-invalid, cascading into the I8/I-dod extraction
+    # paths instead of one legible finding). "No ambiguities found" is recorded as an ordinary
+    # register item, so non-emptiness IS the none-found attestation form. I8 stays untouched:
+    # it keeps judging recorded content; I24 only guarantees there is content to judge.
+    _i24_trigger = (
+        docs.get("cartography") is not None
+        or os.path.exists(os.path.join(rd, "CARTOGRAPHY.md"))
+        or graph_json_exists
+        or graph_md_exists
+        or bool(unit_subdirs)
+        or os.path.exists(os.path.join(rd, "SYNTHESIS.md"))
+    )
+    if _i24_trigger and _i22_clar_raw is not None:
+        _i24_reg = (_i22_clar_raw.get("ambiguity_register")
+                    if isinstance(_i22_clar_raw, dict) else None)
+        if not (isinstance(_i24_reg, list) and len(_i24_reg) >= 1):
+            rep.fail(f"{LABEL_STEM['register_floor']}",
+                     "ambiguity_register is empty after structural work exists; "
+                     "record real ambiguities or an explicit none-found item")
+
+    # ---- I25 resolution required on resolved material items (WP-6) ----
+    # Validator MIRROR of the WP-6 schema conditional (the I15 schema+backstop precedent) —
+    # reads the RAW parse (see the _i22_clar_raw hoist note). The .strip() bar also catches
+    # " " — stricter than the schema's minLength:1 (the G11/fail_blank_actionable precedent).
+    # I8 keeps trusting `resolved` for the OPEN-item gate; I25 polices the CLOSED-item claim.
+    if isinstance(_i22_clar_raw, dict) and isinstance(_i22_clar_raw.get("ambiguity_register"), list):
+        for _i25_item in _i22_clar_raw.get("ambiguity_register"):
+            if (isinstance(_i25_item, dict)
+                    and _i25_item.get("materiality") == "material"
+                    and _i25_item.get("resolved") is True
+                    and not str(_i25_item.get("resolution") or "").strip()):
+                rep.fail(f"{LABEL_STEM['resolution_present']} ({_i25_item.get('id', '?')})",
+                         "material item marked resolved carries no resolution text")
 
     # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
     # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.

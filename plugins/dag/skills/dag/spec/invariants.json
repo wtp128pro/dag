@@ -566,6 +566,70 @@
       ]
     },
     {
+      "id": "I22",
+      "title": "I22: verify-time guardrail-compliance block — adoption closure over verdict-bearing verifies, verbatim non-goal membership, violated+PASS forbidden, non_goal_refs coverage; presence/shape only — whether a respected row is TRUE stays verifier attestation (presence-not-genuineness)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I22 guardrail compliance"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-3"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I23",
+      "title": "I23: Phase-8 DoD / non-goal closure — at P8/DONE (I10's phase gate) every definition_of_done item must be referenced by some PASS-verified unit's dod_refs and every non-goal attested respected/not-applicable by a PASS unit's rows, each clause under its WP-1 / WP-3 adoption gate",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I23 closure"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-4"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I24",
+      "title": "I24: artifact-driven ambiguity-register floor — once any structural artifact exists (the I-dod trigger union), a parsed clarifications.json must carry a non-empty ambiguity_register; none-found is recorded as an explicit register item (validator-only floor, no schema minItems; NOT archive-silent — I-dod precedent)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I24 register floor"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-5"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I25",
+      "title": "I25: resolution required on resolved material items — a register item with materiality material and resolved true must carry non-blank resolution text (validator mirror of the clarifications schema conditional, I15-style backstop on the raw parse; NOT archive-silent)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I25 resolution present"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
       "id": "AO-1",
       "title": "AO-1: monotone iteration counter, never reset",
       "tier": "discipline",
