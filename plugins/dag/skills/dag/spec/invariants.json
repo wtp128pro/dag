@@ -41,6 +41,7 @@
       "tier": "mechanical",
       "validator_label_prefixes": [
         "I2 fsm units subset",
+        "I2 fsm units uniqueness",
         "I2 ledger-is-truth",
         "I2 phase artifact floor",
         "I2 status vs verify verdict"
@@ -50,7 +51,8 @@
         "ledger_status_mismatch",
         "ledger_verdict_mismatch",
         "phase_underreport",
-        "fsm_phantom_unit"
+        "fsm_phantom_unit",
+        "fsm_dup_unit"
       ],
       "provenance": [],
       "docs": [
@@ -70,7 +72,8 @@
       "fixtures": [
         "unfenced_cycle",
         "amend_cycle",
-        "dup_unit_id"
+        "dup_unit_id",
+        "graphmd_not_file"
       ],
       "provenance": [
         "E"
@@ -477,7 +480,8 @@
         "amend_cancel_noop",
         "amend_bare_snapshot",
         "amend_noncild_criteria_map",
-        "amend_single_child_split"
+        "amend_single_child_split",
+        "amend_snapshot_badtype"
       ],
       "provenance": [
         "BGA",

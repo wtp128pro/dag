@@ -107,3 +107,6 @@ amend_added_unreconciled	1	I17 amendment reconciliation
 amend_fake_retire	1	I17 amendment reconciliation
 amend_phantom_retire_undercharge	1	I17 amendment reconciliation
 amend_missing_baseline	1	baseline_units
+amend_snapshot_badtype	1	$.retired_snapshot
+graphmd_not_file	1	GRAPH.md is present but unreadable
+fsm_dup_unit	1	I2 fsm units uniqueness

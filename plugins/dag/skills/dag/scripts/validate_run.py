@@ -445,6 +445,7 @@ LABELS = [
     {"key": "i2_ledger", "stem": "I2 ledger-is-truth", "invariant": "I2"},
     {"key": "i2_status_verdict", "stem": "I2 status vs verify verdict", "invariant": "I2"},
     {"key": "i2_units_subset", "stem": "I2 fsm units subset", "invariant": "I2"},
+    {"key": "i2_fsm_unit_unique", "stem": "I2 fsm units uniqueness", "invariant": "I2"},
     {"key": "i2_phase_floor", "stem": "I2 phase artifact floor", "invariant": "I2"},
     {"key": "gpersonas_nonskip", "stem": "G-personas non-skippable", "invariant": "G-personas"},
     {"key": "gpersonas_failclosed", "stem": "G-personas fail-closed", "invariant": "G-personas"},
@@ -1197,15 +1198,26 @@ def main(argv=None):
             if _i3b_ok:
                 rep.ok(f"{LABEL_STEM['i3b_wave_layering']} ({len(_wave_of)} unit(s) across {len(_waves)} wave(s); all edges rise)")
     if graph_md_exists:  # defense-in-depth on the prose graph
-        with open(graph_md, encoding="utf-8") as f:
-            md_text = f.read()
-        cyc = find_cycle(parse_graph_edges(md_text))
-        if cyc:
-            rep.fail(f"{LABEL_STEM['i3_dag_acyclic']} (GRAPH.md fenced)", "cycle: " + " → ".join(cyc))
-        elif graph_doc is None and md_has_unfenced_deps(md_text):
-            rep.fail(f"{LABEL_STEM['i3_dag_failclosed']}",
-                     "GRAPH.md declares dependencies OUTSIDE a code fence and no graph.json "
-                     "backs them — 0 edges parsed; refusing to pass")
+        # WP-A/B3: GRAPH.md as a directory or a dangling symlink raised IsADirectoryError/OSError here
+        # (open() was the sole unguarded loader), aborting the whole run with a traceback and silently
+        # disabling every downstream invariant. Wrap it like every other loader — an unreadable GRAPH.md
+        # is a fail-closed I3 defect, not a crash.
+        md_text = None
+        try:
+            with open(graph_md, encoding="utf-8") as f:
+                md_text = f.read()
+        except OSError as e:
+            rep.fail(f"{LABEL_STEM['i3_dag_acyclic']} (GRAPH.md)",
+                     f"GRAPH.md is present but unreadable ({e}) — a GRAPH.md that is a directory or a "
+                     "dangling symlink cannot back the DAG; refusing to pass")
+        if md_text is not None:
+            cyc = find_cycle(parse_graph_edges(md_text))
+            if cyc:
+                rep.fail(f"{LABEL_STEM['i3_dag_acyclic']} (GRAPH.md fenced)", "cycle: " + " → ".join(cyc))
+            elif graph_doc is None and md_has_unfenced_deps(md_text):
+                rep.fail(f"{LABEL_STEM['i3_dag_failclosed']}",
+                         "GRAPH.md declares dependencies OUTSIDE a code fence and no graph.json "
+                         "backs them — 0 edges parsed; refusing to pass")
     if not graph_md_exists and graph_doc is None and not post_decomposition and not args.quiet:
         print("  SKIP  I3 DAG: no GRAPH.md or graph.json present (pre-decomposition)")
 
@@ -1942,7 +1954,10 @@ def main(argv=None):
             if kind == "split_unit":
                 children = _rec.get("units_added", []) or []
                 # WP3: the snapshot must be EXACTLY the retired unit(s) (no fake/bare padding).
-                _snap_ids = {s.get("id") for s in (_rec.get("retired_snapshot", []) or []) if isinstance(s, dict)}
+                # WP-A/B1: only string ids (a non-string/unhashable id would crash the set comprehension;
+                # the schema now pins id:string, so this is belt-and-braces for degraded/no-schema mode).
+                _snap_ids = {s.get("id") for s in (_rec.get("retired_snapshot", []) or [])
+                             if isinstance(s, dict) and isinstance(s.get("id"), str)}
                 _ret_set = set(_rec.get("units_retired", []) or [])
                 if _snap_ids != _ret_set:
                     rec_ok = False
@@ -1952,12 +1967,22 @@ def main(argv=None):
                 child_tags = set()
                 for c in children:
                     if c in cur_units:
-                        child_tags |= set(cur_units[c].get("tags", []) or [])
+                        _ct = cur_units[c].get("tags", [])   # WP-A/B1: tolerate a non-list tags (graph.schema pins it; belt-and-braces)
+                        if isinstance(_ct, list):
+                            child_tags |= {t for t in _ct if isinstance(t, str)}
                 snap_tags, snap_crits = set(), []
                 for s in (_rec.get("retired_snapshot", []) or []):
                     if isinstance(s, dict):
-                        snap_tags |= set(s.get("tags", []) or [])
-                        snap_crits += [c for c in s.get("acceptance_criteria", []) if isinstance(c, str)]
+                        # WP-A/B1: guard non-list tags/acceptance_criteria — the schema now pins these to
+                        # array<string> (both backends), so a wrong-typed snapshot is DROPPED before it
+                        # reaches here; these isinstance guards are belt-and-braces so an unforeseen shape
+                        # in degraded/no-schema mode FAILs cleanly instead of raising a TypeError traceback.
+                        _st = s.get("tags", [])
+                        if isinstance(_st, list):
+                            snap_tags |= {t for t in _st if isinstance(t, str)}
+                        _sc = s.get("acceptance_criteria", [])
+                        if isinstance(_sc, list):
+                            snap_crits += [c for c in _sc if isinstance(c, str)]
                 missing_tags = sorted(snap_tags - child_tags)
                 if missing_tags:
                     rec_ok = False
@@ -2475,6 +2500,22 @@ def main(argv=None):
             rep.fail(f"{LABEL_STEM['i2_status_verdict']}",
                      f"fsm loop.last_verdict={_lp.get('last_verdict')!r} != {_lp.get('unit_id')} "
                      f"verify.json verdict={_lvd.get('verdict')!r} — the ledger must match the verifier")
+    # B5 (WP-A): duplicate unit_id in fsm-state.units[] makes every last-wins consumer
+    # (_fsm_unit_status for the I9 mid-loop NOTE, _unit_retries for the I4/escalate cross-checks,
+    # the I2 subset check) ORDER-DEPENDENT — a shadowing duplicate can downgrade an I9 FAIL to a NOTE.
+    # This mirrors the I3 graph.json unit-id uniqueness fix (round 1); JSON Schema cannot express
+    # cross-item uniqueness on a derived key, so the validator is the only enforcement point.
+    # Offline/post-hoc — gates no transition.
+    if fsm and isinstance(fsm.get("units"), list):
+        _fids = [_u.get("unit_id") for _u in fsm["units"] if isinstance(_u, dict) and _u.get("unit_id") is not None]
+        if len(_fids) != len(set(_fids)):
+            _fdupes = sorted({x for x in _fids if _fids.count(x) > 1})
+            rep.fail(f"{LABEL_STEM['i2_fsm_unit_unique']}",
+                     f"duplicate unit_id(s) {_fdupes} in fsm-state.units[] — ids must be unique "
+                     "(status/retries consumers collapse duplicates last-wins, making I9/I4 verdicts "
+                     "order-dependent)")
+        else:
+            rep.ok(f"{LABEL_STEM['i2_fsm_unit_unique']} ({len(_fids)} unique fsm unit_id(s))")
     if fsm and isinstance(fsm.get("units"), list) and graph_doc is not None:
         _allowed_ids = {u.get("id") for u in graph_doc.get("units", [])}
         for _ru in (graph_doc.get("retired_units", []) or []):   # retired units legitimately leave units[]
