@@ -421,6 +421,9 @@ LABELS = [
     {"key": "i18_records_required", "stem": "I18 amendment records required", "invariant": "I18"},
     {"key": "i18_bookkeeping", "stem": "I18 amendment bookkeeping", "invariant": "I18"},
     {"key": "i19_scope", "stem": "I19 amendment scope", "invariant": "I19"},
+    # FSM invariants — per-unit DoD / non-goal binding (guardrails 1.8.0)
+    {"key": "unit_dod_refs", "stem": "I20 unit dod_refs", "invariant": "I20"},
+    {"key": "unit_non_goal_refs", "stem": "I21 unit non_goal_refs", "invariant": "I21"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
     {"key": "i9_present", "stem": "I9 verification present", "invariant": "I9"},
@@ -2139,6 +2142,125 @@ def main(argv=None):
                                  f"(units_added {sorted(_children_set)}) — a parent criterion maps only to its own children")
             if rec_ok:
                 rep.ok(f"{LABEL_STEM['i19_scope']} (amendments/{aid}: dod-traced, gated, split-covered)")
+
+    # ---- I20 per-unit DoD binding (dod_refs) — adoption closure + verbatim membership + brief mirror ----
+    # WP-1 (guardrails 1.8.0): generalizes I19's verbatim set-membership from amendment RECORDS to
+    # graph.json units[]. Adoption/presence-triggered: a run where NO graph unit carries the dod_refs
+    # KEY emits nothing (archived pre-adoption runs stay green — pure presence-triggering, never a
+    # validator_version read; state-machine.md §5 version-skew posture). Once ANY unit adopts:
+    #   * CLOSURE — every unit must carry the key ("some bound, some not" is the forgot-vs-bound
+    #     ambiguity this invariant exists to kill);
+    #   * MEMBERSHIP (always when present) — each ref must be verbatim ∈ clarifications.json
+    #     .definition_of_done (decidable string membership; the semantic backstop is the
+    #     verifier/critique pass — state-machine.md §5 honest boundary, exactly like I19);
+    #   * BRIEF MIRROR — units/<id>/brief.json (when it exists and parses) must carry dod_refs
+    #     sorted-equal to the graph unit's (the brief is the frozen dispatch contract; drift means
+    #     the executed contract diverged from the plan's binding).
+    # Amendment interplay: I19 keeps governing amendment RECORDS' dod_refs untouched; units an
+    # amendment adds land in graph.json.units[] and are therefore I20-bound under adoption — one
+    # standard, zero I19 edits. Offline post-hoc predicate over emitted artifacts: gates no FSM
+    # transition, no LT7 guard — correction-loop termination (Claim D) untouched.
+    _i20_clar = docs.get("clarifications")
+    if graph_doc is not None and isinstance(_i20_clar, dict):
+        _i20_units = [u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
+        _i20_dset = {x for x in _i20_clar.get("definition_of_done", []) if isinstance(x, str)}
+        _i20_bound = [u for u in _i20_units if "dod_refs" in u]
+        if _i20_bound:                                                # ADOPTION
+            _i20_failures = []                   # (label, msg) pairs — explicit tracking
+            _i20_unbound = sorted(str(u.get("id", "?")) for u in _i20_units if "dod_refs" not in u)
+            if _i20_unbound:                                          # CLOSURE
+                _i20_failures.append((f"{LABEL_STEM['unit_dod_refs']}",
+                                      f"adoption closure: units missing dod_refs: {_i20_unbound}"))
+            for u in _i20_bound:                 # MEMBERSHIP (always when present)
+                _uid = u.get("id", "?")
+                refs = u.get("dod_refs")
+                refs = [r for r in refs if isinstance(r, str)] if isinstance(refs, list) else []
+                miss = sorted(r for r in refs if r not in _i20_dset)
+                if miss:
+                    _i20_failures.append((f"{LABEL_STEM['unit_dod_refs']} (units/{_uid})",
+                                          f"not verbatim in definition_of_done: {miss}"))
+                bdoc = None                      # BRIEF MIRROR — parse directly (a schema-invalid
+                _bp = os.path.join(units_dir, str(_uid), "brief.json")   # brief still gets the drift
+                if os.path.exists(_bp):                                  # check; its schema FAIL
+                    try:                                                 # fires separately above)
+                        _cand = load_json(_bp)
+                    except Exception:
+                        _cand = None
+                    if isinstance(_cand, dict):
+                        bdoc = _cand
+                if bdoc is not None:
+                    if "dod_refs" not in bdoc:
+                        _i20_failures.append((f"{LABEL_STEM['unit_dod_refs']} (units/{_uid})",
+                                              "brief mirror missing: graph unit is bound but "
+                                              "brief.json carries no dod_refs"))
+                    else:
+                        _brefs = bdoc.get("dod_refs")
+                        _bnorm = (sorted(x for x in _brefs if isinstance(x, str))
+                                  if isinstance(_brefs, list) else None)
+                        if _bnorm != sorted(refs):
+                            _i20_failures.append((f"{LABEL_STEM['unit_dod_refs']} (units/{_uid})",
+                                                  f"brief mirror drift: brief.dod_refs {_brefs!r} != "
+                                                  f"graph unit dod_refs {sorted(refs)!r}"))
+            for _lbl, _msg in _i20_failures:
+                rep.fail(_lbl, _msg)
+            if not _i20_failures:
+                rep.ok(f"{LABEL_STEM['unit_dod_refs']} ({len(_i20_bound)}/{len(_i20_units)} unit(s) "
+                       "bound; refs verbatim in definition_of_done; brief mirrors consistent)")
+
+    # ---- I21 per-unit non-goal binding (non_goal_refs) — adoption closure + membership + brief mirror ----
+    # WP-2 (guardrails 1.8.0): structurally identical to I20 over clarifications.json.non_goals, with
+    # ONE deliberate difference — non_goal_refs MAY be [] ("no non-goal applies to this unit" is an
+    # explicit, distinguishable statement), while an ABSENT key under adoption is a closure FAIL:
+    # explicit-none vs forgot becomes mechanical. Adoption = any unit carrying the non_goal_refs KEY;
+    # closure = every unit carries the KEY (possibly []); membership + brief mirror as I20. Same
+    # posture: presence-triggered (zero-adoption runs emit nothing), no validator_version read,
+    # offline post-hoc, gates no FSM transition, no LT7 guard — termination (Claim D) untouched.
+    if graph_doc is not None and isinstance(_i20_clar, dict):
+        _i21_units = [u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
+        _i21_ngset = {x for x in _i20_clar.get("non_goals", []) if isinstance(x, str)}
+        _i21_bound = [u for u in _i21_units if "non_goal_refs" in u]
+        if _i21_bound:                                                # ADOPTION
+            _i21_failures = []                   # (label, msg) pairs — explicit tracking
+            _i21_unbound = sorted(str(u.get("id", "?")) for u in _i21_units if "non_goal_refs" not in u)
+            if _i21_unbound:                                          # CLOSURE (key may map to [])
+                _i21_failures.append((f"{LABEL_STEM['unit_non_goal_refs']}",
+                                      f"adoption closure: units missing the non_goal_refs key: "
+                                      f"{_i21_unbound} ([] is the explicit none-applicable statement)"))
+            for u in _i21_bound:                 # MEMBERSHIP (always when present; [] passes vacuously)
+                _uid = u.get("id", "?")
+                refs = u.get("non_goal_refs")
+                refs = [r for r in refs if isinstance(r, str)] if isinstance(refs, list) else []
+                miss = sorted(r for r in refs if r not in _i21_ngset)
+                if miss:
+                    _i21_failures.append((f"{LABEL_STEM['unit_non_goal_refs']} (units/{_uid})",
+                                          f"not verbatim in non_goals: {miss}"))
+                bdoc = None                      # BRIEF MIRROR — same direct-parse posture as I20
+                _bp = os.path.join(units_dir, str(_uid), "brief.json")
+                if os.path.exists(_bp):
+                    try:
+                        _cand = load_json(_bp)
+                    except Exception:
+                        _cand = None
+                    if isinstance(_cand, dict):
+                        bdoc = _cand
+                if bdoc is not None:
+                    if "non_goal_refs" not in bdoc:
+                        _i21_failures.append((f"{LABEL_STEM['unit_non_goal_refs']} (units/{_uid})",
+                                              "brief mirror missing: graph unit carries the key but "
+                                              "brief.json carries no non_goal_refs"))
+                    else:
+                        _brefs = bdoc.get("non_goal_refs")
+                        _bnorm = (sorted(x for x in _brefs if isinstance(x, str))
+                                  if isinstance(_brefs, list) else None)
+                        if _bnorm != sorted(refs):
+                            _i21_failures.append((f"{LABEL_STEM['unit_non_goal_refs']} (units/{_uid})",
+                                                  f"brief mirror drift: brief.non_goal_refs {_brefs!r} != "
+                                                  f"graph unit non_goal_refs {sorted(refs)!r}"))
+            for _lbl, _msg in _i21_failures:
+                rep.fail(_lbl, _msg)
+            if not _i21_failures:
+                rep.ok(f"{LABEL_STEM['unit_non_goal_refs']} ({len(_i21_bound)}/{len(_i21_units)} unit(s) "
+                       "carry the key; refs verbatim in non_goals; brief mirrors consistent)")
 
     # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
     # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.

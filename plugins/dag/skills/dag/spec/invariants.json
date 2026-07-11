@@ -534,6 +534,38 @@
       ]
     },
     {
+      "id": "I20",
+      "title": "I20: per-unit DoD binding (dod_refs) — adoption closure, verbatim membership, brief mirror",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I20 unit dod_refs"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-1"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I21",
+      "title": "I21: per-unit non-goal binding (non_goal_refs) — adoption closure ([] = explicit none), verbatim membership, brief mirror",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I21 unit non_goal_refs"
+      ],
+      "fixtures": [],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-2"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
       "id": "AO-1",
       "title": "AO-1: monotone iteration counter, never reset",
       "tier": "discipline",
