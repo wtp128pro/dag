@@ -50,6 +50,17 @@
       "uniqueItems": true,
       "items": { "type": "string", "pattern": "^[LG][0-9]+$" },
       "description": "Ids of LEARNINGS entries applied in this unit. MAY be empty. The validator's propagation predicate REQUIRES that any tag-scoped learning E whose tag this unit carries (and created no later than this unit's wave) appears here. `L#` = a run/project-scoped entry; `G#` = a store-imported global entry, listable here once it is re-grounded/active (I12 force-injects re-grounded G# entries) — the pattern mirrors learnings.schema.json's `^[LG][0-9]+$` id."
+    },
+    "dod_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "OPTIONAL (guardrail enforcement). Mirror of the graph unit's `dod_refs` — the definition_of_done items this unit serves, each VERBATIM ∈ clarifications.json definition_of_done. When the graph unit carries dod_refs, validate_run.py I20's brief-mirror clause requires this sidecar to carry the SAME set (sorted-equality); NOT in `required` so archived runs stay schema-valid."
+    },
+    "non_goal_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "OPTIONAL (guardrail enforcement). Mirror of the graph unit's `non_goal_refs` — the non_goals items this unit must actively respect, each VERBATIM ∈ clarifications.json non_goals. MAY be [] (explicit 'no non-goal applies' — no minItems; empty-STRING elements still barred). Same I21 brief-mirror posture as dod_refs."
     }
   }
 }

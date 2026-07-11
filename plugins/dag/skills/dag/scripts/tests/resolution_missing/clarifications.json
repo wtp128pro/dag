@@ -1,0 +1,44 @@
+{
+  "run_label": "good-fixture",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "which schema toolchain is available",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "require python3 (stdlib-only, no Node.js)"
+    },
+    {
+      "id": 2,
+      "ambiguity": "TLA+ vs FSM table",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "FSM table is the model of record"
+    },
+    {
+      "id": 3,
+      "ambiguity": "synthetic fake-resolved item",
+      "materiality": "material",
+      "resolved": true
+    }
+  ],
+  "scope": {
+    "in_scope": [
+      "schemas",
+      "validator",
+      "fsm spec"
+    ],
+    "out_of_scope": [
+      "editing the live skill"
+    ]
+  },
+  "open_items": [],
+  "definition_of_done": [
+    "validate_run.py exits 0 on this run directory (RESULT: PASS)",
+    "the schema self-check (--self-check) passes"
+  ],
+  "non_goals": [
+    "do NOT edit the live dag skill",
+    "do NOT add NLP/semantic heuristics or new runtime dependencies to the validator"
+  ]
+}

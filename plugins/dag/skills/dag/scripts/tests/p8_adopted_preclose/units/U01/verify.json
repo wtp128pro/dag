@@ -1,0 +1,38 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Skeptic",
+  "verdict": "PASS",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": [
+    "brief.md",
+    "debrief.json",
+    "cited sources"
+  ],
+  "feedback": {
+    "actionable_changes": [],
+    "do_not_touch": [
+      "the maker!=checker mandate framing",
+      "the disclosed search-summary caveat"
+    ]
+  },
+  "defects": [],
+  "socratic": {
+    "premise": "On independent re-check the executor's 13 findings meet every acceptance criterion.",
+    "counter": "Re-resolved each cited source independently and sought a broken/undated locator; none found, so the PASS HOLDS.",
+    "pivot": "If a single cited primary source failed to resolve, the verdict would flip to FAIL.",
+    "confidence": "high - sources re-resolved; the one search-summary figure was already disclosed."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER on the premise from the sources directly (not the executor's reasoning): it holds."
+  },
+  "guardrail_compliance": [
+    {
+      "non_goal": "do NOT edit the live dag skill",
+      "status": "respected"
+    }
+  ]
+}

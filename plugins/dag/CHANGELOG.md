@@ -3,6 +3,63 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] — 2026-07-11
+
+**Guardrail & clarification enforcement** — the run's own declared guardrails (Definition-of-Done
+items, non-goals, ambiguity resolutions) become mechanically checkable: six new offline validator
+invariants (**I20–I25**) bind work units to the DoD/non-goal registers, require verdict-bearing
+verifies to attest guardrail compliance (a `violated` row on a PASS verdict is a mechanical FAIL — a
+delivered non-goal is a defect, not a bonus), close the loop at P8, and put content floors under the
+ambiguity register. Adoption is opt-in per run: every new schema field is OPTIONAL, nothing was added
+to any required list, and a pre-feature-shape run trips nothing (proven by the `legacy_prefeature_ok`
+fixture). **All six predicates are post-hoc/offline over emitted artifacts — no live guard on the
+correction loop's sole back-edge LT7 — so the per-unit termination proof (Claims A–D) is PRESERVED.
+I25 is the release's sole guarantee-REVISING change and carries a migration argument
+(`references/state-machine.md` §4).**
+
+### Added
+- **Per-unit DoD / non-goal binding (WP-1, WP-2 / I20, I21)** — OPTIONAL `dod_refs` /
+  `non_goal_refs` arrays on graph units (`graph.schema.json`) with mirrors on briefs
+  (`brief.schema.json`). Once any unit adopts, I20/I21 enforce run-wide adoption closure, verbatim
+  membership of every ref in `definition_of_done` / `non_goals`, and graph↔brief mirror consistency
+  (fail-closed on missing, drifting, or malformed mirrors). `non_goal_refs: []` is a legal explicit
+  none-applicable; an absent key under adoption is a closure FAIL.
+- **Guardrail-compliance attestation (WP-3 / I22)** — new OPTIONAL `guardrail_compliance` block in
+  `verify.schema.json` (rows `{non_goal, status: respected|violated|not-applicable, note?}`). Once
+  any verdict-bearing verify carries it, I22 enforces closure over all verdict-bearing verifies,
+  verbatim row membership in `non_goals`, coverage of the unit's `non_goal_refs`, and the bite: a
+  `violated` row on a PASS verdict is a mechanical FAIL. Presence/shape only — whether a `respected`
+  row is TRUE stays verifier attestation (Limitation L).
+- **P8 DoD / non-goal closure (WP-4 / I23)** — at P8/DONE under adoption, every DoD item must be
+  referenced by at least one PASS-verified unit and every non-goal must carry a
+  respected/not-applicable attestation from a PASS unit; silent pre-P8.
+- **Ambiguity-register floor (WP-5 / I24)** — an empty `ambiguity_register` after structural work
+  exists is a FAIL (record real ambiguities or an explicit none-found item); a validator-only floor,
+  no schema `minItems`.
+- **Resolution-required conditional (WP-6 / I25)** — `clarifications.schema.json` gains an
+  item-level conditional: a `material` item marked `resolved: true` must carry non-empty
+  `resolution` text, with an I25 validator mirror (whitespace-only text also FAILs). **The sole
+  guarantee-REVISING change of the release, migration-argued.** I24/I25 are deliberately NOT
+  archive-silent (positive-evidence floors, `I-dod` precedent), while I20–I23 are archive-silent by
+  construction — see the version-skew policy in `references/state-machine.md` §5.
+- **Templates scaffold adoption by default** — `graph.md` (DoD-refs/Non-goal-refs table columns + a
+  binding stanza), `brief.md` (the two header bullets + the sidecar-mirror note), `verify.md`
+  (`guardrail_compliance` stanza incl. the violated+PASS=FAIL rule and the presence-not-genuineness
+  boundary), `clarifications.md` (resolution-required stanza).
+- **16 new fixtures** — the suite grows **119 → 135** on **both** schema backends, all mapped in
+  `spec/invariants.json` (SC6): negatives across I20–I25 plus three green proofs
+  (`guardrail_chain_ok` end-to-end adoption, `p8_adopted_preclose` pre-P8 silence,
+  `legacy_prefeature_ok` no-retro-fail on a stamped pre-feature-shape run). `spec_check` stays
+  PASS 7 / NOTE 1 / FAIL 0.
+
+### Changed
+- **Docs mirrored** — `SKILL.md`'s Phase 2/4/6/8 touchpoints now cite the mechanical counterparts
+  (I24+I25 register discipline, I20/I21 binding, I22 attestation incl. the violated+PASS sentence,
+  I23 closure + the `cancel_unit` remedy path); `references/state-machine.md` gains the six §4
+  invariant rows (fixture coverage + PRESERVES/REVISES classification per row), the §5 enforce-list
+  summary, Limitation letters **L–O** (row genuineness, vacuous resolution text, the all-minor
+  dodge, adoption-boundary residuals), and the version-skew bullet for the new family.
+
 ## [1.7.0] — 2026-07-10
 
 **Audit round 2 (extra_check remediation)** — a second reproduction-driven pass that closes what the

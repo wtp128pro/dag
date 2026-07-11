@@ -534,6 +534,130 @@
       ]
     },
     {
+      "id": "I20",
+      "title": "I20: per-unit DoD binding (dod_refs) — adoption closure, verbatim membership, brief mirror",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I20 unit dod_refs"
+      ],
+      "fixtures": [
+        "unit_dod_untraced",
+        "unit_dod_partial",
+        "unit_dod_brief_drift",
+        "guardrail_chain_ok",
+        "legacy_prefeature_ok"
+      ],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-1"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I21",
+      "title": "I21: per-unit non-goal binding (non_goal_refs) — adoption closure ([] = explicit none), verbatim membership, brief mirror",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I21 unit non_goal_refs"
+      ],
+      "fixtures": [
+        "unit_nongoal_untraced",
+        "unit_nongoal_partial",
+        "guardrail_chain_ok",
+        "legacy_prefeature_ok"
+      ],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-2"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I22",
+      "title": "I22: verify-time guardrail-compliance block — adoption closure over verdict-bearing verifies, verbatim non-goal membership, violated+PASS forbidden, non_goal_refs coverage; presence/shape only — whether a respected row is TRUE stays verifier attestation (presence-not-genuineness)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I22 guardrail compliance"
+      ],
+      "fixtures": [
+        "guardrail_pass_violated",
+        "guardrail_row_unregistered",
+        "guardrail_block_partial",
+        "guardrail_ref_uncovered",
+        "guardrail_chain_ok"
+      ],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-3"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I23",
+      "title": "I23: Phase-8 DoD / non-goal closure — at P8/DONE (I10's phase gate) every definition_of_done item must be referenced by some PASS-verified unit's dod_refs and every non-goal attested respected/not-applicable by a PASS unit's rows, each clause under its WP-1 / WP-3 adoption gate",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I23 closure"
+      ],
+      "fixtures": [
+        "p8_dod_unclosed",
+        "p8_nongoal_unattested",
+        "p8_adopted_preclose",
+        "guardrail_chain_ok"
+      ],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-4"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I24",
+      "title": "I24: artifact-driven ambiguity-register floor — once any structural artifact exists (the I-dod trigger union), a parsed clarifications.json must carry a non-empty ambiguity_register; none-found is recorded as an explicit register item (validator-only floor, no schema minItems; NOT archive-silent — I-dod precedent)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I24 register floor"
+      ],
+      "fixtures": [
+        "register_empty_structural",
+        "guardrail_chain_ok"
+      ],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-5"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I25",
+      "title": "I25: resolution required on resolved material items — a register item with materiality material and resolved true must carry non-blank resolution text (validator mirror of the clarifications schema conditional, I15-style backstop on the raw parse; NOT archive-silent)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I25 resolution present"
+      ],
+      "fixtures": [
+        "resolution_missing",
+        "guardrail_chain_ok"
+      ],
+      "provenance": [
+        "guardrails-1.8.0",
+        "WP-6"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
       "id": "AO-1",
       "title": "AO-1: monotone iteration counter, never reset",
       "tier": "discipline",
@@ -833,7 +957,7 @@
       "title": "IMP-07: malformed imported store context dropped (non-gating)",
       "tier": "discipline",
       "validator_label_prefixes": [
-        "MALFORMED (dropped, non-gating \u2014 imported store context)"
+        "MALFORMED (dropped, non-gating — imported store context)"
       ],
       "fixtures": [
         "store_malformed_nongating"

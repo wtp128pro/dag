@@ -9,6 +9,9 @@
 > sidecar (required keys: `unit_id`, `title`, `wave`, `depends_on`, `persona`, `budget_tokens`,
 > `acceptance_criteria`, `context_pointers`, `outputs`, `socratic_protocol`, `tags` ⊆ V_tag,
 > `learnings_applied`). Prose reasoning stays here in `.md`; the sidecar carries only the extract.
+> The sidecar ALSO mirrors the graph unit's **`dod_refs`** / **`non_goal_refs`** (scaffolded
+> default): when the graph unit carries them, `brief.json` MUST carry the SAME sets — the I20/I21
+> brief-mirror clause FAILs a missing or drifted mirror offline.
 
 - **Run:** <RUN_DIR name>
 - **Wave / dependencies:** wave <k>; depends on: <U.. debriefs, or "none">
@@ -16,6 +19,8 @@
 - **Budget:** ≤ 32K tokens. Read ONLY the files listed under "Context pointers".
 - **Tags:** `[<T ∈ V_tag>, …]` (from the `V_tag` registry in GRAPH.md — drives pattern-scoped learning propagation).
 - **Learnings applied:** `[<Lid>, …]` — every LEARNINGS entry whose scope matches this unit (quote each below). `[]` only if none match.
+- **DoD refs:** `["<verbatim definition_of_done item>", …]` — the DoD items this unit serves (≥ 1; mirrors the graph unit's `dod_refs`, I20).
+- **Non-goal refs:** `["<verbatim non_goals item>", …]` — the non-goals this unit must actively respect; `[]` = explicitly none apply (mirrors the graph unit's `non_goal_refs`, I21).
 
 ## Objective
 <one paragraph: exactly what this unit must produce. Single responsibility.>

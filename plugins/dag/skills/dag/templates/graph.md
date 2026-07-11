@@ -3,13 +3,27 @@
 # Work Graph — <run label>
 
 ## Units
-| ID | Title | Goal (single responsibility) | Executor persona | Verifier persona | Inputs (deps) | Tags (⊆ V_tag) | Outputs | Est. footprint | Acceptance criteria |
-|----|-------|------------------------------|------------------|------------------|---------------|----------------|---------|----------------|---------------------|
-| U01 | <…> | <…> | <persona> | <verifier> | none | `[research]` | <artifact> | <~k tokens> | <testable> |
-| U02 | <…> | <…> | <persona> | <verifier> | U01 | `[schema, validator]` | <artifact> | <~k tokens> | <testable> |
+| ID | Title | Goal (single responsibility) | Executor persona | Verifier persona | Inputs (deps) | Tags (⊆ V_tag) | DoD refs (verbatim ⊆ DoD) | Non-goal refs (verbatim ⊆ non-goals; `[]` = none apply) | Outputs | Est. footprint | Acceptance criteria |
+|----|-------|------------------------------|------------------|------------------|---------------|----------------|---------------------------|--------------------------------------------------------|---------|----------------|---------------------|
+| U01 | <…> | <…> | <persona> | <verifier> | none | `[research]` | `["<verbatim definition_of_done item>"]` | `[]` | <artifact> | <~k tokens> | <testable> |
+| U02 | <…> | <…> | <persona> | <verifier> | U01 | `[schema, validator]` | `["<verbatim definition_of_done item>"]` | `["<verbatim non_goals item>"]` | <artifact> | <~k tokens> | <testable> |
 
 Each unit's `Tags` are mirrored into its `brief.md` and drive pattern-scoped learning
 propagation (a `"tag:<T>"`-scoped LEARNINGS entry force-injects into every unit carrying `T`).
+
+## Per-unit DoD / non-goal binding (`dod_refs` / `non_goal_refs` — emit on EVERY unit)
+Every unit row above carries **`dod_refs`** and **`non_goal_refs`**, mirrored into `graph.json`'s
+unit objects and each unit's `brief.json` sidecar (the scaffolded default — do not delete them):
+- **`dod_refs`** (array, ≥ 1 item): the `clarifications.json definition_of_done` items this unit
+  serves — each element **verbatim**. Every unit must trace to at least one DoD item
+  (no orphan work; no DoD item left unowned at closure).
+- **`non_goal_refs`** (array, MAY be `[]`): the `non_goals` items this unit must actively respect —
+  each element **verbatim**. `[]` is the explicit, distinguishable "no non-goal applies to this
+  unit" statement; an *absent* key is not — explicit-none vs forgot is mechanical.
+
+Enforced offline post-hoc by validate_run.py **I20**/**I21** (adoption-closure): once ANY unit
+carries the field, EVERY unit must; each element must be verbatim-membership-checked against the
+register array; and when `units/<id>/brief.json` exists it must mirror the graph unit's set.
 
 ## Tag vocabulary (`V_tag` — the enumerated registry; extend only by editing this list)
 ```

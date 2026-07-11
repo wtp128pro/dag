@@ -1,0 +1,27 @@
+{
+  "run_label": "good-fixture",
+  "v_tag": ["research", "design", "schema", "validator", "formal", "core"],
+  "units": [
+    {
+      "id": "U01", "title": "Research", "goal": "map the landscape",
+      "executor_persona": "Researcher", "verifier_persona": "Skeptic",
+      "deps": [], "outputs": ["units/U01/debrief.json"],
+      "est_footprint_tokens": 21000, "acceptance_criteria": ["10-14 findings with sources"],
+      "tags": ["research", "core"]
+    },
+    {
+      "id": "U02", "title": "Design", "goal": "score approaches",
+      "executor_persona": "Architect", "verifier_persona": "Pragmatist",
+      "deps": ["U01"], "outputs": ["units/U02/debrief.json"],
+      "est_footprint_tokens": 18000, "acceptance_criteria": ["traceable to requirements"],
+      "tags": ["design", "core"]
+    }
+  ],
+  "edges": [
+    { "from": "U01", "to": "U02" }
+  ],
+  "waves": [
+    { "wave": 1, "units": ["U01"] },
+    { "wave": 2, "units": ["U02"] }
+  ]
+}

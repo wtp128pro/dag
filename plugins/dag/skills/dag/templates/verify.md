@@ -54,6 +54,19 @@ Phase-7 human gate, AO-5), not an invented middle verdict. `validate_run.py` **I
 post-hoc: high-stakes ⇒ `panel[]` present (≥3, trio covered) and `verdict == discrete majority`.
 (Routine units may use a single verifier and omit `panel[]`.)
 
+## Guardrail-compliance block (`guardrail_compliance` — emit it on every verdict-bearing verify)
+Attest the unit's non-goal compliance mechanically: one row per non-goal checked —
+`{non_goal, status, note?}` where `non_goal` is the **VERBATIM** `clarifications.json non_goals`
+string and `status ∈ respected | violated | not-applicable`. Cover at least every entry in the
+unit's `non_goal_refs` (an uncovered ref is an I22 FAIL). The scaffolded default is to emit the
+block on every verify that carries a verdict:
+- A `violated` row on a **PASS** verdict is a validator **FAIL** (I22) — a delivered non-goal is a
+  FAIL, not a bonus.
+- Adoption-closure (validate_run.py **I22**, offline post-hoc): once ANY verdict-bearing verify in
+  the run carries the block, EVERY verdict-bearing verify must.
+- Honesty boundary: presence / verbatim membership / coverage are mechanical; whether a
+  `respected` row is *true* remains your attestation (presence-not-genuineness).
+
 **Required keys** (`schemas/verify.schema.json`):
 - `unit_id`, `verifier_persona`, `verdict` (`PASS|FAIL|DISAGREE`), `iteration`
 - `executor_reasoning_seen: false` (independence invariant AO-7)
@@ -77,6 +90,8 @@ post-hoc: high-stakes ⇒ `panel[]` present (≥3, trio covered) and `verdict ==
 `audit_notes` (free-form: the criteria-check / evidence-audit / hallucination-sweep narrative),
 `panel[]` (`{lens ∈ correctness|reproduce|guardrail, verdict, verifier_persona?, summary?}` —
 **required on `high-stakes` units**, I16), `verify_rounds` (1–3, loop-until-dry), `converged` (bool),
+`guardrail_compliance[]` (`{non_goal (verbatim ∈ non_goals), status ∈
+respected|violated|not-applicable, note?}` — the scaffolded default above; adoption-closure I22),
 `disagreement{why_unresolvable}` (**iff** `verdict==DISAGREE`).
 
 Conditional (schema-enforced): `PASS ⇒ no blocker/major defect` (minor observations allowed — I6

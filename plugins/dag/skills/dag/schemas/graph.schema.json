@@ -38,6 +38,17 @@
             "uniqueItems": true,
             "items": { "type": "string", "minLength": 1 },
             "description": "This unit's tags, each a member of v_tag (V_tag). Basis for tag-scoped learnings propagation."
+          },
+          "dod_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "OPTIONAL (guardrail enforcement). The clarifications.json definition_of_done items this unit serves — each element VERBATIM ∈ definition_of_done. A bound unit serves ≥ 1 DoD item (minItems 1). Deliberately NOT in `required`: requiredness is the validator's adoption-closure (I20 — once ANY unit carries dod_refs, EVERY unit must, with a brief.json mirror), keeping archived runs schema-valid."
+          },
+          "non_goal_refs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "description": "OPTIONAL (guardrail enforcement). The clarifications.json non_goals items this unit must actively respect — each element VERBATIM ∈ non_goals. MAY be [] (an explicit, distinguishable 'no non-goal applies to this unit' statement — no minItems; empty-STRING elements still barred), while an ABSENT key under adoption is an I21 closure FAIL. Same adoption-closure + brief-mirror posture as dod_refs."
           }
         }
       }

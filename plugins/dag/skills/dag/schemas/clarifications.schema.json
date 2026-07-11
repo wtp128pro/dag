@@ -20,7 +20,15 @@
           "materiality": { "type": "string", "enum": ["material", "minor"] },
           "resolved": { "type": "boolean" },
           "resolution": { "type": "string" }
-        }
+        },
+        "allOf": [
+          { "$comment": "F7: a material item marked resolved must carry non-empty resolution text.",
+            "if":   { "properties": { "materiality": { "const": "material" },
+                                      "resolved":    { "const": true } },
+                      "required": ["materiality", "resolved"] },
+            "then": { "required": ["resolution"],
+                      "properties": { "resolution": { "minLength": 1 } } } }
+        ]
       }
     },
     "scope": {
