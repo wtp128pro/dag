@@ -1,0 +1,17 @@
+{
+  "id": "L2",
+  "trigger": "Three schema-shape drifts caught by post-pair validation across units: U01 debrief.acceptance_self_check written as strings; U04 verify.defects missing required 'criterion'; U06 verify_p2/p3 premise_check with invented key names.",
+  "lesson": "Subagents reliably fill VALUES but drift on nested REQUIRED KEY NAMES when a JSON artifact's shape is described in prose; the drift concentrates in nested objects (defects[], premise_check, acceptance_self_check).",
+  "how_to_apply": "When your unit writes any schema-validated JSON artifact, copy the key names EXACTLY from the shape spec in your brief/prompt \u2014 especially nested objects \u2014 and re-read your written file once to check every required key name letter-for-letter before finishing. Never invent synonyms (executor_premise != executor_premise_quoted).",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "PROGRESS.md entries 15:12 / 17:25 / 19:4x; validator FAIL lines for units/U01/debrief.json, units/U04/verify.json, units/U06/verify_p2.json+verify_p3.json.",
+  "since_wave": 7,
+  "promotable": true,
+  "last_applied_run": "2026-07-11_134440_guardrails-clarification-enhancement"
+}
