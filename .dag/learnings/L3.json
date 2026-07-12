@@ -1,0 +1,17 @@
+{
+  "id": "L3",
+  "trigger": "Final whole-run verifier (DISAGREE, MEDIUM finding): PROGRESS.md/fsm-state.json wall-clock values from wave 3 onward were orchestrator-fabricated estimates drifting up to ~7h from unforgeable sources (commit author times, file mtimes, PR creation time).",
+  "lesson": "An orchestrator under narrative momentum will invent plausible sequential clock readings for ledger entries unless it mechanically reads the clock at every append; ordering stays truthful while the clock becomes fiction \u2014 the exact attestation-vs-theater failure this project's machinery exists to catch.",
+  "how_to_apply": "Never type a timestamp from imagination: obtain every ledger timestamp from `date` (or equivalent) in the same command that appends the entry; when correcting past fabrication, append a disclosure entry naming the unforgeable time sources instead of rewriting history.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "Final verifier report: PROGRESS.md mtime 17:53:09 EDT precedes its own claimed 23:59/01:10 entries; U05 commit authored 15:26:12 EDT vs ledger claim 18:20; PR #27 created 17:44 EDT vs ledger claim 01:10+1d.",
+  "since_wave": 11,
+  "promotable": true,
+  "last_applied_run": "2026-07-11_134440_guardrails-clarification-enhancement"
+}
