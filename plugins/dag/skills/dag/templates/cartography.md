@@ -10,7 +10,7 @@
 ## What matters for THIS task (relevance defined by the objective)
 | Element | What it is | Why it matters here | Authority / ground truth |
 |---------|-----------|---------------------|--------------------------|
-| <component/source/system> | <role> | <relevance to objective> | <the file/test/doc that decides> |
+| <component/source/system> | <role> | <relevance to objective> | <the file/test/doc that decides; external ⇒ cite SOURCES register row S<n>> |
 
 ## Relationships (dependencies, data flows, contracts, ownership)
 - <A → B: nature of the link, and the invariant that must hold>
@@ -28,3 +28,6 @@
 > Sidecar note: the **Relationships** and **Lens used** sections are prose-only (`.md`) and are
 > NOT carried into `cartography.json` — the sidecar is `additionalProperties:false` and holds only
 > `run_label, terrain_shape, elements{element,role,relevance,authority}, invariants, risks, unknowns`.
+> The source landscape lives in the sibling SOURCES.md / sources.json register (templates/sources.md,
+> schemas/sources.schema.json) — produced by the source sweep BEFORE the cartography-informed
+> clarification round; this map CITES its rows (`S<n>`), never re-describes them.

@@ -51,6 +51,58 @@
       "items": { "type": "string", "pattern": "^[LG][0-9]+$" },
       "description": "Ids of LEARNINGS entries applied in this unit. MAY be empty. The validator's propagation predicate REQUIRES that any tag-scoped learning E whose tag this unit carries (and created no later than this unit's wave) appears here. `L#` = a run/project-scoped entry; `G#` = a store-imported global entry, listable here once it is re-grounded/active (I12 force-injects re-grounded G# entries) — the pattern mirrors learnings.schema.json's `^[LG][0-9]+$` id."
     },
+    "required_sources": {
+      "type": "array",
+      "description": "OPTIONAL (execution-effort enforcement, I29). Register-entry references the executor MUST consult: S-ids resolve into RUN_DIR/sources.json (I29-3), locator is copied INLINE so the brief stays self-contained (the executor never opens sources.json). tier mirrors the register row (3-value enum: T-PARAM is not registrable). A rejected register row cannot be required (I29-3). Once any brief in the run adopts this or claims_owed, I29's closure clause binds every brief.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "locator", "tier"],
+        "properties": {
+          "source_id": { "type": "string", "pattern": "^S[0-9]+$" },
+          "locator": { "type": "string", "minLength": 1 },
+          "tier": { "type": "string", "enum": ["T-VENDOR", "T-COMM", "T-LOCAL"] },
+          "disposition": { "type": "string", "enum": ["consulted", "queued"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "claims_owed": {
+      "type": "array",
+      "description": "OPTIONAL (execution-effort enforcement, I29). Obligations fixed BEFORE execution: derived by the ORCHESTRATOR at P5 from this brief's acceptance criteria + the SOURCES register per the O1-O4 rules (references/evidence-standards.md). The executor may ADD entries, never shrink. trigger_ref is VERBATIM one of this brief's acceptance_criteria/dod_refs (I29-2 membership - no straw obligations). Non-empty claims_owed or required_sources REQUIRES the verbatim CB-1 bridge criterion in acceptance_criteria (I29-4) - that bridge is what makes retrieval failure FAIL-able under I6. Empty [] requires claims_owed_none_reason (I29-5).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "trigger_ref"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": [
+              "empirical-world-fact", "code-behavior", "api-tool-contract",
+              "numeric-quantitative", "causal", "design-judgment", "provenance-quote"
+            ]
+          },
+          "trigger_ref": { "type": "string", "minLength": 1 },
+          "min_tier": { "type": "string", "enum": ["T-VENDOR", "T-COMM", "T-LOCAL"] },
+          "source_ref": { "type": "string", "pattern": "^S[0-9]+$" },
+          "note": { "type": "string" }
+        },
+        "allOf": [
+          { "$comment": "B1: source-native types REQUIRE min_tier (U01 RT-9; T-PARAM/blank are unrepresentable - the enum has three values).",
+            "if": { "properties": { "type": { "enum": ["empirical-world-fact", "api-tool-contract", "provenance-quote"] } }, "required": ["type"] },
+            "then": { "required": ["min_tier"] } },
+          { "$comment": "B2: observation-native types carry NO min_tier - their coverage is type-match + covers_owed linkage with form checked per the claim-type table.",
+            "if": { "properties": { "type": { "enum": ["code-behavior", "numeric-quantitative", "causal", "design-judgment"] } }, "required": ["type"] },
+            "then": { "not": { "required": ["min_tier"] } } }
+        ]
+      }
+    },
+    "claims_owed_none_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "REQUIRED by I29-5 (.strip() bar, validator-side) exactly when claims_owed is present and empty - the I21 explicit-none pattern; 'forgot' and 'none owed' must be distinguishable."
+    },
     "dod_refs": {
       "type": "array",
       "minItems": 1,

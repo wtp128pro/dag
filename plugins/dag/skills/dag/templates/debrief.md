@@ -24,6 +24,13 @@ never truncate to "fit" the schema.
   (U8 — the schema enum, not the prose labels): `empirical-world-fact`, `code-behavior`,
   `api-tool-contract`, `numeric-quantitative`, `causal`, `design-judgment`, `provenance-quote`
   (taxonomy rationale: evidence-standards.md).
+  Externally-sourced rows ALSO carry (schema `debrief.schema.json` is authoritative — this list
+  is a NON-NORMATIVE mirror): `source_tier` (T-VENDOR/T-COMM/T-LOCAL/T-PARAM), `retrieval_rung`
+  (live-fetch/vendored-docs/cached-copy/parametric-only), `accessed` (YYYY-MM-DD, never
+  fabricated), `covers_owed` (owed ids this row discharges), `source_refs` (register S-ids),
+  `vendor_silent` + `vendor_surface_searched`, and — on design-judgment rows —
+  `extracted_premises` (+ `extracted_premises_none_reason`). Enforcement: I29/I30 + I31–I34
+  (RL-1/RL-2/RL-3/CO-1), offline.
 - `socratic{premise, counter, pivot, confidence}` — result of the pre-output self-interrogation;
   `counter` records an OUTCOME (mechanical units: `counter: "unit is mechanical; no material
   premise to break"`); `confidence` starts `high|medium|low`

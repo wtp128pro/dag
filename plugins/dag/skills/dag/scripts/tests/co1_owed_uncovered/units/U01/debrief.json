@@ -1,0 +1,48 @@
+{
+  "unit_id": "U01",
+  "persona": "Researcher",
+  "iteration": 1,
+  "result": "C1 discharged by a project-local code-behavior row; C2 left undischarged this iteration.",
+  "evidence_table": [
+    {
+      "claim": "The validator rejects a covered owed row whose evidence omits the id in covers_owed",
+      "type": "code-behavior",
+      "evidence": "validate_run.py I30 clause 2 fabricated-coverage FAIL; README.md:12",
+      "reproducible": true,
+      "covers_owed": [
+        "C1"
+      ],
+      "source_tier": "T-LOCAL",
+      "source_refs": [
+        "S1"
+      ]
+    }
+  ],
+  "socratic": {
+    "premise": "Both owed claims are discharged by a linked evidence row at the highest reachable tier.",
+    "counter": "Sought an owed id with no covering row or a tier the row cannot satisfy; found none - C1 maps to the T-LOCAL row and C2 to the parametric fallback, so the premise HOLDS (C2 confidence-capped).",
+    "pivot": "Had the vendor surface been reachable, C2 would move off the parametric fallback to a covered (not downgraded) status.",
+    "confidence": "high - one claim rests on a disclosed parametric fallback."
+  },
+  "acceptance_self_check": [
+    {
+      "criterion": "10-14 findings",
+      "met": true,
+      "evidence_ref": "row 0"
+    }
+  ],
+  "assumptions": [
+    "parametric recall of the documented default is acceptable at a confidence-capped level"
+  ],
+  "residual_risks": [
+    "C2 owed but not yet discharged"
+  ],
+  "confidence": "high",
+  "footprint": {
+    "tokens_consumed": 21000,
+    "within_budget": true
+  },
+  "handoff_notes": [
+    "C2 is a downgraded coverage; re-fetch the vendor doc when the surface is reachable"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "unit_id": "U01",
+  "persona": "Researcher",
+  "iteration": 1,
+  "result": "I32 (c) negative: C2 is covered by an ASSUMPTION-labeled parametric fallback named in residual_risks, but the debrief reports top-level confidence 'high' - the sole RL-2 clause this fixture trips (the confidence cap).",
+  "evidence_table": [
+    {
+      "claim": "The validator rejects a covered owed row whose evidence omits the id in covers_owed",
+      "type": "code-behavior",
+      "evidence": "validate_run.py I30 clause 2 fabricated-coverage FAIL; README.md:12",
+      "reproducible": true,
+      "covers_owed": [
+        "C1"
+      ],
+      "source_tier": "T-LOCAL",
+      "source_refs": [
+        "S1"
+      ]
+    },
+    {
+      "claim": "The documented default figure, recalled parametrically (R0-R2 vendor surface unreachable this run)",
+      "type": "empirical-world-fact",
+      "evidence": "ASSUMPTION: parametric recall of the documented default; live-fetch and vendored-docs both unavailable this run",
+      "reproducible": true,
+      "covers_owed": [
+        "C2"
+      ],
+      "source_tier": "T-PARAM",
+      "retrieval_rung": "parametric-only"
+    }
+  ],
+  "socratic": {
+    "premise": "Both owed claims are discharged by a linked evidence row at the highest reachable tier.",
+    "counter": "Sought an owed id with no covering row or a tier the row cannot satisfy; found none - C1 maps to the T-LOCAL row and C2 to the parametric fallback, so the premise HOLDS (C2 confidence-capped).",
+    "pivot": "Had the vendor surface been reachable, C2 would move off the parametric fallback to a covered (not downgraded) status.",
+    "confidence": "high - one claim rests on a disclosed parametric fallback."
+  },
+  "acceptance_self_check": [
+    {
+      "criterion": "10-14 findings",
+      "met": true,
+      "evidence_ref": "rows 0-1"
+    }
+  ],
+  "assumptions": [
+    "parametric recall of the documented default is acceptable at a confidence-capped level"
+  ],
+  "residual_risks": [
+    "C2 rests on parametric recall (R0-R2 vendor surface unreachable this run); confidence-capped"
+  ],
+  "confidence": "high",
+  "footprint": {
+    "tokens_consumed": 21000,
+    "within_budget": true
+  },
+  "handoff_notes": [
+    "C2 is a downgraded coverage; re-fetch the vendor doc when the surface is reachable"
+  ]
+}

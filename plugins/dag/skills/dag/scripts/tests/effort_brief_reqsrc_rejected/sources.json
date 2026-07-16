@@ -1,0 +1,16 @@
+{
+  "run_label": "example-typo-fix",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed; typo at line 12" },
+    { "id": "S2", "title": "a stale draft superseded before the sweep", "tier": "T-LOCAL",
+      "locator": "OLD_DRAFT.md:1", "disposition": "rejected",
+      "why": "off-topic and stale — the honest failed-admission record, kept per U02 §4" }
+  ],
+  "coverage": [
+    { "area": "task file state", "claim": "the misspelled line and its context are mapped",
+      "based_on": ["S1"], "gaps": "none" }
+  ]
+}

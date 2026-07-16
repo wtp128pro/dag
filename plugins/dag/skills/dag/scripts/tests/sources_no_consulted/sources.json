@@ -1,0 +1,11 @@
+{
+  "run_label": "no-consulted",
+  "sources": [
+    { "id": "S1", "title": "a doc queued for execution", "tier": "T-LOCAL",
+      "locator": "docs/thing.md", "disposition": "queued",
+      "why": "identified but not opened during the sweep", "queued_for": "execution" }
+  ],
+  "coverage": [
+    { "area": "thing", "claim": "the doc was located", "based_on": ["S1"], "gaps": "not yet read" }
+  ]
+}

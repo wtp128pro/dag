@@ -136,3 +136,71 @@ register_empty_structural	1	I24 register floor
 resolution_missing	1	resolution
 guardrail_chain_ok	0	
 legacy_prefeature_ok	0	
+sources_missing_structural	1	I26 sources register (presence)
+sources_no_consulted	1	I26 sources register (consulted floor)
+sources_dup_id	1	I26 sources register (id uniqueness)
+sources_row_incomplete	1	I26 sources register (row S1 completeness)
+sources_tcomm_unadmitted	1	I26 sources register (venue linkage S1)
+sources_tcomm_rejected_ok	0	
+sources_tcomm_rejected_admitted_ok	0	
+sources_venue_blank_k	1	I26 sources register (venue rationale V1)
+sources_coverage_dangling	1	I26 sources register (coverage linkage)
+sources_coverage_unread_basis	1	I26 sources register (coverage linkage)
+sources_ok	0	
+sweep_not_swept	1	I27 clarification sweep (not swept)
+sweep_missing_dimension	1	I27 clarification sweep (coverage)
+sweep_duplicate_dimension	1	I27 clarification sweep (coverage)
+sweep_clean_no_statement	1	I27 clarification sweep (entry terms completeness)
+sweep_dangling_register_id	1	I27 clarification sweep (cartography round)
+sweep_material_selfdefault	0	N-I27 (material self-default)
+sweep_promptverbatim_nospan	1	I27 clarification sweep (prompt_span 1)
+sweep_dimension_tagged_clean	1	I27 clarification sweep (flip 1)
+sweep_missing_spot_check_p8	1	I27 clarification sweep (spot-check)
+sweep_all_found_minor	0	N-I27 (manufactured diligence)
+sweep_dup_statement	0	N-I27 (duplicate statement)
+sweep_fully_green	0	
+sweep_version_gated_silent	0	
+depth_ok_light	0	
+depth_divergent_confirmation	0	
+depth_override_midrun	0	
+depth_ok_full	0	
+depth_blank_justification	1	I28 depth floor (contentfulness)
+depth_no_phase2_touch	1	I28 depth floor (phase2 touch)
+depth_phase2_raised	1	I28 depth floor (phase2 raise)
+depth_skipped_floors_mismatch	1	I28 depth floor (skipped-floor disclosure)
+depth_tier_lowered	1	I28 depth floor (ratchet)
+depth_probe_gap_standard	1	I28 depth floor (DT-K2 probe floor)
+depth_full_spot_check_gap	1	I28 depth floor (DT-K4 sweep spot-check)
+depth_surface_contradiction	1	I28 depth floor (external-surface consistency)
+effort_brief_ok	0
+effort_brief_ok_light	0
+effort_brief_bridge_rewrapped	0
+effort_brief_no_bridge	1	I29 execution-effort briefs (bridge presence
+effort_brief_straw_trigger	1	I29 execution-effort briefs (owed-entry shape
+effort_brief_bad_min_tier	1	I29 execution-effort briefs (owed-entry shape
+effort_brief_queued_consumer_missing	1	I29 execution-effort briefs (queued-consumer closure
+effort_brief_empty_no_reason	1	I29 execution-effort briefs (explicit-none
+effort_brief_reqsrc_dangling	1	I29 execution-effort briefs (register linkage
+effort_brief_reqsrc_rejected	1	I29 execution-effort briefs (register linkage
+effort_brief_closure	1	I29 execution-effort briefs (adoption closure
+effort_verify_ok	0
+retrieval_coverage_vacuous	1	I30 retrieval coverage (vacuous coverage
+effort_verify_pass_uncovered	1	I30 retrieval coverage (PASS-with-uncovered
+effort_verify_phantom_owed	1	I30 retrieval coverage (totality
+effort_verify_fake_covered	1	I30 retrieval coverage (fabricated coverage
+effort_verify_downgrade_laundered	1	I30 retrieval coverage (downgrade laundering
+effort_verify_no_probe	1	I30 retrieval coverage (probe floor
+effort_verify_missing_block	1	I30 retrieval coverage (forced linkage
+effort_verify_reqsrc_not_consulted_pass	1	I30 retrieval coverage (required-source not-consulted
+effort_verify_no_tier_stamp	1	I30 retrieval coverage (tier stamp
+effort_verify_consulted_no_sourceref	1	I30 retrieval coverage (consulted-evidenced
+effort_verify_unreachable_undeclared	1	I30 retrieval coverage (unreachable-declared
+rl_rung_missing	1	I31 rung presence
+rl_cached_no_path	1	I31 rung presence
+rl_param_no_assumption	1	I32 parametric-downgrade consistency (assumption-label
+rl_param_high_confidence	1	I32 parametric-downgrade consistency (confidence-cap
+rl_param_no_residual	1	I32 parametric-downgrade consistency (residual-risk
+rl_param_compliant_ok	0	
+rl_premise_missing	1	I33 premise-extraction presence
+co1_owed_uncovered	1	I34 owed coverage
+retrieval_standard_ok	0

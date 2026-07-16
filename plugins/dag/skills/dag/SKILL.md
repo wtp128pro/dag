@@ -257,21 +257,60 @@ even for work that looks trivial. The persona gate is **mechanically non-skippab
 `personas_confirmed:true` flag that is not backed by a valid `personas.json`
 (references/state-machine.md G-personas / T2).
 
+**The depth tier rides this gate (no fourth gate, no new FSM edge).** In the SAME
+`AskUserQuestion` batch as the roster — tier question first, since roster breadth is
+tier-downstream — propose a run depth tier, `light` | `standard` | `full`, with your
+recommended option marked and a justification carrying four REQUIRED contentful fields:
+`stakes` (what breaks if this run is wrong), `reversibility` (how cheaply a wrong result is
+undone) — both free text whose only check is the human reading them — `external_surface`
+(structured: `kind` project-local | external-dependent | mixed, plus `detail`; the validator
+cross-checks `kind` against the run's own evidence rows), and `skipped_floors` — the CANONICAL
+per-knob delta list (`DT-K<n>@<tier>:` entries, one per knob below `full`; empty only for
+`full`) so the human confirms the tier seeing the COMPLETE list of what will NOT be done. The
+human confirms or picks any other tier — the initial choice is the human's alone, and `full`
+is always on the option list. If the human picks a different tier than proposed, re-render
+`skipped_floors` for the CONFIRMED tier before writing `fsm-state.depth`; keep the proposed
+disclosure as prose in `DECISIONS.md`. Record the decision in `fsm-state.depth` (`tier`,
+`proposed_tier`, `confirmed_tier`, `confirmed_at_gate`, `justification`) and log it in
+`DECISIONS.md`; at Phase 2, record it as an ordinary ambiguity-register item (stakes
+dimension) AND — unconditionally, when the tier was confirmed at this gate — carry one tier
+line in the Phase-2 question batch ("confirmed tier is `<tier>`; keep or raise?"), recorded as
+`fsm-state.depth.phase2_touch`. After confirmation the tier is a RATCHET: you can never lower
+it; any change is upward-only, human-decided at a later touchpoint, appended to
+`fsm-state.depth.overrides[]` with a `decision_ref` and a `pending_units` snapshot, and raised
+floors bind only units not yet PASS-verified (each unit's verify records
+`tier_at_verification`). The validator's I28 checks the recorded tier's floors against the
+emitted artifacts offline (see the Scope note's knob table; per-tier floors are non-negotiable
+minimums, and no tier waives an invariant or a human gate).
+
 ---
 
 ## Phase 2 — Clarification analysis  (req 2)
 
 Goal: eliminate every *material* lapse in the requirements before any work begins.
 
-1. Adopt the **Clarifier** persona (inline, or a read-only Explore subagent). Produce an
-   **ambiguity register** covering: undefined terms, unstated success criteria, hidden
-   assumptions, missing constraints, scope boundaries (in/out), audience, format, and
-   failure modes. Be contextual, not mechanical — ask *"what would make a wrong guess
-   here change the outcome?"*
+1. Adopt the **Clarifier** persona (inline, or a read-only Explore subagent). Run the
+   **dimensional sweep**: for EACH of the nine dimensions — `terms`, `success-criteria`,
+   `scope-boundaries`, `audience-format`, `constraints`, `assumptions`, `failure-modes`,
+   `sources`, `stakes` (methodology.md §Clarification defines what dispositioning each
+   requires) — ask *"what would make a wrong guess here change the outcome?"* and record a
+   per-dimension disposition in `clarifications.json.dimension_sweep`: `ambiguity-found`
+   (+ the register rows it produced), or `probed-clear` / `none-after-genuine-search`
+   (+ a one-line genuine-search statement naming the task-specific surfaces examined —
+   the sanctioned "sought X; none found" form, socratic-protocol.md). Be contextual, not
+   mechanical: the sweep fixes *coverage of the search*, never a question count — zero
+   user questions is a legal outcome on every dimension. The `sources` dimension maps the
+   task onto the source tiers and seeds the SOURCES register; the `stakes` dimension
+   records blast radius/reversibility and feeds the depth-tier proposal.
 2. **Rank by materiality.** Material = a wrong assumption would change the deliverable.
 3. **Resolve:** batch material questions into `AskUserQuestion` (≤4 at a time; loop if
    needed), recommending a default for each. For immaterial ones, pick a sensible
-   default and record it — do not pester the user.
+   default and record it — do not pester the user. Every resolved row records
+   `resolution_source`: `human-gate` (traces to a logged gate answer in DECISIONS.md),
+   `prompt-verbatim` (the user's own prompt settles it — quote the span), or
+   `logged-default` (your call, visibly yours — a `material` row resolved this way draws
+   a validator NOTE). A `prompt-verbatim` row quotes the settling span into `prompt_span` —
+   the receipt I27-8 checks against the recorded task statement.
 4. **Produce three MANDATORY clarification outputs (MUST).** No run proceeds without all
    three, written to `CLARIFICATIONS.md`:
    - (a) **Definition of Done** — a *testable exit checklist*: the observable conditions
@@ -303,12 +342,24 @@ Goal: eliminate every *material* lapse in the requirements before any work begin
    `resolved:true` MUST carry non-empty `resolution` text — a schema conditional plus the
    validator's **`I25`** offline mirror, whose `.strip()` bar also rejects whitespace-only
    text. Materiality is self-declared, so an all-`minor` register never binds I25 — an honest,
-   documented residual (references/state-machine.md §5), not a loophole to use.
+   documented residual (references/state-machine.md §5), not a loophole to use. (floor-3)
+   the validator's **`I27`** requires — once structural work exists on a run scaffolded at
+   this validator version — that `dimension_sweep` be present, cover all nine dimensions
+   exactly once, carry a genuine-search statement on every clean dimension and register
+   links on every found one, and that resolved rows carry `resolution_source`. "Not swept"
+   is thereby mechanically distinguishable from "swept, nothing found", and self-defaulted
+   materiality calls are grep-visible. Disposition genuineness stays attestation — an
+   honest residual, same class as I13.
 6. Write `CLARIFICATIONS.md`; fold resolved criteria into `PLAN.md` (Objective + Success
    criteria + **Definition of Done + Non-Goals/Guardrails**); log decisions.
 
-**Gate that matters.** Only proceed once no *material* ambiguity remains **and the Definition
-of Done + Non-Goals are recorded**. Trigger clarifying questions on a *detected ambiguity
+**Gate that matters.** Only proceed once no *material* ambiguity remains, **every sweep
+dimension carries a disposition (I27),** and **the Definition of Done + Non-Goals are
+recorded**. The gate message itself renders the sweep — nine lines of
+`dimension | disposition | register rows or the statement's first words`, the
+`resolution_source` tally (e.g. `human-gate 2 / prompt-verbatim 3 / logged-default 17`), and
+any I27 NOTEs — so the sweep's review surface is the gate the human is already at, never an
+unprompted file read. Trigger clarifying questions on a *detected ambiguity
 signal*, not as a fixed ritual (references/socratic-protocol.md). Run the validator before
 opening the gate; a non-zero exit (including a missing/empty `I-dod`) is a hard stop.
 
@@ -321,6 +372,21 @@ is not cartography. Capture *meaning and relationships*: what exists, what matte
 and why, how the pieces relate, where the risks/unknowns/authorities are, and what
 resources or sources are ground-truth. (methodology.md §Cartography.)
 
+**Source sweep (first cartography product — runs BEFORE the cartography-informed clarification
+round, which reads it).** Enumerate the task's source landscape into `RUN_DIR/SOURCES.md` +
+`RUN_DIR/sources.json` (template `templates/sources.md`; schema `schemas/sources.schema.json`):
+every source mapped carries a tier (T-VENDOR / T-COMM / T-LOCAL), a locator, and a disposition —
+`consulted` (opened during the sweep: access date + what it yielded, where "silent on X" is a
+finding), `queued` (named consumer: unit id or execution), or `rejected` (why) — and the register
+closes with coverage claims (area + claim + the consulted rows it rests on + explicit gaps,
+"none" written out). T-COMM venues are admitted ONCE in the register's venue block (K-A/K-B/K-C
+recorded as rationale text, not checkboxes). Dispositions are sweep-time facts: execution-time
+consultation is evidenced in unit debriefs against register ids, and rows are appended, never
+rewritten. The register FEEDS the clarification round (its gaps/queued/rejected rows are the
+round's candidate questions), brief context pointers (`S<id>: <locator>` — locator inline so the
+brief stays self-contained), and claims-owed derivation. A register without dispositions is a
+file listing.
+
 1. Spawn a **Cartographer** subagent with a self-contained brief (Phase-5 style) telling
    it the objective, the clarified criteria, and *what kind of map* to produce for this
    task type (code → architecture, invariants, data flows, tests, extension points;
@@ -331,7 +397,17 @@ resources or sources are ground-truth. (methodology.md §Cartography.)
 3. Write `CARTOGRAPHY.md` **plus its machine-checkable `cartography.json` sidecar** (U7 — the
    JSON-sidecar convention every phase follows; if the cartographer ran a Socratic pass, its residue
    lives in `cartography.json.socratic`, which I13 then checks). Note explicitly what is *unknown* —
-   unknowns become either clarification items (loop to Phase 2) or work units.
+   unknowns become either clarification items (loop to Phase 2) or work units. When the
+   SOURCES register exists, the **cartography-informed round** is not discretionary — an
+   obligation on YOUR conduct and the emitted artifacts, never on the transition: run the
+   round — disposition every register-derived unknown as a
+   `round: 2` register row (material ones reach the user, batched as ever) or a recorded
+   no-new-ambiguity outcome, and record `dimension_sweep.cartography_round`
+   (`performed` + `{unknown_ref, register_id}` pairs, or `no-register-unknowns`). A skipped
+   round is an offline I27-4 FAIL at the next validation — never a blocked transition; the
+   loop-back edge itself stays discretionary orchestrator conduct. I27
+   checks the record offline; the FSM is unchanged — this rides the existing loop-back
+   edge, adds no transition and no gate.
 
 ---
 
@@ -436,6 +512,18 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
 - the minimal **context**: pointers (file paths) to the specific prior debriefs,
   cartography sections, decisions, and relevant LEARNINGS — quote only the few
   load-bearing facts inline;
+- the **retrieval obligations**: `required_sources[]` (register S-ids with INLINE locators —
+  the executor never opens `sources.json`) and `claims_owed[]`, derived by YOU the orchestrator
+  — never the executor — from the unit's acceptance criteria + the SOURCES register per the
+  O1–O4 rules (references/evidence-standards.md); a criterion naming an external system with no
+  register row is a cartography gap: append the register row first (U02 §4), then brief. The
+  executor may ADD owed entries, never shrink. An owed set with >8 external-tier entries
+  (`min_tier` T-VENDOR/T-COMM) is a SPLIT signal: designate a research unit emitting a fact
+  pack and let consumers cite it at rung `cached-copy` (§Budget-collision resolution; N-I29
+  echoes this offline). When either list is non-empty, append the CB-1
+  criterion (VERBATIM, from templates/brief.md §Required sources) to the unit's
+  `acceptance_criteria` — that one line is what makes retrieval failure FAIL-able under I6
+  (I29-4 FAILs its absence);
 - the **evidence standard** for this unit's claim types (evidence-standards.md);
 - the **budget contract** (this unit's `brief.budget_tokens` — the ≤ 32K plan-side ceiling; "read only
   what this brief lists"). **Report-side honesty is relative to THIS budget (F2):** in the debrief,
@@ -456,14 +544,30 @@ call per unit, ideally in a single message). For **each unit**:
 
 1. **Execute.** Spawn the executor subagent (Agent tool). Prompt, tightly:
    > *Adopt persona `<X>`. Read `RUN_DIR/units/<id>/brief.md` and only the files it
-   > lists. Do the work. Stay within a 32K-token context budget. Produce
+   > lists, plus the brief's "Required sources" entries consulted through the fallback ladder
+   > (highest reachable rung, declared in your evidence rows via `source_tier`/`retrieval_rung`/
+   > `accessed`; discharge every `claims_owed` entry via `covers_owed` — never silent skipping).
+   > Do the work. Stay within a 32K-token context budget. Produce
    > `RUN_DIR/units/<id>/debrief.json` (JSON-only, no .md) per templates/debrief.md. Every claim must carry admissible
    > evidence. Before producing output, run the Socratic self-interrogation
    > (references/socratic-protocol.md, self-mode: FORK·COUNTER·ADMIT·PIVOT·RESIDUAL) on your
    > material claims and record the result in the debrief's `socratic` block; skip it only if
    > the unit is purely mechanical. Report your context footprint and confidence.*
 
-   Restrict the subagent's tools to what the unit needs (budget + safety).
+   Restrict the subagent's tools to what the unit needs (budget + safety) — with a RETRIEVAL
+   FLOOR: when the brief carries `required_sources` (or `claims_owed` with `min_tier`) at tier
+   `T-VENDOR`/`T-COMM` with URL locators, dispatch the executor with BOTH `WebSearch` AND
+   `WebFetch` reachable (WebSearch returns titles+URLs only, never page content — always pair
+   it with WebFetch). Mechanics (vendor-doc facts, U07 F3/F4): subagents INHERIT the
+   conversation's tools by default, so the floor means DO NOT BREAK INHERITANCE — never list
+   these tools in the subagent's `disallowedTools`, never pass a `tools` allowlist omitting
+   them, for such units. The skill frontmatter `allowed-tools` line is a permission
+   PRE-APPROVAL, not a restriction — it can neither starve nor provision a subagent; the
+   restriction surface is only the subagent `tools`/`disallowedTools` fields. CAVEAT (U07 F6 —
+   an INFERENCE, no single vendor sentence affirms it; and WebSearch is platform-variable,
+   absent on Bedrock — F5): if the executor finds web tools unavailable it does NOT stall and
+   does NOT skip silently — the fallback ladder applies from `vendored-docs` down, each rung
+   declared in the evidence rows (`retrieval_rung`), verifier-visible and probe-able.
    **U4 — expand paths to ABSOLUTE before handing text to a subagent.** A fresh executor/verifier has
    its own project CWD and NO `${CLAUDE_PLUGIN_ROOT}`, so any skill-relative path you quote (in the
    prompt above, or embedded in `brief.md`/`templates/*`) must be expanded to a real absolute path when
@@ -683,7 +787,13 @@ Never resolve a material disagreement silently. Never hide an option because you
    amendment) — never fake coverage on an unrelated unit, and never hand-edit
    `clarifications.json` post-hoc. (A run that never advances its recorded phase to P8 is
    never bound by I23 — the plan-owned pre-P8 residual, references/state-machine.md §5.)
-2. Run a final **independent** adversarial verification of the whole.
+2. Run a final **independent** adversarial verification of the whole. Its target list includes
+   the REGISTER SAMPLE (U02 falsifier scope, items d–e): re-open ≥1 consulted `sources.json`
+   row per coverage area that sits in NO unit's lineage, and — when `queued` rows of tier
+   `T-VENDOR`/`T-COMM` outnumber consulted rows of those tiers — open ≥1 queued row per
+   external tier or record in SYNTHESIS.md why not. Record the sample outcomes in that
+   verification's `audit_notes` (attestation-level; the validator never opens locators —
+   honest residual).
 3. **Final sign-off gate** (`AskUserQuestion`): present the result, a decision-log
    summary, **the Definition-of-Done checklist with each item's met/unmet status and any
    non-goal that slipped in,** unmet criteria (if any), and residual risks. Ask to accept or iterate. Use
@@ -760,10 +870,30 @@ hard-checks the *declared* `budget_tokens` against the schema ceiling (`maximum:
 but that is a check on the self-reported number, not a platform cap on real consumption. If
 footprint reports exceed budget, re-atomize — do not wave it through.
 
-**Right-sizing never skips a human gate.** You MAY reduce *ceremony* for a small task —
-fewer units, fewer personas, lighter artifacts — but you may NOT skip any human gate
-(persona selection, material clarification, disagreement, sign-off). If a task looks too
-small for the full pipeline, still **surface** the persona roster (Phase 1) and let the human
-decide to run lighter; never make that call unilaterally. The persona gate is mechanically
-enforced by `validate_run.py` (`personas_confirmed` required from Phase 2 on; a confirmed flag
-with no `personas.json` is rejected), so a run that skips it fails validation.
+**Depth is a human decision with mechanical floors — unilateral right-sizing is superseded by
+the confirmed depth tier.** The ONLY sanctioned down-scaling is the tier the human confirmed
+at the Phase-1 gate (see Phase 1 — the tier rides the persona gate). Ceremony reduction —
+fewer units, fewer personas, lighter artifacts — is legal exactly down to the confirmed
+tier's floors, never below, and NO tier waives a human gate (persona selection, material
+clarification, disagreement, sign-off), an existing validator invariant, or the universal
+floors (U01's retrieval floor set; two independent sources for contested/version-sensitive
+facts — unconditional at every tier; all nine sweep dimensions dispositioned, one-line
+explicit-none rows admissible). The four tier-scaled knobs and their per-tier minimum
+settings (informative rendering — the I28 predicate spec in the plan is normative):
+
+| Knob | `light` | `standard` | `full` |
+|---|---|---|---|
+| DT-K2 verifier retrieval-probe scope (reopen+chase) | owed-covering fallback rows | every fallback row + chase vendor-silent rows | + every URL-locator row + chase every T-COMM row |
+| DT-K4 sweep disposition depth — spot-check scope (varies at full only) | nine dimensions dispositioned (explicit-none OK) + I27-10 base spot-check | same | + spot-check covers all nine dimensions |
+| DT-K5 source-tier consultation | T-LOCAL + explicit-none externals | + T-VENDOR when owed | + T-COMM corroboration |
+| DT-K6 panel scope (varies at full only) | I16 as-is | I16 as-is | panel on design/schema/validator-tagged units |
+
+After confirmation the tier only ratchets UP (human-decided, at a gate/touchpoint, appended to
+`fsm-state.depth.overrides[]`; raised floors bind not-yet-verified units via
+`tier_at_verification`); genuine mid-run de-scoping of WORK is a human-gated `cancel_unit`
+amendment, and a genuinely mis-tiered run's sanctioned exit is closing at a human gate and
+re-scoping a fresh run — over-tiering burns tokens, never correctness. The validator's I28
+checks the recorded tier's floors against the emitted artifacts post-hoc (offline, never a
+live guard). The persona gate remains mechanically enforced by `validate_run.py`
+(`personas_confirmed` required from Phase 2 on; a confirmed flag with no `personas.json` is
+rejected), so a run that skips it fails validation.

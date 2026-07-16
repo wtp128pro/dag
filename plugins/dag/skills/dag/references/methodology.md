@@ -85,21 +85,44 @@ disagreement visible and productive.
 
 ## §Clarification — eliminating material lapses (Phase 2)
 
-The ambiguity register is a table, not prose. For each item capture: the ambiguity, why
-it matters, the candidate interpretations, the **materiality** (does a wrong guess change
-the deliverable?), and the resolution (user answer or logged default).
+The ambiguity register is a table, not prose. For each item capture: the ambiguity, its
+`dimension`, why it matters, the candidate interpretations, the **materiality** (does a
+wrong guess change the deliverable?), the resolution (user answer or logged default), and
+the **`resolution_source`** (`human-gate` / `prompt-verbatim` / `logged-default`) — so a
+self-filled default is mechanically distinguishable from a human answer.
 
-Checklist of where lapses hide:
-- **Terms** used as if defined but aren't ("real-time", "secure", "done", "large").
-- **Success criteria** — how will we *know* it worked? What is the acceptance test?
-- **Scope boundaries** — what is explicitly OUT? Absent boundaries cause scope creep.
-- **Audience & format** — who consumes the output, in what form, at what depth?
-- **Constraints** — time, budget, tools, environment, compliance, style.
-- **Assumptions** — anything you're about to take for granted. Name it; verify or ask.
-- **Failure modes** — what must *not* happen? These often encode the true priorities.
+**The nine sweep dimensions (a closed enum; every one explicitly dispositioned per run):**
+- **`terms`** used as if defined but aren't ("real-time", "secure", "done", "large") —
+  pin each candidate or name the terms examined and what settles them.
+- **`success-criteria`** — how will we *know* it worked? What is the acceptance test?
+- **`scope-boundaries`** — what is explicitly OUT? Absent boundaries cause scope creep.
+- **`audience-format`** — who consumes the output, in what form, at what depth?
+- **`constraints`** — time, budget, tools, environment, compliance, style — including
+  tool availability (has-web / no-web / air-gapped) when retrieval will be owed.
+- **`assumptions`** — anything you're about to take for granted. Name it; verify or ask.
+- **`failure-modes`** — what must *not* happen? These often encode the true priorities.
+- **`sources`** — which source tiers (§Source tiers, evidence-standards.md) are
+  load-bearing; which named external systems imply owed T-VENDOR claims; which community
+  venues need admission; where local ground truth lives. Re-opened after cartography
+  against the SOURCES register (the cartography-informed round).
+- **`stakes`** — blast radius, reversibility, proposed depth tier + justification (the
+  tier gate cites this disposition).
+
+**Dispositioning** a dimension means recording, in `dimension_sweep.dimensions[]`, either
+`ambiguity-found` (+ its register rows) or `probed-clear` / `none-after-genuine-search`
+(+ a one-line genuine-search statement naming the task-specific surfaces examined). "Not
+swept" — a missing dimension — is an I27 FAIL; a clean sweep is nine honest one-liners,
+not nine manufactured doubts. The two clean values are descriptive — no predicate
+distinguishes them, and label choice between them is never a citable defect. Coverage is
+tier-invariant: all nine dimensions are dispositioned at EVERY depth tier, `light`
+included; the tier knob (DT-K4) scales probe depth per dimension, never coverage — at
+`light`, a one-line "sought X; none found" statement is a complete disposition.
 
 Materiality is the filter that keeps this from becoming interrogation. Only *material*
-ambiguities reach the user; the rest get logged defaults.
+ambiguities reach the user; the rest get logged defaults. What the sweep adds is that the
+materiality *call itself* is artifact-visible per dimension — declaring everything
+immaterial is legal but reviewable (nine disposition lines + `resolution_source` values),
+no longer invisible.
 
 **Two outputs are mandatory, not optional (MUST).** Beyond the register, Phase 2 always
 produces a **Definition of Done** — a testable exit checklist — and a **Non-Goals /

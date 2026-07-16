@@ -1,0 +1,47 @@
+{
+  "run_dir": "tests/good",
+  "phase": "DONE",
+  "updated_at": "2026-07-03T09:30:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true,
+    "signoff_confirmed": true
+  },
+  "loop": {
+    "unit_id": "U02",
+    "state": "DONE",
+    "retries": 0,
+    "iteration": 1,
+    "last_verdict": "PASS"
+  },
+  "units": [
+    {
+      "unit_id": "U01",
+      "status": "passed"
+    },
+    {
+      "unit_id": "U02",
+      "status": "passed"
+    }
+  ],
+  "depth": {
+    "tier": "full",
+    "proposed_tier": "full",
+    "confirmed_tier": "full",
+    "confirmed_at_gate": "personas",
+    "justification": {
+      "stakes": "high-stakes formal-machinery change; broad blast radius",
+      "reversibility": "reversible via git but touches the proof surface",
+      "external_surface": {
+        "kind": "external-dependent",
+        "detail": "depends on the upstream API contract"
+      },
+      "skipped_floors": []
+    },
+    "phase2_touch": {
+      "outcome": "kept"
+    }
+  }
+}

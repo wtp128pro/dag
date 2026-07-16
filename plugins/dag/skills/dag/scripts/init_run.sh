@@ -14,6 +14,7 @@
 #           ├── PROGRESS.md     (append-only progress log)
 #           ├── LEARNINGS.md    (self-learning loop ledger)
 #           ├── fsm-state.json  (initial pipeline FSM state — phase P0_BOOTSTRAP)
+#           ├── SOURCES.md      (source-cartography register — Phase-3 source sweep)
 #           └── units/          (per-work-unit brief/debrief/verify)
 #
 # JSON-sidecar convention (validated by <skill>/schemas via <skill>/scripts/validate_run.sh):
@@ -149,6 +150,11 @@ cat > "$RUN_DIR/LEARNINGS.md" <<EOF
 |---|-----------|--------|---------------------------|----------------------------|----------------------------------------|------------|----------|
 EOF
 
+# Scaffold the SOURCES register (depth 1.9.0): the Phase-3 source sweep fills it; the JSON
+# sidecar (sources.json) is authored at sweep time — a scaffolded-empty one would be
+# schema-invalid (minItems:1), exactly as clarifications behaves. SCRIPT_DIR resolves at :43.
+cp "$SCRIPT_DIR/../templates/sources.md" "$RUN_DIR/SOURCES.md"
+
 # Seed the initial pipeline FSM state. Seeding all-false gates is valid at P0/P1 where no gate
 # is yet required: no loop substate yet, all gates false — the gate-ordering invariant fires
 # from P2 onward (personas_confirmed is required from P2; see references/state-machine.md).
@@ -167,6 +173,6 @@ ${VV_LINE}
   "units": [] }
 EOF
 
-echo "OK: seeded ledger files (INPUT, PLAN, DECISIONS, PROGRESS, LEARNINGS), fsm-state.json + units/"
+echo "OK: seeded ledger files (INPUT, PLAN, DECISIONS, PROGRESS, LEARNINGS), SOURCES.md, fsm-state.json + units/"
 # LAST line = machine-readable run dir path for Dag to capture.
 printf 'RUN_DIR=%s\n' "$ABS_RUN_DIR"

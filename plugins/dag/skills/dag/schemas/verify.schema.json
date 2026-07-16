@@ -109,6 +109,63 @@
         "why_unresolvable": { "type": "string", "minLength": 1 }
       }
     },
+    "retrieval_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OPTIONAL (execution-effort enforcement, I30 - the I22 guardrail_compliance pattern). The verifier's RE-DERIVED comparison of debrief evidence AGAINST the brief's claims_owed/required_sources, plus the re-derivation probe records (U04 keys ratified verbatim: retrieval_probes[], retrieval_probes_none_reason, tier_at_verification - consumed by I28-P4/DT-K2). Adoption-closure: once any verdict-bearing verify carries it, all must; a brief carrying non-empty claims_owed/required_sources forces it on that unit's verify. owed_check must be TOTAL over the brief's owed ids (set equality); PASS with an uncovered owed id (or a not-consulted required source) is the I30 contradiction FAIL. covered-downgraded (parametric-only / vendor-silent coverage) is a verifier-visible confidence downgrade, legal on PASS, never silently relabeled covered (I30-2). tier_at_verification is required by I30-0 whenever fsm-state carries the depth block.",
+      "required": ["owed_check", "retrieval_probes", "sources_check"],
+      "properties": {
+        "tier_at_verification": { "type": "string", "enum": ["light", "standard", "full"] },
+        "owed_check": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["owed_id", "status", "row_refs"],
+            "properties": {
+              "owed_id": { "type": "string", "minLength": 1 },
+              "status": { "type": "string", "enum": ["covered", "covered-downgraded", "uncovered"] },
+              "row_refs": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+              "note": { "type": "string" }
+            },
+            "allOf": [
+              { "$comment": "RT-1: covered/covered-downgraded REQUIRES >=1 counted row - empty row_refs can never count as coverage (the vacuous-pass hole). I30-2 carries the raw-parse mirror + the existential lattice reading.",
+                "if": { "properties": { "status": { "enum": ["covered", "covered-downgraded"] } }, "required": ["status"] },
+                "then": { "properties": { "row_refs": { "minItems": 1 } } } }
+            ]
+          }
+        },
+        "retrieval_probes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["row_ref", "claim_echo", "kind", "outcome"],
+            "properties": {
+              "row_ref": { "type": "integer", "minimum": 0 },
+              "claim_echo": { "type": "string", "minLength": 1 },
+              "kind": { "type": "string", "enum": ["reopen", "chase"] },
+              "outcome": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "retrieval_probes_none_reason": { "type": "string", "minLength": 1 },
+        "sources_check": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source_id", "origin", "outcome"],
+            "properties": {
+              "source_id": { "type": "string", "pattern": "^S[0-9]+$" },
+              "origin": { "type": "string", "enum": ["required_sources", "context_pointer", "owed_note", "coverage_basis"] },
+              "outcome": { "type": "string", "enum": ["consulted-evidenced", "unreachable-declared", "not-consulted"] },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "guardrail_compliance": {
       "type": "array", "minItems": 1,
       "description": "OPTIONAL (guardrail enforcement). Per-verify attestation rows, one per non-goal checked: `non_goal` MUST be a VERBATIM clarifications.json non_goals string. Adoption-closure (validate_run.py I22, offline post-hoc): once ANY verdict-bearing verify carries the block, EVERY verdict-bearing verify must; membership + coverage of the unit's non_goal_refs are mechanical; one decidable semantic clause — a `violated` row on a PASS verdict is a FAIL (a delivered non-goal is a FAIL, not a bonus). Whether a `respected` row is TRUE stays verifier attestation (presence-not-genuineness).",

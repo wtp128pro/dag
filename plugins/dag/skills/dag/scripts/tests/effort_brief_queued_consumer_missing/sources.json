@@ -1,0 +1,16 @@
+{
+  "run_label": "example-typo-fix",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed; typo at line 12" },
+    { "id": "S5", "title": "spec doc the consumer must open", "tier": "T-LOCAL",
+      "locator": "SPEC.md:1", "disposition": "queued", "queued_for": "U03",
+      "why": "U03 must consult this before scoring" }
+  ],
+  "coverage": [
+    { "area": "task file state", "claim": "the misspelled line and its context are mapped",
+      "based_on": ["S1"], "gaps": "the queued SPEC.md is owed to U03" }
+  ]
+}

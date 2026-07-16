@@ -1,0 +1,14 @@
+{
+  "unit_id": "U03",
+  "title": "Consume queued source",
+  "wave": 2,
+  "depends_on": ["U01"],
+  "persona": "Architect",
+  "budget_tokens": 12000,
+  "acceptance_criteria": ["the queued source is consulted"],
+  "context_pointers": ["INPUT.md", "units/U01/debrief.json"],
+  "outputs": ["units/U03/debrief.json"],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": ["design", "core"],
+  "learnings_applied": ["L1"]
+}

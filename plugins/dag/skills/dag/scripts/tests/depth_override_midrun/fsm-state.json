@@ -1,0 +1,62 @@
+{
+  "run_dir": "tests/good",
+  "phase": "P6_EXECUTE_VERIFY",
+  "updated_at": "2026-07-03T09:30:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true
+  },
+  "loop": {
+    "unit_id": "U01",
+    "state": "DONE",
+    "retries": 1,
+    "iteration": 2,
+    "last_verdict": "PASS"
+  },
+  "units": [
+    {
+      "unit_id": "U01",
+      "status": "passed"
+    },
+    {
+      "unit_id": "U02",
+      "status": "executing"
+    }
+  ],
+  "depth": {
+    "tier": "full",
+    "proposed_tier": "light",
+    "confirmed_tier": "light",
+    "confirmed_at_gate": "personas",
+    "justification": {
+      "stakes": "typo-class edit; low blast radius",
+      "reversibility": "fully reversible via git revert",
+      "external_surface": {
+        "kind": "mixed",
+        "detail": "only repo-local files are touched"
+      },
+      "skipped_floors": [
+        "DT-K2@light",
+        "DT-K4@light",
+        "DT-K5@light",
+        "DT-K6@light"
+      ]
+    },
+    "phase2_touch": {
+      "outcome": "kept"
+    },
+    "overrides": [
+      {
+        "from": "light",
+        "to": "full",
+        "at_gate": "P6_EXECUTE_VERIFY",
+        "decision_ref": "DECISIONS.md#ovr1",
+        "pending_units": [
+          "U02"
+        ]
+      }
+    ]
+  }
+}
