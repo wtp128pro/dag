@@ -1,0 +1,16 @@
+{
+  "id": "L5",
+  "trigger": "dag 1.9.0 run: U04 (SKILL.md ~770 lines) and U07-U12 (validate_run.py ~3800 lines) all reported within_budget:false — the mandatory whole-file read to verify anchors / find a disjoint insertion point consumed ~37K-96K tokens vs a <=26-28K plan-side budget, before any edit was made.",
+  "lesson": "A single-editor unit over a monolithic file structurally cannot fit a <=32K plan-side reasoning budget: verifying anchors and avoiding collisions requires reading the whole file, which alone exceeds the budget. This is not a discipline failure; it is a decomposition-estimate miss.",
+  "how_to_apply": "At decomposition, budget single-editor-of-monolith units (e.g. a 200KB validator, an 800-line SKILL) at ~90K+ or explicitly scope anchor-verification reads to affected line ranges. Treat the executor's honest within_budget:false as the intended F2 signal, not a defect; NEVER RETRY a unit that produced correct, verified output solely for a truthfully-reported budget overage.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "debrief footprints (all within_budget:false, all I5-accepted as honest): U04 37000/24000; U08 92000/28000; U09 96000/28000; U10 88000/26000; U11 82000/26000; U12 64000/26000. The verifiers confirmed each overage was an honest report, not a defect.",
+  "since_wave": 1,
+  "promotable": true
+}
