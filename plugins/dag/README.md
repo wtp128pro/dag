@@ -89,7 +89,7 @@ skills/dag/
 ├── spec/                          descriptive SSR registry (fsm.json · invariants.json) — dev-time drift source
 ├── formal/                        Pipeline.tla · Pipeline.cfg · WorkGraph.als · Amendment.als (BGA) · AlloyRun.java (headless driver)
 ├── templates/                     brief · debrief · verify · disagreement · personas · persona ·
-│                                  clarifications · cartography · graph · amendment
+│                                  clarifications · cartography · sources · graph · amendment
 └── scripts/
     ├── init_run.sh                deterministic dated run-dir + ledger + fsm-state seed
     ├── validate_run.sh            enforcement entry point (python3 prober → validate_run.py)

@@ -31,7 +31,7 @@ guarantee, and they are not interchangeable.
 Why bother with the second layer at all? Because the validator inspects *one run's
 artifacts*, not the rule-space. It can tell you *this* run didn't bypass a gate; it can
 never tell you *no* run can. The proof layer gives exactly that missing guarantee — and
-only that (`references/formal-models.md` §"Covered by one layer only", lines 319–323).
+only that (`references/formal-models.md` §"Covered by one layer only", lines 446–450).
 
 The **proof-status legend** — used verbatim throughout, and worth memorizing before you
 read a single "✓":
@@ -39,7 +39,7 @@ read a single "✓":
 > *machine-checked* — a model checker explored the state space (in a bounded scope) and
 > reported no error · *hand-proved* — a rigorous, checkable argument, not run by a tool
 > here · *asserted* — imposed structurally / by fiat and shown *consistent*, not derived
-> (`references/formal-models.md` lines 44–47).
+> (`references/formal-models.md` lines 63–66).
 
 Note what is deliberately absent from that legend: any claim of an unbounded,
 all-inputs proof. Nothing on this page makes one. A machine-checked result is checked
@@ -74,7 +74,7 @@ Each phase has an **exit gate**; you advance only when the gate holds
 the partition `{PASS} ∪ {FAIL}×{retries<2, retries==2} ∪ {DISAGREE}`
 (`references/state-machine.md` §1a, §2a). The crucial structural fact — the whole
 termination story hangs on it — is that the loop has **exactly one back-edge**:
-`RETRY → EXECUTE` (LT7, `references/state-machine.md` §2a line 96; the sole-back-edge note is at line 98).
+`RETRY → EXECUTE` (LT7, `references/state-machine.md` §2a line 116; the sole-back-edge note is at line 118).
 
 ```mermaid
 stateDiagram-v2
@@ -93,9 +93,9 @@ stateDiagram-v2
 The TLA+ spec (`formal/Pipeline.tla`) composes *two* machines over one variable tuple: a
 **phase machine** (safety only) and a **loop machine** (liveness), linked at exactly one
 point — the loop reaching `DONE` satisfies Phase 6's "all units passed" gate, action
-`LinkP6` (`formal/Pipeline.tla` lines 14–18, 94–99). The phase gates are deliberately
+`LinkP6` (`formal/Pipeline.tla` lines 15–19, 100–108). The phase gates are deliberately
 **unfair** (a human gate may stall forever), so the model claims *safety* — never
-liveness — about the phase machine (`formal/Pipeline.tla` lines 77–80, 199–201). Only the
+liveness — about the phase machine (`formal/Pipeline.tla` lines 86–89, 237–239). Only the
 automated loop is fair (`WF_vars(LoopNext)`), and that fairness plus the variant is what
 buys termination.
 
@@ -108,7 +108,7 @@ and loop machines; Properties 3–4 are the Alloy structural model of the work g
 
 **The claim.** In every reachable state, the current `phase` implies that every strictly-
 earlier spine phase's exit gate already holds. Two named specializations
-(`formal/Pipeline.tla` lines 209–217):
+(`formal/Pipeline.tla` lines 247–255):
 
 ```
 (phase ∈ {P3,…,DONE}) ⇒ gate["P2"]     no Cartography before clarifications  (I8)
@@ -117,17 +117,17 @@ earlier spine phase's exit gate already holds. Two named specializations
 
 **The bad behavior it excludes** (the COUNTER): reaching P3's work before P2's gate, or
 reaching P8 (synthesis) while a unit is still un-PASSed
-(`references/formal-models.md` §1 lines 128–129).
+(`references/formal-models.md` §1 lines 152–153).
 
 **Why it holds — the intuition.** Two facts make it an *inductive invariant*
-(`references/formal-models.md` §1 hand-proof, lines 131–148):
+(`references/formal-models.md` §1 hand-proof, lines 155–172):
 
 1. **Gates are monotone.** The only writers of `gate` are `Complete(p)` and `LinkP6`,
    each flipping one entry `FALSE→TRUE`; nothing sets `TRUE→FALSE`. Once a gate holds, it
-   holds forever (`formal/Pipeline.tla` lines 84–99).
+   holds forever (`formal/Pipeline.tla` lines 93–108).
 2. **`phase` only advances through the guarded `Advance`.** `Advance(p)` requires
    `gate[p]=TRUE` before setting `phase'=Succ(p)`; the P6↔P7 excursion moves sideways and
-   changes no gate (`formal/Pipeline.tla` lines 101–122).
+   changes no gate (`formal/Pipeline.tla` lines 111–136).
 
 So the only way to make a clause's antecedent newly true is to `Advance` past that phase's
 gate — which establishes it — and monotonicity keeps every earlier gate true. This is
@@ -143,7 +143,7 @@ is declared as an `INVARIANT`, and TLC held it across the entire reachable state
 ## 4. Property 2 — Bounded-loop termination (LIVENESS, TLA+) · *machine-checked* + *hand-proved*
 
 **The claim** (`Termination`, a `PROPERTY` under `WF_vars(LoopNext)`,
-`formal/Pipeline.tla` lines 224–227):
+`formal/Pipeline.tla` lines 265–267):
 
 ```
 (lstate = "EXECUTE") ~> (lstate ∈ {"DONE","ESCALATE"})
@@ -156,17 +156,17 @@ From `Init` (`lstate="EXECUTE"`) this is just `<>Terminated`.
 forever — unbounded retries, never terminating.
 
 **Why it holds — the variant argument.** The proof is a textbook well-founded variant
-(`references/formal-models.md` §2 lines 168–188), with the measure
-`V = MaxRetries − retries ∈ {0,1,2}` (`formal/Pipeline.tla` line 60):
+(`references/formal-models.md` §2 lines 197–214), with the measure
+`V = MaxRetries − retries ∈ {0,1,2}` (`formal/Pipeline.tla` line 67):
 
 - **A. One back-edge.** Of actions LT1–LT7, only `LRetry` (RETRY→EXECUTE) returns to an
   earlier state; every other edge is forward or into an absorbing terminal
-  (`formal/Pipeline.tla` lines 136–189).
+  (`formal/Pipeline.tla` lines 154–196).
 - **B. Strict descent.** `LRetry` does `retries' = retries+1`, so `V' = V−1`; no other
   action touches `retries`. `V` strictly decreases on the only cycle and never rises.
 - **C. Floor-guarded back-edge.** `LRetry` is reachable only via `LRetryBranch`, whose
   guard is `retries < MaxRetries`, i.e. `V > 0` (invariant `BackEdgeGuarded`,
-  `formal/Pipeline.tla` line 222). At `V=0` the back-edge is disabled and `ADJUDICATE` can
+  `formal/Pipeline.tla` line 260). At `V=0` the back-edge is disabled and `ADJUDICATE` can
   fire only PASS→DONE or the two ESCALATE edges — all terminal.
 - **D. No deadlock + fairness.** Every non-terminal loop state has an enabled action, and
   `WF_vars(LoopNext)` forces progress. A measure that strictly descends on the only cycle,
@@ -174,13 +174,13 @@ forever — unbounded retries, never terminating.
   ⇒ ≤ 3 executions, then a terminal.
 
 The argument is *parametric in any finite N* (`V = N − retries`), so a configurable cap
-never weakens termination (`references/formal-models.md` §2 lines 192–193).
+never weakens termination (`references/formal-models.md` §2 lines 216–217).
 
 **Tool-status: *machine-checked* (in scope) by TLC, plus *hand-proved* (variant).** The
 auxiliary safety invariants `LoopBound`, `VariantOK`, and `BackEdgeGuarded`
-(`formal/Pipeline.tla` lines 220–222) mechanize claims B–C. The fairness the liveness
+(`formal/Pipeline.tla` lines 258–260) mechanize claims B–C. The fairness the liveness
 check needs is carried by `SPECIFICATION Spec`'s `WF_vars(LoopNext)`
-(`formal/Pipeline.tla` line 201).
+(`formal/Pipeline.tla` line 239).
 
 ---
 
@@ -195,13 +195,16 @@ export JAVA_HOME=$(/usr/libexec/java_home)
     -config formal/Pipeline.cfg formal/Pipeline.tla
 ```
 
-> **One command reproduces all of this (plugin 1.7.0).** `bash scripts/run_formal.sh` now fetches
+> **One command reproduces all of this (plugin 1.9.0).** `bash scripts/run_formal.sh` now fetches
 > both jars (checksum-verified), runs TLC and both Alloy files headlessly, and — as of WP-F/D1 —
 > **asserts** the literal state counts (853 / 408 / depth 36), the "2 branches of temporal properties"
 > line, and Alloy's `SUMMARY: 8/8`; a gutted `.cfg`/`.als` now FAILs instead of passing vacuously. Add
 > `--maxfuel32` to also run the parametric MaxFuel=32 check
 > (`references/formal-models.md` §Tool-status, lines 47–50). The rest of this section is what that
-> script does by hand.
+> script does by hand. Plugin **1.9.0** (depth & retrieval enforcement, invariants **I26–I34**) added
+> **no FSM state, transition, guard, or gate** — it is classified **PRESERVES** (zero REVISES) against
+> the correction-loop termination proof, AO-1..7, I1–I25, and the FSM edge set — so every figure in
+> this section (853 / 408 / depth 36; Alloy 8/8) is left **unchanged**.
 
 **Reported TLC result** (2026-07-10, TLC 2.19, JDK 25.0.3 — *after* adding the Bounded Graph
 Amendments `Amend` action, the `fuel` variable, the `FuelBound` invariant, and the `Quiesce`
@@ -249,7 +252,7 @@ it is no longer the headline delta (`references/formal-models.md` lines 106–11
 
 **Did the liveness test have teeth?** A liveness property can pass *vacuously*. The
 project records an adversarial non-vacuity check (`references/formal-models.md` lines
-94–111): in a throwaway `Broken.tla`, `LRetry` was mutated to *not* increment `retries`
+118–135): in a throwaway `Broken.tla`, `LRetry` was mutated to *not* increment `retries`
 (so `V` stops decreasing on the back-edge), and TLC then **reported a liveness
 counterexample** — a lasso closing on the `EXECUTE→VERIFY→ADJUDICATE→RETRY→EXECUTE` spin
 (`Temporal properties were violated`). The shipped spec (which keeps the increment)
@@ -261,13 +264,13 @@ load-bearing and the check is genuine.
 ## 6. Properties 3 & 4 — the Alloy structural model (`formal/WorkGraph.als`)
 
 Alloy models *structure*, not time. Edge semantics: `d in u.depends` ⇔ graph edge
-`{from=d, to=u}` ("u consumes d") (`formal/WorkGraph.als` lines 12–13, 26–30). Both
+`{from=d, to=u}` ("u consumes d") (`formal/WorkGraph.als` lines 13–14, 27–31). Both
 properties below are checked in a **bounded scope** — Alloy verifies an assertion only up
 to a finite size, so "no counterexample" means "none *in that scope*," not "none exist."
 
 ### 6a. Property 3 — DAG acyclicity · *machine-checked* (no counterexample) + *hand-proved*
 
-**The claims** (`formal/WorkGraph.als` lines 66–75):
+**The claims** (`formal/WorkGraph.als` lines 69–76):
 
 ```alloy
 assert Acyclic { no (^depends & iden) }                             // no unit reaches itself
@@ -285,12 +288,12 @@ produces. The standalone `Acyclic` assertion then reports *no counterexample* **
 a valid layering forces a DAG (the `LayeringImpliesAcyclic` theorem), **not** because
 acyclicity was assumed. Remove that fact and `depends` is unconstrained: a self-loop
 `u in u.depends` becomes a counterexample and the check *fails*. So the layering fact is
-load-bearing for the check (`references/formal-models.md` §3 lines 240–246).
+load-bearing for the check (`references/formal-models.md` §3 lines 264–270).
 
 **The hand-proof of `LayeringImpliesAcyclic`.** Suppose a cycle
 `u₀→u₁→…→uₖ=u₀`. `WaveLayering` gives `u₀.wave < u₁.wave < … < uₖ.wave = u₀.wave`, hence
 `u₀.wave < u₀.wave` — a contradiction in the strict order on ℤ. So no cycle
-(`references/formal-models.md` §3 lines 233–238). This is precisely *why* the validator's
+(`references/formal-models.md` §3 lines 257–262). This is precisely *why* the validator's
 wave-layering check (I3) is sufficient for a DAG.
 
 **Check commands & scope** (`formal/WorkGraph.als` lines 87–88):
@@ -303,7 +306,7 @@ check LayeringImpliesAcyclic for 7 but 5 Int
 The scope `7 but 5 Int` bounds every sig to 7 with Int bitwidth 5 (−16..15). A *global*
 bound is required, not a bare `7 Unit, 5 Int`: `Unit.executor` makes `Persona` reachable,
 so a partial scope list leaves `Persona`/`Verifier` unbounded and the command won't run
-(`references/formal-models.md` §3 lines 254–257).
+(`references/formal-models.md` §3 lines 278–281).
 
 **Tool-status: *machine-checked* (bounded scope — no counterexample) + *hand-proved*.**
 Both `check`s run headless (Alloy 6, bundled SAT4J) and report no counterexample; the
@@ -324,13 +327,13 @@ assert DistinctMakerChecker { all v:Verifier, u:v.checked | v.persona != u.execu
 
 **The bad behavior it excludes** (COUNTER): a verifier reading the executor's chain-of-
 thought for a unit it judges, or a unit being verified by its own maker
-(`references/formal-models.md` §4 lines 281–282).
+(`references/formal-models.md` §4 lines 305–306).
 
 **Why it is *asserted*, not derived.** `reasoningSeen ⊆ checked` (fact `SeenSubsetChecked`,
 `formal/WorkGraph.als` line 42) makes the relation *meaningful*; `Independence` then forces
 it **empty**. Given that fact, both asserts hold *trivially*. So this is honestly labeled
 **asserted** — imposed by fiat and shown *consistent* — **not a derived theorem**
-(`references/formal-models.md` §4 lines 284–292). The model *encodes* the invariant that
+(`references/formal-models.md` §4 lines 308–316). The model *encodes* the invariant that
 the schema's `executor_reasoning_seen: {const:false}` and the maker≠checker rule require;
 it does not *prove* it from more primitive facts.
 
@@ -338,7 +341,7 @@ it does not *prove* it from more primitive facts.
 everything vacuously. The `run WitnessGraph` command exhibits a concrete instance — a real
 dependency edge, a real verification, acyclic, independence respected — proving the
 constraints are *satisfiable together* (`formal/WorkGraph.als` lines 95–100;
-`references/formal-models.md` §4 lines 289–292):
+`references/formal-models.md` §4 lines 313–316):
 
 ```
 check VerifierBlind        for 7 Unit, 5 Verifier, 5 Persona, 5 Int
@@ -366,33 +369,33 @@ the acceptance criteria ask to be named explicitly:
 | DAG acyclic (I3) | Prop 3 `Acyclic` (hand-proved + Alloy, in scope) | fail-closed cycle detection on `edges ∪ deps` |
 | Verifier independence (I1) | Prop 4 `Independence` (asserted, consistent) | `executor_reasoning_seen const:false` + I1b `maker!=checker` |
 | Bounded-amendment quiescence (I18, BGA) | `Quiesce` (TLC, in scope; non-vacuous vs a keep-fuel mutant) + `Amendment.als` wave-layering (Alloy, in scope) | I18 fuel bound (`fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + revision/`amendments_applied` bookkeeping) |
-| Sign-off gate (D-06) | precedence `gate["P8"] ⇒ DONE` covered by Prop 1's `GateOrdering`; the `signoff_confirmed` *flag itself* is runtime-only | `REQUIRED_GATES`: `gates.signoff_confirmed` **required at `DONE`** — a run at DONE without it is INVALID (`references/state-machine.md` §3 lines 136–142, T12 line 85) |
+| Sign-off gate (D-06) | precedence `gate["P8"] ⇒ DONE` covered by Prop 1's `GateOrdering`; the `signoff_confirmed` *flag itself* is runtime-only | `REQUIRED_GATES`: `gates.signoff_confirmed` **required at `DONE`** — a run at DONE without it is INVALID (`references/state-machine.md` §3 lines 176–178, T12 line 105) |
 
 The runtime validator additionally enforces a fleet of data-shape invariants the models
 don't model — I5–I7, I9, **I11–I16**, **I-dod**, the persona-identity reconciliations
 **I1c**/**I1d**, and the Bounded Graph Amendments frozen-prefix + scope + graph-closure checks
-(**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I19** (plus
+(**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I34** (plus
 **I1b**/**I1c**/**I1d**/**I3b**/**I3c** and **I-dod**). Three of these — I14, I15, I16 — are the post-hoc,
 *offline* checks added since the earlier releases; each gates **no** transition (and never
 guards the sole back-edge LT7), so each **preserves** the termination proof
-(`references/state-machine.md` §4 lines 161–163):
+(`references/state-machine.md` §4 lines 203–205):
 
 - **I14 (AO-2 `do_not_touch` disjointness).** On a retry (`debrief.iteration>1`), the new
   `verify.defects[].criterion` set must be disjoint from the retry's
   `debrief.prior_feedback.do_not_touch`; a non-empty intersection ⇒ non-zero exit
-  (`references/state-machine.md` §4 line 161).
+  (`references/state-machine.md` §4 line 203).
 - **I15 (AO-6 responsive change).** A retry carrying a `prior_feedback` echo must record a
   present, non-empty `debrief.prior_feedback.changes_made` (`references/state-machine.md`
-  §4 line 162).
+  §4 line 204).
 - **I16 (panel discipline).** A `high-stakes` unit's `verify.json` must carry a `panel[]` of
   ≥3 members spanning the distinct correctness / reproduce / guardrail lenses, whose top-level
   `verdict` equals the **discrete majority** of the panel verdicts (a no-majority split ⇒
   `DISAGREE` — *no softmax*), with `verify_rounds ∈ [1,3]` (`references/state-machine.md`
-  §4 line 163).
+  §4 line 205).
 
 It also enforces **I-dod** (a post-clarification structural artifact requires a schema-valid
 `clarifications.json` with non-empty `definition_of_done` **and** `non_goals`, fail-closed even
-when the file is absent — `references/state-machine.md` §4 line 164, §5 lines 185–186).
+when the file is absent — `references/state-machine.md` §4 line 206, §5 lines 247–248).
 Conversely, only the *models* prove the rules themselves can't be bypassed.
 
 **Model simplifications (surfaced, not hidden).** `Pipeline.tla` is a deliberately small
@@ -402,17 +405,17 @@ the `L*` loop actions aren't per-action phase-gated (locality to P6 is enforced 
 `LinkP6` alone); `Resolve` returns to P6 without re-arming the loop (post-escalation
 recovery and P2/P3/P4 rollback are out of model scope); and `gate["P0"]`/`gate["P5"]` have
 no runtime flag (they're linear, non-gated phases)
-(`references/formal-models.md` §"Model simplifications", lines 325–357).
+(`references/formal-models.md` §"Model simplifications", lines 452–498).
 
 **Residual A — the load-bearing caveat.** A green check on any of these models does **not**
 prove the *running system* obeys the rule. `executor_reasoning_seen=false` and the Alloy
 `Independence` fact are **self-attestations**; no platform hook intercepts subagent I/O.
 The model proves the invariant is *well-formed and consistent* — never that the deployment
-honors it (`references/formal-models.md` Residual A, lines 364–367;
+honors it (`references/formal-models.md` Residual A, lines 505–508;
 `references/state-machine.md` §5 A). Related residuals B–E cover PASS *correctness*,
 budget truthfulness, genuine model-distinctness behind a persona label, and truly-reusable
 tags — all *semantic* judgments left to the independent verifier, not the formal layer
-(`references/formal-models.md` lines 368–377). The formal layer proves the *plumbing and
+(`references/formal-models.md` lines 509–518). The formal layer proves the *plumbing and
 the rules*; correctness-of-content stays an external signal.
 
 ---
@@ -432,7 +435,7 @@ load-bearing claim.
   Prop 4 is labeled *machine-checked + asserted (structural, consistent)* there, and this
   page says exactly that (§6b) rather than "proved"; the TLC numbers (853/408/36) are quoted
   verbatim from lines 94–104; the Alloy scopes are quoted from `formal/WorkGraph.als` lines
-  86–89. **Outcome: premise HOLDS** — no claim found exceeding its source; no unbounded
+  87–90. **Outcome: premise HOLDS** — no claim found exceeding its source; no unbounded
   all-inputs proof is asserted anywhere on the page.
 - **PIVOT.** If the source proof-status table (`references/formal-models.md` lines 68–74) or
   the TLC transcript (lines 91–116) said something different from what I transcribed, the

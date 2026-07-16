@@ -53,13 +53,13 @@ The two fields that carry the "external-signal" discipline:
 
 ## 2. The generalizability gate — the ≥ 2-unit rule
 
-The admission gate is **selector-kind asymmetric** — deliberately *not* one uniform "≥ 2" rule (`self-learning-loops.md §4.2`, "Generalizability gate", lines 374–388). A *generalization-claiming* selector (`all` or `tag:T`) has to match **≥ 2 units in the run**, checked mechanically against the DAG; a *single-target* `unit-id` selector is admitted as-is because it makes no generalization claim:
+The admission gate is **selector-kind asymmetric** — deliberately *not* one uniform "≥ 2" rule (`self-learning-loops.md §4.2`, "Generalizability gate", lines 402–416). A *generalization-claiming* selector (`all` or `tag:T`) has to match **≥ 2 units in the run**, checked mechanically against the DAG; a *single-target* `unit-id` selector is admitted as-is because it makes no generalization claim:
 
 - an `"all"` selector is admissible **iff the graph has ≥ 2 units** (an `all` scope on a 1-unit graph is not a pattern);
 - a **`"tag:<T>"`** selector is admissible **only if ≥ 2 units in `GRAPH.md` carry tag `T`** — so a one-off cannot masquerade as a pattern (subject to the imported-entry carve-out in §3);
 - a **unit-id `"U0X"`** selector is a *deliberate single-target application*, not a generalization claim — it cannot force-inject beyond its one unit, so it is **always admissible** (no ≥ 2-carrier re-proof). A lesson meant to bind two units names them as two `U0X` selectors, or uses a `tag:`.
 
-A **pattern (`tag:`) or `all`** lesson that would match only a single unit is **rejected** and belongs in that unit's `debrief.json`, not the ledger (`§4.2`, lines 385–388) — a `U0X` selector is the deliberate exception, a chosen single-unit binding admitted as such. This is the over-fitting guard: it keeps *pattern* lessons generalizable, so reflections are keyed to outcomes rather than free-floating self-assessment (`§4.2`; `§6.2`).
+A **pattern (`tag:`) or `all`** lesson that would match only a single unit is **rejected** and belongs in that unit's `debrief.json`, not the ledger (`§4.2`, lines 413–416) — a `U0X` selector is the deliberate exception, a chosen single-unit binding admitted as such. This is the over-fitting guard: it keeps *pattern* lessons generalizable, so reflections are keyed to outcomes rather than free-floating self-assessment (`§4.2`; `§6.2`).
 
 The corresponding invariant is **I12**'s second half: *"a `tag:T` scope is admissible only if ≥ 2 units carry T"* (`state-machine.md §4`, I12 row).
 
@@ -69,7 +69,7 @@ The corresponding invariant is **I12**'s second half: *"a `tag:T` scope is admis
 
 ## 3. Scope — the three-kind SelectorSet and the `V_tag` registry
 
-Scope is expressed as a **SelectorSet**: each element of `applies_to` is exactly one of three *mechanical* selector kinds the validator enforces — no free-text NLP anywhere, and an unknown kind is a hard `I12 selector` FAIL, never a silent skip (`self-learning-loops.md §4.2`, SelectorSet table, lines 321–332):
+Scope is expressed as a **SelectorSet**: each element of `applies_to` is exactly one of three *mechanical* selector kinds the validator enforces — no free-text NLP anywhere, and an unknown kind is a hard `I12 selector` FAIL, never a silent skip (`self-learning-loops.md §4.2`, SelectorSet table, lines 349–360):
 
 | Selector | Written as | Matches unit `U` when |
 |----------|-----------|-----------------------|
@@ -77,7 +77,7 @@ Scope is expressed as a **SelectorSet**: each element of `applies_to` is exactly
 | **pattern (tag)** | `"tag:<T>"` | `T ∈ U.tags` — set membership |
 | all | `"all"` | always (subject to `excludes`) |
 
-(A `"phaseN"` selector was **removed** from the vocabulary — no unit carries a `phase` field in `graph.schema.json`/`brief.schema.json`, so it was mechanically unevaluable; **BRK-09**, `self-learning-loops.md:331-332`.)
+(A `"phaseN"` selector was **removed** from the vocabulary — no unit carries a `phase` field in `graph.schema.json`/`brief.schema.json`, so it was mechanically unevaluable; **BRK-09**, `self-learning-loops.md:359-360`.)
 
 The load-bearing design choice is the **pattern** kind: *a pattern is a tag, not prose.* `T` must come from `V_tag`, a **documented, enumerated registry seeded in `GRAPH.md`**, extended only by adding to the registry — never by ad-hoc strings (`§4.2`). The seed vocabulary is:
 
@@ -86,7 +86,7 @@ V_tag = { research, schema, validator, code, template-edit, prose-edit,
           design, verification, loop, socratic, synthesis, ops, high-stakes }
 ```
 
-`high-stakes` is an ordinary `V_tag` member for tag-scoped propagation, but it *also* carries an **operational** meaning: a unit tagged `high-stakes` is verified by the default odd panel of 3 (distinct correctness/reproduce/guardrail lenses), enforced post-hoc by the validator's **I16** predicate — an *asserted (consistent)* check, not a proof of lens diversity (`self-learning-loops.md:344-348`; see [`06-verification.md`](06-verification.md)).
+`high-stakes` is an ordinary `V_tag` member for tag-scoped propagation, but it *also* carries an **operational** meaning: a unit tagged `high-stakes` is verified by the default odd panel of 3 (distinct correctness/reproduce/guardrail lenses), enforced post-hoc by the validator's **I16** predicate — an *asserted (consistent)* check, not a proof of lens diversity (`self-learning-loops.md:372-376`; see [`06-verification.md`](06-verification.md)).
 
 Correspondingly **every unit declares an explicit `tags: [T ∈ V_tag]` set** in its `GRAPH.md` row (mirrored into its brief) — which is exactly what turns "does this pattern apply?" into a mechanical set-membership test a validator can enforce, instead of natural-language matching (`§4.2`).
 
@@ -127,13 +127,13 @@ REQUIRE  ∀ E ∈ LEARNINGS, ∀ U ∈ briefs with U.wave >= E.since_wave :
              applies(E.scope, U)  ⇒  E.id ∈ U.brief.learnings_applied
 ```
 
-The validator enforces all three disjuncts (`all` | `unit-id` | `tag:T`) — there is no `phase` disjunct (`"phaseN"` was removed, BRK-09) and an `applies_to` element matching none of them is a hard `I12 selector` FAIL, never a silent skip (`§4.3`, lines 411–413). The validator runs this over the learnings ledger × `units/*/brief.md`; a violation is a **non-zero exit** (`§4.3`). This is invariant **I12** (`state-machine.md §4`, I12 row).
+The validator enforces all three disjuncts (`all` | `unit-id` | `tag:T`) — there is no `phase` disjunct (`"phaseN"` was removed, BRK-09) and an `applies_to` element matching none of them is a hard `I12 selector` FAIL, never a silent skip (`§4.3`, lines 439–441). The validator runs this over the learnings ledger × `units/*/brief.md`; a violation is a **non-zero exit** (`§4.3`). This is invariant **I12** (`state-machine.md §4`, I12 row).
 
 Three properties keep it *safe rather than blind* (`§4.3`):
 
 1. **Temporal (wave-based).** A learning binds only briefs whose wave is **no earlier than** its `since_wave` — never retroactively.
 2. **Scoped, not global.** Every disjunct is set-membership on `scope`; a correctly-scoped one-off (or a mis-scoped lesson caught by the §4.2 gate) is **not** force-injected into unrelated units.
-3. **No silent drop (pattern completeness).** Every selector kind admissible in §4.2 — `all`, `unit-id`, **and `tag`** (the three enforced kinds; no `phase`) — has a matching disjunct here, so no admitted learning can pass the gate yet match zero units, and an *unrecognized* selector is a hard `I12 selector` FAIL rather than a silent skip (`§4.3`, lines 425–428; the COUNTER in `§6.2` walks the repro: a `tag:schema` lesson matches every `schema`-tagged unit, and any such brief lacking it in `learnings_applied` ⇒ validator non-zero exit).
+3. **No silent drop (pattern completeness).** Every selector kind admissible in §4.2 — `all`, `unit-id`, **and `tag`** (the three enforced kinds; no `phase`) — has a matching disjunct here, so no admitted learning can pass the gate yet match zero units, and an *unrecognized* selector is a hard `I12 selector` FAIL rather than a silent skip (`§4.3`, lines 453–456; the COUNTER in `§6.2` walks the repro: a `tag:schema` lesson matches every `schema`-tagged unit, and any such brief lacking it in `learnings_applied` ⇒ validator non-zero exit).
 
 Because `U.tags` and `T` both range over the enumerated `V_tag`, the whole predicate stays mechanical set-membership (`§4.3`). This requires `brief.schema.json` to carry both `learnings_applied: [string]` and a per-unit `tags: [T ∈ V_tag]` field (mirrored from `GRAPH.md`), which is what makes the tag disjunct checkable at all (`§4.3`; `state-machine.md §3` G-brief).
 

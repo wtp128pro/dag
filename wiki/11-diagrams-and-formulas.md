@@ -260,7 +260,7 @@ There are exactly **three** disjuncts — `all`, unit-id (`U0X`), and `tag:T`; t
 all three and treats any other `applies_to` element as a hard `I12 selector` FAIL. **There is no
 `phase` disjunct: the `"phaseN"` selector was removed (BRK-09)**, since no unit carries a `phase`
 field in `graph.schema.json`/`brief.schema.json` to match, so it was mechanically unevaluable
-(`self-learning-loops.md` §4.3, lines 411–413).
+(`self-learning-loops.md` §4.3, lines 439–441).
 
 **The I12 REQUIRE quantifier** — the propagation rule the validator enforces
 (`self-learning-loops.md` §4.3; invariant **I12**, `state-machine.md` §4):
@@ -288,7 +288,7 @@ two units names them as two "U0X" selectors (or a "tag:T").
 ```
 
 `"phaseN"` is **not** an admissible kind — it was removed from the vocabulary (BRK-09,
-`self-learning-loops.md` §4.2, lines 374–388 / §SelectorSet lines 325–332).
+`self-learning-loops.md` §4.2, lines 402–416 / §SelectorSet lines 353–360).
 
 Carve-out (honest boundary): imported / already-generalized entries (a `G#` global id or a
 store-loaded id) are **exempt** from the ≥2-carrier *re-proof* but are still governed by the I12
@@ -307,9 +307,9 @@ which gates no transition and never guards LT7 (`state-machine.md` §4 I16).
 
 | Formula | Meaning | Source |
 |---|---|---|
-| `high-stakes(U) ⇒ panel has ≥ 3 members`, lenses ⊇ {correctness, reproduce, guardrail} | a `high-stakes` unit's `verify.json` MUST carry an odd panel of ≥3 verifiers with the three distinct lenses (the default) | `self-learning-loops.md` §3 (panel contract, lines 241–250); `state-machine.md` §4 I16 |
+| `high-stakes(U) ⇒ panel has ≥ 3 members`, lenses ⊇ {correctness, reproduce, guardrail} | a `high-stakes` unit's `verify.json` MUST carry an odd panel of ≥3 verifiers with the three distinct lenses (the default) | `self-learning-loops.md` §3 (panel contract, lines 267–276); `state-machine.md` §4 I16 |
 | `verdict = discrete-majority(panel.verdict)`;  no strict majority ⇒ `verdict = DISAGREE`  (**no softmax**) | the top-level verdict is the discrete mode (2-of-3); a genuine split routes to LT6 → ESCALATE (AO-5). Softmaxing the discrete guard partition would REVISE (break) the §2 proof and is forbidden | `self-learning-loops.md` §2 FLAG (lines 169–172), §3; `state-machine.md` §4 I16 |
-| `1 ≤ verify_rounds ≤ R_max`,  `R_max = 3` | loop-until-dry: sweep rounds accumulate defects until a round is dry (`converged = true`) or the cap is hit (`converged = false`); bounded ⇒ finite | `self-learning-loops.md` §3 (loop-until-dry, lines 251–254); §2 Bound |
+| `1 ≤ verify_rounds ≤ R_max`,  `R_max = 3` | loop-until-dry: sweep rounds accumulate defects until a round is dry (`converged = true`) or the cap is hit (`converged = false`); bounded ⇒ finite | `self-learning-loops.md` §3 (loop-until-dry, lines 277–280); §2 Bound |
 
 Honest boundary: I16 checks the panel's **presence and shape**, not whether the three lenses are
 *genuinely* diverse or the sweep achieved *real* recall — those stay verifier/human judgment

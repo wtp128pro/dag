@@ -90,7 +90,88 @@ verification. When a claim *can* be made executable, an asserted-only version is
 the verifier should down-rank or reject
 ([`evidence-standards.md`, "Evidence preference ordering" (PR2)](../plugins/dag/skills/dag/references/evidence-standards.md)).
 
-### 2.2 The loop that catches what slips through
+### 2.2 Source tiers, the retrieval floor, and the fallback ladder (1.9.0)
+
+Which admissible evidence you *may* lean on is not a free choice: externally-sourced evidence
+carries a **tier tag**, and retrieval is **mandatory per claim type, not advisory**. Tier
+authority is **claim-scoped, not a global ranking** — local sources are PRIMARY for
+project-scoped claims and hearsay for world claims; vendor docs are PRIMARY for external
+normative claims
+([`evidence-standards.md`, "Source tiers & mandatory retrieval standard"](../plugins/dag/skills/dag/references/evidence-standards.md)).
+
+**The four source tiers** ([`evidence-standards.md` tier table](../plugins/dag/skills/dag/references/evidence-standards.md)):
+
+| Tier | Covers | Authority |
+|---|---|---|
+| **T-VENDOR** | official docs, changelogs, specs, standards, official API refs, the vendor's own repo | Authoritative for external normative claims; a contested/version-sensitive fact needs **two independent sources** (neither citing nor deriving from the other) |
+| **T-COMM** | known-good community venues, admitted **once** into the run's SOURCES register under **K-A** (accountable venue: attributable standing/editorial control AND public correction machinery), **K-B** (chaseable to a primary or reproducible artifact), **K-C** (dated + version-matched, not stale) | Corroborative only. Sole support for a load-bearing external claim ONLY with `vendor_silent: true` + a `vendor_surface_searched` locator + the row's recorded K-B chase outcome |
+| **T-LOCAL** | git log/commits/PRs/issues, archived run ledgers, learnings stores, `CLAUDE.md`, session memory, the project's own code/docs | Authoritative for **project-scoped** claims via reproducible locators (git SHA, `path:line`, PR#, ledger path; dates from metadata, never invented). **Hearsay** for world claims — never satisfies a vendor-tier obligation |
+| **T-PARAM** | model parametric memory | **Never authoritative** — the fallback *floor*, admissible only as the declared final rung below, and the **only tier that is never registrable** as a source |
+
+**The claim-type → tier standard.** The tier a claim *owes* is normative in the claim taxonomy
+itself ([`evidence-standards.md`'s claim-type table](../plugins/dag/skills/dag/references/evidence-standards.md)),
+not a separate ranking: an empirical/world-fact or api-tool-contract claim owes **T-VENDOR** (with
+the vendor-silent T-COMM form for sole support); a project/code-state claim owes a reproducible
+**T-LOCAL** locator. Direct observation (a run/reproduction with its recipe recorded) is an
+evidence *form* for behavior/measurement/causal claims, **not** a source tier.
+
+**The fallback ladder (when the live source is unreachable).** The retrieval rung is a **REQUIRED
+field on every externally-sourced evidence row** — silent skipping is *impossible by
+construction*. Take the **highest reachable rung**; each rung is attempted before declaring the
+next ([`evidence-standards.md` fallback ladder](../plugins/dag/skills/dag/references/evidence-standards.md)):
+
+1. **`live-fetch`** — URL + verbatim quoted span + accessed date (this run).
+2. **`vendored-docs`** — local/vendored vendor docs, man pages, `--help` output: path/command +
+   version + quoted span.
+3. **`cached-copy`** — a previously-fetched copy whose locator is **verifier-reachable** (run dir,
+   archived ledgers, repo or installed-dependency paths) + the **original** fetch date + a
+   staleness note. If the verifier cannot open it, it is not a cached copy — declare
+   `parametric-only`.
+4. **`parametric-only`** — declared model-memory support: labeled `ASSUMPTION:` with its blast
+   radius, **confidence-capped**, recorded in `residual_risks[]` when it covers an owed claim, and
+   left verifier-visible for a next-higher-rung probe. It **cannot solely support** a claim an
+   acceptance criterion depends on UNLESS the higher rungs are declared unreachable in the row's
+   ladder fields — then the claim's confidence is capped and the gap is a recorded residual risk.
+
+Stamping a **fresh access date on a cached or remembered source is date fabrication** — the
+highest-severity hallucination
+([`evidence-standards.md` rule 4](../plugins/dag/skills/dag/references/evidence-standards.md)).
+
+**The retrieval floor — claims *owed* precede execution.** At briefing time the orchestrator
+derives the unit's `claims_owed` — each `{id, type, trigger_ref, min_tier}` — from its acceptance
+criteria under four rules
+([`evidence-standards.md`, "Claims owed"](../plugins/dag/skills/dag/references/evidence-standards.md)):
+**O1** — an external system/vendor/tool named ⇒ a world-fact entry (or an api-tool-contract entry
+when the wording is contract-shaped), owed at **T-VENDOR**; **O2** — a file/code state asserted ⇒
+a provenance-quote entry owed at **T-LOCAL**; **O3** — a number/threshold ⇒ a measurement owed;
+**O4** — causal wording ⇒ a toggle reproduction owed. The executor may **add** claims, never
+**shrink** the owed set; an empty set must say so explicitly with a reason. Every owed id must be
+covered by an evidence row that lists it in `covers_owed`, matches its type, and satisfies its
+`min_tier` (a T-VENDOR obligation accepts the vendor-silent T-COMM form or a declared-unreachable
+parametric row, both confidence-capped; a T-LOCAL obligation accepts only reproducible local
+locators). Verifiers **re-derive** the owed set via O1–O4 and treat an uncovered, mis-linked, or
+under-tiered owed claim as a **defect citing that criterion**.
+
+**The I31–I34 retrieval-ladder (RL) doctrine — mechanically checked.** The discipline above is
+*enforced* by four post-hoc validator invariants (all **PRESERVES**, none a live loop guard; their
+doctrine home is `evidence-standards.md` §Source tiers —
+[`state-machine.md` §5](../plugins/dag/skills/dag/references/state-machine.md)):
+
+- **I31 = RL-1 (rung presence)** — any evidence row carrying a `source_tier`/`retrieval_rung` must
+  **declare its rung** (the ladder field is not optional).
+- **I32 = RL-2 (parametric-downgrade consistency)** — a `parametric-only` row must be internally
+  consistent with the downgrade: an `ASSUMPTION:` label + a `residual_risks` record + a confidence
+  cap (parametric coverage of an owed claim cannot be reported `high`).
+- **I33 = RL-3 (premise extraction)** — a **design-judgment** row must carry `extracted_premises`
+  (each load-bearing factual premise pulled out as its own typed claim; an empty list needs an
+  explicit none-reason — laundering must be a recorded false "none," never an omission).
+- **I34 = CO-1 (per-entry owed coverage)** — for any brief with a non-empty `claims_owed`, every
+  owed entry is checked for coverage per-entry: one row cannot discharge two subjects.
+
+These check **presence/plumbing**, not genuineness (validity ≠ correctness) — the independent
+verifier's re-derivation and re-open of every locator remain the semantic backstop (§4).
+
+### 2.3 The loop that catches what slips through
 
 Evidence standards are enforced by a person who did not write the claim. Every unit is judged
 by an **independent adversarial verifier** — a separate subagent that never sees the executor's
@@ -102,7 +183,7 @@ see [`06-verification.md`](06-verification.md)). A debrief with an unbacked mate
 and a FAIL routes into the bounded correction loop
 (see [`04-self-learning-loops.md`](04-self-learning-loops.md)).
 
-### 2.3 Absence of evidence is a finding
+### 2.4 Absence of evidence is a finding
 
 The single most important anti-hallucination behavior is to *say "unknown" out loud*: "'I could
 not verify X' is a legitimate, required output — surface it, don't paper over it"
@@ -111,7 +192,7 @@ Assumptions are *labeled, never laundered into facts* — written as "ASSUMPTION
 reasonable plus its blast radius if wrong
 ([`evidence-standards.md` rule 2](../plugins/dag/skills/dag/references/evidence-standards.md)).
 
-### 2.4 Why practical accuracy *reduces* but cannot *eliminate* error
+### 2.5 Why practical accuracy *reduces* but cannot *eliminate* error
 
 Every mechanism above is a human/verifier *judgment* executed by a model that shares weights
 with the thing it checks. The verifier can miss a fabricated locator; a plausible-but-wrong PASS
@@ -166,8 +247,24 @@ verbatim from [`state-machine.md` §5](../plugins/dag/skills/dag/references/stat
 | **I17** | BGA frozen executed prefix: no amendment touches a debriefed/verified unit; reconciled against the immutable `graph.json.baseline_units` (`set(units) ∪ retired == baseline ∪ ⋃ units_added`); every executed unit's graph entry matches its immutable `brief.json` (post-hoc offline) |
 | **I18** | BGA fuel bound: `fuel_remaining == fuel_initial − Σ fuel_cost ≥ 0` + `fuel_before`/`fuel_after` tamper chain + records-required trigger + revision/`amendments_applied` bookkeeping (schema max 32 — the runtime backstop for the `Quiesce`/`FuelBound` design-time property) |
 | **I19** | BGA amendment scope + kind closure: per-kind schema closure; `dod_refs` verbatim ∈ `definition_of_done`; `scope_change`/`cancel_unit` ⇒ `human_gate==true`; split-child coverage (presence/attestation only — genuine DoD-service and real human approval stay unobservable) |
+| **I26** | SOURCES register present & complete: structural trigger, fail-closed presence (≥1 row, ≥1 CONSULTED), disposition completeness, K-A/K-B/K-C venue admissions, coverage-basis membership (post-hoc offline) |
+| **I27** | Clarification sweep: nine-dimension exact-once coverage, disposition presence, cartography-round record, `resolution_source` visibility, P8 spot-check presence (post-hoc offline) |
+| **I28** | Depth-tier recording + floor conformance: adoption-gated on `fsm-state.depth`; unconditional Phase-2 touch; upward-only ratchet monotonicity (per-unit time-scoped); canonical skipped-floors completeness; probe/sweep/register/panel floors; external-surface consistency (post-hoc offline) |
+| **I29** | Execution-effort briefs: `claims_owed`/`required_sources` owed-entry shape, register linkage, CB-1 bridge presence, explicit-none, queued-consumer closure (post-hoc offline) |
+| **I30** | Retrieval-coverage verify: `owed_check` totality + recomputed coverage arithmetic, **PASS-with-uncovered ⇒ FAIL**, probe floor, target-list superset, consulted/unreachable joins (post-hoc offline) |
+| **I31** | **RL-1** rung presence — every externally-sourced evidence row declares its `retrieval_rung` (post-hoc offline; doctrine home: `evidence-standards.md` §Source tiers) |
+| **I32** | **RL-2** parametric-downgrade consistency — a `parametric-only` row carries the `ASSUMPTION:` label + `residual_risks` record + confidence cap (post-hoc offline) |
+| **I33** | **RL-3** premise extraction — a design-judgment row carries `extracted_premises` (or an explicit none-reason) (post-hoc offline) |
+| **I34** | **CO-1** per-entry owed coverage — every entry of a non-empty `claims_owed` is covered per-entry; one row cannot discharge two subjects (post-hoc offline) |
 | **I-dod** | Definition-of-Done + Non-Goals present once any post-clarification structural artifact exists (fail-closed even if `clarifications.json` absent) |
 | (attestation) | The `premise_check` attestation: `counter_reran_independently==true`, PASS rejected if `is_load_bearing==false`; gate-ordering of `phase` vs `gates` |
+
+*(The 1.8.0 guardrail/clarification family **I20–I25** — per-unit DoD/non-goal binding,
+verify-time `guardrail_compliance`, P8 DoD/non-goal closure, the ambiguity-register floor,
+resolution-required on resolved-material items — is enforced by the same post-hoc/offline
+validator but catalogued on
+[`14-validator-and-invariants.md`](14-validator-and-invariants.md); this page lists the
+evidence/retrieval-facing invariants.)*
 
 ### 3.2 The machine-checked design-time properties (TLA+/Alloy)
 
@@ -256,7 +353,7 @@ human/verifier judgment. Enumerated verbatim from
   verdict is *correct* — those stay verifier/human judgment (validity ≠ correctness, the same
   boundary as I13/I14/I15). Being post-hoc, it gates no transition, so it can never deadlock the
   loop
-  ([`state-machine.md:233-244`, Limitation H](../plugins/dag/skills/dag/references/state-machine.md)).
+  ([`state-machine.md:326-337`, Limitation H](../plugins/dag/skills/dag/references/state-machine.md)).
 
 ### 4.2 Reading the seam correctly
 

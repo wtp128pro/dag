@@ -10,7 +10,7 @@
 
 The **TLC results (1)–(2) below were produced by actually running TLC** on the shipped `formal/Pipeline.tla` during authoring (2026-07-10, after the Bounded Graph Amendments `fuel`/`FuelBound`/`Quiesce` additions). Environment: `JAVA_HOME=$(/usr/libexec/java_home)` → Oracle Java SE **25.0.3**; `tla2tools.jar` v2.19 fetched to `/tmp`. **The Alloy results (3) were NOT re-run this session** — no Alloy jar was present at authoring time — so they are **cited from `references/formal-models.md`'s recorded 2026-07-10 run** (*machine-checked in scope, as recorded*), not freshly observed here.
 
-> **One-command alternative (plugin 1.7.0):** `bash scripts/run_formal.sh` now fetches both jars (checksum-verified) and runs TLC (MaxFuel 2) **and** both Alloy files headlessly in one step — and, as of WP-F/D1, it **asserts** the literal results (the `853` / `408` / `depth 36` counts, the "2 branches of temporal properties" line, and Alloy's `SUMMARY: 8/8 commands as-expected`), so a gutted `.cfg`/`.als` now FAILs instead of vacuously passing. Add `--maxfuel32` for the parametric run. Everything below is what that script does by hand.
+> **One-command alternative (plugin 1.9.0):** `bash scripts/run_formal.sh` now fetches both jars (checksum-verified) and runs TLC (MaxFuel 2) **and** both Alloy files headlessly in one step — and, as of WP-F/D1, it **asserts** the literal results (the `853` / `408` / `depth 36` counts, the "2 branches of temporal properties" line, and Alloy's `SUMMARY: 8/8 commands as-expected`), so a gutted `.cfg`/`.als` now FAILs instead of vacuously passing. Add `--maxfuel32` for the parametric run. Everything below is what that script does by hand. **Plugin 1.9.0** (depth & retrieval enforcement, invariants **I26–I34**) added **no FSM state, transition, guard, or gate** — classified **PRESERVES** (zero REVISES) — so the transcripts reproduced below (853 / 408 / depth 36; Alloy 8/8) are **unchanged**.
 
 **(1) TLC — both TLA+ properties, full state space.**
 ```sh
@@ -93,7 +93,7 @@ From `references/formal-models.md` § Tool-status:
 | TLC (`tla2tools.jar`) | **2.19** | fetched to `/tmp`; TLA+ properties machine-checked |
 | Alloy (`org.alloytools.alloy.dist.jar`) | **6.2** | fetched to `/tmp`; Alloy properties machine-checked (Kodkod / bundled SAT4J, headless) |
 
-`tla2tools.jar` and the Alloy jar are **build tools, not skill files** — both are fetched to `/tmp`, never vendored under the skill (`references/formal-models.md` § Tool-status note; `formal/Pipeline.cfg:5-6`).
+`tla2tools.jar` and the Alloy jar are **build tools, not skill files** — both are fetched to `/tmp`, never vendored under the skill (`references/formal-models.md` § Tool-status note; `formal/Pipeline.cfg:6-7`).
 
 ---
 
@@ -114,7 +114,7 @@ export JAVA_HOME=$(/usr/libexec/java_home)
 
 These are the exact commands from `references/formal-models.md` § Tool-status note (lines 47–61).
 
-> **Or automate all of it (plugin 1.7.0).** `bash scripts/run_formal.sh` performs every fetch-and-run
+> **Or automate all of it (plugin 1.9.0).** `bash scripts/run_formal.sh` performs every fetch-and-run
 > step on this page — jars (checksum-verified), TLC (MaxFuel 2), and both Alloy files headless — and, as
 > of WP-F/D1, **asserts** the literal results: the `853` / `408` / `depth 36` counts, the "2 branches of
 > temporal properties" line, and Alloy's `SUMMARY: 8/8 commands as-expected`. A `.cfg` stripped of its
@@ -126,7 +126,7 @@ These are the exact commands from `references/formal-models.md` § Tool-status n
 
 ## Property 1 & 2 — the one TLC command
 
-TLC checks *both* TLA+ properties in a single run: the safety invariants **and** the liveness `PROPERTY`. The fairness the liveness check needs (`WF_vars(LoopNext)`) rides in via `SPECIFICATION Spec` in the `.cfg` (`formal/Pipeline.cfg:11-12`, `formal/Pipeline.tla:201`). Run **from the run directory** (the one containing `formal/`):
+TLC checks *both* TLA+ properties in a single run: the safety invariants **and** the liveness `PROPERTY`. The fairness the liveness check needs (`WF_vars(LoopNext)`) rides in via `SPECIFICATION Spec` in the `.cfg` (`formal/Pipeline.cfg:12-13`, `formal/Pipeline.tla:239`). Run **from the run directory** (the one containing `formal/`):
 
 ```sh
 export JAVA_HOME=$(/usr/libexec/java_home)
@@ -154,11 +154,11 @@ The depth of the complete state graph search is 36.
 
 **How to read it.** `Model checking completed. No error has been found.` with `0 states left on queue` means TLC explored the **complete** reachable state space — **853 states generated, 408 distinct**, search depth 36 — and in every one of those 408 states each `INVARIANT` (now including `FuelBound`) held, and **both** temporal properties — `PROPERTY Termination` and the BGA `PROPERTY Quiesce` (the "2 branches of temporal properties" line) — held on every fair behavior (`references/formal-models.md` § "The TLC run", lines 106–116).
 
-- **Property 1 — Gate ordering** is the `INVARIANT GateOrdering` (`formal/Pipeline.tla:209-217`): in every reachable state, being at a phase implies every strictly-earlier spine gate holds — e.g. no P3 before `gate["P2"]` (I8), no P8 before `gate["P6"]` (I10). Machine-checked across all 408 states; also hand-proved as an inductive invariant in `references/formal-models.md` § 1.
+- **Property 1 — Gate ordering** is the `INVARIANT GateOrdering` (`formal/Pipeline.tla:247-255`): in every reachable state, being at a phase implies every strictly-earlier spine gate holds — e.g. no P3 before `gate["P2"]` (I8), no P8 before `gate["P6"]` (I10). Machine-checked across all 408 states; also hand-proved as an inductive invariant in `references/formal-models.md` § 1.
 - **Property 2 — Bounded-loop termination** is the `PROPERTY Termination`: `(lstate = "EXECUTE") ~> (lstate ∈ {"DONE","ESCALATE"})`. The well-founded variant is `V = MaxRetries − retries`; the sole back-edge `LRetry` (LT7) increments `retries`, so `V` strictly descends and the back-edge is disabled at the floor (`BackEdgeGuarded`). Hand-proof: `references/formal-models.md` § 2, four claims A–D.
 - **Property 5 — Bounded-amendment quiescence** is the second temporal branch `PROPERTY Quiesce`: `<>[](lstate ∈ {"DONE","ESCALATE"})` — the loop eventually *stays* terminal (graph amendments cannot re-arm it forever). Its second well-founded variant is `fuel ∈ 0..MaxFuel` (invariant `FuelBound`); only `Amend` writes `fuel`, and only `−1`, disabling itself at `fuel = 0`. Hand-proof (fuel variant): `references/formal-models.md` § 5.
 
-> **PR1 verifier hardening — the model is UNCHANGED (classified PRESERVES).** The 1.2.0 panel-of-3 default and the bounded loop-until-dry sweep are **internal to the `VERIFY` node** (`formal/Pipeline.tla:146-150`): they add **no new TLA action** (`LVerify` still steps `VERIFY→ADJUDICATE`), no new variable, and **no second back-edge** — the fan-out (3) and round cap (`R_max=3`) are finite constants absorbed by the single `LVerify` step. So `Termination` and the well-founded measure `V = MaxRetries − retries` hold **verbatim** and `Pipeline.tla`/`.cfg` need no edit. The panel verdict is aggregated by **discrete majority** (a split maps to `DISAGREE`) *before* `ADJUDICATE` reads it, so its guard partition `{PASS} ∪ {FAIL}×{V>0,V=0} ∪ {DISAGREE}` is unchanged. This is classified **PRESERVES**, not *revises* (`references/formal-models.md:195-207`). (**Softmaxing** that aggregation WOULD break the model — it would collapse the exhaustive, mutually-exclusive guard partition — and is therefore forbidden.)
+> **PR1 verifier hardening — the model is UNCHANGED (classified PRESERVES).** The 1.2.0 panel-of-3 default and the bounded loop-until-dry sweep are **internal to the `VERIFY` node** (`formal/Pipeline.tla:159-163`): they add **no new TLA action** (`LVerify` still steps `VERIFY→ADJUDICATE`), no new variable, and **no second back-edge** — the fan-out (3) and round cap (`R_max=3`) are finite constants absorbed by the single `LVerify` step. So `Termination` and the well-founded measure `V = MaxRetries − retries` hold **verbatim** and `Pipeline.tla`/`.cfg` need no edit. The panel verdict is aggregated by **discrete majority** (a split maps to `DISAGREE`) *before* `ADJUDICATE` reads it, so its guard partition `{PASS} ∪ {FAIL}×{V>0,V=0} ∪ {DISAGREE}` is unchanged. This is classified **PRESERVES**, not *revises* (`references/formal-models.md:219-234`). (**Softmaxing** that aggregation WOULD break the model — it would collapse the exhaustive, mutually-exclusive guard partition — and is therefore forbidden.)
 
 ### Non-vacuity check — the `Broken.tla` counterexample (did the liveness test have teeth?)
 
@@ -182,7 +182,7 @@ The exact `<n>` and the action name TLC prints for the back-edge are **search-or
 
 ### GUI-vs-headless caveat (read before running)
 
-Alloy's default invocation `java -jar /tmp/alloy.jar` **launches the GUI** — it does not run checks on the command line. To reproduce headlessly you have two options (`references/formal-models.md` § Tool-status note, lines 41–42; `formal/WorkGraph.als:17-21`):
+Alloy's default invocation `java -jar /tmp/alloy.jar` **launches the GUI** — it does not run checks on the command line. To reproduce headlessly you have two options (`references/formal-models.md` § Tool-status note, lines 58–61; `formal/WorkGraph.als:17-21`):
 
 1. **Open `formal/WorkGraph.als` in the Alloy Analyzer → Execute All.**
 2. **Drive the Alloy Java API headlessly:** `CompUtil.parseEverything_fromFile` → `TranslateAlloyToKodkod.execute_command`, default SAT4J solver, with `-Djava.awt.headless=true`.
@@ -196,7 +196,7 @@ check Acyclic                for 7 but 5 Int
 check LayeringImpliesAcyclic for 7 but 5 Int
 ```
 
-**The `for 7 but 5 Int` scope is a requirement, not a convenience.** It bounds *every* sig to 7 with Int bitwidth 5 (range −16..15, ample for ≥7 waves). A bare `7 Unit, 5 Int` does **not** work: `Unit.executor : one Persona` (`formal/WorkGraph.als:30`) makes `Persona` reachable, so a partial scope list leaves `Persona`/`Verifier` unbounded and the command will not run (`references/formal-models.md` lines 254–257; `formal/WorkGraph.als:21`).
+**The `for 7 but 5 Int` scope is a requirement, not a convenience.** It bounds *every* sig to 7 with Int bitwidth 5 (range −16..15, ample for ≥7 waves). A bare `7 Unit, 5 Int` does **not** work: `Unit.executor : one Persona` (`formal/WorkGraph.als:30`) makes `Persona` reachable, so a partial scope list leaves `Persona`/`Verifier` unbounded and the command will not run (`references/formal-models.md` lines 278–281; `formal/WorkGraph.als:21-22`).
 
 **Expected:** *No counterexample found. Assertion may be valid.*
 
@@ -210,7 +210,7 @@ check DistinctMakerChecker for 7 Unit, 5 Verifier, 5 Persona, 5 Int
 run   WitnessGraph         for exactly 4 Unit, exactly 2 Verifier, exactly 3 Persona, 5 Int
 ```
 
-**Expected:** the two `check`s → *No counterexample found*; the `run` → *Instance found* (`references/formal-models.md` line 300).
+**Expected:** the two `check`s → *No counterexample found*; the `run` → *Instance found* (`references/formal-models.md` line 324).
 
 - `VerifierBlind` (`formal/WorkGraph.als:89`) mirrors `verify.schema.json` `executor_reasoning_seen : {const:false}` and validator I1 — no verifier read any executor's chain-of-thought.
 - `DistinctMakerChecker` (`formal/WorkGraph.als:90`) mirrors maker≠checker (validator I1b) — a unit is never verified by its own maker.

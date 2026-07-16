@@ -26,14 +26,14 @@ it is confirmation bias with extra steps.
 
 The repo states the core idea plainly: *"a single model instance that both makes and checks its
 own work suffers confirmation bias. So the checker must be a separate instance that is
-incentivized to refute"* (`references/methodology.md` §Verification, lines 211–213).
+incentivized to refute"* (`references/methodology.md` §Verification, lines 245–247).
 
 Two research results the repo leans on (attributed exactly as it attributes them, in
-`references/methodology.md` §Hard-won principles #1, lines 308–311):
+`references/methodology.md` §Hard-won principles #1, lines 342–345):
 
 - **LLM judges provably favor their own outputs** — self-preference tied to self-recognition,
   which *persists even when authorship is hidden*. *(arXiv:2410.21819, NeurIPS'24 2404.13076.)*
-- And a corollary the repo pairs with it (#2, lines 312–314): **ground every correctness gate in an
+- And a corollary the repo pairs with it (#2, lines 346–348): **ground every correctness gate in an
   EXTERNAL signal** — a test, tool output, an independent verifier — never the model re-reading
   its own reasoning, because *intrinsic self-correction of reasoning is unreliable and can degrade
   output*. *(arXiv:2310.01798.)*
@@ -46,7 +46,7 @@ answer *worse*. So Dag doesn't hand the executor a mirror. It hands the result t
 ## 2. Independence of context — the verifier is blind to reasoning
 
 Separateness of *instance* isn't enough; the verifier must also be separate in *what it sees*.
-The rule (`references/methodology.md` §Verification, lines 216–217):
+The rule (`references/methodology.md` §Verification, lines 250–251):
 
 > **Independence of context.** The verifier receives the brief, the debrief, and the artifacts —
 > **not** the executor's reasoning/chain of thought. It forms its own view.
@@ -87,7 +87,7 @@ graph.verifier_persona`, and the two are **distinct** — maker ≠ checker at t
 merely in the declaration. **I1d** requires every *working* persona — each unit's executor/verifier,
 each `brief`/`debrief` persona, and every panel member — to be a member of the confirmed
 `personas.json` roster, so a working persona can no longer be a fabricated string absent from it
-(`references/state-machine.md` I1c/I1d, lines 186–187). Both are post-hoc/offline and gate no
+(`references/state-machine.md` I1c/I1d, lines 189–190). Both are post-hoc/offline and gate no
 transition; a genuinely distinct *model* behind a distinct label stays unobservable (Limitation D).
 
 ### Data-flow: what the verifier can and cannot touch
@@ -133,7 +133,7 @@ crosses into the verifier. Everything the verifier reads (brief, debrief, artifa
 ## 3. The refutation mandate
 
 A verifier that only confirms is broken. The mandate
-(`references/methodology.md` §Verification, lines 218–220):
+(`references/methodology.md` §Verification, lines 252–254):
 
 > **Refutation mandate.** Its job is to *break* the result: find the counterexample, the unmet
 > criterion, the unsupported claim, the hallucinated citation, the budget breach. A verifier that
@@ -150,7 +150,7 @@ the default the verifier is nudged toward; a clean break earns as much as a clea
 
 Refutation isn't only "did it do too little?" — it's also "did it do too *much*?" Dag treats
 delivered-but-unasked-for work as a defect, not a gift
-(`references/methodology.md` §Verification, lines 226–231):
+(`references/methodology.md` §Verification, lines 260–265):
 
 > **Guardrail compliance.** … every artifact traces to an acceptance criterion (which in turn
 > traces to a Definition-of-Done item), and nothing on the unit's Non-Goals / guardrails list was
@@ -158,16 +158,28 @@ delivered-but-unasked-for work as a defect, not a gift
 > catch, the same as an unmet criterion.
 
 This closes the loop opened in Phase 2, where the Definition of Done and the Non-Goals / Guardrails
-list are *mandatory* outputs (`references/methodology.md` §Clarification, lines 105–122). The
+list are *mandatory* outputs (`references/methodology.md` §Clarification, lines 127–132). The
 verifier's two-sided test: **every DoD item met** *and* **no non-goal shipped**. Phase 8 applies the
-identical check at task scope (lines 230–231).
+identical check at task scope (lines 264–265).
+
+**Mechanized in 1.8.0 — I22 `guardrail_compliance`.** 1.8.0 puts the scope-creep half of that test
+on a machine-checkable footing. `verify.json` MAY carry an optional `guardrail_compliance[]` block —
+one attestation row per non-goal checked, each `non_goal` a **verbatim** `clarifications.json.non_goals`
+string and `status` one of `respected` / `violated` / `not-applicable` (`schemas/verify.schema.json`
+`guardrail_compliance`, lines 169–181). `validate_run.py`'s **I22** reads it *offline*: adoption-closure
+(once *any* verdict-bearing verify carries the block, every one must), verbatim membership, and coverage
+of the unit's `non_goal_refs` are all mechanical — and it carries **one decidable-bite semantic clause:
+a `violated` row on a `PASS` verdict is a FAIL**, mechanizing Phase 6's *"a delivered non-goal is a FAIL,
+not a bonus"* (`references/state-machine.md` I22, line 214). It gates no transition (**PRESERVES**
+termination) and is presence/shape-checked — whether a `respected` row is *genuinely* respected stays
+verifier attestation (Limitation L).
 
 ---
 
 ## 5. Evidence re-check — reproduce, don't trust
 
 Every debrief carries an **evidence table**; the verifier re-audits it row by row
-(`references/methodology.md` §Verification, lines 232–235):
+(`references/methodology.md` §Verification, lines 266–269):
 
 > **Evidence re-check.** For each claim … the verifier independently confirms the evidence is real
 > and admissible … It reproduces results where feasible (run the test, open the cited page,
@@ -176,17 +188,38 @@ Every debrief carries an **evidence table**; the verifier re-audits it row by ro
 The admissibility rules live in [evidence-standards.md](../plugins/dag/skills/dag/references/evidence-standards.md).
 Evidence is judged *by claim type* — code claims want `path:line` **plus a run**, world-facts want a
 primary dated source (two if contested), quotes must be verified verbatim before use
-(`references/evidence-standards.md`, taxonomy table lines 33–41; operating rules lines 43–70). Two
+(`references/evidence-standards.md`, taxonomy table lines 33–41; operating rules lines 92–128). Two
 rules the verifier weaponizes:
 
 - *"Fabricated citations/APIs are the highest-severity hallucination — verifiers hunt these first"*
-  (rule 4, lines 58–60).
+  (rule 4, lines 107–109).
 - *"A debrief with an unbacked material claim is a **FAIL**, regardless of how plausible the claim
-  is"* (closing line, lines 84–85).
+  is"* (closing line, lines 153–154).
 
 And the anti-hallucination rule that cuts *both* ways: *"Absence of evidence is a finding"* (rule 7,
-lines 68–70) — a verifier that can't reproduce a claim must *say so*, not wave it through. The
-per-claim checklist the verifier runs is at `references/evidence-standards.md` lines 72–82.
+lines 117–119) — a verifier that can't reproduce a claim must *say so*, not wave it through. The
+per-claim checklist the verifier runs is at `references/evidence-standards.md` lines 130–151.
+
+**Mechanized in 1.9.0 — I30 `retrieval_coverage`.** The reproduce-don't-trust discipline extends to
+*retrieval* in 1.9.0. When a unit's brief owes claims or names required sources, the verifier files an
+optional `retrieval_coverage` block on `verify.json`: its own **re-derived** comparison of the debrief's
+evidence against the brief's `claims_owed` / `required_sources`, plus reopen/chase probe records
+(`schemas/verify.schema.json` `retrieval_coverage`, lines 112–168). `validate_run.py`'s **I30**
+re-computes coverage *offline* — owed_check totality (set-equality with the brief's owed ids), non-empty
+`row_refs`, a probe floor (≥1 reopen probe on external coverage), and a target-list superset — enforcing
+one **headline clause: a `PASS` carrying an *uncovered* owed id (or a not-consulted required source) is a
+FAIL** (`references/state-machine.md` I30, line 222). A `covered-downgraded` status (parametric-only /
+vendor-silent coverage) is a legal, verifier-visible confidence downgrade on PASS, never silently
+relabeled `covered`. Like I22 it gates no transition (**PRESERVES** termination); probe *genuineness*
+stays attestation (Limitation S).
+
+**CB-1 — what makes retrieval failure FAIL-able under I6.** I30 lives on the verifier's side of the
+ledger; the clause that turns an uncovered claim into an actual unit FAIL is **CB-1**. When a brief's
+`claims_owed` / `required_sources` are non-empty, the orchestrator appends the **verbatim CB-1 line to
+that unit's `acceptance_criteria`** (I29 clause 4, `references/state-machine.md` I29, line 221). This
+matters because §6's I6 rule requires every `defect.criterion` to be a *member* of the brief's acceptance
+criteria: without CB-1 there is no criterion to fail an under-retrieved unit against — *"that one line is
+what makes retrieval failure FAIL-able under I6"* (the bridge is whitespace-normalized presence-checked).
 
 ---
 
@@ -196,23 +229,23 @@ The verifier's output is not prose — it's `units/<UID>/verify.json`, a machine
 (`schemas/verify.schema.json`). Required fields: `unit_id`, `verifier_persona`, `verdict`,
 `iteration`, `executor_reasoning_seen`, `feedback`, `defects`, `socratic`, `premise_check` (line 8).
 
-**Three verdicts** (`verdict` enum, line 12; semantics in `references/methodology.md` lines 236–239):
+**Three verdicts** (`verdict` enum, line 12; semantics in `references/methodology.md` lines 270–273):
 
 | Verdict | Meaning | Schema constraint (*machine-checked, in scope*) |
 |---|---|---|
-| `PASS` | criteria met, evidence sound; **MAY carry `minor` observations** | **no blocker/major defect** — every defect present must have `severity: minor` (schema `allOf`, lines 139–149). This is the **coverage-first** revision of **I6** (PR1): a clean pass is *not* `defects == []`, it is "no *blocking* defect." A `defects == []` PASS still validates (backward-compatible). (`state-machine.md:153`; `references/self-learning-loops.md` lines 547–554.) |
-| `FAIL` | specific defect + minimal repro | `>=1` defect **and** non-empty `feedback.actionable_changes` (schema `allOf`, lines 124–138) |
-| `DISAGREE` | genuine judgment split, no objective resolution → Phase 7 | a `disagreement` object with `why_unresolvable` set (schema `disagreement`, lines 104–111; `allOf`, lines 150–160) |
+| `PASS` | criteria met, evidence sound; **MAY carry `minor` observations** | **no blocker/major defect** — every defect present must have `severity: minor` (schema `allOf`, lines 209–219). This is the **coverage-first** revision of **I6** (PR1): a clean pass is *not* `defects == []`, it is "no *blocking* defect." A `defects == []` PASS still validates (backward-compatible). (`state-machine.md:195`; `references/self-learning-loops.md` lines 592–605.) |
+| `FAIL` | specific defect + minimal repro | `>=1` defect **and** non-empty `feedback.actionable_changes` (schema `allOf`, lines 194–208) |
+| `DISAGREE` | genuine judgment split, no objective resolution → Phase 7 | a `disagreement` object with `why_unresolvable` set (schema `disagreement`, lines 104–111; `allOf`, lines 220–230) |
 
 **Coverage-first, not triage-first.** The verifier's reporting rule is *recall before triage*:
 report **every** defect it finds, each tagged with a `severity` (`blocker | major | minor`) — never
 self-censor "small" findings, and never apply an "only report high-severity" filter, which lowers
-recall on *any* model (`references/methodology.md` §Verification, lines 221–225; `SKILL.md` lines
-398–401). Severity *ranks* a finding; it does not decide whether to report it. This is exactly *why*
+recall on *any* model (`references/methodology.md` §Verification, lines 255–259; `SKILL.md` lines
+609–612). Severity *ranks* a finding; it does not decide whether to report it. This is exactly *why*
 the I6 PASS clause was revised: a criterion carrying only a `minor` observation can still PASS, so
 the verifier is never structurally incentivized to hide it. The schema encodes the revision directly
 — its overview calls this the *coverage-first* clause, and the PASS `allOf` forces every PASS defect
-to be `minor`-only (`schemas/verify.schema.json`, description line 5; `allOf` lines 139–149).
+to be `minor`-only (`schemas/verify.schema.json`, description line 5; `allOf` lines 209–219).
 
 **Coverage-first reaches the anti-oscillation guard, too (1.7.0 — I14/AO-2 severity scoping).** The
 retry-time AO-2 check (**I14**) forbids a retry from re-opening a criterion a prior verdict sealed
@@ -220,12 +253,12 @@ into `feedback.do_not_touch`. 1.7.0 **scopes that disjointness to `blocker|major
 coverage-first observation on a sealed criterion is now **reportable** (an advisory NOTE), not a
 FAIL — otherwise coverage-first (report *every* defect) and anti-oscillation (don't churn sealed
 work) would be jointly unsatisfiable. A `blocker`/`major` defect landing back on a `do_not_touch`
-criterion is still a non-zero exit (`references/state-machine.md` I14, line 200).
+criterion is still a non-zero exit (`references/state-machine.md` I14, line 203).
 
 **The no-vague-FAIL rule.** You cannot fail a unit with a shrug. A FAIL is *schema-invalid* unless
 it carries at least one `defect` — and each defect must name a `severity`
 (blocker/major/minor) and a `criterion` (schema `defects.items`, lines 65–79) — **and**
-`feedback.actionable_changes` is non-empty (FAIL `allOf`, lines 124–138). The schema description states it outright: *"FAIL is schema-INVALID
+`feedback.actionable_changes` is non-empty (FAIL `allOf`, lines 194–208). The schema description states it outright: *"FAIL is schema-INVALID
 unless it carries >=1 defect (each naming a criterion) AND feedback.actionable_changes is
 non-empty"* (line 5). So a FAIL is always *actionable*: it tells the next iteration exactly what to
 change.
@@ -249,7 +282,7 @@ productive:
 
 A clever self-check can defeat itself by examining a *safe* premise and ignoring the real one —
 "premise deflection." The repo names the antidote
-(`references/methodology.md` §Hard-won principles #6, lines 326–329):
+(`references/methodology.md` §Hard-won principles #6, lines 360–363):
 
 > A self-check must confirm the **PREMISE** is the load-bearing claim before hunting a
 > counterexample … The independent verifier confirms the premise, then **re-runs COUNTER from
@@ -284,7 +317,7 @@ The verifier also files its **own** 4-key `socratic` block (`premise` / `counter
 
 For a routine unit one good skeptic is enough. For a **`high-stakes`** unit, one isn't — so in 1.3.0
 a **panel of three is the *default*, not a special case reserved for "irreversible" work**
-(`references/methodology.md` §Verification, lines 246–255; `SKILL.md` lines 404–409):
+(`references/methodology.md` §Verification, lines 280–289; `SKILL.md` lines 615–620):
 
 > **Panel of 3 is the DEFAULT on `high-stakes` units — distinct lenses, discrete majority.** A unit
 > tagged `high-stakes` is verified by an **odd panel (3)** of independent verifiers with **distinct
@@ -301,21 +334,21 @@ Three facts make this a mechanism, not a slogan:
   three verdicts (2-of-3); a no-majority split routes to `DISAGREE` → Phase 7 (the AO-5
   genuine-split route). It is **not** averaged or thresholded into a score
   (`schemas/verify.schema.json` `panel[]`, lines 24–43; `references/self-learning-loops.md` lines
-  246–250). This is load-bearing, not stylistic: softmaxing the discrete guard table would collapse
+  272–277). This is load-bearing, not stylistic: softmaxing the discrete guard table would collapse
   the exhaustive, mutually-exclusive `ADJUDICATE` guard partition and **break the termination
-  proof**, so it is forbidden (`references/self-learning-loops.md`, PR1 FLAG, lines 161–172).
+  proof**, so it is forbidden (`references/self-learning-loops.md`, PR1 FLAG, lines 164–175).
 - **Enforced post-hoc by I16 — and it adds no FSM edge.** Recording a panel is *node-internal* work
   inside the single VERIFY transition: no new back-edge, so the correction-loop termination proof is
   untouched. `validate_run.py`'s **I16** check reads the emitted artifacts *offline* and requires a
   high-stakes unit's `verify.json` to carry a `panel[]` (≥3 members covering the
   correctness/reproduce/guardrail trio) whose discrete majority equals the top-level `verdict`
-  (`references/state-machine.md` I16, line 163). Being post-hoc, it can never sit as a live guard on
+  (`references/state-machine.md` I16, line 205). Being post-hoc, it can never sit as a live guard on
   the loop's sole back-edge and deadlock it — the same discipline as I14/I15.
 - **Independence, not just distinct lenses (1.7.0 — I16 extension).** Distinct lenses alone did not
   stop a panel of three *clones* — three copies of one persona behind the correctness / reproduce /
   guardrail labels. 1.7.0 extends I16 to require the members' declared `verifier_persona`s to be
   **pairwise distinct** *and* **none equal to the unit's executor persona** — a panelist may not be
-  the maker, and there are no clones behind the lenses (`references/state-machine.md` I16, line 202).
+  the maker, and there are no clones behind the lenses (`references/state-machine.md` I16, line 205).
   Independence is the whole point of the panel; like the rest of I16 it is presence/shape-checked and
   gates no transition.
 
@@ -332,7 +365,16 @@ stops at the cap rather than dry, `converged: false` says so honestly (coverage 
 alongside the aggregated `verify.json` and its `panel[]`, purely for audit. The validator
 **validates any such file if present** (schema-valid, blind, `unit_id` matching its directory) but
 never *requires* one and never lets a panelist file override the aggregated verdict the correction
-loop reads (`SKILL.md` lines 409–414). This is D-04: blessed-but-optional per-panelist evidence.
+loop reads (`SKILL.md` lines 620–625). This is D-04: blessed-but-optional per-panelist evidence.
+
+**Depth-tier `full` widens the panel trigger (1.9.0 — DT-K6).** The panel is normally armed by the
+`high-stakes` tag alone. The 1.9.0 depth-tier subsystem adds a fourth knob, **DT-K6 (panel scope)**: at
+the `light` and `standard` tiers panel scope is "I16 as-is," but at the **`full`** tier it **extends the
+panel to every `design` / `schema` / `validator`-tagged unit**, not only `high-stakes` ones — checked by
+I28's P4 floor-conformance clause (*"full-tier panel on design/schema/validator-tagged units,"* reusing
+the existing I16 panel shapes) (`references/state-machine.md` I28, line 220). The knob is upward-only —
+raising the tier can add panels, never remove them — and it changes *which* units get a panel, not the
+discrete-majority mechanics above.
 
 The first-principles insight is unchanged — an odd count guarantees a majority, and *different
 lenses* (not three clones) maximize the attack surface; it's the persona-diversity principle from
@@ -344,7 +386,7 @@ high**, aggregating it **discretely**, and auditing it **structurally**.
 > decidable. It **cannot** confirm that the three lenses were *genuinely* applied by genuinely
 > independent verifiers, or that a `converged` sweep truly exhausted the defects; those stay
 > verifier/human judgment (validity ≠ correctness — `references/state-machine.md` Limitation H, lines
-> 233–244). The independent panel itself is the semantic backstop; I16 only enforces its skeleton.
+> 326–337). The independent panel itself is the semantic backstop; I16 only enforces its skeleton.
 
 ---
 
@@ -379,14 +421,14 @@ flowchart TD
 
 **Phase 7 — disagreement → human.** A `DISAGREE` verdict is reserved for a *genuine* judgment split
 with no objective resolution (methodology §Verification, line 239); the schema forces it to carry a
-`disagreement.why_unresolvable` (schema `allOf`, lines 150–160), and it routes to a human Socratic gate — the
+`disagreement.why_unresolvable` (schema `allOf`, lines 220–230), and it routes to a human Socratic gate — the
 *elicitation* mode of the same protocol (`references/socratic-protocol.md`, lines 11–13; the gate
 discipline in `references/methodology.md` §Socratic, lines 9–48). Machine disagreement escalates to
 a person; it is never silently resolved by re-running the loser.
 
 **Phase 8 — final whole-deliverable pass.** After all units pass, the guardrail + DoD check is
 re-applied at *task* scope: *"every DoD item met, no non-goal shipped"*
-(`references/methodology.md` §Verification, lines 230–231). Unit-level PASS does not imply deliverable-level PASS — the
+(`references/methodology.md` §Verification, lines 264–265). Unit-level PASS does not imply deliverable-level PASS — the
 seams between units are exactly where an incomplete whole hides.
 
 Trace of authority for this section: verdict semantics and loop caps →
@@ -418,7 +460,7 @@ This page would violate its own subject if it overstated the guarantee. Two limi
   > **Grounding note.** The "Limitation A" locator is confirmed in
   > `schemas/verify.schema.json:17`. The **D** label and the full limitation ledger live in
   > `references/state-machine.md` §5 / `references/self-learning-loops.md` §5 (referenced from
-  > `references/methodology.md` lines 283–285), which were **not** read for this page — treat the
+  > `references/methodology.md` lines 318–319), which were **not** read for this page — treat the
   > exact "D" index as *asserted from the brief*, while the *substance* (shared-weights /
   > correlated-bias risk) is grounded in §1's cited research and methodology #1.
 

@@ -1,0 +1,12 @@
+{
+  "id": "L7",
+  "trigger": "wiki-refresh run (2026-07-16): the wiki carried ~150+ stale path:line locators already wrong at its own 1.7.0 stamp (refs into formal-models.md/methodology.md/data-partitioning.md/Pipeline.tla/validate_run.py - files the 1.8/1.9 releases never touched). The delta cartography under-counted this; it was discovered mid-execution by units U08 (~69), U10 (~52 on one page), U04 (~31), U02, forcing a mid-run scope decision and a Bounded-Graph-Amendment.",
+  "lesson": "In a documentation-refresh over a repo, PRE-EXISTING locator/reference debt is distinct from the change-delta's drift and is easy to under-count at cartography - a corpus that has drifted for several releases accumulates stale locators independent of the current change.",
+  "how_to_apply": "At cartography for any docs-refresh, run a whole-corpus path:line existence + spot-resolution grep and report the PRE-EXISTING-drift count as its own line item, separate from delta-caused drift, so the human's scope decision (delta-only vs fix-everything) is made with the true size up front; size the run (units/budget/waves) for both. If it surfaces mid-run, prefer a Bounded-Graph-Amendment add_units over cramming it into existing units.",
+  "scope": { "applies_to": ["all"], "excludes": [], "expiry": "project" },
+  "evidence": "run .wip/2026-07-16_163411_wiki-readme-refresh DECISIONS #13 (fix-everything scope gate) + amendments A01/A02 (add_units U13/U14/U15); U12 backstop measured 376 locators, 0 past-EOF, after the sweep.",
+  "since_wave": 1,
+  "promotable": true,
+  "last_applied_run": "2026-07-16_163411_wiki-readme-refresh",
+  "applied_count": 1
+}

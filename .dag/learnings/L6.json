@@ -1,0 +1,12 @@
+{
+  "id": "L6",
+  "trigger": "wiki-refresh run (2026-07-16): 6 of 11 wave-1 debriefs and 5 of 10 wave-1 verifies drifted on the debrief/verify JSON shape even though the exact required shape was specified inline in each subagent prompt - reproducible/handoff_notes/audit_notes/inputs_reviewed written as the wrong container type; type/status/severity written as enum synonyms ('source-cross-check','executable','observation','count','pass').",
+  "lesson": "Subagent schema-shape drift on debrief.json/verify.json is systematic, not incidental: it recurs across most units of a wave even when the shape is spelled out inline in the prompt, and concentrates on nested container types and enum values. It cannot be reliably prompted away.",
+  "how_to_apply": "Run an ORCHESTRATOR-SIDE post-hoc JSON shape-normalization pass after each wave lands (coerce wrong container types to the schema's; map enum synonyms to the nearest valid value; relocate a mis-placed value into the right field) while preserving all claim/evidence CONTENT verbatim - far cheaper than round-tripping makers to reshape JSON. NEVER RETRY a unit whose WORK is correct solely for a sidecar-shape defect (that is mechanical normalization, not a redo). Echoing the L2 key-name discipline in-brief measurably reduces drift in later waves.",
+  "scope": { "applies_to": ["all"], "excludes": [], "expiry": "project" },
+  "evidence": "run .wip/2026-07-16_163411_wiki-readme-refresh: validator FAILs on units/U01,U04,U06,U08,U09,U10,U11 debriefs + U05,U06,U07,U09,U11 verifies; all normalized (content preserved) rather than re-run; wave-2 units U13-U15 debriefs validated first-try after the L2 guidance was echoed in-brief.",
+  "since_wave": 1,
+  "promotable": true,
+  "last_applied_run": "2026-07-16_163411_wiki-readme-refresh",
+  "applied_count": 1
+}
