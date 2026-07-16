@@ -19,7 +19,14 @@
           "ambiguity": { "type": "string", "minLength": 1 },
           "materiality": { "type": "string", "enum": ["material", "minor"] },
           "resolved": { "type": "boolean" },
-          "resolution": { "type": "string" }
+          "resolution": { "type": "string" },
+          "dimension": { "type": "string",
+            "enum": ["terms", "success-criteria", "scope-boundaries", "audience-format",
+                     "constraints", "assumptions", "failure-modes", "sources", "stakes"] },
+          "resolution_source": { "type": "string",
+            "enum": ["human-gate", "logged-default", "prompt-verbatim"] },
+          "prompt_span": { "type": "string" },
+          "round": { "type": "integer", "minimum": 1 }
         },
         "allOf": [
           { "$comment": "F7: a material item marked resolved must carry non-empty resolution text.",
@@ -27,7 +34,12 @@
                                       "resolved":    { "const": true } },
                       "required": ["materiality", "resolved"] },
             "then": { "required": ["resolution"],
-                      "properties": { "resolution": { "minLength": 1 } } } }
+                      "properties": { "resolution": { "minLength": 1 } } } },
+          { "$comment": "RT-2: prompt-verbatim requires the quoted span as its receipt (I27-8 checks it)",
+            "if":   { "properties": { "resolution_source": { "const": "prompt-verbatim" } },
+                      "required": ["resolution_source"] },
+            "then": { "required": ["prompt_span"],
+                      "properties": { "prompt_span": { "minLength": 1 } } } }
         ]
       }
     },
@@ -40,6 +52,69 @@
       }
     },
     "open_items": { "type": "array", "items": { "type": "string" } },
+    "dimension_sweep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimensions"],
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["dimension", "disposition"],
+            "properties": {
+              "dimension": { "type": "string",
+                "enum": ["terms", "success-criteria", "scope-boundaries", "audience-format",
+                         "constraints", "assumptions", "failure-modes", "sources", "stakes"] },
+              "disposition": { "type": "string",
+                "enum": ["ambiguity-found", "probed-clear", "none-after-genuine-search"] },
+              "register_ids": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+              "search_statement": { "type": "string" }
+            },
+            "allOf": [
+              { "$comment": "found => the rows exist; the register carries the substance",
+                "if":   { "properties": { "disposition": { "const": "ambiguity-found" } },
+                          "required": ["disposition"] },
+                "then": { "required": ["register_ids"],
+                          "properties": { "register_ids": { "minItems": 1 } } } },
+              { "$comment": "clean => a recorded genuine-search statement, distinguishable from not-swept",
+                "if":   { "properties": { "disposition": { "enum": ["probed-clear", "none-after-genuine-search"] } },
+                          "required": ["disposition"] },
+                "then": { "required": ["search_statement"],
+                          "properties": { "search_statement": { "minLength": 1 } } } }
+            ]
+          }
+        },
+        "cartography_round": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status"],
+          "properties": {
+            "status": { "type": "string",
+              "enum": ["performed", "no-register-unknowns", "register-absent"] },
+            "sources_register_ref": { "type": "string" },
+            "dispositioned_unknowns": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["unknown_ref", "register_id"],
+                "properties": {
+                  "unknown_ref": { "type": "string", "minLength": 1 },
+                  "register_id": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          },
+          "allOf": [
+            { "if":   { "properties": { "status": { "const": "performed" } }, "required": ["status"] },
+              "then": { "required": ["sources_register_ref", "dispositioned_unknowns"],
+                        "properties": { "dispositioned_unknowns": { "minItems": 1 } } } }
+          ]
+        }
+      }
+    },
     "definition_of_done": {
       "type": "array",
       "minItems": 1,

@@ -1,0 +1,25 @@
+{
+  "unit_id": "U01",
+  "title": "Modern-research landscape",
+  "wave": 1,
+  "depends_on": [],
+  "persona": "Researcher",
+  "budget_tokens": 32000,
+  "acceptance_criteria": [
+    "10-14 findings",
+    "each with >=1 dated primary source",
+    "Retrieval coverage: every claims_owed entry is discharged per its min_tier by evidence rows linked via covers_owed, and every required_sources entry is consulted at a declared fallback-ladder rung or its unreachability is declared in the debrief — never silently skipped."
+  ],
+  "context_pointers": ["INPUT.md", "CARTOGRAPHY.md"],
+  "outputs": ["units/U01/debrief.json"],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": ["research", "core"],
+  "learnings_applied": ["L1"],
+  "required_sources": [
+    { "source_id": "S1", "locator": "README.md:12", "tier": "T-LOCAL", "disposition": "consulted" }
+  ],
+  "claims_owed": [
+    { "id": "C1", "type": "code-behavior", "trigger_ref": "10-14 findings" },
+    { "id": "C2", "type": "empirical-world-fact", "trigger_ref": "each with >=1 dated primary source", "min_tier": "T-LOCAL", "source_ref": "S1" }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "run_label": "coverage-unread-basis",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed" },
+    { "id": "S2", "title": "a doc queued for execution", "tier": "T-LOCAL",
+      "locator": "docs/thing.md", "disposition": "queued",
+      "why": "identified but not opened during the sweep", "queued_for": "execution" }
+  ],
+  "coverage": [
+    { "area": "unopened territory", "claim": "claims coverage over sources it never opened",
+      "based_on": ["S2"], "gaps": "none" }
+  ]
+}

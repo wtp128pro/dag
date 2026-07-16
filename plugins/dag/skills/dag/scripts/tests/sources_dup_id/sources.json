@@ -1,0 +1,17 @@
+{
+  "run_label": "dup-id",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed" },
+    { "id": "S1", "title": "a second, colliding row", "tier": "T-LOCAL",
+      "locator": "OTHER.md:3", "disposition": "consulted",
+      "why": "duplicate id makes reference resolution order-dependent", "accessed": "2026-07-16",
+      "yielded": "also mapped" }
+  ],
+  "coverage": [
+    { "area": "task file state", "claim": "the line is mapped",
+      "based_on": ["S1"], "gaps": "none" }
+  ]
+}

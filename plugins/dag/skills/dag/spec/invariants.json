@@ -1114,6 +1114,252 @@
       "docs": [
         "scripts/tests/LIMITATIONS.md"
       ]
+    },
+    {
+      "id": "I26",
+      "title": "I26: sources register — once post-clarification structural work exists (the I-dod/I24 trigger union), a schema-valid sources.json must exist with >=1 row and >=1 consulted row (fail-closed on absence); raw-parse .strip() completeness per disposition; unique source/venue ids; every venue carries non-blank K-A/B/C rationale; a consulted/queued T-COMM row links to an admitted venue while a REJECTED one needs only a resolvable venue_ref; every coverage based_on resolves to register ids and includes >=1 consulted row. NOT archive-silent (I-dod/I24 precedent); offline post-hoc, gates no transition (PRESERVES)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I26 sources register"
+      ],
+      "fixtures": [
+        "sources_missing_structural",
+        "sources_no_consulted",
+        "sources_dup_id",
+        "sources_row_incomplete",
+        "sources_tcomm_unadmitted",
+        "sources_tcomm_rejected_ok",
+        "sources_tcomm_rejected_admitted_ok",
+        "sources_venue_blank_k",
+        "sources_coverage_dangling",
+        "sources_coverage_unread_basis",
+        "sources_ok"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U02",
+        "PLAN §5.1"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.1"
+      ]
+    },
+    {
+      "id": "I27",
+      "title": "I27: clarification dimension-coverage sweep — offline post-hoc with a two-level version-honest trigger: T1 (presence) fires when the I-dod/I24 structural union holds AND validator_version >= the shipping release (semver on fsm-state.json.validator_version), so archived/UNSTAMPED runs stay SILENT (the deliberate asymmetry with I26); T2 (shape) fires whenever dimension_sweep is present, any version (adoption = submission, the I20/I21 pattern). Checks I27-1..I27-11 (NOTEs at -6/-7/-11): sweep present; nine-dimension exact-once coverage at every tier; per-entry completeness (found => register_ids resolve; clean => .strip()-non-blank search_statement); cartography_round record + status/register_id resolution vs RUN_DIR/sources.json; resolution_source on resolved rows; material+logged-default advisory; normalized duplicate-statement advisory; prompt-verbatim => prompt_span receipt; clean->found flip rule; P8/DONE whole-run sweep_spot_check[] presence; all-found-all-minor advisory. Gates no transition, never guards LT7 (PRESERVES); disposition genuineness stays attestation (Limitation Q)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I27 clarification sweep"
+      ],
+      "fixtures": [
+        "sweep_not_swept",
+        "sweep_missing_dimension",
+        "sweep_duplicate_dimension",
+        "sweep_clean_no_statement",
+        "sweep_dangling_register_id",
+        "sweep_material_selfdefault",
+        "sweep_promptverbatim_nospan",
+        "sweep_dimension_tagged_clean",
+        "sweep_missing_spot_check_p8",
+        "sweep_all_found_minor",
+        "sweep_dup_statement",
+        "sweep_fully_green",
+        "sweep_version_gated_silent"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U03",
+        "PLAN §5.2"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.2"
+      ]
+    },
+    {
+      "id": "I28",
+      "title": "I28: human-gated depth-tier floors — offline post-hoc, ADOPTION-GATED / ARCHIVE-SILENT (fires ONLY when fsm-state carries a depth block; a depth-absent run is wholly silent, the archive-safe leg). P0 shape+contentfulness (.strip() bar on stakes/reversibility/external_surface.detail); P1 gate provenance (depth => personas_confirmed; clarification-gate confirmation => clarification_resolved); P1b unconditional Phase-2 second touch (personas+clarification_resolved => phase2_touch{kept|raised}; a raise => an overrides[] entry at_gate P2_CLARIFICATION); P2 canonical skipped_floors disclosure == {DT-K2,DT-K4,DT-K5,DT-K6}@confirmed_tier for light/standard, [] iff full; P3 ratchet (upward-only chain from confirmed_tier, tier == last override .to, else tier == confirmed_tier — no representable downward move); P3b override time-scoping (recorded tier_at_verification in the passed-tier set; a pending unit PASSing below its raised floor is a FAIL; pre-override PASS units keep their floors); P4 floor conformance (DT-K2 per-unit tier-scaled probe/chase set vs debrief fallback rows; DT-K4 full-tier nine-dimension whole-run sweep_spot_check; DT-K5 T-VENDOR/T-COMM consultation rows; DT-K6 full-tier design/schema/validator panel[]); P5 external-surface consistency (project-local kind vs a PASS unit's external-tier evidence). Gates NO FSM transition, never guards LT7 (PRESERVES); stakes/reversibility genuineness + probe/label authorship stay attestation (Limitation R)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I28 depth floor"
+      ],
+      "fixtures": [
+        "depth_ok_light",
+        "depth_ok_full",
+        "depth_blank_justification",
+        "depth_no_phase2_touch",
+        "depth_phase2_raised",
+        "depth_skipped_floors_mismatch",
+        "depth_divergent_confirmation",
+        "depth_tier_lowered",
+        "depth_override_midrun",
+        "depth_probe_gap_standard",
+        "depth_full_spot_check_gap",
+        "depth_surface_contradiction",
+        "guardrail_chain_ok"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U04",
+        "PLAN §5.3"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.3"
+      ]
+    },
+    {
+      "id": "I29",
+      "title": "I29: execution-effort briefs — offline post-hoc, ADOPTION-GATED (the I20/I21 closure pattern): the closure + clauses 2-5 fire ONLY once some brief.json carries claims_owed or required_sources (a zero-adoption run stays wholly silent, the archive-safe leg — §11 R-7); clause 1 (queued-consumer closure) is adoption-INDEPENDENT, riding I26's structurally-triggered register. Clause 1: every register row queued_for a current graph unit whose brief.json exists is named in that brief's required_sources[].source_id or some claims_owed[].source_ref (lens-A tension 2). Closure: every on-disk brief carries claims_owed (entries, or [] + claims_owed_none_reason). Clause 2 (owed-entry shape / no-straw): unique id, type in the seven literals, trigger_ref VERBATIM in acceptance_criteria ∪ dod_refs, min_tier present iff source-native type and in the three-tier enum (raw-parse mirror of schema B1/B2). Clause 3 (register linkage): required_sources[].source_id ∈ register ids, tier mirrors the row, a rejected row cannot be required, present claims_owed[].source_ref ∈ ids. Clause 4 (bridge presence): non-empty owed/reqs => the canonical CB-1 bridge criterion ∈ acceptance_criteria, whitespace-normalized ONLY — this is what preserves I6 FAIL-ability. Clause 5 (explicit-none, CO-2 fold): claims_owed present and [] => non-blank claims_owed_none_reason, trigger = key adoption never dod_refs. NOTEs: owed-heavy brief; tier-shape mismatch. Reads RAW briefs (schema-invalid briefs still get the shape checks; missing keys read safely). Gates NO FSM transition, never guards LT7 (PRESERVES); owed-derivation adequacy stays attestation (Limitation S)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I29 execution-effort briefs"
+      ],
+      "fixtures": [
+        "effort_brief_ok",
+        "effort_brief_ok_light",
+        "effort_brief_bridge_rewrapped",
+        "effort_brief_no_bridge",
+        "effort_brief_straw_trigger",
+        "effort_brief_bad_min_tier",
+        "effort_brief_queued_consumer_missing",
+        "effort_brief_empty_no_reason",
+        "effort_brief_reqsrc_dangling",
+        "effort_brief_reqsrc_rejected",
+        "effort_brief_closure"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U05",
+        "PLAN §5.4"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.4"
+      ]
+    },
+    {
+      "id": "I30",
+      "title": "I30: retrieval coverage verify — offline post-hoc, ADOPTION-GATED + forced linkage (the I22 pattern extended to the verify side): the block fires once ANY verdict-bearing verify carries retrieval_coverage OR an owing brief (non-empty claims_owed/required_sources) has a verdict-bearing verify; a brief-ONLY adopting unit (owing brief, NO verify) never triggers it, and a zero-adoption run stays wholly silent (the archive-safe leg, §11 R-7). Forced linkage: an owing brief whose unit has a verdict-bearing verify => that verify carries retrieval_coverage. Verify-side closure: once any verify carries it, every verdict-bearing verify must. Clause 0 tier stamp (fsm-state depth block present => tier_at_verification present; I30-0 owns PRESENCE, I28-P4 the VALUE). Clause 1 totality+shape (owed_check ids == brief claims_owed ids by set EQUALITY; every row_refs/row_ref a valid evidence_table index). Clause 2 coverage arithmetic re-computed (row_refs NON-EMPTY on covered/covered-downgraded — the RT-1 vacuous-pass mirror; each counted row carries the owed id in covers_owed with matching type; owed min_tier read EXISTENTIALLY against U01's satisfaction lattice; a parametric-only counted row or a T-COMM-vendor-silent sole support of a T-VENDOR obligation forces covered-downgraded — no downgrade laundering). Clause 3 PASS-with-uncovered contradiction FAIL (verdict PASS with an uncovered owed id, or a required_sources sources_check row not-consulted — the headline; covered-downgraded on PASS is legal). Clause 4 probe floor+shape (probe row_ref in range, kind in reopen|chase, non-blank outcome; empty retrieval_probes => non-blank retrieval_probes_none_reason; a T-VENDOR/T-COMM-covered owed forces >=1 probe — tier-independent FLOOR, DT-K2 scales on top). Clause 5 target-list floor (sources_check source_ids superset of required_sources ∪ claims_owed source_ref ∪ S-id tokens parsed from claims_owed[].note ∪ S-ids parsed from context_pointers matching ^S<n>:). Clause 6 consulted-evidenced join (a consulted-evidenced sources_check row => a debrief evidence row carries that S-id in source_refs). Clause 7 unreachable-declared join (an unreachable-declared row => the debrief residual_risks carries the canonical 'unreachable: S<n>' declaration). NOTEs: covers_owed fan-out; covers_owed dangling. Reads RAW verify/brief/debrief (missing keys read safely). Gates NO FSM transition, never guards LT7 (PRESERVES); probe/consultation genuineness stays attestation (Limitation S)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I30 retrieval coverage"
+      ],
+      "fixtures": [
+        "effort_verify_ok",
+        "retrieval_coverage_vacuous",
+        "effort_verify_pass_uncovered",
+        "effort_verify_phantom_owed",
+        "effort_verify_fake_covered",
+        "effort_verify_downgrade_laundered",
+        "effort_verify_no_probe",
+        "effort_verify_missing_block",
+        "effort_verify_reqsrc_not_consulted_pass",
+        "effort_verify_no_tier_stamp",
+        "effort_verify_consulted_no_sourceref",
+        "effort_verify_unreachable_undeclared"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U05",
+        "PLAN §5.5"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.5"
+      ]
+    },
+    {
+      "id": "I31",
+      "title": "I31: RL-1 rung presence — offline post-hoc, ADOPTION-GATED / ARCHIVE-SILENT (fires only once some debrief evidence row carries source_tier/retrieval_rung; this release + archives carry none => wholly silent). For every RL-1-TRIGGERING row (type in {empirical-world-fact, api-tool-contract}, PLUS provenance-quote/numeric-quantitative rows with a URL-shaped evidence locator — RT-7): source_tier present and in the four-tier enum; source_tier in {T-VENDOR,T-COMM} => retrieval_rung in {live-fetch,vendored-docs,cached-copy} AND non-blank accessed; source_tier T-PARAM => retrieval_rung parametric-only; retrieval_rung cached-copy => the evidence names a verifier-reachable LOCAL path that exists (RT-3 decidable core; quote-presence-at-path stays the verifier's E6 duty); vendor_silent true => non-blank vendor_surface_searched. A T-LOCAL row needs only a present source_tier (no ladder — PLAN §2 table). Gates NO FSM transition, never guards LT7 (PRESERVES); highest-reachable-rung genuineness stays attestation (Limitation T / R-a/R-b)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I31 rung presence"
+      ],
+      "fixtures": [
+        "rl_rung_missing",
+        "rl_cached_no_path",
+        "retrieval_standard_ok",
+        "effort_verify_ok"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U01",
+        "PLAN §5.6"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.6"
+      ]
+    },
+    {
+      "id": "I32",
+      "title": "I32: RL-2 parametric-downgrade consistency — offline post-hoc, ADOPTION-GATED / ARCHIVE-SILENT (fires only once some evidence row is parametric-only; this release + archives carry none => wholly silent). RL-2's THREE checks on every parametric-only evidence row (PLAN §2.1 §3, lines 304-307): (a) the evidence text carries an 'ASSUMPTION:' label; (b) for each owed id it covers via covers_owed, the debrief's residual_risks[] names that claim (RT-8 presence check); (c) if it covers an owed id, the debrief's top-level confidence is NOT 'high'. The confidence cap is an OFFLINE artifact-content rule (I6/D1 class, PLAN line 1576), NOT a live gate — R-g's 'no gate keys on confidence' bars only a LIVE FSM-transition gate keyed on confidence. The T-PARAM <=> parametric-only coherence stays in RL-1/I31, not re-checked here. All string/enum/set checks over the RAW debrief; missing keys read safely. Gates NO FSM transition, never guards LT7 (PRESERVES)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I32 parametric-downgrade consistency"
+      ],
+      "fixtures": [
+        "rl_param_no_assumption",
+        "rl_param_high_confidence",
+        "rl_param_no_residual",
+        "rl_param_compliant_ok",
+        "retrieval_standard_ok",
+        "effort_verify_ok"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U01",
+        "PLAN §5.6"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.6"
+      ]
+    },
+    {
+      "id": "I33",
+      "title": "I33: RL-3 premise-extraction presence — offline post-hoc, ADOPTION-GATED / ARCHIVE-SILENT (fires only once some evidence row carries extracted_premises / extracted_premises_none_reason). Scoped to DESIGN-JUDGMENT rows ONLY (PLAN §5.0 PR-4 flag — never every row): each design-judgment row carries extracted_premises, a non-empty array whose every entry equals the `claim` of ANOTHER row in the same evidence_table (I20-style verbatim membership, decidable); an empty array requires a non-blank extracted_premises_none_reason (the I21 explicit-none pattern). Extraction ADEQUACY stays honest residual R-f (attestation), not a pretended predicate. Gates NO FSM transition, never guards LT7 (PRESERVES)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I33 premise-extraction presence"
+      ],
+      "fixtures": [
+        "rl_premise_missing",
+        "retrieval_standard_ok"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U01",
+        "PLAN §5.6"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.6"
+      ]
+    },
+    {
+      "id": "I34",
+      "title": "I34: CO-1 per-entry owed coverage — offline post-hoc, ADOPTION-GATED / ARCHIVE-SILENT (fires only once some brief carries a non-empty claims_owed list; this release + archives carry none => silent). Fires per unit whose brief owes AND has a debrief: for EVERY owed entry E there is >=1 debrief evidence row R with E.id in R.covers_owed, R.type == E.type, and (E.min_tier present => R satisfies it per U01's satisfaction lattice — the same existential lattice as I30). Verify-INDEPENDENT (PLAN §4): catches an uncovered owed id even where no retrieval_coverage block exists — I30's complement. CO-2 (explicit-none) is NOT re-added (folded into I29-5, PLAN §5.6); owed-derivation ADEQUACY stays residual R-d (attestation). Gates NO FSM transition, never guards LT7 (PRESERVES)",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I34 owed coverage"
+      ],
+      "fixtures": [
+        "co1_owed_uncovered",
+        "retrieval_standard_ok",
+        "effort_verify_ok"
+      ],
+      "provenance": [
+        "depth-1.9.0",
+        "U01",
+        "PLAN §5.6"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "PLAN §5.6"
+      ]
     }
   ]
 }

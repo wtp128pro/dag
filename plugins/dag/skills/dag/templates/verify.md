@@ -54,6 +54,19 @@ Phase-7 human gate, AO-5), not an invented middle verdict. `validate_run.py` **I
 post-hoc: high-stakes ⇒ `panel[]` present (≥3, trio covered) and `verdict == discrete majority`.
 (Routine units may use a single verifier and omit `panel[]`.)
 
+## Retrieval-coverage block (`retrieval_coverage` — emit it whenever the unit's brief carries `claims_owed`/`required_sources`; adoption-closure per I30)
+
+The verifier's RE-DERIVED comparison of debrief evidence AGAINST the brief's obligations —
+never copied from executor prose (schema `verify.schema.json` is authoritative; this is a
+NON-NORMATIVE mirror): `owed_check[]` `{owed_id, status: covered|covered-downgraded|uncovered,
+row_refs (non-empty when counted as coverage), note}` — TOTAL over the brief's owed ids;
+`retrieval_probes[]` `{row_ref, claim_echo, kind: reopen|chase, outcome}` (outcome records a
+NEW falsifiable coordinate — a located span + where, or the primary reached; ≥1 reopen probe
+whenever external-tier rows cover an owed entry) or `retrieval_probes_none_reason`;
+`sources_check[]` `{source_id, origin, outcome}` over the brief-cited/owed/coverage-basis
+S-ids; `tier_at_verification` whenever the run carries `fsm-state.depth`. PASS with an
+uncovered owed id or a not-consulted required source is an I30 contradiction FAIL.
+
 ## Guardrail-compliance block (`guardrail_compliance` — emit it on every verdict-bearing verify)
 Attest the unit's non-goal compliance mechanically: one row per non-goal checked —
 `{non_goal, status, note?}` where `non_goal` is the **VERBATIM** `clarifications.json non_goals`

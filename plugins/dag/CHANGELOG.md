@@ -3,6 +3,28 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] — 2026-07-16
+
+**Depth & retrieval enforcement** — retrieval effort and clarification depth become mechanically
+checkable, closing the two behaviors that let runs go shallow: evidence standards gain a
+four-tier source taxonomy (T-VENDOR/T-COMM/T-LOCAL/T-PARAM), a claim-type→tier table, a declared
+fallback ladder (live-fetch → vendored-docs → cached-copy → parametric-only; silent skipping
+unrepresentable), and claims-owed obligations fixed at briefing; source cartography becomes a
+first-class artifact (`SOURCES.md` + `sources.json`, schema + template + init scaffold) with
+tiers, per-source dispositions, venue admissions, and coverage claims feeding clarification and
+briefs; Phase-2 clarification runs a nine-dimension sweep with per-dimension validator-checked
+dispositions plus a cartography-informed second round (no question quotas); a human-gated run
+depth tier (`light`/`standard`/`full`) rides the Phase-1 persona gate with non-negotiable
+per-tier floors and an upward-only ratchet; briefs carry `required_sources`/`claims_owed`,
+debrief evidence rows carry tier/rung/coverage fields, and verifiers emit a re-derived
+`retrieval_coverage` block — retrieval failure is FAIL-able via the verbatim CB-1 bridge
+criterion. Nine new OFFLINE validator invariants (**I26–I34**) with ~60 self-test fixtures; all
+changes classified PRESERVES against the correction-loop termination proof, AO-1..7, I1–I25, the
+three-human-gates model, and the FSM edge set (46/46, zero REVISES); TLC + headless-Alloy green
+runs required before merge. New files: `schemas/sources.schema.json`, `templates/sources.md`.
+No FSM state, transition, guard, or gate flag added; archived runs unaffected except I26's
+documented version-skew posture.
+
 ## [1.8.0] — 2026-07-11
 
 **Guardrail & clarification enforcement** — the run's own declared guardrails (Definition-of-Done

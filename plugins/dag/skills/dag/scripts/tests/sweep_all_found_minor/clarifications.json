@@ -1,0 +1,193 @@
+{
+  "run_label": "good-fixture",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "candidate ambiguity on terms",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "terms",
+      "round": 1
+    },
+    {
+      "id": 2,
+      "ambiguity": "candidate ambiguity on success-criteria",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "success-criteria",
+      "round": 1
+    },
+    {
+      "id": 3,
+      "ambiguity": "candidate ambiguity on scope-boundaries",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "scope-boundaries",
+      "round": 1
+    },
+    {
+      "id": 4,
+      "ambiguity": "candidate ambiguity on audience-format",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "audience-format",
+      "round": 1
+    },
+    {
+      "id": 5,
+      "ambiguity": "candidate ambiguity on constraints",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "constraints",
+      "round": 1
+    },
+    {
+      "id": 6,
+      "ambiguity": "candidate ambiguity on assumptions",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "assumptions",
+      "round": 1
+    },
+    {
+      "id": 7,
+      "ambiguity": "candidate ambiguity on failure-modes",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "failure-modes",
+      "round": 1
+    },
+    {
+      "id": 8,
+      "ambiguity": "candidate ambiguity on sources",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "sources",
+      "round": 1
+    },
+    {
+      "id": 9,
+      "ambiguity": "candidate ambiguity on stakes",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "resolved by a logged default",
+      "resolution_source": "logged-default",
+      "dimension": "stakes",
+      "round": 1
+    }
+  ],
+  "scope": {
+    "in_scope": [
+      "schemas",
+      "validator",
+      "fsm spec"
+    ],
+    "out_of_scope": [
+      "editing the live skill"
+    ]
+  },
+  "open_items": [],
+  "definition_of_done": [
+    "validate_run.py exits 0 on this run directory (RESULT: PASS)",
+    "the schema self-check (--self-check) passes"
+  ],
+  "non_goals": [
+    "do NOT edit the live dag skill",
+    "do NOT add NLP/semantic heuristics or new runtime dependencies to the validator"
+  ],
+  "dimension_sweep": {
+    "dimensions": [
+      {
+        "dimension": "terms",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          1
+        ],
+        "search_statement": "found a live ambiguity here: sought load-bearing terms among {validator, invariant, fixture}; each pinned by the prompt's own wording"
+      },
+      {
+        "dimension": "success-criteria",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          2
+        ],
+        "search_statement": "found a live ambiguity here: hunted for acceptance bars beyond the stated DoD; the prompt criteria are already testable"
+      },
+      {
+        "dimension": "scope-boundaries",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          3
+        ],
+        "search_statement": "found a live ambiguity here: walked the OUT list edges; ring-05 and personas are excluded by the prompt"
+      },
+      {
+        "dimension": "audience-format",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          4
+        ],
+        "search_statement": "found a live ambiguity here: looked for output-shape doubt in the debrief JSON contract; the schema fixes it"
+      },
+      {
+        "dimension": "constraints",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          5
+        ],
+        "search_statement": "found a live ambiguity here: weighed the offline-only and no-live-guard rules; both explicit in the guardrails"
+      },
+      {
+        "dimension": "assumptions",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          6
+        ],
+        "search_statement": "found a live ambiguity here: named the tool commitments taken for granted; python3 stdlib-only confirmed present"
+      },
+      {
+        "dimension": "failure-modes",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          7
+        ],
+        "search_statement": "found a live ambiguity here: enumerated deadlock and version-skew hazards; the design addresses each explicitly"
+      },
+      {
+        "dimension": "sources",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          8
+        ],
+        "search_statement": "found a live ambiguity here: checked which tiers are load-bearing here; no new cartography beyond the register"
+      },
+      {
+        "dimension": "stakes",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          9
+        ],
+        "search_statement": "found a live ambiguity here: sized the blast radius of the high-stakes edit; git history makes it reversible"
+      }
+    ],
+    "cartography_round": {
+      "status": "no-register-unknowns"
+    }
+  }
+}

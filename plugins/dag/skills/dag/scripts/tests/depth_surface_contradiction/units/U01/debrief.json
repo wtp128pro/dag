@@ -1,0 +1,60 @@
+{
+  "unit_id": "U01",
+  "persona": "Researcher",
+  "iteration": 2,
+  "prior_feedback": {
+    "actionable_changes": [
+      "tighten the wording on the single search-summary-level figure so it reads as a disclosed residual, not a primary-sourced claim"
+    ],
+    "do_not_touch": [
+      "the maker!=checker mandate framing",
+      "the disclosed search-summary caveat"
+    ],
+    "changes_made": [
+      "re-resolved every cited locator to a dated primary source and explicitly disclosed the single search-summary figure as a residual risk"
+    ]
+  },
+  "result": "13 findings across 5 areas, each with a dated primary source.",
+  "evidence_table": [
+    {
+      "claim": "Orchestrator-worker +90.2% but 15x tokens",
+      "type": "empirical-world-fact",
+      "evidence": "anthropic.com/engineering/multi-agent-research-system (WebFetched 2026-07-03)",
+      "reproducible": true,
+      "source_tier": "T-VENDOR"
+    },
+    {
+      "claim": "Constrained decoding guarantees schema-valid I/O",
+      "type": "empirical-world-fact",
+      "evidence": "arXiv:2501.10868",
+      "reproducible": true
+    }
+  ],
+  "socratic": {
+    "premise": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "counter": "Sought a criterion left unsupported by a primary source; none found - every finding resolves to a dated source, so the premise HOLDS.",
+    "pivot": "If any headline figure traced only to a search summary rather than a dated primary source, the 'each with a dated primary source' claim would flip.",
+    "confidence": "high - one figure is search-summary level, disclosed as a residual risk."
+  },
+  "acceptance_self_check": [
+    {
+      "criterion": "10-14 findings",
+      "met": true,
+      "evidence_ref": "row 1-13"
+    }
+  ],
+  "assumptions": [
+    "search-result listing counts as verified existence"
+  ],
+  "residual_risks": [
+    "some numeric figures from search summaries, not primary PDF"
+  ],
+  "confidence": "high",
+  "footprint": {
+    "tokens_consumed": 21000,
+    "within_budget": true
+  },
+  "handoff_notes": [
+    "Decouple maker from checker is the strongest single mandate"
+  ]
+}

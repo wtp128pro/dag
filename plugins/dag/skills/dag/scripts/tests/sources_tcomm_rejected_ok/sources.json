@@ -1,0 +1,23 @@
+{
+  "run_label": "tcomm-rejected-ok",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed" },
+    { "id": "S2", "title": "a community thread that failed admission", "tier": "T-COMM",
+      "locator": "https://forum.example/thread/9", "disposition": "rejected",
+      "why": "off-topic and stale; venue could not be admitted", "venue_ref": "V1" }
+  ],
+  "venues": [
+    { "venue_id": "V1", "venue": "example forum",
+      "k_a": "named moderators + public edit history",
+      "k_b": "could not chase to a primary artifact",
+      "k_c": "undated; version scope unclear",
+      "admitted": false }
+  ],
+  "coverage": [
+    { "area": "task file state", "claim": "the line is mapped",
+      "based_on": ["S1"], "gaps": "none" }
+  ]
+}

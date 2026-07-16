@@ -1,0 +1,20 @@
+{
+  "run_label": "tcomm-unadmitted",
+  "sources": [
+    { "id": "S1", "title": "a community forum thread", "tier": "T-COMM",
+      "locator": "https://forum.example/thread/42", "disposition": "consulted",
+      "why": "corroborating discussion of the vendor behavior", "accessed": "2026-07-16",
+      "yielded": "confirmed the workaround", "venue_ref": "V1" }
+  ],
+  "venues": [
+    { "venue_id": "V1", "venue": "example forum",
+      "k_a": "named moderators + public edit history",
+      "k_b": "chases the vendor changelog it quotes",
+      "k_c": "dated 2026-05; matches the version under study",
+      "admitted": false }
+  ],
+  "coverage": [
+    { "area": "vendor behavior", "claim": "the workaround is mapped",
+      "based_on": ["S1"], "gaps": "none" }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Skeptic",
+  "verdict": "PASS",
+  "iteration": 1,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": [
+    "brief.json",
+    "debrief.json",
+    "cited sources"
+  ],
+  "feedback": {
+    "actionable_changes": [],
+    "do_not_touch": [
+      "the disclosed parametric-fallback caveat"
+    ]
+  },
+  "defects": [],
+  "socratic": {
+    "premise": "On independent re-derivation each owed id is discharged by a debrief row at a satisfying tier.",
+    "counter": "Re-ran the owed->row join from the debrief evidence directly; every owed id has a covering row of matching type, so the PASS HOLDS (C2 legitimately downgraded).",
+    "pivot": "If any owed id lacked a covering row of matching type the verdict would flip to FAIL.",
+    "confidence": "high - the owed->row join re-derives cleanly."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "Both owed claims are discharged by a linked evidence row at the highest reachable tier.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER on the owed-coverage premise from the debrief rows (not the executor's reasoning): it holds; C2 is a disclosed downgrade."
+  },
+  "retrieval_coverage": {
+    "owed_check": [
+      {
+        "owed_id": "C1",
+        "status": "covered",
+        "row_refs": [
+          0
+        ]
+      },
+      {
+        "owed_id": "C2",
+        "status": "covered",
+        "row_refs": [
+          1
+        ]
+      }
+    ],
+    "retrieval_probes": [],
+    "retrieval_probes_none_reason": "coverage rests on a T-LOCAL row and a parametric-fallback row; no external-tier (T-VENDOR/T-COMM) evidence row to reopen",
+    "sources_check": [
+      {
+        "source_id": "S1",
+        "origin": "required_sources",
+        "outcome": "consulted-evidenced"
+      }
+    ]
+  }
+}

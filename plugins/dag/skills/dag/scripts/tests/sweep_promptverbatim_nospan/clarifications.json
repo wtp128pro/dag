@@ -1,0 +1,93 @@
+{
+  "run_label": "good-fixture",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "which schema toolchain is available",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "require python3 (stdlib-only, no Node.js)",
+      "resolution_source": "prompt-verbatim",
+      "prompt_span": " "
+    },
+    {
+      "id": 2,
+      "ambiguity": "TLA+ vs FSM table",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "FSM table is the model of record",
+      "resolution_source": "human-gate"
+    }
+  ],
+  "scope": {
+    "in_scope": [
+      "schemas",
+      "validator",
+      "fsm spec"
+    ],
+    "out_of_scope": [
+      "editing the live skill"
+    ]
+  },
+  "open_items": [],
+  "definition_of_done": [
+    "validate_run.py exits 0 on this run directory (RESULT: PASS)",
+    "the schema self-check (--self-check) passes"
+  ],
+  "non_goals": [
+    "do NOT edit the live dag skill",
+    "do NOT add NLP/semantic heuristics or new runtime dependencies to the validator"
+  ],
+  "dimension_sweep": {
+    "dimensions": [
+      {
+        "dimension": "terms",
+        "disposition": "probed-clear",
+        "search_statement": "sought load-bearing terms among {validator, invariant, fixture}; each pinned by the prompt's own wording"
+      },
+      {
+        "dimension": "success-criteria",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "hunted for acceptance bars beyond the stated DoD; the prompt criteria are already testable"
+      },
+      {
+        "dimension": "scope-boundaries",
+        "disposition": "probed-clear",
+        "search_statement": "walked the OUT list edges; ring-05 and personas are excluded by the prompt"
+      },
+      {
+        "dimension": "audience-format",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "looked for output-shape doubt in the debrief JSON contract; the schema fixes it"
+      },
+      {
+        "dimension": "constraints",
+        "disposition": "probed-clear",
+        "search_statement": "weighed the offline-only and no-live-guard rules; both explicit in the guardrails"
+      },
+      {
+        "dimension": "assumptions",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "named the tool commitments taken for granted; python3 stdlib-only confirmed present"
+      },
+      {
+        "dimension": "failure-modes",
+        "disposition": "probed-clear",
+        "search_statement": "enumerated deadlock and version-skew hazards; the design addresses each explicitly"
+      },
+      {
+        "dimension": "sources",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "checked which tiers are load-bearing here; no new cartography beyond the register"
+      },
+      {
+        "dimension": "stakes",
+        "disposition": "probed-clear",
+        "search_statement": "sized the blast radius of the high-stakes edit; git history makes it reversible"
+      }
+    ],
+    "cartography_round": {
+      "status": "no-register-unknowns"
+    }
+  }
+}

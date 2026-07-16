@@ -54,6 +54,7 @@ TOP_ARTIFACTS = {
     "cartography.json": "cartography.schema.json",
     "graph.json": "graph.schema.json",
     "fsm-state.json": "fsm-state.schema.json",
+    "sources.json": "sources.schema.json",
 }
 UNIT_ARTIFACTS = {
     "brief.json": "brief.schema.json",
@@ -429,6 +430,26 @@ LABELS = [
     {"key": "p8_closure", "stem": "I23 closure", "invariant": "I23"},
     {"key": "register_floor", "stem": "I24 register floor", "invariant": "I24"},
     {"key": "resolution_present", "stem": "I25 resolution present", "invariant": "I25"},
+    # FSM invariant — sources register (depth 1.9.0)
+    {"key": "sources_register", "stem": "I26 sources register", "invariant": "I26"},
+    {"key": "sources_register_note", "stem": "N-I26", "invariant": "I26", "emitted_via": "print"},
+    # FSM invariant — clarification dimension-coverage sweep (depth 1.9.0)
+    {"key": "clarification_sweep", "stem": "I27 clarification sweep", "invariant": "I27"},
+    {"key": "clarification_sweep_note", "stem": "N-I27", "invariant": "I27", "emitted_via": "print"},
+    # FSM invariant — human-gated depth-tier floors (depth 1.9.0)
+    {"key": "depth_floor", "stem": "I28 depth floor", "invariant": "I28"},
+    {"key": "depth_floor_note", "stem": "N-I28", "invariant": "I28", "emitted_via": "print"},
+    # FSM invariant — execution-effort briefs (depth 1.9.0)
+    {"key": "effort_briefs", "stem": "I29 execution-effort briefs", "invariant": "I29"},
+    {"key": "effort_briefs_note", "stem": "N-I29", "invariant": "I29", "emitted_via": "print"},
+    # FSM invariant — retrieval coverage verify (depth 1.9.0)
+    {"key": "retrieval_coverage_verify", "stem": "I30 retrieval coverage", "invariant": "I30"},
+    {"key": "retrieval_coverage_verify_note", "stem": "N-I30", "invariant": "I30", "emitted_via": "print"},
+    # FSM invariants — retrieval-standard predicates (depth 1.9.0; U01 RL-1..3 / CO-1)
+    {"key": "rl_rung_presence", "stem": "I31 rung presence", "invariant": "I31"},
+    {"key": "rl_param_consistency", "stem": "I32 parametric-downgrade consistency", "invariant": "I32"},
+    {"key": "rl_premise_presence", "stem": "I33 premise-extraction presence", "invariant": "I33"},
+    {"key": "co1_owed_coverage", "stem": "I34 owed coverage", "invariant": "I34"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
     {"key": "i9_present", "stem": "I9 verification present", "invariant": "I9"},
@@ -2438,6 +2459,1402 @@ def main(argv=None):
                     and not str(_i25_item.get("resolution") or "").strip()):
                 rep.fail(f"{LABEL_STEM['resolution_present']} ({_i25_item.get('id', '?')})",
                          "material item marked resolved carries no resolution text")
+
+    # ---- I26 sources register (depth 1.9.0) — offline post-hoc; NEVER a live guard ----
+    # PLAN §5.1. Presence-triggered on the I-dod/I24 structural union (cartography / graph / units /
+    # synthesis; learnings.json EXCLUDED — the Phase-0.5 deadlock, I24 precedent). NOT archive-silent
+    # (deliberately, like I-dod/I24): the observed failure mode is SILENT cartography-skipping, so a
+    # structurally-active run without a schema-valid source register FAILs check 1 (archived runs newly
+    # flagging read as §5 expected skew — never edited, never backfilled). Offline post-hoc predicate
+    # over emitted artifacts: gates NO FSM transition, no LT7 guard — correction-loop termination
+    # (Claim D) and AO-1..7 untouched (PRESERVES). Content checks (2-6 + 5b) fire whenever sources.json
+    # RAW-parses to an object, schema-valid or not (the I22 raw-parse visibility posture); the .strip()
+    # bar mirrors the schema conditionals one layer stricter (I25/G11 whitespace precedent).
+    _i26_trigger = (
+        docs.get("cartography") is not None
+        or os.path.exists(os.path.join(rd, "CARTOGRAPHY.md"))
+        or graph_json_exists
+        or graph_md_exists
+        or bool(unit_subdirs)
+        or os.path.exists(os.path.join(rd, "SYNTHESIS.md"))
+    )
+    _i26_stem = LABEL_STEM['sources_register']
+    _i26_note = LABEL_STEM['sources_register_note']
+    _i26_path = os.path.join(rd, "sources.json")
+    _i26_raw = None
+    if os.path.exists(_i26_path):
+        try:
+            _i26_raw = load_json(_i26_path)
+        except Exception:
+            _i26_raw = None
+    _i26_probs0 = len(rep.problems)
+    if _i26_trigger:
+        # check 1 (presence) — fail-closed on absent / unparseable / schema-invalid / zero rows.
+        _i26_valid = docs.get("sources")            # schema-valid parse (set by check_artifact)
+        _i26_rows_ok = (isinstance(_i26_valid, dict)
+                        and isinstance(_i26_valid.get("sources"), list)
+                        and len(_i26_valid.get("sources")) >= 1)
+        if not _i26_rows_ok:
+            if not os.path.exists(_i26_path):
+                _i26_why = "absent"
+            elif _i26_raw is None:
+                _i26_why = "unparseable"
+            elif _i26_valid is None:
+                _i26_why = "schema-invalid"
+            else:
+                _i26_why = "zero rows"
+            rep.fail(f"{_i26_stem} (presence)",
+                     f"structural work exists but sources.json is {_i26_why} — a schema-valid source "
+                     "register with >=1 row is the cartography floor (fail-closed; NOT archive-silent)")
+    # Content checks (2-6 + 5b) — raw-parse mirror, independent of the schema layer.
+    if isinstance(_i26_raw, dict):
+        _i26_sources = [r for r in (_i26_raw.get("sources") or []) if isinstance(r, dict)]
+        _i26_venues = [v for v in (_i26_raw.get("venues") or []) if isinstance(v, dict)]
+        _i26_coverage = [c for c in (_i26_raw.get("coverage") or []) if isinstance(c, dict)]
+        _i26_ids = [r.get("id") for r in _i26_sources if isinstance(r.get("id"), str)]
+        _i26_idset = set(_i26_ids)
+        _i26_consulted = {r.get("id") for r in _i26_sources
+                          if r.get("disposition") == "consulted" and isinstance(r.get("id"), str)}
+        _i26_vids = [v.get("venue_id") for v in _i26_venues if isinstance(v.get("venue_id"), str)]
+        _i26_vidset = set(_i26_vids)
+        _i26_vadmit = {v.get("venue_id"): (v.get("admitted") is True) for v in _i26_venues
+                       if isinstance(v.get("venue_id"), str)}
+
+        def _i26_blank(x):
+            return not str(x if x is not None else "").strip()
+
+        # check 2 (consulted floor)
+        if not any(r.get("disposition") == "consulted" for r in _i26_sources):
+            rep.fail(f"{_i26_stem} (consulted floor)",
+                     "zero rows with disposition == 'consulted' — a run that mapped sources without "
+                     "opening ANY produced a listing, not cartography")
+        # check 3 (id uniqueness) — duplicate source id OR venue_id (I3 dup-unit-id precedent)
+        _i26_dup_s = sorted({i for i in _i26_ids if _i26_ids.count(i) > 1})
+        _i26_dup_v = sorted({i for i in _i26_vids if _i26_vids.count(i) > 1})
+        if _i26_dup_s or _i26_dup_v:
+            rep.fail(f"{_i26_stem} (id uniqueness)",
+                     f"duplicate ids make reference resolution order-dependent: sources "
+                     f"{_i26_dup_s or '[]'}, venues {_i26_dup_v or '[]'}")
+        # check 4 (row S<id> completeness) — raw-parse .strip() mirror of the schema conditionals
+        for r in _i26_sources:
+            _rid = r.get("id") if isinstance(r.get("id"), str) else "?"
+            _bad = []
+            if _i26_blank(r.get("why")): _bad.append("why")
+            if _i26_blank(r.get("locator")): _bad.append("locator")
+            if r.get("disposition") == "consulted":
+                if _i26_blank(r.get("accessed")): _bad.append("accessed")
+                if _i26_blank(r.get("yielded")): _bad.append("yielded")
+            if r.get("disposition") == "queued" and _i26_blank(r.get("queued_for")):
+                _bad.append("queued_for")
+            if _bad:
+                rep.fail(f"{_i26_stem} (row {_rid} completeness)",
+                         f"blank/whitespace required field(s): {_bad}")
+        # check 5 (venue linkage S<id>) — ONE-directional: a consulted/queued T-COMM row's venue must
+        # be admitted; a REJECTED T-COMM row needs only a resolvable venue_ref (the honest failed-
+        # admission record the §4 overturn path depends on — never a biconditional).
+        for r in _i26_sources:
+            if r.get("tier") != "T-COMM":
+                continue
+            _rid = r.get("id") if isinstance(r.get("id"), str) else "?"
+            _vref = r.get("venue_ref")
+            if not (isinstance(_vref, str) and _vref in _i26_vidset):
+                rep.fail(f"{_i26_stem} (venue linkage {_rid})",
+                         f"T-COMM row's venue_ref {_vref!r} does not resolve to a venues[].venue_id")
+            elif r.get("disposition") in ("consulted", "queued") and not _i26_vadmit.get(_vref):
+                rep.fail(f"{_i26_stem} (venue linkage {_rid})",
+                         f"a {r.get('disposition')} T-COMM row references venue {_vref!r} whose "
+                         "admitted != true")
+        # check 5b (venue rationale V<id>) — EVERY venue, admitted or refused, carries K-A/B/C
+        for v in _i26_venues:
+            _vid = v.get("venue_id") if isinstance(v.get("venue_id"), str) else "?"
+            _blk = [k for k in ("k_a", "k_b", "k_c") if _i26_blank(v.get(k))]
+            if _blk:
+                rep.fail(f"{_i26_stem} (venue rationale {_vid})",
+                         f"blank/whitespace admission rationale field(s): {_blk}")
+        # check 6 (coverage linkage) — membership + >=1 consulted member (rejects all-unopened basis)
+        for c in _i26_coverage:
+            _basis = [b for b in (c.get("based_on") or []) if isinstance(b, str)]
+            _area = c.get("area") if isinstance(c.get("area"), str) else "?"
+            _dangling = sorted(b for b in _basis if b not in _i26_idset)
+            if _dangling:
+                rep.fail(f"{_i26_stem} (coverage linkage)",
+                         f"coverage '{_area}' based_on ids not in sources[]: {_dangling}")
+            elif not any(b in _i26_consulted for b in _basis):
+                rep.fail(f"{_i26_stem} (coverage linkage)",
+                         f"coverage '{_area}' rests on no consulted row (all-unopened basis) — "
+                         "membership requires >=1 consulted id")
+        # ---- NOTE lines (advisory; never a non-zero exit) ----
+        # N-I26 (queued_for dangling): a queued_for ~ ^U[0-9]+$ naming no CURRENT graph.json unit id
+        if graph_doc is not None:
+            _i26_gunits = {u.get("id") for u in (graph_doc.get("units") or [])
+                           if isinstance(u, dict) and isinstance(u.get("id"), str)}
+            for r in _i26_sources:
+                _qf = r.get("queued_for")
+                if isinstance(_qf, str) and re.match(r"^U[0-9]+$", _qf) and _qf not in _i26_gunits:
+                    if not args.quiet:
+                        print(f"  NOTE  {_i26_note} (queued_for dangling): row {r.get('id')!r} "
+                              f"queued_for {_qf!r} names no current graph.json unit")
+        # N-I26 (coverage monoculture): >=2 coverage rows ∧ union of CONSULTED based_on ids has card 1
+        if len(_i26_coverage) >= 2:
+            _i26_union = {b for c in _i26_coverage for b in (c.get("based_on") or [])
+                          if isinstance(b, str) and b in _i26_consulted}
+            if len(_i26_union) == 1 and not args.quiet:
+                print(f"  NOTE  {_i26_note} (coverage monoculture): {len(_i26_coverage)} coverage rows "
+                      f"all rest on the single consulted id {sorted(_i26_union)}")
+        # N-I26 (external tiers unconsulted): ∃ T-VENDOR/T-COMM row ∧ zero CONSULTED such rows
+        _i26_ext = {"T-VENDOR", "T-COMM"}
+        if (any(r.get("tier") in _i26_ext for r in _i26_sources)
+                and not any(r.get("tier") in _i26_ext and r.get("disposition") == "consulted"
+                            for r in _i26_sources)
+                and not args.quiet):
+            print(f"  NOTE  {_i26_note} (external tiers unconsulted): external-tier rows present but "
+                  "none consulted — a user-blessed deferral is legitimate, silence about it is not")
+    if _i26_trigger and isinstance(_i26_raw, dict) and len(rep.problems) == _i26_probs0:
+        rep.ok(f"{_i26_stem} ({len(_i26_raw.get('sources') or [])} row(s); consulted floor + "
+               "disposition completeness + venue/coverage linkage OK)")
+
+    # ---- I27 clarification sweep (depth 1.9.0) — offline post-hoc; NEVER a live guard ----
+    # PLAN §5.2. Two-level version-honest trigger. T1 (presence floor) fires when the I-dod/I24
+    # structural union holds AND the run is version-stamped >= the release shipping I27 (semver on
+    # fsm-state.json.validator_version — the §5 version-skew convention); archived/UNSTAMPED runs stay
+    # SILENT — the deliberate asymmetry with I26 (which is NOT archive-silent). T2 (shape checks) fire
+    # whenever dimension_sweep is PRESENT, any version — adopting the key is submitting to its checks
+    # (the I20/I21 adoption-closure pattern). Offline post-hoc predicate over emitted artifacts: gates
+    # NO FSM transition, never guards LT7 => correction-loop termination (Claim D) + AO-1..7 untouched
+    # (PRESERVES). Every check reads the RAW-parsed clarifications.json (the I22 raw-parse visibility
+    # posture); the .strip() bar is one layer stricter than the schema's minLength:1 (I25/G11). The
+    # register-id resolution set is clarifications.json.ambiguity_register (integer ids). Frozen
+    # bindings (PLAN §5.0): I27-4's register FILE is RUN_DIR/sources.json; I27-10's record home is the
+    # whole-run verification at RUN_DIR/verify.json; the T1 comparator is semver on validator_version.
+    # The nine-dimension coverage set is tier-INDEPENDENT (U04 DT-K4 scales DEPTH, never coverage).
+    # RT-5 residual: the register's machine-readable unknown-list arm of I27-4 stays ATTESTATION — no
+    # such field is bound in the sources register (R-4 widened). Disposition GENUINENESS stays
+    # attestation — Limitation Q (validity != correctness).
+    _I27_SHIP = "1.9.0"                # release shipping I27; validator_version >= this arms T1
+    _I27_DIMS = ["terms", "success-criteria", "scope-boundaries", "audience-format",
+                 "constraints", "assumptions", "failure-modes", "sources", "stakes"]
+    _i27_stem = LABEL_STEM['clarification_sweep']
+    _i27_note = LABEL_STEM['clarification_sweep_note']
+
+    def _i27_semver_ge(a, b):
+        # True iff version string a >= b under numeric semver; a malformed/absent a => False
+        # (archive-safe: an unstamped or pre-shipping run never arms T1).
+        def _parse(v):
+            if not isinstance(v, str):
+                return None
+            head = re.split(r"[-+]", v.strip(), maxsplit=1)[0].split(".")[:3]
+            try:
+                nums = [int(p) for p in head]
+            except (ValueError, TypeError):
+                return None
+            return tuple(nums + [0] * (3 - len(nums)))
+        pa, pb = _parse(a), _parse(b)
+        return pa is not None and pb is not None and pa >= pb
+
+    def _i27_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    _i27_struct = (
+        docs.get("cartography") is not None
+        or os.path.exists(os.path.join(rd, "CARTOGRAPHY.md"))
+        or graph_json_exists
+        or graph_md_exists
+        or bool(unit_subdirs)
+        or os.path.exists(os.path.join(rd, "SYNTHESIS.md"))
+    )
+    _i27_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    _i27_t1 = _i27_struct and _i27_semver_ge(_i27_ver, _I27_SHIP)
+
+    # RAW clarifications parse — independent of the schema layer (like I26 reads sources.json raw).
+    _i27_clar_raw = None
+    _i27_clar_path = os.path.join(rd, "clarifications.json")
+    if os.path.exists(_i27_clar_path):
+        try:
+            _i27_clar_raw = load_json(_i27_clar_path)
+        except Exception:
+            _i27_clar_raw = None
+    _i27_sweep = (_i27_clar_raw.get("dimension_sweep")
+                  if isinstance(_i27_clar_raw, dict) else None)
+    _i27_t2 = isinstance(_i27_sweep, dict)
+    _i27_probs0 = len(rep.problems)
+
+    # I27-1 (T1 ∧ clarifications parses ∧ dimension_sweep absent) — "not swept" is now visible.
+    if _i27_t1 and isinstance(_i27_clar_raw, dict) and not _i27_t2:
+        rep.fail(f"{_i27_stem} (not swept)",
+                 f"structural work + validator_version {_i27_ver!r} (>= {_I27_SHIP}) but "
+                 "clarifications.json carries no dimension_sweep — the nine-dimension sweep is now "
+                 "required (version-gated; archived/unstamped runs stay silent)")
+
+    if _i27_t2:
+        _i27_reg = [r for r in (_i27_clar_raw.get("ambiguity_register") or []) if isinstance(r, dict)]
+        _i27_regids = {r.get("id") for r in _i27_reg if isinstance(r.get("id"), int)}
+        _i27_entries = [e for e in (_i27_sweep.get("dimensions") or []) if isinstance(e, dict)]
+        _i27_by_dim = {e.get("dimension"): e for e in _i27_entries}
+
+        # I27-2 (coverage) — the nine literals exactly once, tier-INDEPENDENT.
+        _i27_seen = [e.get("dimension") for e in _i27_entries]
+        _i27_dupes = sorted({d for d in _i27_seen if d in _I27_DIMS and _i27_seen.count(d) > 1})
+        if set(d for d in _i27_seen if d in _I27_DIMS) != set(_I27_DIMS) or _i27_dupes:
+            _i27_missing = sorted(set(_I27_DIMS) - set(_i27_seen))
+            _i27_extra = sorted({d for d in _i27_seen if d not in _I27_DIMS})
+            rep.fail(f"{_i27_stem} (coverage)",
+                     f"dimensions[] must cover the nine literals exactly once — missing "
+                     f"{_i27_missing or '[]'}, duplicated {_i27_dupes or '[]'}, unknown {_i27_extra or '[]'}")
+
+        # I27-3 (per-entry completeness): found => register_ids resolve; clean => .strip() statement.
+        for e in _i27_entries:
+            _d = e.get("dimension")
+            _disp = e.get("disposition")
+            if _disp == "ambiguity-found":
+                _rids = [i for i in (e.get("register_ids") or []) if isinstance(i, int)]
+                _dangling = sorted(i for i in _rids if i not in _i27_regids)
+                if not _rids or _dangling:
+                    rep.fail(f"{_i27_stem} (entry {_d} completeness)",
+                             f"ambiguity-found entry needs register_ids resolving into the register — "
+                             f"empty={not _rids}, dangling={_dangling or '[]'}")
+            elif _disp in ("probed-clear", "none-after-genuine-search"):
+                if _i27_blank(e.get("search_statement")):
+                    rep.fail(f"{_i27_stem} (entry {_d} completeness)",
+                             "clean disposition needs a .strip()-non-blank search_statement")
+
+        # I27-4 (cartography round): cartography artifact ∧ sources register FILE exist =>
+        #   cartography_round present ∧ status != register-absent; performed => dispositioned_unknowns
+        #   non-empty ∧ every register_id resolves; sources_register_ref (when present) names the bound
+        #   register (basename sources.json, PR-6). The RT-5 unknown-LIST set checks stay attestation.
+        _i27_cart = (docs.get("cartography") is not None
+                     or os.path.exists(os.path.join(rd, "CARTOGRAPHY.md")))
+        _i27_srcfile = os.path.exists(os.path.join(rd, "sources.json"))
+        if _i27_cart and _i27_srcfile:
+            _cr = _i27_sweep.get("cartography_round")
+            if not isinstance(_cr, dict) or _cr.get("status") == "register-absent":
+                rep.fail(f"{_i27_stem} (cartography round)",
+                         "cartography + sources register exist but cartography_round is "
+                         f"{'absent' if not isinstance(_cr, dict) else 'register-absent'} — record the "
+                         "round (status performed / no-register-unknowns)")
+            else:
+                _ref = _cr.get("sources_register_ref")
+                if (isinstance(_ref, str) and _ref.strip()
+                        and os.path.basename(_ref.strip()) != "sources.json"):
+                    rep.fail(f"{_i27_stem} (cartography round)",
+                             f"sources_register_ref {_ref!r} does not name the bound register "
+                             "(RUN_DIR/sources.json)")
+                if _cr.get("status") == "performed":
+                    _du = [u for u in (_cr.get("dispositioned_unknowns") or []) if isinstance(u, dict)]
+                    _du_bad = sorted(u.get("register_id") for u in _du
+                                     if isinstance(u.get("register_id"), int)
+                                     and u.get("register_id") not in _i27_regids)
+                    if not _du or _du_bad:
+                        rep.fail(f"{_i27_stem} (cartography round)",
+                                 "status performed needs dispositioned_unknowns whose register_ids "
+                                 f"resolve — empty={not _du}, dangling={_du_bad or '[]'}")
+
+        # I27-5 (resolution_source visibility): every resolved register row carries a valid source enum.
+        _I27_RS = {"human-gate", "logged-default", "prompt-verbatim"}
+        for r in _i27_reg:
+            if r.get("resolved") is True:
+                _rs = r.get("resolution_source")
+                if _rs is None or _rs not in _I27_RS:
+                    rep.fail(f"{_i27_stem} (resolution_source {r.get('id', '?')})",
+                             f"resolved row carries resolution_source {_rs!r} not in {sorted(_I27_RS)}")
+
+        # I27-8 (prompt-verbatim receipt): prompt-verbatim => .strip()-non-blank prompt_span.
+        for r in _i27_reg:
+            if r.get("resolution_source") == "prompt-verbatim" and _i27_blank(r.get("prompt_span")):
+                rep.fail(f"{_i27_stem} (prompt_span {r.get('id', '?')})",
+                         "prompt-verbatim row has an absent/blank prompt_span receipt")
+
+        # I27-9 (clean->found flip): a dimension-tagged row => that dimension's sweep entry is
+        #   ambiguity-found ∧ the row's id ∈ that entry's register_ids. Untagged rows exempt.
+        for r in _i27_reg:
+            _tag = r.get("dimension")
+            if _tag in _I27_DIMS:
+                _e = _i27_by_dim.get(_tag)
+                _rids = [i for i in ((_e or {}).get("register_ids") or []) if isinstance(i, int)]
+                if _e is None or _e.get("disposition") != "ambiguity-found" or r.get("id") not in _rids:
+                    rep.fail(f"{_i27_stem} (flip {r.get('id', '?')})",
+                             f"register row tagged dimension {_tag!r} but that sweep entry is not "
+                             "ambiguity-found with the row id in its register_ids")
+
+        # I27-10 (P8 spot-check presence): at P8/DONE the whole-run verification (RUN_DIR/verify.json)
+        #   must carry sweep_spot_check[] with >=1 clean-dispositioned AND >=1 ambiguity-found entry
+        #   when each class exists; each entry {dimension, disposition, probe_attempted, outcome} with
+        #   a non-blank outcome. Skipping the spot-check is now itself visible (RT-1/RT-4).
+        if phase in ("P8_SYNTHESIS", "DONE"):
+            _clean_present = any(e.get("disposition") in ("probed-clear", "none-after-genuine-search")
+                                 for e in _i27_entries)
+            _found_present = any(e.get("disposition") == "ambiguity-found" for e in _i27_entries)
+            _wr = None
+            _wrp = os.path.join(rd, "verify.json")
+            if os.path.exists(_wrp):
+                try:
+                    _wr = load_json(_wrp)
+                except Exception:
+                    _wr = None
+            _ssc = [s for s in ((_wr.get("sweep_spot_check") if isinstance(_wr, dict) else None) or [])
+                    if isinstance(s, dict)]
+            _ssc_bad = [s for s in _ssc
+                        if not all(k in s for k in ("dimension", "disposition", "probe_attempted", "outcome"))
+                        or _i27_blank(s.get("outcome"))]
+            _ssc_clean = any(s.get("disposition") in ("probed-clear", "none-after-genuine-search")
+                             for s in _ssc)
+            _ssc_found = any(s.get("disposition") == "ambiguity-found" for s in _ssc)
+            _i27_miss = []
+            if _clean_present and not _ssc_clean:
+                _i27_miss.append("clean-dispositioned")
+            if _found_present and not _ssc_found:
+                _i27_miss.append("ambiguity-found")
+            if _i27_miss or _ssc_bad:
+                rep.fail(f"{_i27_stem} (spot-check)",
+                         "P8/DONE whole-run verification (verify.json) sweep_spot_check[] is missing a "
+                         f"symmetric entry (need >=1 clean + >=1 found when each class exists) — "
+                         f"missing={_i27_miss or '[]'}, malformed={len(_ssc_bad)}")
+
+        # ---- NOTE lines (advisory; never a non-zero exit) ----
+        # N-I27 (material self-default): a material row self-defaulted rather than gated (I27-6).
+        for r in _i27_reg:
+            if (r.get("materiality") == "material" and r.get("resolution_source") == "logged-default"
+                    and not args.quiet):
+                print(f"  NOTE  {_i27_note} (material self-default): register row {r.get('id')!r} is "
+                      "material but resolution_source is logged-default (surfaced, not forbidden)")
+        # N-I27 (duplicate statement): >=2 entries share a NORMALIZED search_statement (I27-7).
+        _I27_SYN = set(_I27_DIMS) | {
+            "term", "success", "criteria", "acceptance", "scope", "boundaries", "boundary",
+            "audience", "format", "constraint", "assumption", "failure", "modes", "mode",
+            "source", "stake"}
+
+        def _i27_norm(s):
+            return " ".join(t for t in re.findall(r"[a-z0-9]+", str(s or "").lower())
+                            if t not in _I27_SYN)
+        _i27_norms = {}
+        for e in _i27_entries:
+            _n = _i27_norm(e.get("search_statement"))
+            if _n:
+                _i27_norms.setdefault(_n, []).append(e.get("dimension"))
+        for _n, _ds in _i27_norms.items():
+            if len(_ds) >= 2 and not args.quiet:
+                print(f"  NOTE  {_i27_note} (duplicate statement): dimensions "
+                      f"{sorted(d for d in _ds if d)} share a normalized search_statement — "
+                      "duplicate-disposition boilerplate suspect")
+        # N-I27 (manufactured diligence): ALL entries ambiguity-found ∧ every linked row minor +
+        #   logged-default (I27-11) — deliberately a NOTE (a FAIL would Goodhart dispositions clean).
+        if _i27_entries and all(e.get("disposition") == "ambiguity-found" for e in _i27_entries):
+            _linked = {i for e in _i27_entries for i in (e.get("register_ids") or [])
+                       if isinstance(i, int)}
+            _linkrows = [r for r in _i27_reg if r.get("id") in _linked]
+            if (_linkrows
+                    and all(r.get("materiality") == "minor"
+                            and r.get("resolution_source") == "logged-default" for r in _linkrows)
+                    and not args.quiet):
+                print(f"  NOTE  {_i27_note} (manufactured diligence): all sweep dimensions are "
+                      "ambiguity-found with every linked register row minor + logged-default — "
+                      "manufactured-diligence suspect")
+
+    if (_i27_t1 or _i27_t2) and len(rep.problems) == _i27_probs0:
+        rep.ok(f"{_i27_stem} (T1={_i27_t1}, sweep={'present' if _i27_t2 else 'absent'}; "
+               "nine-dimension coverage + disposition presence + linkage OK)")
+
+    # ---- I28 depth-tier floors (depth 1.9.0) — offline post-hoc; NEVER a live guard ----
+    # PLAN §5.3. ADOPTION-GATED / ARCHIVE-SILENT: fires ONLY when fsm-state carries a `depth`
+    # block (Limitation O(i) pattern); a depth-ABSENT run — every archived run, AND this release's
+    # own run when it operates at `full` tier by RECORDED DECISION rather than the mechanical block —
+    # leaves I28 WHOLLY SILENT (the archive-safe leg). Offline predicate over emitted artifacts:
+    # gates NO FSM transition, never guards LT7 => correction-loop termination (Claim D) + AO-1..7
+    # untouched (PRESERVES); a mid-run non-zero exit is a hard stop routed to ESCALATE per the existing
+    # convention. Reads the RAW depth block (schema does enums/required; the .strip() bar is one layer
+    # stricter — G11/I25). Frozen bindings (PLAN §5.0): tier_at_verification is the VALUE at each unit's
+    # verify.retrieval_coverage.tier_at_verification (I30-0 owns its PRESENCE); DT-K4 reads the whole-run
+    # RUN_DIR/verify.json.sweep_spot_check[] — the SAME record I27-10 reads (U04 adds no field). I28 does
+    # NOT re-implement other invariants' checks (U-F1..U-F7 / I27 / I31+). Residual: stakes/reversibility
+    # GENUINENESS and probe/label authorship stay attestation (DR-c/DR-e).
+    _i28_depth = fsm.get("depth") if isinstance(fsm, dict) else None
+    if isinstance(_i28_depth, dict):
+        _i28_stem = LABEL_STEM['depth_floor']
+        _i28_note = LABEL_STEM['depth_floor_note']
+        _i28_probs0 = len(rep.problems)
+        _I28_RANK = {"light": 0, "standard": 1, "full": 2}
+        _I28_NINE = {"terms", "success-criteria", "scope-boundaries", "audience-format",
+                     "constraints", "assumptions", "failure-modes", "sources", "stakes"}
+
+        def _i28_blank(x):
+            return not str(x if x is not None else "").strip()
+
+        _ct = _i28_depth.get("confirmed_tier")
+        _eff_tier = _i28_depth.get("tier")
+        _just = _i28_depth.get("justification") if isinstance(_i28_depth.get("justification"), dict) else {}
+        _extsurf = _just.get("external_surface") if isinstance(_just.get("external_surface"), dict) else {}
+        _overrides = [o for o in (_i28_depth.get("overrides") or []) if isinstance(o, dict)]
+
+        # PASS units + a per-unit tier_at_verification map (VALUE read; PRESENCE is I30-0's job).
+        _i28_pass = {}          # uid -> verify dict, verdict == PASS
+        _i28_tav = {}           # uid -> verify.retrieval_coverage.tier_at_verification (where present)
+        for _uid, _dd in unit_docs.items():
+            _v = _dd.get("verify") if isinstance(_dd, dict) else None
+            if not isinstance(_v, dict):
+                continue
+            if _v.get("verdict") == "PASS":
+                _i28_pass[_uid] = _v
+            _rc = _v.get("retrieval_coverage")
+            if isinstance(_rc, dict) and _rc.get("tier_at_verification") is not None:
+                _i28_tav[_uid] = _rc.get("tier_at_verification")
+
+        # I28-P0 (shape + contentfulness) — schema does enums/required; the .strip() bar catches the
+        #   whitespace-only string the schema's minLength:1 admits (G11/I25 precedent).
+        _p0_bad = [k for k in ("stakes", "reversibility") if _i28_blank(_just.get(k))]
+        if _i28_blank(_extsurf.get("detail")):
+            _p0_bad.append("external_surface.detail")
+        if _p0_bad:
+            rep.fail(f"{_i28_stem} (contentfulness)",
+                     f"depth.justification blank/whitespace field(s): {_p0_bad}")
+
+        # I28-P1 (gate provenance) — depth present => personas_confirmed; a clarification-gate
+        #   confirmation additionally requires clarification_resolved.
+        if gates.get("personas_confirmed") is not True:
+            rep.fail(f"{_i28_stem} (gate provenance)",
+                     "depth block present but gates.personas_confirmed != true — the depth tier is "
+                     "confirmed at the human persona gate")
+        if (_i28_depth.get("confirmed_at_gate") == "clarification"
+                and gates.get("clarification_resolved") is not True):
+            rep.fail(f"{_i28_stem} (gate provenance)",
+                     "confirmed_at_gate == 'clarification' but gates.clarification_resolved != true")
+
+        # I28-P1b (unconditional second touch, RT-1) — a personas-confirmed tier whose clarification
+        #   gate is resolved MUST record the Phase-2 keep-or-raise touch; a raise MUST be backed by an
+        #   overrides[] entry at_gate == "P2_CLARIFICATION" (string equality). A never-touched tier is
+        #   a FAIL, not a self-judged skip.
+        if (_i28_depth.get("confirmed_at_gate") == "personas"
+                and gates.get("clarification_resolved") is True):
+            _pt = _i28_depth.get("phase2_touch")
+            if not (isinstance(_pt, dict) and _pt.get("outcome") in ("kept", "raised")):
+                rep.fail(f"{_i28_stem} (phase2 touch)",
+                         "personas-confirmed depth tier with clarification_resolved==true but no "
+                         "phase2_touch{outcome in {kept,raised}} — the unconditional Phase-2 second "
+                         "touch is unrecorded")
+            elif _pt.get("outcome") == "raised" and not any(
+                    o.get("at_gate") == "P2_CLARIFICATION" for o in _overrides):
+                rep.fail(f"{_i28_stem} (phase2 raise)",
+                         "phase2_touch.outcome == 'raised' but no overrides[] entry has "
+                         "at_gate == 'P2_CLARIFICATION' — the raise carries no ratchet record")
+
+        # I28-P2 (canonical disclosure — completeness; referent confirmed_tier, PR-3). skipped_floors
+        #   as a set == {DT-K2,DT-K4,DT-K5,DT-K6}@confirmed_tier for light/standard; == [] iff full.
+        _sf = [s for s in (_just.get("skipped_floors") or []) if isinstance(s, str)]
+        if _ct == "full":
+            _sf_expect = set()
+        elif _ct in ("light", "standard"):
+            _sf_expect = {f"{k}@{_ct}" for k in ("DT-K2", "DT-K4", "DT-K5", "DT-K6")}
+        else:
+            _sf_expect = None
+        if _sf_expect is not None and set(_sf) != _sf_expect:
+            rep.fail(f"{_i28_stem} (skipped-floor disclosure)",
+                     f"skipped_floors {sorted(_sf)} != canonical {sorted(_sf_expect)} for "
+                     f"confirmed_tier {_ct!r} (== [] iff full; else the four DT-K@tier prefixes)")
+
+        # I28-P3 (ratchet) — no representable downward move. Non-empty overrides: chain from
+        #   confirmed_tier, strictly upward (light<standard<full), decision_ref + pending_units[]
+        #   per entry, effective tier == last .to. Empty/absent: effective tier == confirmed_tier.
+        if _overrides:
+            _prev = _ct
+            _p3_ok = True
+            for _i, _o in enumerate(_overrides):
+                _frm, _to = _o.get("from"), _o.get("to")
+                if _i == 0 and _frm != _ct:
+                    rep.fail(f"{_i28_stem} (ratchet)",
+                             f"overrides[0].from {_frm!r} != confirmed_tier {_ct!r}")
+                    _p3_ok = False
+                if _i > 0 and _frm != _prev:
+                    rep.fail(f"{_i28_stem} (ratchet)",
+                             f"overrides[{_i}].from {_frm!r} != prior .to {_prev!r} (chain break)")
+                    _p3_ok = False
+                if not (_frm in _I28_RANK and _to in _I28_RANK and _I28_RANK[_to] > _I28_RANK[_frm]):
+                    rep.fail(f"{_i28_stem} (ratchet)",
+                             f"overrides[{_i}] {_frm!r}->{_to!r} is not a strict upward move "
+                             "(light<standard<full)")
+                    _p3_ok = False
+                if _i28_blank(_o.get("decision_ref")):
+                    rep.fail(f"{_i28_stem} (ratchet)",
+                             f"overrides[{_i}] carries a blank decision_ref")
+                    _p3_ok = False
+                if not isinstance(_o.get("pending_units"), list):
+                    rep.fail(f"{_i28_stem} (ratchet)",
+                             f"overrides[{_i}] carries no pending_units[] array")
+                    _p3_ok = False
+                _prev = _to
+            if _p3_ok and _eff_tier != _overrides[-1].get("to"):
+                rep.fail(f"{_i28_stem} (ratchet)",
+                         f"effective tier {_eff_tier!r} != overrides[-1].to "
+                         f"{_overrides[-1].get('to')!r}")
+        elif _eff_tier != _ct:
+            rep.fail(f"{_i28_stem} (ratchet)",
+                     f"no overrides but effective tier {_eff_tier!r} != confirmed_tier {_ct!r} "
+                     "(there is no representable downward move)")
+
+        # I28-P3b (override time-scoping, RT-6) — every recorded tier_at_verification is a tier the
+        #   chain actually passed through; a pending unit reaching PASS carries tier_at_verification
+        #   >= its override's .to. Pre-override PASS units (absent from every pending_units[]) keep
+        #   their original floors — no >= obligation.
+        _passed_tiers = {_ct} | {o.get("to") for o in _overrides}
+        for _uid, _tav in sorted(_i28_tav.items()):
+            if _tav not in _passed_tiers:
+                rep.fail(f"{_i28_stem} (override time-scoping)",
+                         f"units/{_uid} tier_at_verification {_tav!r} is not a tier the chain passed "
+                         f"through ({sorted(t for t in _passed_tiers if t)})")
+        for _i, _o in enumerate(_overrides):
+            _to = _o.get("to")
+            for _pu in (_o.get("pending_units") or []):
+                if _pu in _i28_pass and _pu in _i28_tav:
+                    _tav = _i28_tav[_pu]
+                    if (_tav in _I28_RANK and _to in _I28_RANK
+                            and _I28_RANK[_tav] < _I28_RANK[_to]):
+                        rep.fail(f"{_i28_stem} (override time-scoping)",
+                                 f"units/{_pu} is in overrides[{_i}].pending_units and PASSed at "
+                                 f"tier_at_verification {_tav!r} < the raised floor {_to!r}")
+
+        # I28-P4 (floor conformance).
+        # DT-K2 (probes/chases — unit-scoped): for every PASS unit WITH a tier_at_verification, the
+        #   required probe set from its debrief evidence rows scales per tier — light: reopen for
+        #   covered fallback rows; standard: reopen for ALL fallback rows + chase for vendor-silent;
+        #   full: + reopen for URL-locator rows + chase for T-COMM rows. Each required row_ref is
+        #   matched by a probe record (exact int match, non-blank outcome); a provably-empty required
+        #   set needs retrieval_probes_none_reason. Visibility backstop (RT-3): list the fallback rows.
+        _I28_FALLBACK = {"parametric-only", "cached-copy"}
+        for _uid in sorted(_i28_pass):
+            _tav = _i28_tav.get(_uid)
+            if _tav is None:
+                continue
+            _rc = _i28_pass[_uid].get("retrieval_coverage")
+            _rc = _rc if isinstance(_rc, dict) else {}
+            _db = unit_docs.get(_uid, {}).get("debrief")
+            _rows = [r for r in ((_db or {}).get("evidence_table") or []) if isinstance(r, dict)]
+            _req_reopen, _req_chase, _fallback_refs = set(), set(), []
+            for _idx, _r in enumerate(_rows):
+                _is_fb = (_r.get("retrieval_rung") in _I28_FALLBACK or _r.get("vendor_silent") is True)
+                _covers = [c for c in (_r.get("covers_owed") or []) if isinstance(c, str)]
+                if _is_fb and _covers:
+                    _fallback_refs.append(_idx)
+                if _tav == "light":
+                    if _is_fb and _covers:
+                        _req_reopen.add(_idx)
+                elif _tav in ("standard", "full"):
+                    if _is_fb:
+                        _req_reopen.add(_idx)
+                    if _r.get("vendor_silent") is True:
+                        _req_chase.add(_idx)
+                    if _tav == "full":
+                        if _r.get("source_tier") == "T-COMM":
+                            _req_chase.add(_idx)
+                        if re.search(r"https?://", str(_r.get("evidence") or "")):
+                            _req_reopen.add(_idx)
+            _probes = [p for p in (_rc.get("retrieval_probes") or []) if isinstance(p, dict)]
+            _reopen_have = {p.get("row_ref") for p in _probes
+                            if p.get("kind") == "reopen" and not _i28_blank(p.get("outcome"))}
+            _chase_have = {p.get("row_ref") for p in _probes
+                           if p.get("kind") == "chase" and not _i28_blank(p.get("outcome"))}
+            if _fallback_refs and not args.quiet:
+                print(f"  NOTE  {_i28_note} (DT-K2 coverage): units/{_uid} at tier {_tav!r} — "
+                      f"{len(_fallback_refs)} fallback row(s) {_fallback_refs}, "
+                      f"{len(_reopen_have | _chase_have)} probe(s) recorded")
+            _miss_reopen = sorted(r for r in _req_reopen if r not in _reopen_have)
+            _miss_chase = sorted(r for r in _req_chase if r not in _chase_have)
+            if not _req_reopen and not _req_chase:
+                if _i28_blank(_rc.get("retrieval_probes_none_reason")):
+                    rep.fail(f"{_i28_stem} (DT-K2 probe floor)",
+                             f"units/{_uid} at tier {_tav!r} has a provably-empty required probe set "
+                             "but no retrieval_probes_none_reason")
+            elif _miss_reopen or _miss_chase:
+                rep.fail(f"{_i28_stem} (DT-K2 probe floor)",
+                         f"units/{_uid} at tier {_tav!r}: required probes unmatched — reopen rows "
+                         f"{_miss_reopen or '[]'}, chase rows {_miss_chase or '[]'}")
+
+        # DT-K4 (sweep spot-check scope — run-scoped) — full tier ∧ dimension_sweep present ⇒ the
+        #   whole-run RUN_DIR/verify.json.sweep_spot_check[] (the SAME record I27-10 reads) covers all
+        #   nine dimensions, each with a non-blank outcome. Gated to P8/DONE (the record's due phase,
+        #   per I27-10) so a mid-run full tier never false-FAILs before the spot-check is owed.
+        if _eff_tier == "full" and phase in ("P8_SYNTHESIS", "DONE"):
+            _clar = None
+            _clarp = os.path.join(rd, "clarifications.json")
+            if os.path.exists(_clarp):
+                try:
+                    _clar = load_json(_clarp)
+                except Exception:
+                    _clar = None
+            _sweep = (_clar.get("dimension_sweep") if isinstance(_clar, dict) else None)
+            if isinstance(_sweep, dict):
+                _wr = None
+                _wrp = os.path.join(rd, "verify.json")
+                if os.path.exists(_wrp):
+                    try:
+                        _wr = load_json(_wrp)
+                    except Exception:
+                        _wr = None
+                _ssc = [s for s in ((_wr.get("sweep_spot_check") if isinstance(_wr, dict) else None) or [])
+                        if isinstance(s, dict)]
+                _ssc_dims = {s.get("dimension") for s in _ssc if not _i28_blank(s.get("outcome"))}
+                if _ssc_dims != _I28_NINE:
+                    rep.fail(f"{_i28_stem} (DT-K4 sweep spot-check)",
+                             f"full tier + dimension_sweep present but the whole-run sweep_spot_check "
+                             f"dimensions {sorted(d for d in _ssc_dims if d)} != the nine-literal enum "
+                             "(each entry needs a non-blank outcome)")
+
+        # DT-K5 (consultation — run-scoped) — standard/full ∧ a brief owes a T-VENDOR claim ⇒ the
+        #   SOURCES register carries a T-VENDOR row; full ⇒ additionally a T-COMM row.
+        if _eff_tier in ("standard", "full"):
+            _owes_vendor = any(
+                isinstance(_co, dict) and _co.get("min_tier") == "T-VENDOR"
+                for _dd in unit_docs.values()
+                for _co in ((_dd.get("brief") or {}).get("claims_owed") or [])
+                if isinstance(_dd, dict))
+            if _owes_vendor:
+                _src = docs.get("sources") if isinstance(docs.get("sources"), dict) else {}
+                _stiers = {r.get("tier") for r in (_src.get("sources") or []) if isinstance(r, dict)}
+                if "T-VENDOR" not in _stiers:
+                    rep.fail(f"{_i28_stem} (DT-K5 consultation)",
+                             "standard/full tier owes a T-VENDOR claim but the sources register "
+                             "carries no T-VENDOR disposition row")
+                if _eff_tier == "full" and "T-COMM" not in _stiers:
+                    rep.fail(f"{_i28_stem} (DT-K5 consultation)",
+                             "full tier owes a T-VENDOR claim but the sources register carries no "
+                             "T-COMM disposition row")
+
+        # DT-K6 (panel — unit-scoped) — a unit verified at tier_at_verification == full whose brief
+        #   tags intersect {design, schema, validator} must carry a verify.json panel[] block (I16's
+        #   own field shapes; I16's checks unchanged).
+        _I28_DESIGN = {"design", "schema", "validator"}
+        for _uid, _tav in sorted(_i28_tav.items()):
+            if _tav != "full":
+                continue
+            _tags = set((unit_docs.get(_uid, {}).get("brief") or {}).get("tags") or [])
+            if _tags & _I28_DESIGN and not isinstance(
+                    (unit_docs.get(_uid, {}).get("verify") or {}).get("panel"), list):
+                rep.fail(f"{_i28_stem} (DT-K6 panel)",
+                         f"units/{_uid} verified at full tier with design/schema/validator tags but "
+                         "verify.json carries no panel[] block")
+
+        # I28-P5 (external-surface consistency, RT-4 — run-scoped) — a project-local stakes picture
+        #   contradicted by a PASS unit's external-tier evidence rows is a mechanical self-contradiction.
+        if _extsurf.get("kind") == "project-local":
+            _contra = []
+            for _uid in sorted(_i28_pass):
+                _db = unit_docs.get(_uid, {}).get("debrief")
+                for _idx, _r in enumerate(
+                        [r for r in ((_db or {}).get("evidence_table") or []) if isinstance(r, dict)]):
+                    if _r.get("source_tier") in ("T-VENDOR", "T-COMM"):
+                        _contra.append(f"units/{_uid}#{_idx}")
+            if _contra:
+                rep.fail(f"{_i28_stem} (external-surface consistency)",
+                         f"external_surface.kind == 'project-local' but PASS-unit evidence rows carry "
+                         f"T-VENDOR/T-COMM source_tier: {_contra} — the run contradicts its own stakes")
+
+        if len(rep.problems) == _i28_probs0:
+            rep.ok(f"{_i28_stem} (tier {_eff_tier!r} confirmed {_ct!r}; disclosure + ratchet + "
+                   "floor conformance OK)")
+
+    # ---- I29 execution-effort briefs (depth 1.9.0) — offline post-hoc; NEVER a live guard ----
+    # PLAN §5.4. ADOPTION-GATED (the I20/I21 closure pattern): the closure + clauses 2-5 fire ONLY
+    # once SOME brief.json in the run carries `claims_owed` or `required_sources`; a zero-adoption run
+    # — every archived run AND this release's own run (which adopts NEITHER, by design) — stays WHOLLY
+    # SILENT on them (§11 R-7 residual). Clause 1 (queued-consumer closure) is adoption-INDEPENDENT: it
+    # rides I26's structurally-triggered register (same version-skew posture as I26). Offline predicate
+    # over emitted artifacts: gates NO FSM transition, never guards LT7 => correction-loop termination
+    # (Claim D) + AO-1..7 untouched (PRESERVES); a mid-run non-zero exit is a hard stop routed to
+    # ESCALATE. Reads RAW briefs (a schema-invalid brief still gets the shape checks — the I22/I26
+    # raw-parse visibility posture; every missing key is read safely). CO-2 folds into clause 5
+    # (I29-5): trigger is key adoption, NEVER dod_refs presence (U05 §1 seam close). Bindings
+    # (PLAN §5.0): source_id/source_ref resolve into RUN_DIR/sources.json; CB-1 is templates/brief.md's
+    # canonical bridge string (clause 4 preserves I6 FAIL-ability), compared after whitespace
+    # normalization ONLY. This block NEVER pulls verify-side adoption — that forced linkage is I30 (U11).
+    _i29_stem = LABEL_STEM['effort_briefs']
+    _i29_note = LABEL_STEM['effort_briefs_note']
+    _i29_probs0 = len(rep.problems)
+    _I29_TYPES = {"empirical-world-fact", "code-behavior", "api-tool-contract",
+                  "numeric-quantitative", "causal", "design-judgment", "provenance-quote"}
+    _I29_SRC_NATIVE = {"empirical-world-fact", "api-tool-contract", "provenance-quote"}
+    _I29_TIERS = {"T-VENDOR", "T-COMM", "T-LOCAL"}
+    _I29_CB1 = ("Retrieval coverage: every claims_owed entry is discharged per its min_tier by "
+                "evidence rows linked via covers_owed, and every required_sources entry is consulted "
+                "at a declared fallback-ladder rung or its unreachability is declared in the debrief "
+                "— never silently skipped.")
+
+    def _i29_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _i29_norm(x):
+        return re.sub(r"\s+", " ", str(x if x is not None else "")).strip()
+
+    # RAW briefs — independent of the schema layer; a schema-invalid brief still gets its I29 checks.
+    _i29_briefs = {}                       # uid -> raw brief dict (only those that parse to an object)
+    for _uid in sorted(unit_subdirs):
+        _bp = os.path.join(units_dir, str(_uid), "brief.json")
+        if os.path.exists(_bp):
+            try:
+                _cand = load_json(_bp)
+            except Exception:
+                _cand = None
+            if isinstance(_cand, dict):
+                _i29_briefs[_uid] = _cand
+
+    # RAW sources register (clause 1 + clause 3) — re-parsed here so the block is self-contained.
+    _i29_src = None
+    _i29_srcpath = os.path.join(rd, "sources.json")
+    if os.path.exists(_i29_srcpath):
+        try:
+            _i29_src = load_json(_i29_srcpath)
+        except Exception:
+            _i29_src = None
+    _i29_srows = [r for r in ((_i29_src.get("sources") if isinstance(_i29_src, dict) else None) or [])
+                  if isinstance(r, dict)]
+    _i29_sidset = {r.get("id") for r in _i29_srows if isinstance(r.get("id"), str)}
+    _i29_srow = {r.get("id"): r for r in _i29_srows if isinstance(r.get("id"), str)}
+
+    # current graph unit ids (clause 1 target-resolution + N-I29 vendor-title tokens).
+    _i29_gunits = ({u.get("id") for u in (graph_doc.get("units") or [])
+                    if isinstance(u, dict) and isinstance(u.get("id"), str)}
+                   if graph_doc is not None else set())
+
+    # Clause 1 (queued-consumer closure — adoption-INDEPENDENT; rides I26's register). For every
+    #   register row queued_for a CURRENT graph unit whose brief.json exists, the brief must name the
+    #   row id in required_sources[].source_id or some claims_owed[].source_ref (lens-A tension 2). A
+    #   queued_for naming no current unit stays U02's N-I26 dangling NOTE (BGA retirement tolerance).
+    for _r in _i29_srows:
+        _qf = _r.get("queued_for")
+        _rid = _r.get("id")
+        if not (isinstance(_qf, str) and _qf in _i29_gunits and _qf in _i29_briefs
+                and isinstance(_rid, str)):
+            continue
+        _cb = _i29_briefs[_qf]
+        _req_ids = {e.get("source_id") for e in (_cb.get("required_sources") or [])
+                    if isinstance(e, dict)}
+        _owed_refs = {e.get("source_ref") for e in (_cb.get("claims_owed") or [])
+                      if isinstance(e, dict)}
+        if _rid not in _req_ids and _rid not in _owed_refs:
+            rep.fail(f"{_i29_stem} (queued-consumer closure {_rid})",
+                     f"sources row {_rid!r} is queued_for {_qf!r} but units/{_qf}/brief.json names it "
+                     "in neither required_sources[].source_id nor claims_owed[].source_ref")
+
+    # ADOPTION — ANY brief carrying claims_owed OR required_sources (the I20/I21 pattern).
+    _i29_adopt = any(("claims_owed" in _b or "required_sources" in _b)
+                     for _b in _i29_briefs.values())
+    if _i29_adopt:
+        # Closure — every on-disk brief must carry claims_owed (entries, or [] + none_reason).
+        _i29_unclosed = sorted(u for u, b in _i29_briefs.items() if "claims_owed" not in b)
+        if _i29_unclosed:
+            rep.fail(f"{_i29_stem} (adoption closure)",
+                     f"a brief adopts claims_owed/required_sources but these briefs carry no "
+                     f"claims_owed key: {_i29_unclosed}")
+
+        _i29_vtitles = {str(r.get("title")).lower() for r in _i29_srows
+                        if r.get("tier") == "T-VENDOR" and isinstance(r.get("title"), str)}
+        for _uid in sorted(_i29_briefs):
+            _b = _i29_briefs[_uid]
+            _owed = [e for e in (_b.get("claims_owed") or []) if isinstance(e, dict)]
+            _reqs = [e for e in (_b.get("required_sources") or []) if isinstance(e, dict)]
+            _acc = [c for c in (_b.get("acceptance_criteria") or []) if isinstance(c, str)]
+            _dodr = [c for c in (_b.get("dod_refs") or []) if isinstance(c, str)]
+            _trigger_pool = set(_acc) | set(_dodr)
+
+            # Clause 2 (owed-entry shape / no-straw): id unique; type in the seven literals; trigger_ref
+            #   VERBATIM in acceptance_criteria ∪ dod_refs; min_tier present iff source-native type, and
+            #   value in the three-tier enum (raw-parse mirror of schema B1/B2, I22 posture).
+            _seen = []
+            for _i, _e in enumerate(_owed):
+                _eid, _etype = _e.get("id"), _e.get("type")
+                _tref, _mt = _e.get("trigger_ref"), _e.get("min_tier")
+                _seen.append(_eid)
+                _bad = []
+                if isinstance(_eid, str) and _seen.count(_eid) > 1:
+                    _bad.append(f"duplicate id {_eid!r} within the brief")
+                if _etype not in _I29_TYPES:
+                    _bad.append(f"type {_etype!r} not in the seven literals")
+                if not (isinstance(_tref, str) and _tref in _trigger_pool):
+                    _bad.append(f"trigger_ref {_tref!r} not verbatim in acceptance_criteria/dod_refs")
+                if _etype in _I29_SRC_NATIVE:
+                    if _mt not in _I29_TIERS:
+                        _bad.append(f"min_tier {_mt!r} (required for a source-native type) not in "
+                                    f"{sorted(_I29_TIERS)}")
+                elif _mt is not None:
+                    _bad.append(f"min_tier {_mt!r} present on an observation-native type "
+                                "(must be absent)")
+                if _bad:
+                    rep.fail(f"{_i29_stem} (owed-entry shape units/{_uid}#{_i})", "; ".join(_bad))
+
+            # Clause 3 (register linkage): required_sources[].source_id ∈ register ids; tier mirrors the
+            #   register row; a required entry resolving to a REJECTED row FAILs; present source_refs ∈ ids.
+            for _i, _e in enumerate(_reqs):
+                _sid, _tier = _e.get("source_id"), _e.get("tier")
+                if _sid not in _i29_sidset:
+                    rep.fail(f"{_i29_stem} (register linkage units/{_uid})",
+                             f"required_sources[{_i}].source_id {_sid!r} not in sources[].id")
+                    continue
+                _row = _i29_srow.get(_sid, {})
+                if _tier != _row.get("tier"):
+                    rep.fail(f"{_i29_stem} (register linkage units/{_uid})",
+                             f"required_sources[{_i}].tier {_tier!r} != register row {_sid} tier "
+                             f"{_row.get('tier')!r}")
+                if _row.get("disposition") == "rejected":
+                    rep.fail(f"{_i29_stem} (register linkage units/{_uid})",
+                             f"required_sources[{_i}] resolves to REJECTED row {_sid!r} — append an "
+                             "overturn row first (U02 §4; history is never rewritten)")
+            for _i, _e in enumerate(_owed):
+                _sr = _e.get("source_ref")
+                if _sr is not None and _sr not in _i29_sidset:
+                    rep.fail(f"{_i29_stem} (register linkage units/{_uid})",
+                             f"claims_owed[{_i}].source_ref {_sr!r} not in sources[].id")
+
+            # Clause 4 (bridge presence) — non-empty owed/reqs => CB-1 ∈ acceptance_criteria
+            #   (whitespace-normalized membership ONLY). This is what preserves I6 FAIL-ability.
+            if (_owed or _reqs) and not any(_i29_norm(c) == _i29_norm(_I29_CB1) for c in _acc):
+                rep.fail(f"{_i29_stem} (bridge presence units/{_uid})",
+                         "non-empty claims_owed/required_sources but the CB-1 bridge criterion is "
+                         "absent from acceptance_criteria (whitespace-normalized) — retrieval failure "
+                         "is not FAIL-able under I6")
+
+            # Clause 5 (explicit-none — CO-2 fold) — claims_owed present ∧ [] => none_reason non-blank.
+            if ("claims_owed" in _b and _b.get("claims_owed") == []
+                    and _i29_blank(_b.get("claims_owed_none_reason"))):
+                rep.fail(f"{_i29_stem} (explicit-none units/{_uid})",
+                         "claims_owed present and empty but claims_owed_none_reason is "
+                         "blank/whitespace")
+
+            # ---- NOTE lines (advisory; never a non-zero exit) ----
+            # N-I29 (owed-heavy brief): >8 owed entries carrying min_tier ∈ {T-VENDOR,T-COMM}.
+            _heavy = [e for e in _owed if e.get("min_tier") in ("T-VENDOR", "T-COMM")]
+            if len(_heavy) > 8 and not args.quiet:
+                print(f"  NOTE  {_i29_note} (owed-heavy brief): units/{_uid} carries {len(_heavy)} "
+                      "external-tier owed entries — consider a research-unit split")
+            # N-I29 (tier-shape mismatch): a trigger_ref carrying external-authority tokens whose
+            #   obligation is T-LOCAL or an observation-native type (content-vs-tier is judgment; NOTE).
+            for _i, _e in enumerate(_owed):
+                _tref = _e.get("trigger_ref")
+                if not isinstance(_tref, str):
+                    continue
+                _low = _tref.lower()
+                _ext = (bool(re.search(r"https?://", _low))
+                        or any(t in _low for t in ("vendor", "documented", "api"))
+                        or any(vt and vt in _low for vt in _i29_vtitles))
+                _localish = (_e.get("min_tier") == "T-LOCAL"
+                             or _e.get("type") in ("code-behavior", "numeric-quantitative",
+                                                   "causal", "design-judgment"))
+                if _ext and _localish and not args.quiet:
+                    print(f"  NOTE  {_i29_note} (tier-shape mismatch): units/{_uid}#{_i} trigger_ref "
+                          "carries external-authority tokens but the obligation is "
+                          "T-LOCAL/observation-native")
+
+        if len(rep.problems) == _i29_probs0:
+            rep.ok(f"{_i29_stem} (adoption; {len(_i29_briefs)} brief(s); queued-consumer + owed-shape "
+                   "+ register linkage + bridge + explicit-none OK)")
+
+    # ---- I30 retrieval coverage verify (depth 1.9.0) — offline post-hoc; NEVER a live guard ----
+    # PLAN §5.5. ADOPTION-GATED + forced linkage (the I22 pattern, extended to the verify side): the
+    # block fires once (a) ANY verdict-bearing verify.json carries `retrieval_coverage`, OR (b) a unit
+    # whose brief carries non-empty claims_owed/required_sources ALSO has a verdict-bearing verify.json
+    # (brief-side adoption pulls verify-side adoption — closes the "adopt briefs, skip the check" gap).
+    # A brief-ONLY adopting unit (an owing brief with NO verify — e.g. every effort_brief_* fixture and
+    # this release's own briefs) does NOT trigger I30: no verdict-bearing verify => no obligation. This
+    # release adopts NEITHER a retrieval_coverage block NOR an owing-brief-with-verify, so I30 stays
+    # WHOLLY SILENT here (§11 R-7 residual, the archive-safe leg). Offline predicate over emitted
+    # artifacts: gates NO FSM transition, never guards LT7 => correction-loop termination (Claim D) +
+    # AO-1..7 untouched (PRESERVES); a mid-run non-zero exit is a hard stop routed to ESCALATE. Reads
+    # RAW verify/brief/debrief (a schema-invalid retrieval_coverage still gets the clauses — the RT-1
+    # vacuous-pass mirror re-checks row_refs NON-EMPTY that the schema allOf also pins; every missing
+    # key is read safely). Frozen bindings (PLAN §5.0): I30-0 owns tier_at_verification PRESENCE (I28-P4
+    # owns its VALUE); clause 5 parses S-id tokens from claims_owed[].note free prose (splice fix 6) and
+    # from context_pointers entries matching ^S<n>: (U02's convention). This block is I30 (U11); the
+    # brief-side I29 (U10) never pulls verify-side adoption.
+    _i30_stem = LABEL_STEM['retrieval_coverage_verify']
+    _i30_note = LABEL_STEM['retrieval_coverage_verify_note']
+    _i30_probs0 = len(rep.problems)
+
+    def _i30_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _i30_idx_ok(ix, n):
+        return isinstance(ix, int) and not isinstance(ix, bool) and 0 <= ix < n
+
+    # RAW briefs/debriefs/verifies — schema-independent (mirrors I29's raw-brief posture).
+    def _i30_load(uid, name):
+        _p = os.path.join(units_dir, str(uid), name)
+        if os.path.exists(_p):
+            try:
+                _c = load_json(_p)
+            except Exception:
+                _c = None
+            if isinstance(_c, dict):
+                return _c
+        return None
+
+    _i30_verifies = {}     # uid -> raw verify dict carrying a verdict (verdict-bearing)
+    _i30_rc = {}           # uid -> retrieval_coverage dict (only where present + a dict)
+    _i30_briefs = {}       # uid -> raw brief dict
+    _i30_debriefs = {}     # uid -> raw debrief dict
+    for _uid in sorted(unit_subdirs):
+        _b = _i30_load(_uid, "brief.json")
+        if _b is not None:
+            _i30_briefs[_uid] = _b
+        _d = _i30_load(_uid, "debrief.json")
+        if _d is not None:
+            _i30_debriefs[_uid] = _d
+        _v = _i30_load(_uid, "verify.json")
+        if _v is not None and "verdict" in _v:
+            _i30_verifies[_uid] = _v
+            _rc = _v.get("retrieval_coverage")
+            if isinstance(_rc, dict):
+                _i30_rc[_uid] = _rc
+
+    # ADOPTION — (a) any verify carries retrieval_coverage, OR (b) an owing brief has a verdict-bearing verify.
+    def _i30_owing(b):
+        _co = b.get("claims_owed"); _rs = b.get("required_sources")
+        return (isinstance(_co, list) and len(_co) > 0) or (isinstance(_rs, list) and len(_rs) > 0)
+    _i30_owing_with_verify = sorted(u for u in _i30_briefs
+                                    if _i30_owing(_i30_briefs[u]) and u in _i30_verifies)
+    if bool(_i30_rc) or bool(_i30_owing_with_verify):
+        _i30_depth_present = isinstance(fsm.get("depth"), dict) if isinstance(fsm, dict) else False
+        _I30_COVERED = {"covered", "covered-downgraded"}
+
+        # Forced linkage: an owing brief whose unit has a verdict-bearing verify => that verify carries
+        #   retrieval_coverage => else FAIL (brief-side adoption pulls verify-side adoption).
+        for _uid in _i30_owing_with_verify:
+            if _uid not in _i30_rc:
+                rep.fail(f"{_i30_stem} (forced linkage units/{_uid})",
+                         "brief carries non-empty claims_owed/required_sources and the unit has a "
+                         "verdict-bearing verify.json, but that verify carries no retrieval_coverage block")
+        # Verify-side closure: once ANY verify carries retrieval_coverage, EVERY verdict-bearing verify must.
+        if _i30_rc:
+            for _uid in sorted(_i30_verifies):
+                if _uid not in _i30_rc:
+                    rep.fail(f"{_i30_stem} (adoption closure units/{_uid})",
+                             "another verify carries retrieval_coverage but this verdict-bearing "
+                             "verify.json does not — adoption is all-or-nothing (the I22 pattern)")
+
+        def _i30_sat(row, min_tier):
+            # U01's min_tier satisfaction lattice (PLAN §2.1) — claim-scoped; the caller passes a REAL
+            # counted row so it is never satisfiable by vacuity. declared-unreachable arithmetic ==
+            # parametric-only / T-PARAM ladder fields.
+            _st = row.get("source_tier"); _rung = row.get("retrieval_rung")
+            _param = (_st == "T-PARAM" or _rung == "parametric-only")
+            if min_tier == "T-VENDOR":
+                if _st == "T-VENDOR":
+                    return True
+                if (_st == "T-COMM" and row.get("vendor_silent") is True
+                        and not _i30_blank(row.get("vendor_surface_searched"))):
+                    return True
+                return _param
+            if min_tier == "T-COMM":
+                if _st in ("T-VENDOR", "T-COMM"):
+                    return True
+                return _param
+            if min_tier == "T-LOCAL":
+                return _st == "T-LOCAL"
+            return False
+
+        for _uid in sorted(_i30_rc):
+            _rc = _i30_rc[_uid]
+            _v = _i30_verifies[_uid]
+            _verdict = _v.get("verdict")
+            _brief = _i30_briefs.get(_uid, {})
+            _debrief = _i30_debriefs.get(_uid, {})
+            _et = [r for r in (_debrief.get("evidence_table") or []) if isinstance(r, dict)]
+            _n = len(_et)
+            _owed_list = [e for e in (_brief.get("claims_owed") or []) if isinstance(e, dict)]
+            _owed_by_id = {e.get("id"): e for e in _owed_list if isinstance(e.get("id"), str)}
+            _oc = [r for r in (_rc.get("owed_check") or []) if isinstance(r, dict)]
+            _sc = [r for r in (_rc.get("sources_check") or []) if isinstance(r, dict)]
+            _probes = [p for p in (_rc.get("retrieval_probes") or []) if isinstance(p, dict)]
+
+            # Clause 0 (tier stamp): fsm-state depth block present => tier_at_verification present.
+            if _i30_depth_present and "tier_at_verification" not in _rc:
+                rep.fail(f"{_i30_stem} (tier stamp units/{_uid})",
+                         "fsm-state carries a depth block (U04 adopted) but retrieval_coverage omits "
+                         "tier_at_verification (I30-0 owns its PRESENCE)")
+
+            # Clause 1 (totality + shape): owed_check ids == brief claims_owed ids (set EQUALITY);
+            #   every row_refs/row_ref integer is a valid evidence_table index.
+            _oc_ids = {r.get("owed_id") for r in _oc if isinstance(r.get("owed_id"), str)}
+            _brief_ids = set(_owed_by_id)
+            if _oc_ids != _brief_ids:
+                rep.fail(f"{_i30_stem} (totality units/{_uid})",
+                         f"owed_check ids {sorted(_oc_ids)} != brief claims_owed ids {sorted(_brief_ids)} "
+                         "(set equality — a missing or phantom owed id)")
+            for _r in _oc:
+                for _ix in (_r.get("row_refs") or []):
+                    if not _i30_idx_ok(_ix, _n):
+                        rep.fail(f"{_i30_stem} (shape units/{_uid})",
+                                 f"owed_check {_r.get('owed_id')!r} row_refs {_ix!r} is not a valid "
+                                 f"evidence_table index [0,{_n})")
+            for _p in _probes:
+                if not _i30_idx_ok(_p.get("row_ref"), _n):
+                    rep.fail(f"{_i30_stem} (shape units/{_uid})",
+                             f"retrieval_probes row_ref {_p.get('row_ref')!r} is not a valid "
+                             f"evidence_table index [0,{_n})")
+
+            # Clause 2 (coverage arithmetic — the anti-fabrication re-computation; RT-1 fix landed).
+            for _r in _oc:
+                _oid = _r.get("owed_id"); _status = _r.get("status")
+                if _status not in _I30_COVERED:
+                    continue
+                _refs = _r.get("row_refs") or []
+                if not _refs:
+                    rep.fail(f"{_i30_stem} (vacuous coverage units/{_uid}#{_oid})",
+                             "status is covered/covered-downgraded but row_refs is EMPTY — an empty "
+                             "universal quantification never counts as coverage (the vacuous-pass hole)")
+                    continue
+                _counted = [_et[_ix] for _ix in _refs if _i30_idx_ok(_ix, _n)]
+                _meta = _owed_by_id.get(_oid)     # None for a phantom owed id (clause 1 owns that)
+                if _meta is not None:
+                    _otype = _meta.get("type")
+                    _bad = [_ix for _ix in _refs if _i30_idx_ok(_ix, _n)
+                            and not (_oid in (_et[_ix].get("covers_owed") or [])
+                                     and _et[_ix].get("type") == _otype)]
+                    if _bad:
+                        rep.fail(f"{_i30_stem} (fabricated coverage units/{_uid}#{_oid})",
+                                 f"listed row(s) {_bad} do not carry owed id {_oid!r} in covers_owed with "
+                                 f"matching type {_otype!r} — a 'covered' the debrief's own rows do not support")
+                    _mt = _meta.get("min_tier")
+                    if _mt is not None and _counted and not any(_i30_sat(_row, _mt) for _row in _counted):
+                        rep.fail(f"{_i30_stem} (min_tier coverage units/{_uid}#{_oid})",
+                                 f"no counted row satisfies min_tier {_mt!r} per U01's satisfaction lattice "
+                                 "(existential — never satisfiable by vacuity)")
+                # Downgrade laundering: any counted parametric-only row, OR a T-VENDOR obligation whose
+                #   sole support is the T-COMM vendor-silent form => status MUST be covered-downgraded.
+                _must_dg = any(_row.get("retrieval_rung") == "parametric-only" for _row in _counted)
+                if _meta is not None and _meta.get("min_tier") == "T-VENDOR":
+                    _direct = any(_row.get("source_tier") == "T-VENDOR" for _row in _counted)
+                    _vsilent = any(_row.get("source_tier") == "T-COMM" and _row.get("vendor_silent") is True
+                                   for _row in _counted)
+                    if not _direct and _vsilent:
+                        _must_dg = True
+                if _must_dg and _status != "covered-downgraded":
+                    rep.fail(f"{_i30_stem} (downgrade laundering units/{_uid}#{_oid})",
+                             "coverage rests on a parametric-only row or a T-COMM vendor-silent sole support "
+                             "of a T-VENDOR obligation — status MUST be covered-downgraded")
+
+            # Clause 3 (PASS-with-uncovered contradiction — the headline).
+            if _verdict == "PASS":
+                for _r in _oc:
+                    if _r.get("status") == "uncovered":
+                        rep.fail(f"{_i30_stem} (PASS-with-uncovered units/{_uid}#{_r.get('owed_id')})",
+                                 "verdict is PASS but this owed id is uncovered — an honest verifier that "
+                                 "records the gap can no longer PASS it")
+                for _r in _sc:
+                    if _r.get("origin") == "required_sources" and _r.get("outcome") == "not-consulted":
+                        rep.fail(f"{_i30_stem} (required-source not-consulted units/{_uid}#{_r.get('source_id')})",
+                                 "verdict is PASS but a required_sources entry is recorded not-consulted")
+
+            # Clause 4 (probe floor + shape).
+            for _p in _probes:
+                if _p.get("kind") not in ("reopen", "chase") or _i30_blank(_p.get("outcome")):
+                    rep.fail(f"{_i30_stem} (probe shape units/{_uid})",
+                             f"a retrieval_probes row has a bad kind {_p.get('kind')!r} or a blank outcome")
+            if not _probes and _i30_blank(_rc.get("retrieval_probes_none_reason")):
+                rep.fail(f"{_i30_stem} (probe floor units/{_uid})",
+                         "retrieval_probes is empty but retrieval_probes_none_reason is blank/whitespace")
+            _external_cov = any(
+                _i30_idx_ok(_ix, _n) and _et[_ix].get("source_tier") in ("T-VENDOR", "T-COMM")
+                for _r in _oc if _r.get("status") in _I30_COVERED
+                for _ix in (_r.get("row_refs") or []))
+            if _external_cov and not _probes:
+                rep.fail(f"{_i30_stem} (probe floor units/{_uid})",
+                         "an owed entry is covered by T-VENDOR/T-COMM rows but retrieval_probes is empty "
+                         "(the tier-independent reopen FLOOR; DT-K2 scales on top)")
+
+            # Clause 5 (target-list floor — falsifier items (a)+(b)).
+            _sc_ids = {r.get("source_id") for r in _sc if isinstance(r.get("source_id"), str)}
+            _target = {e.get("source_id") for e in (_brief.get("required_sources") or [])
+                       if isinstance(e, dict) and isinstance(e.get("source_id"), str)}
+            _target |= {e.get("source_ref") for e in _owed_list if isinstance(e.get("source_ref"), str)}
+            for _e in _owed_list:
+                if isinstance(_e.get("note"), str):
+                    _target |= set(re.findall(r"S[0-9]+", _e["note"]))
+            for _cp in (_brief.get("context_pointers") or []):
+                _m = re.match(r"^(S[0-9]+): ", _cp) if isinstance(_cp, str) else None
+                if _m:
+                    _target.add(_m.group(1))
+            _missing_targets = sorted(_target - _sc_ids)
+            if _missing_targets:
+                rep.fail(f"{_i30_stem} (target-list units/{_uid})",
+                         f"sources_check omits required target S-id(s) {_missing_targets} (required_sources "
+                         "∪ claims_owed source_ref/note S-ids ∪ context_pointer S-ids)")
+
+            # Clause 6 (consulted-evidenced join — RT-7/PR-1/PR-3).
+            for _r in _sc:
+                if _r.get("outcome") == "consulted-evidenced":
+                    _sid = _r.get("source_id")
+                    if not any(isinstance(_sid, str) and _sid in (_row.get("source_refs") or [])
+                               for _row in _et):
+                        rep.fail(f"{_i30_stem} (consulted-evidenced units/{_uid}#{_sid})",
+                                 "sources_check marks this source consulted-evidenced but no debrief "
+                                 "evidence row carries it in source_refs")
+
+            # Clause 7 (unreachable-declared join — RT-5).
+            _rr = [x for x in (_debrief.get("residual_risks") or []) if isinstance(x, str)]
+            for _r in _sc:
+                if _r.get("outcome") == "unreachable-declared":
+                    _sid = _r.get("source_id")
+                    _tok = f"unreachable: {_sid}"
+                    if not any(_tok in x for x in _rr):
+                        rep.fail(f"{_i30_stem} (unreachable-declared units/{_uid}#{_sid})",
+                                 f"sources_check marks {_sid!r} unreachable-declared but the debrief "
+                                 f"residual_risks carries no canonical '{_tok}' declaration")
+
+            # ---- NOTE lines (advisory; never a non-zero exit) ----
+            # N-I30 (covers_owed fan-out): >=3 owed ids covered SOLELY by one shared row_ref.
+            _sole = {}
+            for _r in _oc:
+                if _r.get("status") in _I30_COVERED:
+                    _refs = {_ix for _ix in (_r.get("row_refs") or []) if _i30_idx_ok(_ix, _n)}
+                    if len(_refs) == 1:
+                        _sole.setdefault(next(iter(_refs)), []).append(_r.get("owed_id"))
+            for _ref, _ids in sorted(_sole.items()):
+                if len(_ids) >= 3 and not args.quiet:
+                    print(f"  NOTE  {_i30_note} (covers_owed fan-out): units/{_uid} row {_ref} is the sole "
+                          f"coverage of {len(_ids)} owed ids {sorted(_ids)}")
+            # N-I30 (covers_owed dangling): an evidence row covers_owed id matching no brief owed id.
+            _dangling = sorted({_c for _row in _et for _c in (_row.get("covers_owed") or [])
+                                if isinstance(_c, str) and _c not in _brief_ids})
+            if _dangling and not args.quiet:
+                print(f"  NOTE  {_i30_note} (covers_owed dangling): units/{_uid} evidence rows carry "
+                      f"covers_owed id(s) {_dangling} matching no brief owed id")
+
+        if len(rep.problems) == _i30_probs0:
+            rep.ok(f"{_i30_stem} (adoption; {len(_i30_rc)} verify block(s); totality + coverage arithmetic "
+                   "+ PASS-contradiction + probe floor + target-list + joins OK)")
+
+    # ---- I31-I34 retrieval-standard predicates (depth 1.9.0) — offline post-hoc; NEVER a live guard ----
+    # PLAN §5.6 (specs at §2.1, U01 §3/§4): I31=RL-1 rung presence, I32=RL-2 parametric-downgrade
+    # consistency (RL-2's ASSUMPTION-label + residual_risks-presence + confidence-cap checks on
+    # parametric-only rows), I33=RL-3 premise-
+    # extraction presence (DESIGN-JUDGMENT rows ONLY, PLAN §5.0 PR-4 flag — never every row), I34=CO-1
+    # per-entry owed coverage. Each block is ADOPTION-GATED / ARCHIVE-SILENT per the Limitation-O(i)
+    # precedent: it fires ONLY once the run's artifacts carry the relevant NEW keys (no archived row/brief
+    # does, and this release's own run adopts NEITHER a source_tier/retrieval_rung/extracted_premises row
+    # NOR an owing brief — so all four stay WHOLLY SILENT here, the archive-safe leg). Every missing key is
+    # read safely. Offline predicates over emitted artifacts: they gate NO FSM transition and never guard
+    # LT7 => correction-loop termination (Claim D) + AO-1..7 untouched (PRESERVES; 0 REVISES); a mid-run
+    # non-zero exit is a hard stop routed to ESCALATE. Reads RAW debriefs/briefs (schema-independent, the
+    # I29/I30 posture). CO-2 is NOT re-added here (folded into I29-5, PLAN §5.6). I32/RL-2 enforces the
+    # ASSUMPTION-label, residual_risks-presence, and confidence-cap consequences of parametric-only as
+    # OFFLINE artifact-content checks (I6/D1 class, PLAN line 1576 — R-g bars only a LIVE gate keyed on
+    # confidence, which these are not); RL-3 extraction ADEQUACY is residual R-f; owed-derivation
+    # ADEQUACY is residual R-d.
+    _rl31 = LABEL_STEM['rl_rung_presence']
+    _rl32 = LABEL_STEM['rl_param_consistency']
+    _rl33 = LABEL_STEM['rl_premise_presence']
+    _rl34 = LABEL_STEM['co1_owed_coverage']
+
+    def _rl_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _rl_cache_ok(row):
+        # RT-3 decidable core: a cached-copy row's evidence must name a verifier-reachable LOCAL path
+        # that exists (a path the verifier cannot open is parametric-only, not a cached copy).
+        _txt = str(row.get("evidence") or "")
+        for _tok in re.split(r"\s+", _txt):
+            _tok = _tok.strip().strip(",;\"'()[]<>")
+            if not _tok or "://" in _tok or "/" not in _tok:
+                continue
+            _tok = re.sub(r":[0-9]+(?::[0-9]+)?$", "", _tok)       # strip a path:line[:col] locator suffix
+            for _base in (rd, os.getcwd()):
+                _pth = _tok if os.path.isabs(_tok) else os.path.join(_base, _tok)
+                if os.path.exists(_pth):
+                    return True
+        return False
+
+    # RAW debriefs (evidence-row surface for RL-1/RL-2/RL-3) + briefs (owed surface for CO-1).
+    _rl_debriefs = {}
+    _rl_briefs = {}
+    for _uid in sorted(unit_subdirs):
+        _dp = os.path.join(units_dir, str(_uid), "debrief.json")
+        if os.path.exists(_dp):
+            try:
+                _c = load_json(_dp)
+            except Exception:
+                _c = None
+            if isinstance(_c, dict):
+                _rl_debriefs[_uid] = _c
+        _bp = os.path.join(units_dir, str(_uid), "brief.json")
+        if os.path.exists(_bp):
+            try:
+                _c = load_json(_bp)
+            except Exception:
+                _c = None
+            if isinstance(_c, dict):
+                _rl_briefs[_uid] = _c
+    _rl_rows = {u: [r for r in (d.get("evidence_table") or []) if isinstance(r, dict)]
+                for u, d in _rl_debriefs.items()}
+
+    _RL_TIERS = {"T-VENDOR", "T-COMM", "T-LOCAL", "T-PARAM"}
+    _RL_EXT_RUNGS = {"live-fetch", "vendored-docs", "cached-copy"}
+    _RL1_ALWAYS = {"empirical-world-fact", "api-tool-contract"}
+    _RL1_URL = {"provenance-quote", "numeric-quantitative"}
+
+    # I31 = RL-1 (rung presence). ADOPTION = any evidence row carries source_tier/retrieval_rung. A
+    #   TRIGGERING row (external type, or a URL-shaped-locator quote/numeric row per RT-7) must declare a
+    #   coherent rung stack; a T-LOCAL row needs only a present source_tier (no ladder — PLAN §2 table).
+    _rl_ret_adopt = any(("source_tier" in _r or "retrieval_rung" in _r)
+                        for _rows in _rl_rows.values() for _r in _rows)
+    if _rl_ret_adopt:
+        _p0 = len(rep.problems)
+        for _uid in sorted(_rl_rows):
+            for _i, _r in enumerate(_rl_rows[_uid]):
+                _ty = _r.get("type")
+                _url = bool(re.search(r"https?://", str(_r.get("evidence") or "")))
+                if not ((_ty in _RL1_ALWAYS) or (_ty in _RL1_URL and _url)):
+                    continue
+                _st = _r.get("source_tier")
+                _rung = _r.get("retrieval_rung")
+                if _st not in _RL_TIERS:
+                    rep.fail(f"{_rl31} (source_tier units/{_uid}#{_i})",
+                             f"externally-sourced {_ty!r} row omits a valid source_tier "
+                             f"(got {_st!r}; enum {sorted(_RL_TIERS)})")
+                    continue
+                if _st in ("T-VENDOR", "T-COMM"):
+                    if _rung not in _RL_EXT_RUNGS or _rl_blank(_r.get("accessed")):
+                        rep.fail(f"{_rl31} (rung units/{_uid}#{_i})",
+                                 f"source_tier {_st!r} requires retrieval_rung in {sorted(_RL_EXT_RUNGS)} "
+                                 f"and a non-blank accessed date (got rung {_rung!r}, accessed "
+                                 f"{_r.get('accessed')!r})")
+                elif _st == "T-PARAM":
+                    if _rung != "parametric-only":
+                        rep.fail(f"{_rl31} (parametric units/{_uid}#{_i})",
+                                 f"source_tier T-PARAM requires retrieval_rung 'parametric-only' "
+                                 f"(got {_rung!r})")
+                if _rung == "cached-copy" and not _rl_cache_ok(_r):
+                    rep.fail(f"{_rl31} (cached-copy units/{_uid}#{_i})",
+                             "retrieval_rung 'cached-copy' but the evidence names no verifier-reachable "
+                             "local cache path that exists (RT-3: an unreachable cache is parametric-only)")
+                if _r.get("vendor_silent") is True and _rl_blank(_r.get("vendor_surface_searched")):
+                    rep.fail(f"{_rl31} (vendor-silent units/{_uid}#{_i})",
+                             "vendor_silent is true but vendor_surface_searched is blank/absent")
+        if len(rep.problems) == _p0:
+            rep.ok(f"{_rl31} (adoption; {len(_rl_rows)} debrief(s); externally-sourced rows declare a "
+                   "coherent source_tier/retrieval_rung/accessed stack)")
+
+    # I32 = RL-2 (parametric downgrade consistency) — PLAN §2.1 §3 (lines 304-307), verbatim: "A
+    #   `parametric-only` row carries the `ASSUMPTION:` label in its evidence text; if it covers an owed
+    #   id (§4), the debrief's `residual_risks[]` names that claim (presence check — RT-8) and the
+    #   debrief cannot report `confidence: 'high'`. All string/enum/set checks." THREE offline checks on
+    #   every parametric-only evidence row: (a) the evidence text carries an 'ASSUMPTION:' label; (b) for
+    #   each owed id it covers (covers_owed), the debrief's residual_risks[] NAMES that claim; (c) if it
+    #   covers an owed id, the debrief's TOP-LEVEL confidence is not 'high'. The confidence cap is an
+    #   OFFLINE artifact-content rule (I6/D1 class, PLAN line 1576), NOT a live gate — R-g's "no gate keys
+    #   on confidence" bars only a LIVE FSM-transition gate on confidence; this reads the RAW debrief
+    #   post-hoc and gates no transition (LT7 untouched). The T-PARAM => parametric-only coherence is
+    #   RL-1/I31's, not re-checked here. ADOPTION = any evidence row is parametric-only (this run carries
+    #   none => wholly silent). Every missing key is read safely.
+    _rl_param_adopt = any(_r.get("retrieval_rung") == "parametric-only"
+                          for _rows in _rl_rows.values() for _r in _rows)
+    if _rl_param_adopt:
+        _p0 = len(rep.problems)
+        for _uid in sorted(_rl_rows):
+            _d = _rl_debriefs.get(_uid, {})
+            _rr = [str(_x) for _x in (_d.get("residual_risks") or []) if _x is not None]
+            _conf = _d.get("confidence")
+            _owed_covered = False
+            for _i, _r in enumerate(_rl_rows[_uid]):
+                if _r.get("retrieval_rung") != "parametric-only":
+                    continue
+                if "ASSUMPTION:" not in str(_r.get("evidence") or ""):
+                    rep.fail(f"{_rl32} (assumption-label units/{_uid}#{_i})",
+                             "a parametric-only evidence row omits the required 'ASSUMPTION:' label in "
+                             "its evidence text (RL-2 (a))")
+                _owed = [_c for _c in (_r.get("covers_owed") or []) if isinstance(_c, str)]
+                if _owed:
+                    _owed_covered = True
+                    for _oid in _owed:
+                        if not any(_oid in _s for _s in _rr):
+                            rep.fail(f"{_rl32} (residual-risk units/{_uid}#{_oid})",
+                                     f"a parametric-only row covers owed id {_oid!r} but the debrief's "
+                                     "residual_risks[] does not name that claim (RL-2 (b) — RT-8 presence)")
+            if _owed_covered and _conf == "high":
+                rep.fail(f"{_rl32} (confidence-cap units/{_uid})",
+                         "a parametric-only row covers an owed id but the debrief reports top-level "
+                         "confidence 'high' — RL-2 (c) caps parametric-covered confidence below 'high'")
+        if len(rep.problems) == _p0:
+            rep.ok(f"{_rl32} (adoption; every parametric-only row is ASSUMPTION-labeled, and owed coverage "
+                   "is residual_risks-named + confidence-capped)")
+
+    # I33 = RL-3 (premise-extraction presence), scoped to DESIGN-JUDGMENT rows ONLY (PLAN §5.0 PR-4).
+    #   ADOPTION = any row carries extracted_premises / extracted_premises_none_reason. Each design-
+    #   judgment row carries extracted_premises: a non-empty array whose every entry equals the `claim`
+    #   of ANOTHER row in the same evidence_table (I20-style verbatim membership — decidable); an empty
+    #   array requires a non-blank extracted_premises_none_reason (the I21 explicit-none pattern).
+    _rl_prem_adopt = any(("extracted_premises" in _r or "extracted_premises_none_reason" in _r)
+                         for _rows in _rl_rows.values() for _r in _rows)
+    if _rl_prem_adopt:
+        _p0 = len(rep.problems)
+        for _uid in sorted(_rl_rows):
+            _rows = _rl_rows[_uid]
+            _claims = {str(_r.get("claim")) for _r in _rows if isinstance(_r.get("claim"), str)}
+            for _i, _r in enumerate(_rows):
+                if _r.get("type") != "design-judgment":
+                    continue
+                _prem = _r.get("extracted_premises")
+                if not isinstance(_prem, list) or len(_prem) == 0:
+                    if _rl_blank(_r.get("extracted_premises_none_reason")):
+                        rep.fail(f"{_rl33} (units/{_uid}#{_i})",
+                                 "a design-judgment row carries neither a non-empty extracted_premises "
+                                 "array nor a non-blank extracted_premises_none_reason (I21 explicit-none)")
+                    continue
+                _self = str(_r.get("claim"))
+                _bad = [_pt for _pt in _prem
+                        if not (isinstance(_pt, str) and _pt in _claims and _pt != _self)]
+                if _bad:
+                    rep.fail(f"{_rl33} (units/{_uid}#{_i})",
+                             f"extracted_premises entries {_bad} are not each the verbatim claim of "
+                             "ANOTHER evidence row in the same table (I20-style membership)")
+        if len(rep.problems) == _p0:
+            rep.ok(f"{_rl33} (adoption; every design-judgment row carries verbatim-linked "
+                   "extracted_premises or an explicit none-reason)")
+
+    # I34 = CO-1 (per-entry owed coverage) — PLAN §2.1 U01 §4. ADOPTION = any brief carries a non-empty
+    #   claims_owed list (the I29 owing pattern; archives + this run carry none => silent). Fires per unit
+    #   whose brief owes AND has a debrief: for EVERY owed entry E there must be >=1 debrief evidence row R
+    #   with E.id in R.covers_owed, R.type == E.type, and (E.min_tier present => R satisfies it per U01's
+    #   satisfaction lattice — the same existential lattice I30 uses). Verify-INDEPENDENT (PLAN §4): it
+    #   catches an uncovered owed id even where no retrieval_coverage block exists — I30's complement.
+    def _rl_sat(row, min_tier):
+        _st = row.get("source_tier"); _rung = row.get("retrieval_rung")
+        _param = (_st == "T-PARAM" or _rung == "parametric-only")
+        if min_tier == "T-VENDOR":
+            if _st == "T-VENDOR":
+                return True
+            if (_st == "T-COMM" and row.get("vendor_silent") is True
+                    and not _rl_blank(row.get("vendor_surface_searched"))):
+                return True
+            return _param
+        if min_tier == "T-COMM":
+            if _st in ("T-VENDOR", "T-COMM"):
+                return True
+            return _param
+        if min_tier == "T-LOCAL":
+            return _st == "T-LOCAL"
+        return False
+
+    _rl_owed_adopt = any(isinstance(_b.get("claims_owed"), list) and len(_b.get("claims_owed")) > 0
+                         for _b in _rl_briefs.values())
+    if _rl_owed_adopt:
+        _p0 = len(rep.problems)
+        for _uid in sorted(_rl_briefs):
+            _owed = [e for e in (_rl_briefs[_uid].get("claims_owed") or []) if isinstance(e, dict)]
+            if not _owed or _uid not in _rl_debriefs:
+                continue
+            _rows = _rl_rows.get(_uid, [])
+            for _e in _owed:
+                _eid, _etype, _mt = _e.get("id"), _e.get("type"), _e.get("min_tier")
+                if not isinstance(_eid, str):
+                    continue
+                _cover = [_r for _r in _rows
+                          if _eid in (_r.get("covers_owed") or []) and _r.get("type") == _etype]
+                if not _cover:
+                    rep.fail(f"{_rl34} (units/{_uid}#{_eid})",
+                             f"owed entry {_eid!r} (type {_etype!r}) is discharged by no debrief evidence "
+                             "row linking it via covers_owed with a matching type")
+                    continue
+                if _mt is not None and not any(_rl_sat(_r, _mt) for _r in _cover):
+                    rep.fail(f"{_rl34} (units/{_uid}#{_eid})",
+                             f"owed entry {_eid!r} is covered but no covering row satisfies min_tier "
+                             f"{_mt!r} per U01's satisfaction lattice")
+        if len(rep.problems) == _p0:
+            rep.ok(f"{_rl34} (adoption; every claims_owed entry discharged by a matching-type covering "
+                   "row at its min_tier)")
 
     # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
     # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.

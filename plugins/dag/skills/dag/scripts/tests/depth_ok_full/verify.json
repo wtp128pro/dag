@@ -1,0 +1,58 @@
+{
+  "sweep_spot_check": [
+    {
+      "dimension": "terms",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "success-criteria",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "scope-boundaries",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "audience-format",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "constraints",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "assumptions",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "failure-modes",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "sources",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "stakes",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    }
+  ]
+}

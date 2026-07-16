@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/sources.schema.json",
+  "title": "Sources register (machine-checkable extract)",
+  "description": "JSON sidecar for SOURCES.md — the source-cartography register: sources with tier/locator/disposition (+ access date and yield when consulted), T-COMM venue admissions once per venue, and coverage claims linked to consulted rows. Checked offline by validator invariant I26. Doctrine (sweep timing vs the clarification round, append-only rows, dispositions as sweep-time facts) is normative in SKILL.md Phase 3's source-sweep step — not duplicated here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sources", "coverage"],
+  "properties": {
+    "run_label": { "type": "string" },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "tier", "locator", "disposition", "why"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^S[0-9]+$" },
+          "title": { "type": "string", "minLength": 1 },
+          "tier": { "type": "string", "enum": ["T-VENDOR", "T-COMM", "T-LOCAL"] },
+          "locator": { "type": "string", "minLength": 1 },
+          "disposition": { "type": "string", "enum": ["consulted", "queued", "rejected"] },
+          "why": { "type": "string", "minLength": 1 },
+          "accessed": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+          "yielded": { "type": "string" },
+          "queued_for": { "type": "string" },
+          "venue_ref": { "type": "string" }
+        },
+        "allOf": [
+          { "$comment": "S1: a consulted row carries its access date and what it yielded (a negative/silent finding is a legal yielded value — 'silent on X' — never a blank). Dates come from this run or artifact metadata, never invented (learnings-store L3 precedent).",
+            "if":   { "properties": { "disposition": { "const": "consulted" } },
+                      "required": ["disposition"] },
+            "then": { "required": ["accessed", "yielded"],
+                      "properties": { "yielded": { "minLength": 1 } } } },
+          { "$comment": "S2: a queued row names its intended consumer — a unit id (U<n>) or the literal 'execution'.",
+            "if":   { "properties": { "disposition": { "const": "queued" } },
+                      "required": ["disposition"] },
+            "then": { "required": ["queued_for"],
+                      "properties": { "queued_for": { "minLength": 1 } } } },
+          { "$comment": "S3: a T-COMM row references an admitted venue entry (venue_ref -> venues[].venue_id). Membership + admitted:true are validator I26 checks — the schema cannot cross-reference arrays.",
+            "if":   { "properties": { "tier": { "const": "T-COMM" } },
+                      "required": ["tier"] },
+            "then": { "required": ["venue_ref"],
+                      "properties": { "venue_ref": { "minLength": 1 } } } }
+        ]
+      }
+    },
+    "venues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["venue_id", "venue", "k_a", "k_b", "k_c", "admitted"],
+        "properties": {
+          "venue_id": { "type": "string", "pattern": "^V[0-9]+$" },
+          "venue": { "type": "string", "minLength": 1 },
+          "k_a": { "type": "string", "minLength": 1 },
+          "k_b": { "type": "string", "minLength": 1 },
+          "k_c": { "type": "string", "minLength": 1 },
+          "admitted": { "type": "boolean" }
+        }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["area", "claim", "based_on", "gaps"],
+        "properties": {
+          "area": { "type": "string", "minLength": 1 },
+          "claim": { "type": "string", "minLength": 1 },
+          "based_on": { "type": "array", "minItems": 1,
+                        "items": { "type": "string", "minLength": 1 } },
+          "gaps": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

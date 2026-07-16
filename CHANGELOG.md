@@ -3,6 +3,18 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.11] — 2026-07-16
+
+### Changed
+- **`dag` plugin → 1.9.0** — **Depth & retrieval enforcement**: mandatory claim-type→source-tier
+  retrieval standard with a declared fallback ladder; first-class SOURCES register (source
+  cartography) feeding clarification and briefs; nine-dimension validator-checked clarification
+  sweep + cartography-informed round (no quotas); human-gated depth tiers with non-negotiable
+  floors and upward-only ratchet; per-unit retrieval obligations in briefs with verifier-side
+  re-derived coverage checks (CB-1 bridge). Nine new offline invariants (I26–I34), ~60 validator
+  self-test fixtures, zero formal-guarantee revisions (TLC/Alloy re-verified green).
+- Marketplace catalog version → 1.0.11.
+
 ## [1.0.10] — 2026-07-11
 
 ### Changed

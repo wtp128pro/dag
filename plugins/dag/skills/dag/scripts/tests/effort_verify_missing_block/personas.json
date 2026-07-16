@@ -1,0 +1,16 @@
+{
+  "run_label": "good-fixture",
+  "confirmed_by_user": true,
+  "roster": [
+    { "persona": "Researcher", "mandate": "role auto-reconciled into the roster by WP-B (persona-identity enforcement); the fixture's artifacts already use this persona" },
+    { "persona": "Skeptic", "mandate": "role auto-reconciled into the roster by WP-B (persona-identity enforcement); the fixture's artifacts already use this persona" },
+    { "persona": "Architect", "mandate": "role auto-reconciled into the roster by WP-B (persona-identity enforcement); the fixture's artifacts already use this persona" },
+    { "persona": "Pragmatist", "mandate": "role auto-reconciled into the roster by WP-B (persona-identity enforcement); the fixture's artifacts already use this persona" },
+    { "persona": "Formal-Methods & Schema Engineer", "mandate": "make rules machine-checked",
+      "optimizes_for": "real runtime rejection", "skeptical_of": "formal theater",
+      "critic_pair": "Pragmatist", "phases": ["U03"] }
+  ],
+  "pairings": [
+    { "producer": "Formal-Methods & Schema Engineer", "critic": "Pragmatist", "contest": "over-formalization" }
+  ]
+}

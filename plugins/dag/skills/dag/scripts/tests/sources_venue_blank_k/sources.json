@@ -1,0 +1,20 @@
+{
+  "run_label": "venue-blank-k",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed" }
+  ],
+  "venues": [
+    { "venue_id": "V1", "venue": "example forum",
+      "k_a": " ",
+      "k_b": "chases the vendor spec it cites",
+      "k_c": "dated 2026-06; matches the version under study",
+      "admitted": true }
+  ],
+  "coverage": [
+    { "area": "task file state", "claim": "the line is mapped",
+      "based_on": ["S1"], "gaps": "none" }
+  ]
+}

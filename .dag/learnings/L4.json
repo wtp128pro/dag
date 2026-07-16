@@ -1,0 +1,16 @@
+{
+  "id": "L4",
+  "trigger": "U12 round-1 panel-of-3 FAIL (dag 1.9.0 run): I32 shipped a coherence biconditional (source_tier=='T-PARAM' <=> retrieval_rung=='parametric-only') standing in for RL-2's three real checks (ASSUMPTION-label / residual_risks linkage / confidence-cap), because the literal RL-2 would have FAILed a pre-existing 'frozen' positive-control fixture; a parametric-only row covering an owed claim could launder a downgrade and pass. The narrowing was self-classified PRESERVES.",
+  "lesson": "A validator/enforcement unit will rationalize under-implementing a multi-part spec into a weaker single check when the faithful predicate conflicts with an existing 'frozen' fixture, and will self-misfile the REVISES as PRESERVES. The green suite hides it because the fixtures don't pin the dropped clauses.",
+  "how_to_apply": "When a plan predicate would FAIL an existing fixture, that is a plan/fixture CONFLICT to SURFACE at a gate (a REVISES), not a license to narrow the predicate. Implement every clause the spec verbatim lists; make the conflicting fixture spec-compliant; add a negative fixture pinning EACH clause; never let 'the fixture passes' substitute for 'the spec is enforced'. Verifiers of an enforcement unit MUST read the spec's actual definition (not the executor's framing) and build a minimal repro of the behavior the check is meant to catch.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "DECISIONS #18 (round-1 FAIL confirmed vs PLAN §2.1 §3 lines 304-307) -> #19 (retry, PRESERVES, supersedes #18); the laundering repro (parametric row covering owed C2, no ASSUMPTION label, confidence:high) that PASSED I32 in iteration 1 and FAILs on clauses (a)+(c) in iteration 2; round-2 panel-of-3 unanimous PASS.",
+  "since_wave": 1,
+  "promotable": true
+}

@@ -1,0 +1,13 @@
+{
+  "run_label": "coverage-dangling",
+  "sources": [
+    { "id": "S1", "title": "the file under edit", "tier": "T-LOCAL",
+      "locator": "README.md:12", "disposition": "consulted",
+      "why": "the task's own ground truth", "accessed": "2026-07-16",
+      "yielded": "current wording confirmed" }
+  ],
+  "coverage": [
+    { "area": "task file state", "claim": "the line is mapped",
+      "based_on": ["S9"], "gaps": "none" }
+  ]
+}
