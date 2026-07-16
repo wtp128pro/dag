@@ -206,7 +206,14 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.8.0** — **Guardrail & clarification enforcement**: six new **offline** validator
+Current version: **1.9.0** — **Depth & retrieval enforcement**: nine new **offline** validator
+invariants (**I26–I34**) make retrieval effort and clarification depth mechanically checkable —
+a mandatory claim-type→source-tier standard with a declared fallback ladder, a first-class
+SOURCES register feeding clarification and briefs, a nine-dimension dispositioned clarification
+sweep with a cartography-informed round, human-gated depth tiers (`light`/`standard`/`full`)
+with non-negotiable floors and an upward-only ratchet, and brief-carried retrieval obligations
+whose coverage verifiers re-derive (`retrieval_coverage`, CB-1 bridge). Zero guarantee
+revisions; TLC + headless-Alloy green. **1.8.0** — **Guardrail & clarification enforcement**: six new **offline** validator
 invariants (**I20–I25**) make the run's own declared guardrails mechanically checkable — per-unit
 `dod_refs`/`non_goal_refs` binding with graph↔brief mirror consistency, a `guardrail_compliance`
 attestation block on verdict-bearing verifies where a `violated` row on a PASS verdict is a
