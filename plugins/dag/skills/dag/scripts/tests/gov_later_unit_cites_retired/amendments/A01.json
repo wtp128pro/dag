@@ -1,0 +1,27 @@
+{
+  "id": "A01",
+  "kind": "revise_anchors",
+  "origin": {
+    "trigger": "debrief_handoff",
+    "source_unit": "U01",
+    "source_ref": "units/U01/debrief.json handoff_notes"
+  },
+  "rationale": "Human-gated anchor revision recorded as a revise_anchors amendment (GV-12).",
+  "scope_change": false,
+  "human_gate": true,
+  "list": "definition_of_done",
+  "revise_ops": [
+    {
+      "op": "remove",
+      "item": "DoD-A",
+      "prior_text": "DoD-A"
+    }
+  ],
+  "fuel_cost": 1,
+  "fuel_before": 2,
+  "fuel_after": 1,
+  "frontier_wave": 2,
+  "graph_revision_after": 2,
+  "timestamp": "2026-07-18T12:30:00-0400",
+  "transcript_ref": "p7-U01-1"
+}

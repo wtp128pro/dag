@@ -1,0 +1,163 @@
+{
+  "run_label": "dialogue_recommended_echo_launder",
+  "dialogues": [
+    {
+      "surface_id": "DS-1",
+      "instance": "p1",
+      "phase": "P1_PERSONAS",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-GATE",
+          "moves_used": [
+            "ADMIT"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p1.r1.q1",
+              "q": "Confirm the persona roster and depth tier?",
+              "move": "ADMIT",
+              "recommended": "Accept the recommended roster."
+            }
+          ],
+          "answers": [
+            {
+              "a": "Accept.",
+              "q_ref": "p1.r1.q1",
+              "deviation": false
+            }
+          ]
+        }
+      ],
+      "termination": {
+        "reason": "converged"
+      }
+    },
+    {
+      "surface_id": "DS-2",
+      "instance": "p2",
+      "phase": "P2_CLARIFICATION",
+      "rounds_used": 2,
+      "mandatory_kinds_completed": [
+        "R-FORBID",
+        "R-CONFIRM"
+      ],
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-FORBID",
+          "moves_used": [
+            "PIVOT"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p2.r1.q1",
+              "q": "What must this run NOT build, change, or touch?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "forbid"
+            },
+            {
+              "qid": "p2.r1.q2",
+              "q": "What failure or outcome do you fear most from this task?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "fear"
+            },
+            {
+              "qid": "p2.r1.q3",
+              "q": "What would make you REJECT the deliverable even if every DoD item passes?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "rejection"
+            },
+            {
+              "qid": "p2.r1.q4",
+              "q": "What currently-working thing must not regress?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "invariant"
+            }
+          ],
+          "answers": [
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q1",
+              "deviation": false
+            },
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q2",
+              "deviation": false
+            },
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q3",
+              "deviation": false
+            },
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q4",
+              "deviation": false
+            }
+          ],
+          "effects": {
+            "decisions_ref": "DECISIONS.md#forbid",
+            "summary": "forbid battery posed (all four topics)"
+          }
+        },
+        {
+          "round": 2,
+          "kind": "R-CONFIRM",
+          "moves_used": [
+            "RESIDUAL"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p2.r2.q1",
+              "q": "Confirm each DoD/NG item (or edit / drop).",
+              "move": "RESIDUAL",
+              "recommended": "NG-EVIL",
+              "items_presented": [
+                "DoD-A"
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "a": "NG-EVIL",
+              "q_ref": "p2.r2.q1",
+              "deviation": false
+            }
+          ],
+          "dispositions": [
+            {
+              "item": "DoD-A",
+              "disposition": "confirm",
+              "origin": "orchestrator-authored",
+              "q_ref": "p2.r2.q1"
+            },
+            {
+              "item": "NG-EVIL",
+              "disposition": "confirm",
+              "origin": "human-elicited",
+              "elicited_round_ref": "p2.r2"
+            }
+          ],
+          "effects": {
+            "decisions_ref": "DECISIONS.md#confirm",
+            "summary": "the orchestrator-offered NG-EVIL recommended is one-clicked, then laundered into non_goals claiming origin:human-elicited"
+          }
+        }
+      ],
+      "termination": {
+        "reason": "converged",
+        "gate_answer": "Proceed."
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+gov_retired_membership_ok (GV-16 frozen prefix): the EXECUTED U01 binds DoD-A, which a later revise_anchors retired; I20 accepts current ∪ retired, and I40-3/I40-4 skip the frozen executed unit — exit 0.

@@ -1,0 +1,1 @@
+askfirst_version_gated_silent (1.9.0): E1's exact row (a scope-boundaries logged-default) — WOULD FAIL AF-14 at 1.10.0, but the T1 version gate is silent below ship and no T2 key is adopted, so I38 emits nothing. Exit 0 (the register-#16 archive posture).

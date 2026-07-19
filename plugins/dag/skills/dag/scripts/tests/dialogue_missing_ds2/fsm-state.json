@@ -1,0 +1,8 @@
+{
+  "run_dir": "tests/dialogue_missing_ds2",
+  "phase": "P2_CLARIFICATION",
+  "updated_at": "2026-07-18T10:00:00-0400",
+  "gates": {
+    "clarification_resolved": true
+  }
+}

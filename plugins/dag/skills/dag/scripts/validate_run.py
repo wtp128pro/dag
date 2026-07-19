@@ -43,7 +43,7 @@ Exit codes:  0 ok · 1 validation/invariant violation · 2 usage error · 3 envi
 Usage:  validate_run.py <run_dir> [--schemas <dir>] [--self-check] [--quiet]
 """
 from __future__ import annotations
-import json, os, re, sys, argparse, datetime, fnmatch
+import json, os, re, sys, argparse, datetime, fnmatch, hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SCHEMAS = os.path.normpath(os.path.join(HERE, "..", "schemas"))
@@ -55,6 +55,7 @@ TOP_ARTIFACTS = {
     "graph.json": "graph.schema.json",
     "fsm-state.json": "fsm-state.schema.json",
     "sources.json": "sources.schema.json",
+    "dialogues.json": "dialogues.schema.json",
 }
 UNIT_ARTIFACTS = {
     "brief.json": "brief.schema.json",
@@ -450,6 +451,18 @@ LABELS = [
     {"key": "rl_param_consistency", "stem": "I32 parametric-downgrade consistency", "invariant": "I32"},
     {"key": "rl_premise_presence", "stem": "I33 premise-extraction presence", "invariant": "I33"},
     {"key": "co1_owed_coverage", "stem": "I34 owed coverage", "invariant": "I34"},
+    # FSM invariants — bounded Socratic dialogue transcript (socratic-guardrail 1.10.0; U01/U04)
+    {"key": "i35_dialogue", "stem": "I35 dialogue", "invariant": "I35"},
+    {"key": "i36_dialogue", "stem": "I36 dialogue", "invariant": "I36"},
+    {"key": "note_i36", "stem": "N-I36", "invariant": "I36", "emitted_via": "print"},
+    {"key": "i37_dialogue", "stem": "I37 dialogue", "invariant": "I37"},
+    # FSM invariant — ask-first consequential-default legality (socratic-guardrail 1.10.0; U02/U04)
+    {"key": "i38_askfirst", "stem": "I38 ask-first", "invariant": "I38"},
+    {"key": "note_i38", "stem": "N-I38", "invariant": "I38", "emitted_via": "print"},
+    # FSM invariants — anchor governance (socratic-guardrail 1.10.0; U03/U04/U06)
+    {"key": "i39_anchor", "stem": "I39 anchor", "invariant": "I39"},
+    {"key": "note_i39", "stem": "N-I39", "invariant": "I39", "emitted_via": "print"},
+    {"key": "i40_anchor", "stem": "I40 anchor", "invariant": "I40"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
     {"key": "i9_present", "stem": "I9 verification present", "invariant": "I9"},
@@ -2189,7 +2202,15 @@ def main(argv=None):
     _i20_clar = docs.get("clarifications")
     if graph_doc is not None and isinstance(_i20_clar, dict):
         _i20_units = [u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
-        _i20_dset = {x for x in _i20_clar.get("definition_of_done", []) if isinstance(x, str)}
+        # GV-16 membership-union (socratic-guardrail 1.10.0; I40-4): a revise_anchors edit/remove
+        # freezes the executed prefix (I17), so an executed unit's dod_refs may still cite text a
+        # later amendment retired. Accept `current ∪ anchors_retired[].prior_text` so the frozen
+        # prefix stays valid; a unit ADDED after the retirement citing retired text is caught by the
+        # I40-4 ordering check (offline, no LT7 guard — PRESERVES). REVISES the I20 membership set.
+        _i20_dset = ({x for x in _i20_clar.get("definition_of_done", []) if isinstance(x, str)}
+                     | {r.get("prior_text") for r in (_i20_clar.get("anchors_retired") or [])
+                        if isinstance(r, dict) and r.get("list") == "definition_of_done"
+                        and isinstance(r.get("prior_text"), str)})
         _i20_bound = [u for u in _i20_units if "dod_refs" in u]
         if _i20_bound:                                                # ADOPTION
             _i20_failures = []                   # (label, msg) pairs — explicit tracking
@@ -2243,7 +2264,11 @@ def main(argv=None):
     # offline post-hoc, gates no FSM transition, no LT7 guard — termination (Claim D) untouched.
     if graph_doc is not None and isinstance(_i20_clar, dict):
         _i21_units = [u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
-        _i21_ngset = {x for x in _i20_clar.get("non_goals", []) if isinstance(x, str)}
+        # GV-16 membership-union (I40-4): current non_goals ∪ retired prior_text (see I20 above).
+        _i21_ngset = ({x for x in _i20_clar.get("non_goals", []) if isinstance(x, str)}
+                      | {r.get("prior_text") for r in (_i20_clar.get("anchors_retired") or [])
+                         if isinstance(r, dict) and r.get("list") == "non_goals"
+                         and isinstance(r.get("prior_text"), str)})
         _i21_bound = [u for u in _i21_units if "non_goal_refs" in u]
         if _i21_bound:                                                # ADOPTION
             _i21_failures = []                   # (label, msg) pairs — explicit tracking
@@ -2335,7 +2360,11 @@ def main(argv=None):
     # verify to carry it (verdictless verifies are not bound — partial runs mid-wave stay
     # incremental). The one decidable semantic clause mechanizes SKILL.md's "a delivered
     # non-goal is a FAIL, not a bonus": a violated row on a PASS verdict is a defect.
-    _i22_ngset = ({x for x in _i22_clar.get("non_goals") or [] if isinstance(x, str)}
+    # GV-16 membership-union (I40-4): current non_goals ∪ retired prior_text (frozen-prefix rule).
+    _i22_ngset = (({x for x in _i22_clar.get("non_goals") or [] if isinstance(x, str)}
+                   | {r.get("prior_text") for r in (_i22_clar.get("anchors_retired") or [])
+                      if isinstance(r, dict) and r.get("list") == "non_goals"
+                      and isinstance(r.get("prior_text"), str)})
                   if isinstance(_i22_clar, dict) else set())
     _i22_gunits = ([u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
                    if graph_doc is not None else [])
@@ -3855,6 +3884,1223 @@ def main(argv=None):
         if len(rep.problems) == _p0:
             rep.ok(f"{_rl34} (adoption; every claims_owed entry discharged by a matching-type covering "
                    "row at its min_tier)")
+
+    # ======================================================================================
+    # I35 / I36 / I37 — bounded Socratic dialogue-series transcript (socratic-guardrail 1.10.0)
+    # post-hoc/offline, gates no transition, never guards LT7 => PRESERVES. Trigger class mirrors
+    # I27's two-level version-honest pattern (§1 trigger doctrine): T1 (presence floor) = the I-dod/I24
+    # structural union on a run stamped >= the ship version (REUSES _i27_struct + _i27_semver_ge);
+    # archived/unstamped runs stay SILENT. T2 (shape) = dialogues.json PRESENT (any version) — adopting
+    # the artifact submits it to every shape check (the I22/I26/I27 RAW-parse posture; load_json +
+    # isinstance guards, independent of the schema layer). All predicates read the RAW dialogues.json
+    # (and clarifications.json for the verbatim residue joins); never crash. dialogues.json is a NEW
+    # optional artifact (the sources.json/I26 zero-fsm-state precedent): no FSM edge/flag/guard, so the
+    # correction-loop termination proof (Claim D), AO-1..7 and I1-I34 are UNTOUCHED. Genuineness (a human
+    # spoke; q/a fidelity; move truth) stays attestation — Limitation U/V (invariants-i35plus.md §6).
+    _DLG_SHIP = "1.10.0"                       # release shipping I35-I40; validator_version >= this arms T1
+    _dlg_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    _dlg_t1 = _i27_struct and _i27_semver_ge(_dlg_ver, _DLG_SHIP)          # mirror I27 :2657-2666
+    _dlg_gates = fsm.get("gates") if isinstance(fsm, dict) else None
+    _dlg_gates = _dlg_gates if isinstance(_dlg_gates, dict) else {}
+    _dlg_path = os.path.join(rd, "dialogues.json")
+    _dlg_present = os.path.exists(_dlg_path)
+    _dlg_raw = None                            # RAW parse — the I26/I27 posture (:2669-2678)
+    if _dlg_present:
+        try:
+            _dlg_raw = load_json(_dlg_path)
+        except Exception:
+            _dlg_raw = None
+    _dlg_t2 = _dlg_present
+    _dlg_ok = isinstance(_dlg_raw, dict) and isinstance(_dlg_raw.get("dialogues"), list)
+    _dialogues = [d for d in (_dlg_raw.get("dialogues") if _dlg_ok else []) if isinstance(d, dict)]
+    # clarifications RAW (verbatim residue joins) — I22/I27 raw-parse visibility posture.
+    _dlg_clar = None
+    _dlg_clarp = os.path.join(rd, "clarifications.json")
+    if os.path.exists(_dlg_clarp):
+        try:
+            _dlg_clar = load_json(_dlg_clarp)
+        except Exception:
+            _dlg_clar = None
+    _dlg_dod = [x for x in ((_dlg_clar.get("definition_of_done") if isinstance(_dlg_clar, dict) else None) or [])
+                if isinstance(x, str)]
+    _dlg_ng = [x for x in ((_dlg_clar.get("non_goals") if isinstance(_dlg_clar, dict) else None) or [])
+               if isinstance(x, str)]
+    _dlg_final = set(_dlg_dod) | set(_dlg_ng)
+    _dlg_regrows = [r for r in ((_dlg_clar.get("ambiguity_register") if isinstance(_dlg_clar, dict) else None) or [])
+                    if isinstance(r, dict)]
+    _DLG_KINDS = {"R-OPEN", "R-FORBID", "R-CONFIRM", "R-GATE", "R-PROBE"}
+    _DLG_MOVES = {"FORK", "COUNTER", "ADMIT", "PIVOT", "RESIDUAL"}
+    _DLG_TOPICS = {"forbid", "fear", "rejection", "invariant"}
+    _DLG_INST_RE = re.compile(r"^(p1|p2|p3-cartography|p2-r[0-9]+|p7-U[0-9]{2,}-[0-9]+|p8|bga-A[0-9]{2,})$")
+
+    def _dlg_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _dlg_rounds(d):
+        return [r for r in (d.get("rounds") or []) if isinstance(r, dict)]
+
+    def _dlg_kinds(d):
+        return {r.get("kind") for r in _dlg_rounds(d)}
+
+    def _dlg_list_delta(d):
+        # recorded list-delta: any dod_edits/non_goals_added, or any edit/drop disposition (DP-11).
+        for r in _dlg_rounds(d):
+            eff = r.get("effects") if isinstance(r.get("effects"), dict) else {}
+            if eff.get("dod_edits") or eff.get("non_goals_added"):
+                return True
+            for disp in (r.get("dispositions") or []):
+                if isinstance(disp, dict) and disp.get("disposition") in ("edit", "drop"):
+                    return True
+        return False
+
+    # ---- I35 dialogue transcript presence, shape & coverage (U01) — invariants-i35plus.md:102-135 ----
+    # trigger class: T1 presence (version-gated) + T2 shape (adoption). PRESERVES.
+    _i35_stem = LABEL_STEM['i35_dialogue']
+    _i35_probs0 = len(rep.problems)
+
+    # I35-1 [MC-1] :108-113 — presence floor (T1) + RAW-parse surface-record shape (T2).
+    if _dlg_t1 and not _dlg_present:
+        rep.fail(f"{_i35_stem} (missing)",
+                 f"structural work + validator_version {_dlg_ver!r} (>= {_DLG_SHIP}) but no dialogues.json "
+                 "— the bounded-dialogue transcript is required (version-gated; archived/unstamped runs "
+                 "stay silent)")
+    if _dlg_present and not _dlg_ok:
+        rep.fail(f"{_i35_stem} (shape)",
+                 "dialogues.json does not RAW-parse to an object carrying a dialogues[] array "
+                 "(DP-22 surface-record shape)")
+
+    if _dlg_ok:
+        # I35-2 [MC-2] :114-117 — surface coverage.
+        if _dlg_gates.get("clarification_resolved") is True and \
+                not any(d.get("surface_id") == "DS-2" and d.get("instance") == "p2" for d in _dialogues):
+            rep.fail(f"{_i35_stem} (surface coverage)",
+                     "clarification_resolved is set but no DS-2 'p2' dialogue record exists (MC-2)")
+        for _uid in sorted(unit_subdirs):
+            _ud = os.path.join(units_dir, _uid)
+            if (os.path.exists(os.path.join(_ud, "disagreement.md"))
+                    or os.path.exists(os.path.join(_ud, "disagreement.json"))):
+                if not any(d.get("surface_id") == "DS-4"
+                           and str(d.get("instance", "")).startswith(f"p7-{_uid}-") for d in _dialogues):
+                    rep.fail(f"{_i35_stem} (surface coverage DS-4 {_uid})",
+                             f"units/{_uid} has a disagreement record but no DS-4 'p7-{_uid}-<n>' dialogue "
+                             "record (MC-2)")
+        if _dlg_gates.get("personas_confirmed") is True and \
+                not any(d.get("surface_id") == "DS-1" for d in _dialogues):
+            rep.fail(f"{_i35_stem} (surface coverage DS-1)",
+                     "personas_confirmed is set but no DS-1 dialogue record exists (MC-2)")
+        if _dlg_gates.get("signoff_confirmed") is True and \
+                not any(d.get("surface_id") == "DS-5" for d in _dialogues):
+            rep.fail(f"{_i35_stem} (surface coverage DS-5)",
+                     "signoff_confirmed is set but no DS-5 dialogue record exists (MC-2)")
+
+        # I35-3 [MC-3] :118-120 — rounds_used <= 3 (schema maximum mirror) AND len(rounds)==rounds_used.
+        for d in _dialogues:
+            _rus = _as_int(d.get("rounds_used"))
+            _rn = _dlg_rounds(d)
+            if _rus is None or _rus > 3:
+                rep.fail(f"{_i35_stem} (rounds cap {d.get('instance')})",
+                         f"rounds_used {d.get('rounds_used')!r} exceeds the cap of 3 (DP-14)")
+            elif _rus != len(_rn):
+                rep.fail(f"{_i35_stem} (rounds desync {d.get('instance')})",
+                         f"rounds_used {_rus} != len(rounds[]) {len(_rn)} (MC-3)")
+
+        # I35-4 [MC-4] :121-128 — per-INSTANCE mandatory-kind coverage (DP-11 instance conditioning).
+        for d in _dialogues:
+            _sid, _inst, _k = d.get("surface_id"), d.get("instance"), _dlg_kinds(d)
+            if _sid == "DS-2" and _inst == "p2":
+                _miss = [x for x in ("R-FORBID", "R-CONFIRM") if x not in _k]
+                if _miss:
+                    rep.fail(f"{_i35_stem} (mandatory kinds {_inst})",
+                             f"DS-2 p2 must run {_miss} (DP-11 per-instance mandatory kinds)")
+            elif _sid == "DS-2" and isinstance(_inst, str) and _inst.startswith("p2-r"):
+                if _dlg_list_delta(d) and "R-CONFIRM" not in _k:
+                    rep.fail(f"{_i35_stem} (mandatory kinds {_inst})",
+                             "a p2-r<k> re-entry with a recorded list-delta must run R-CONFIRM (DP-11)")
+            elif _sid in ("DS-1", "DS-4", "DS-5", "DS-6"):
+                if "R-GATE" not in _k:
+                    rep.fail(f"{_i35_stem} (mandatory kinds {_inst})",
+                             f"{_sid} must run R-GATE once per instance (DP-11)")
+
+        # I35-5 [MC-5] :129-132 — round/question/answer shape (.strip() bars, one layer stricter than schema).
+        for d in _dialogues:
+            for r in _dlg_rounds(d):
+                if r.get("kind") not in _DLG_KINDS:
+                    rep.fail(f"{_i35_stem} (round kind)",
+                             f"round kind {r.get('kind')!r} is not in the DP-10 enum")
+                for _mv in (r.get("moves_used") or []):
+                    if _mv not in _DLG_MOVES:
+                        rep.fail(f"{_i35_stem} (moves_used)",
+                                 f"moves_used entry {_mv!r} is not in the five-move enum")
+                for q in (r.get("questions") or []):
+                    if not isinstance(q, dict):
+                        continue
+                    if _dlg_blank(q.get("q")):
+                        rep.fail(f"{_i35_stem} (blank question)", "a question carries a blank/absent `q` (MC-5)")
+                    if _dlg_blank(q.get("recommended")):
+                        rep.fail(f"{_i35_stem} (missing recommended)",
+                                 "a question carries a blank/absent `recommended` (DP-24/DP-43 — REQUIRED "
+                                 "non-blank on EVERY question)")
+                for a in (r.get("answers") or []):
+                    if not isinstance(a, dict):
+                        continue
+                    if _dlg_blank(a.get("a")):
+                        rep.fail(f"{_i35_stem} (blank answer)",
+                                 "an answer carries a blank/absent literal `a` (DP-9 — the answer slot is "
+                                 "human-only; a non-blank literal is REQUIRED, answer_ref is not a substitute)")
+
+        # I35-6 [MC-6] :133-135 — every answer slot filled OR halt-pending with pending_questions (I25 allOf).
+        for d in _dialogues:
+            _term = d.get("termination") if isinstance(d.get("termination"), dict) else {}
+            if _term.get("reason") == "halt-pending":
+                if not [x for x in (_term.get("pending_questions") or []) if isinstance(x, str) and x.strip()]:
+                    rep.fail(f"{_i35_stem} (halt-pending {d.get('instance')})",
+                             "termination halt-pending but pending_questions[] is empty (MC-6/DP-19)")
+                continue
+            _qids, _answered = [], set()
+            for r in _dlg_rounds(d):
+                for q in (r.get("questions") or []):
+                    if isinstance(q, dict) and isinstance(q.get("qid"), str):
+                        _qids.append(q.get("qid"))
+                for a in (r.get("answers") or []):
+                    if isinstance(a, dict) and isinstance(a.get("q_ref"), str):
+                        _answered.add(a.get("q_ref"))
+            _unans = [q for q in _qids if q not in _answered]
+            if _unans:
+                rep.fail(f"{_i35_stem} (answer slot {d.get('instance')})",
+                         f"question(s) {_unans} have no matching answer and termination is not halt-pending "
+                         "(MC-6 answer-filled-or-halt)")
+
+    if (_dlg_t1 or _dlg_t2) and len(rep.problems) == _i35_probs0:
+        rep.ok(f"{_i35_stem} (T1={_dlg_t1}, transcript={'present' if _dlg_t2 else 'absent'}; "
+               "presence + surface coverage + rounds cap + mandatory kinds + Q/A shape OK)")
+
+    # ---- I36 dialogue disposition, presentation-bind & residue joins (U01) — :137-175 ----
+    # trigger class: T2 shape (adoption). PRESERVES. presentation fidelity is Limitation U.
+    _i36_stem = LABEL_STEM['i36_dialogue']
+    _i36_note = LABEL_STEM['note_i36']
+    _i36_probs0 = len(rep.problems)
+    if _dlg_ok:
+        # Gather the R-CONFIRM presentation surface across DS-2 records.
+        _presented = set()          # every verbatim item string presented in some R-CONFIRM items_presented[]
+        _q_ip = {}                  # qid -> its items_presented[]
+        _confirm_present = False
+        _dispositions = []          # every R-CONFIRM disposition record
+        for d in _dialogues:
+            if d.get("surface_id") != "DS-2":
+                continue
+            for r in _dlg_rounds(d):
+                if r.get("kind") == "R-CONFIRM":
+                    _confirm_present = True
+                    _distinct = set()
+                    for q in (r.get("questions") or []):
+                        if not isinstance(q, dict):
+                            continue
+                        _ip = [x for x in (q.get("items_presented") or []) if isinstance(x, str)]
+                        if len(_ip) > 4:
+                            rep.fail(f"{_i36_stem} (stuffing)",
+                                     f"an R-CONFIRM question presents {len(_ip)} items (>4 — the DP-29 "
+                                     "anti-stuffing bound: one mega-question is not presentation)")
+                        for x in _ip:
+                            _presented.add(x)
+                            _distinct.add(x)
+                        if isinstance(q.get("qid"), str):
+                            _q_ip[q.get("qid")] = _ip
+                    _pages = _as_int(r.get("pages")) or 0
+                    if _distinct and _pages < (len(_distinct) + 3) // 4:
+                        rep.fail(f"{_i36_stem} (pages)",
+                                 f"R-CONFIRM pages {_pages} < ceil({len(_distinct)}/4) distinct presented "
+                                 "items (DP-29 pages arithmetic)")
+                    for disp in (r.get("dispositions") or []):
+                        if isinstance(disp, dict):
+                            _dispositions.append(disp)
+
+        # I36-1 [MC-7] :141-153 — three-arm presentation union + q_ref join + DISSENT-3 presentation bind.
+        if _confirm_present:
+            for disp in _dispositions:
+                _item, _origin = disp.get("item"), disp.get("origin")
+                _qref, _elic = disp.get("q_ref"), disp.get("elicited_round_ref")
+                if _origin == "human-elicited":
+                    # DP-31 auto-confirm: bound to its eliciting round, never re-presented (arm c).
+                    if _dlg_blank(_elic) and _dlg_blank(_qref):
+                        rep.fail(f"{_i36_stem} (bind {_item!r})",
+                                 "a human-elicited disposition carries neither elicited_round_ref nor q_ref "
+                                 "(DP-31 auto-confirm bind)")
+                    continue
+                # arm (a): orchestrator-authored dispositions MUST have been presented verbatim.
+                if isinstance(_item, str) and _item not in _presented:
+                    rep.fail(f"{_i36_stem} (unpresented {_item!r})",
+                             "an orchestrator-authored disposition covers an item that appears in NO R-CONFIRM "
+                             "items_presented[] (DISSENT-3 presentation bind — records cannot self-cover)")
+                    continue
+                if isinstance(_qref, str) and _qref in _q_ip and isinstance(_item, str) \
+                        and _item not in _q_ip[_qref]:
+                    rep.fail(f"{_i36_stem} (q_ref join {_item!r})",
+                             f"disposition q_ref {_qref!r} names a question whose items_presented[] does not "
+                             "contain the item verbatim (DP-29 per-disposition join)")
+            # bijection: every FINAL DoD/NG item is covered by a (latest) disposition via the union.
+            _covered = set()
+            for disp in _dispositions:
+                _dp, _item, _edt = disp.get("disposition"), disp.get("item"), disp.get("edited_to")
+                if _dp == "edit" and isinstance(_edt, str):
+                    _covered.add(_edt)
+                elif _dp == "confirm" and isinstance(_item, str):
+                    _covered.add(_item)
+            for _fi in sorted(_dlg_final):
+                if _fi not in _covered:
+                    rep.fail(f"{_i36_stem} (bijection {_fi!r})",
+                             "a final definition_of_done/non_goals item is covered by no R-CONFIRM disposition "
+                             "(MC-7 disposition<->list bijection)")
+
+        # I36-1b [carried U01 major dissent] :154-161 — recommended-echo counter-join (BOTH disjuncts).
+        #   DISJUNCT-1 (the SPEC's PRIMARY, :154-161): a disposition claiming origin:human-elicited whose
+        #   `item` is present VERBATIM in its ELICITING round's question `recommended`/`offered` text is
+        #   orchestrator-offered BY CONSTRUCTION (DP-31 disjunct 1) and MUST NOT claim the human-elicited
+        #   exemption — it must take a hardened draft_edits pairing or an R-CONFIRM presentation. Pure string
+        #   arithmetic over already-REQUIRED literal fields; closes the proven happy-path where a "No
+        #   additions beyond: NG1..NGn" recommended blob is one-clicked (a==recommended, deviation False, no
+        #   probe) and every item claims human-elicited. Resolve the eliciting round via elicited_round_ref
+        #   (or q_ref), SAME record only (the I17 self-corroboration bar).
+        for d in _dialogues:
+            _rn1b = _dlg_rounds(d)
+            _round_by_key, _q_by_id = {}, {}
+            for r in _rn1b:
+                _k = _as_int(r.get("round"))
+                if _k is not None:
+                    _round_by_key[str(_k)] = r
+                for q in (r.get("questions") or []):
+                    if isinstance(q, dict) and isinstance(q.get("qid"), str):
+                        _q_by_id[q["qid"]] = q
+                        _round_by_key[re.sub(r"\.q[0-9]+$", "", q["qid"])] = r   # "p2.r2.q1" -> "p2.r2"
+            for r in _rn1b:
+                for disp in (r.get("dispositions") or []):
+                    if not isinstance(disp, dict) or disp.get("origin") != "human-elicited":
+                        continue
+                    _item = disp.get("item")
+                    if not (isinstance(_item, str) and _item.strip()):
+                        continue
+                    _texts, _qref = [], disp.get("q_ref")
+                    if isinstance(_qref, str) and _qref in _q_by_id:
+                        _texts += [_q_by_id[_qref].get("recommended"), _q_by_id[_qref].get("offered")]
+                    _erf = disp.get("elicited_round_ref")
+                    _er = _round_by_key.get(_erf) if isinstance(_erf, str) else None
+                    if _er is None and _as_int(_erf) is not None:
+                        _er = _round_by_key.get(str(_as_int(_erf)))
+                    if isinstance(_er, dict):
+                        for q in (_er.get("questions") or []):
+                            if isinstance(q, dict):
+                                _texts += [q.get("recommended"), q.get("offered")]
+                    if any(isinstance(_t, str) and _item in _t for _t in _texts):
+                        rep.fail(f"{_i36_stem} (recommended-echo launder)",
+                                 f"disposition item {_item!r} claims origin:human-elicited but is present "
+                                 "VERBATIM in its eliciting round's question recommended/offered text — an "
+                                 "orchestrator-offered item cannot claim the human-elicited exemption "
+                                 "(I36-1b disjunct-1, the SPEC's primary recommended-echo counter-join)")
+        #   DISJUNCT-2 (the ADOPTED stronger draft_edits join, kept): a draft_edits `amendment` must NOT be a
+        #   verbatim substring of `offered` — a genuine human edit adds text absent from the offered draft.
+        for d in _dialogues:
+            for r in _dlg_rounds(d):
+                eff = r.get("effects") if isinstance(r.get("effects"), dict) else {}
+                for de in (eff.get("draft_edits") or []):
+                    if not isinstance(de, dict):
+                        continue
+                    _off, _amd = de.get("offered"), de.get("amendment")
+                    if isinstance(_off, str) and isinstance(_amd, str) and _amd.strip() and _amd.strip() in _off:
+                        rep.fail(f"{_i36_stem} (recommended-echo launder)",
+                                 "a draft_edits `amendment` is a verbatim substring of the `offered` draft — "
+                                 "a genuine human edit must add text absent from the offered recommendation "
+                                 "(I36-1b recommended-echo counter-join, the adopted stronger bind)")
+
+        # I36-2 [MC-8] :162-168 — forbid-round residue joins + origin bind (both DP-31 disjuncts).
+        for d in _dialogues:
+            if d.get("surface_id") != "DS-2":
+                continue
+            for r in _dlg_rounds(d):
+                if r.get("kind") != "R-FORBID":
+                    continue
+                eff = r.get("effects") if isinstance(r.get("effects"), dict) else {}
+                for nga in (eff.get("non_goals_added") or []):
+                    if isinstance(nga, str) and nga not in set(_dlg_ng):
+                        rep.fail(f"{_i36_stem} (forbid residue)",
+                                 f"non_goals_added entry {nga!r} is not present verbatim in "
+                                 "clarifications.json.non_goals (MC-8/DP-25 verbatim join)")
+                _topics = {q.get("battery_topic") for q in (r.get("questions") or []) if isinstance(q, dict)}
+                _misst = sorted(_DLG_TOPICS - _topics)
+                if _misst:
+                    rep.fail(f"{_i36_stem} (forbid battery)",
+                             f"R-FORBID battery is missing battery_topic value(s) {_misst} (DP-35 all-four "
+                             "coverage)")
+                if eff.get("clean_sweep") is True and _dlg_blank(eff.get("clean_sweep_statement")):
+                    rep.fail(f"{_i36_stem} (clean sweep)",
+                             "clean_sweep true but no clean_sweep_statement (DP-36)")
+                # disjunct-2 (draft_edits) hardening: `offered` == some question's `recommended` verbatim;
+                #   `amendment` a verbatim substring of some answer's literal `a` (else genuineness is AR).
+                _recs = {q.get("recommended") for q in (r.get("questions") or []) if isinstance(q, dict)}
+                _ans = [a.get("a") for a in (r.get("answers") or []) if isinstance(a, dict)]
+                for de in (eff.get("draft_edits") or []):
+                    if not isinstance(de, dict):
+                        continue
+                    _off, _amd = de.get("offered"), de.get("amendment")
+                    if isinstance(_off, str) and _off not in _recs:
+                        rep.fail(f"{_i36_stem} (draftedit unbacked)",
+                                 "a draft_edits `offered` does not equal any R-FORBID question's `recommended` "
+                                 "verbatim (MC-8 disjunct-2 bind — a fabricable pairing)")
+                    if isinstance(_amd, str) and not any(isinstance(a, str) and _amd in a for a in _ans):
+                        rep.fail(f"{_i36_stem} (draftedit unbacked)",
+                                 "a draft_edits `amendment` is not a verbatim substring of any answer's literal "
+                                 "`a` (MC-8 disjunct-2 bind — a fabricable pairing)")
+
+        # I36-3 [MC-11] :169-170 — never-re-ask: a verbatim-duplicate item across rounds with no reopened_by.
+        _seen_items, _flagged_reask = {}, set()
+        for d in _dialogues:
+            for r in _dlg_rounds(d):
+                _rn = _as_int(r.get("round"))
+                for disp in (r.get("dispositions") or []):
+                    if not isinstance(disp, dict):
+                        continue
+                    _it = disp.get("item")
+                    if not isinstance(_it, str):
+                        continue
+                    _prev = _seen_items.get(_it)
+                    if _prev is not None and _prev != _rn and _dlg_blank(disp.get("reopened_by")) \
+                            and _it not in _flagged_reask:
+                        rep.fail(f"{_i36_stem} (re-ask {_it!r})",
+                                 "a settled item is re-presented in a later round with no `reopened_by` "
+                                 "reference (DP-42 never-re-ask)")
+                        _flagged_reask.add(_it)
+                    _seen_items.setdefault(_it, _rn)
+
+        # I36-4 [MC-14] :171-175 — register-row coverage. Every material + human-gate resolved register
+        #   row resolved in a series-covered visit appears by id in some DS-2 round's register_rows_resolved[];
+        #   exemption: the row carries a recorded provenance ref (round_ref — the SS-12 / DP-18 impasse path).
+        if any(d.get("surface_id") == "DS-2" for d in _dialogues):
+            _resolved_ids = set()
+            for d in _dialogues:
+                if d.get("surface_id") != "DS-2":
+                    continue
+                for r in _dlg_rounds(d):
+                    eff = r.get("effects") if isinstance(r.get("effects"), dict) else {}
+                    for rid in (eff.get("register_rows_resolved") or []):
+                        if isinstance(rid, int):
+                            _resolved_ids.add(rid)
+            for row in _dlg_regrows:
+                if (row.get("materiality") == "material" and row.get("resolution_source") == "human-gate"
+                        and row.get("resolved") is True):
+                    rid = row.get("id")
+                    if isinstance(rid, int) and rid not in _resolved_ids and _dlg_blank(row.get("round_ref")):
+                        rep.fail(f"{_i36_stem} (register-row coverage {rid})",
+                                 f"material human-gate register row {rid} is resolved but is covered by no DS-2 "
+                                 "round's register_rows_resolved[] and carries no recorded provenance "
+                                 "round_ref (MC-14)")
+
+        # N-I36 [MC-12] :350 §6 — fatigue telemetry (advisory NOTE, never a FAIL): every recorded answer
+        #   non-deviating AND every disposition a plain confirm is the all-bulk-confirm rubber-stamp signature.
+        _all_ans = [a for d in _dialogues for r in _dlg_rounds(d) for a in (r.get("answers") or [])
+                    if isinstance(a, dict)]
+        _all_disp = [disp for d in _dialogues for r in _dlg_rounds(d) for disp in (r.get("dispositions") or [])
+                     if isinstance(disp, dict)]
+        if (_confirm_present and _all_ans and _all_disp
+                and all(a.get("deviation") is False for a in _all_ans)
+                and all(disp.get("disposition") == "confirm" for disp in _all_disp)
+                and not args.quiet):
+            print(f"  NOTE  {_i36_note} (rubber-stamp signature): every recorded answer is non-deviating and "
+                  "every R-CONFIRM disposition is a plain confirm — the all-bulk-confirm rubber-stamp "
+                  "signature (advisory; DP-45/MC-12)")
+
+    if _dlg_t2 and len(rep.problems) == _i36_probs0:
+        rep.ok(f"{_i36_stem} (disposition bijection + three-arm presentation union + anti-stuffing + "
+               "recommended-echo counter-join + forbid residue + register-row coverage OK)")
+
+    # ---- I37 dialogue termination, probe accounting & instance closure (U01) — :177-205 ----
+    # trigger class: T2 shape (adoption). PRESERVES. unrecorded-trigger residual is Limitation V.
+    _i37_stem = LABEL_STEM['i37_dialogue']
+    _i37_probs0 = len(rep.problems)
+    if _dlg_ok:
+        # I37-1 [MC-9] :181-189 — termination enum + conditional payloads + probes_lapsed rung LEGALITY.
+        for d in _dialogues:
+            _term = d.get("termination") if isinstance(d.get("termination"), dict) else {}
+            _reason = _term.get("reason")
+            _rn = _dlg_rounds(d)
+            _qid_round, _rprobe_rounds, _discharge_rounds = {}, set(), set()
+            for r in _rn:
+                _k = _as_int(r.get("round"))
+                for q in (r.get("questions") or []):
+                    if isinstance(q, dict) and isinstance(q.get("qid"), str) and _k is not None:
+                        _qid_round[q.get("qid")] = _k
+                if r.get("kind") == "R-PROBE" and _k is not None:
+                    _rprobe_rounds.add(_k)
+                if isinstance(r.get("probe_discharge"), dict) and _k is not None:
+                    _discharge_rounds.add(_k)
+            _rnums = [_as_int(r.get("round")) for r in _rn if _as_int(r.get("round")) is not None]
+            _max_round = max(_rnums) if _rnums else 0
+            # conditional payloads (RAW mirror of the I25 allOf).
+            if _reason == "capped-unconverged":
+                if not isinstance(_term.get("impasse_dossier"), dict):
+                    rep.fail(f"{_i37_stem} (capped no dossier {d.get('instance')})",
+                             "termination capped-unconverged but no impasse_dossier record (DP-18/MC-9)")
+                if not [x for x in (_term.get("capped_open") or []) if isinstance(x, dict)]:
+                    rep.fail(f"{_i37_stem} (capped open {d.get('instance')})",
+                             "termination capped-unconverged but capped_open[] is empty (DP-18)")
+            if _reason == "halt-pending":
+                if not [x for x in (_term.get("pending_questions") or []) if isinstance(x, str) and x.strip()]:
+                    rep.fail(f"{_i37_stem} (halt pending {d.get('instance')})",
+                             "termination halt-pending but pending_questions[] is empty (DP-19/MC-9)")
+            if d.get("surface_id") == "DS-2" and _reason in ("converged", "human-early"):
+                if _dlg_blank(_term.get("gate_answer")):
+                    rep.fail(f"{_i37_stem} (gate answer {d.get('instance')})",
+                             "DS-2 converged/human-early requires a non-blank termination.gate_answer "
+                             "(DP-26/MC-9 — DP-16's fourth conjunct)")
+            for pl in (_term.get("probes_lapsed") or []):
+                if not isinstance(pl, dict):
+                    continue
+                _cause, _pqref = pl.get("cause"), pl.get("q_ref")
+                if _cause == "human-early":
+                    if _reason != "human-early":
+                        rep.fail(f"{_i37_stem} (rung human-early {d.get('instance')})",
+                                 "a probes_lapsed cause 'human-early' is legal only when termination.reason == "
+                                 "human-early (MC-9 rung legality)")
+                elif _cause == "cap-exhausted":
+                    if _reason == "human-early":
+                        rep.fail(f"{_i37_stem} (rung cap {d.get('instance')})",
+                                 "cause 'cap-exhausted' is illegal when termination.reason == human-early "
+                                 "(MC-9 rung legality)")
+                    else:
+                        _k = _qid_round.get(_pqref)
+                        if _k is None:
+                            # fail-CLOSED (mirror I37-3's dangling rollback_ref bar): a cap-exhausted lapse
+                            #   whose q_ref resolves to NO recorded round cannot be shown rung-legal — an
+                            #   unresolvable lapse ref must FAIL, never silently pass (the round-1 fail-open).
+                            rep.fail(f"{_i37_stem} (lapse dangling q_ref {d.get('instance')})",
+                                     f"probes_lapsed cause cap-exhausted names q_ref {_pqref!r} that resolves "
+                                     "to no recorded round — an unresolvable lapse ref fails closed (MC-9 rung "
+                                     "legality; mirror of the I37-3 dangling-ref bar)")
+                        elif _k < _max_round \
+                                and not (any(rr > _k for rr in _rprobe_rounds)
+                                         or any(rr > _k for rr in _discharge_rounds)):
+                            rep.fail(f"{_i37_stem} (lapse wrong rung {d.get('instance')})",
+                                     f"probes_lapsed cause cap-exhausted but the trigger fired in round {_k} "
+                                     f"with a later round on record and no probe_discharge / R-PROBE in a round "
+                                     f"> {_k} — rung-choice laundering (MC-9/DP-12 legality arithmetic)")
+
+        # I37-2 [MC-10] :190-196 — probe-obligation accounting (no-unserved via trigger (c); no-wrong-rung
+        #   is I37-1's arithmetic). A halt-pending surface SUSPENDS its obligations (DP-50 row 7).
+        for d in _dialogues:
+            _term = d.get("termination") if isinstance(d.get("termination"), dict) else {}
+            _reason = _term.get("reason")
+            if _reason == "halt-pending":
+                continue
+            _fired_c = any(isinstance(disp, dict) and disp.get("disposition") in ("edit", "drop")
+                           for r in _dlg_rounds(d) for disp in (r.get("dispositions") or []))
+            if _fired_c:
+                _served = (any(r.get("kind") == "R-PROBE" for r in _dlg_rounds(d))
+                           or any(isinstance(r.get("probe_discharge"), dict) for r in _dlg_rounds(d))
+                           or bool([x for x in (_term.get("probes_lapsed") or []) if isinstance(x, dict)])
+                           or _reason == "human-early")
+                if not _served:
+                    rep.fail(f"{_i37_stem} (probe unserved {d.get('instance')})",
+                             "an R-CONFIRM edit/drop fired a DP-12(c) probe obligation with none of "
+                             "{R-PROBE round, probe_discharge, probes_lapsed entry, human-early} recorded "
+                             "(MC-10 no-unserved)")
+
+        # I37-3 [MC-13] :197-205 — instance closure: DP-49 vocabulary + uniqueness + p2-r<k> license join
+        #   with INJECTIVITY + dense/ordered k; DS-4/DS-6 key-target existence joins.
+        _inst_counts, _p2r, _ks, _licenses = {}, [], [], []
+        for d in _dialogues:
+            _inst = d.get("instance")
+            if not (isinstance(_inst, str) and _DLG_INST_RE.match(_inst)):
+                rep.fail(f"{_i37_stem} (instance vocabulary)",
+                         f"instance {_inst!r} is not in the DP-49 closed per-surface vocabulary "
+                         "(free-form minting is a transcript defect)")
+                continue
+            _inst_counts[_inst] = _inst_counts.get(_inst, 0) + 1
+            if _inst.startswith("p2-r"):
+                _p2r.append(d)
+        for _inst, _n in sorted(_inst_counts.items()):
+            if _n > 1:
+                rep.fail(f"{_i37_stem} (instance uniqueness)",
+                         f"instance {_inst!r} appears {_n}x (DP-49 per-key uniqueness / cardinality)")
+        for d in _p2r:
+            _inst, _rbr = d.get("instance"), d.get("rollback_ref")
+            if _dlg_blank(_rbr):
+                rep.fail(f"{_i37_stem} (reentry unlicensed {_inst})",
+                         "a p2-r<k> re-entry carries no resolvable rollback_ref license (DP-49/MC-13 — a "
+                         "re-entry must be purchased by a recorded human rollback decision)")
+            else:
+                _licenses.append(str(_rbr).strip())
+            _m = re.match(r"^p2-r([0-9]+)$", _inst or "")
+            if _m:
+                _ks.append(int(_m.group(1)))
+        _dupL = sorted({l for l in _licenses if _licenses.count(l) > 1})
+        if _dupL:
+            rep.fail(f"{_i37_stem} (reentry non-injective)",
+                     f"distinct p2-r<k> re-entries share rollback_ref license(s) {_dupL} — each must "
+                     "reference a DISTINCT license record (MC-13 injectivity)")
+        if _ks and sorted(_ks) != list(range(1, len(_ks) + 1)):
+            rep.fail(f"{_i37_stem} (reentry k-density)",
+                     f"p2-r<k> indices {sorted(_ks)} are not the dense, ordered 1..{len(_ks)} sequence "
+                     "(MC-13 the k-th bind)")
+        for d in _dialogues:
+            _sid, _inst = d.get("surface_id"), d.get("instance")
+            if _sid == "DS-4" and isinstance(_inst, str):
+                _m = re.match(r"^p7-(U[0-9]{2,})-[0-9]+$", _inst)
+                if _m:
+                    _uid = _m.group(1)
+                    _ud = os.path.join(units_dir, _uid)
+                    if not (os.path.exists(os.path.join(_ud, "disagreement.md"))
+                            or os.path.exists(os.path.join(_ud, "disagreement.json"))):
+                        rep.fail(f"{_i37_stem} (DS-4 target {_inst})",
+                                 f"DS-4 {_inst} names no units/{_uid}/disagreement record (DP-49 key-target join)")
+            if _sid == "DS-6" and isinstance(_inst, str):
+                _m = re.match(r"^bga-(A[0-9]{2,})$", _inst)
+                if _m and not os.path.exists(os.path.join(rd, "amendments", f"{_m.group(1)}.json")):
+                    rep.fail(f"{_i37_stem} (DS-6 target {_inst})",
+                             f"DS-6 {_inst} names no amendments/{_m.group(1)}.json (DP-49 key-target join)")
+
+    if _dlg_t2 and len(rep.problems) == _i37_probs0:
+        rep.ok(f"{_i37_stem} (termination enum + conditional payloads + rung-choice legality + probe "
+               "accounting + instance closure with license injectivity OK)")
+
+    # ---- I38 ask-first consequential-default legality (socratic-guardrail 1.10.0; U02/U04) ----
+    # ask-first.md §invariant/§trigger/§laundering. OFFLINE post-hoc predicate over emitted artifacts:
+    # gates NO FSM transition, adds no back-edge, never guards LT7, adds no REQUIRED_GATES flag => the
+    # correction-loop termination proof (Claim D), AO-1..7 and I1-I34 are UNTOUCHED (PRESERVES; AF-22).
+    # All schema deltas are OPTIONAL (archives stay schema-valid). I27 (:2622+) and I8 (:4804+) are
+    # carried BYTE-UNTOUCHED: I27-6 keeps its N-I27 NOTE at all versions and I8 stays LOUD — so a
+    # >=1.10.0 material consequential logged-default draws BOTH N-I27 AND this AF-14 FAIL (intended; the
+    # AF-40 marker-aware I8 relaxation is DECLINED here — U06's flagged item). CC(r) = AF-1 v AF-33: K1
+    # (dimension in the three ask-first classes) OR K2 (r.id fed DoD/NG/out-of-scope text via a
+    # *_provenance register_ids union, incl. the AF-33 out_of_scope block so the third channel cannot
+    # silently drop) — MATERIALITY-BLIND (AF-2: CC NEVER reads r.materiality; the downgrade dodge is
+    # dead). Split trigger (AF-44): T1 = _i27_struct ∧ stamp>=1.10.0 (AF-16req/18/19/20); T1 v T1h
+    # (AF-14/15); T1h = stamp ∧ pending_halt marker, NO struct conjunct (the true-P2 halt is pre-
+    # structural — AF-35 NOTE, AF-36); T1v = stamp-only (AF-38 NOTE); T2 = adopted key present at ANY
+    # version (AF-16 dangling, AF-17, AF-35 shape, AF-42, AF-45). Reads clarifications.json opt keys RAW
+    # (the I22/I25/I26/I27 raw-parse posture; reuses I27's _i27_clar_raw); never crashes.
+    _AF_SHIP = "1.10.0"                        # release shipping I38; validator_version >= arms T1/T1v
+    _af_stem = LABEL_STEM['i38_askfirst']
+    _af_note = LABEL_STEM['note_i38']
+    _AF_KDIM = {"success-criteria", "scope-boundaries", "failure-modes"}   # AF-1 K1 (register-#2 classes)
+    _AF_PROV_BLOCKS = ("definition_of_done_provenance", "non_goals_provenance", "out_of_scope_provenance")
+
+    def _af_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    _af_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    _af_t1v = _i27_semver_ge(_af_ver, _AF_SHIP)                 # stamp-only arm (AF-44 _i35_t1v)
+    _af_t1 = _i27_struct and _af_t1v                            # version-gated presence (AF-23; reuse _i27_struct)
+    _af_clar = _i27_clar_raw if isinstance(_i27_clar_raw, dict) else None   # RAW clarifications (reuse I27 parse)
+    _af_halt = _af_clar.get("pending_halt") if isinstance(_af_clar, dict) else None
+    _af_halt = _af_halt if isinstance(_af_halt, dict) else None
+    _af_t1h = _af_t1v and _af_halt is not None                  # halt arm: stamp ∧ marker (AF-44 _i35_t1h)
+
+    _af_reg = [r for r in ((_af_clar.get("ambiguity_register") if isinstance(_af_clar, dict) else None) or [])
+               if isinstance(r, dict)]
+    _af_regids = {r.get("id") for r in _af_reg if isinstance(r.get("id"), int)}
+    _af_dod = set(x for x in ((_af_clar.get("definition_of_done") if isinstance(_af_clar, dict) else None) or [])
+                  if isinstance(x, str))
+    _af_ng = set(x for x in ((_af_clar.get("non_goals") if isinstance(_af_clar, dict) else None) or [])
+                 if isinstance(x, str))
+    _af_scope = _af_clar.get("scope") if isinstance(_af_clar, dict) else None
+    _af_oos = set(x for x in ((_af_scope.get("out_of_scope") if isinstance(_af_scope, dict) else None) or [])
+                  if isinstance(x, str))
+    _AF_MIRROR = {"definition_of_done_provenance": _af_dod,
+                  "non_goals_provenance": _af_ng,
+                  "out_of_scope_provenance": _af_oos}
+
+    # provenance blocks (RAW) + the K2 register_ids union across ALL THREE blocks (AF-1 + AF-33).
+    _af_prov_items = []            # list of (block_name, item_dict)
+    _af_provids = set()
+    for _bn in _AF_PROV_BLOCKS:
+        for _pi in ((_af_clar.get(_bn) if isinstance(_af_clar, dict) else None) or []):
+            if isinstance(_pi, dict):
+                _af_prov_items.append((_bn, _pi))
+                for _rid in (_pi.get("register_ids") or []):
+                    if isinstance(_rid, int):
+                        _af_provids.add(_rid)
+    _af_prov_present = bool(_af_prov_items)
+
+    def _af_prong(r):
+        _p = []
+        if r.get("dimension") in _AF_KDIM:
+            _p.append("K1")
+        if isinstance(r.get("id"), int) and r.get("id") in _af_provids:
+            _p.append("K2")
+        return "/".join(_p)
+
+    def _af_cc(r):
+        # CC(r) = K1(r) v K2(r); MATERIALITY-BLIND (AF-2 — never reads r.materiality).
+        return bool(_af_prong(r))
+
+    # transcript round-id set (opaque strings; AF-28) — instance, instance.r<k>, qids + qid prefixes.
+    _af_round_ids = set()
+    for d in _dialogues:
+        _inst = d.get("instance")
+        if isinstance(_inst, str) and _inst.strip():
+            _af_round_ids.add(_inst.strip())
+        for r in _dlg_rounds(d):
+            _k = _as_int(r.get("round"))
+            if isinstance(_inst, str) and _k is not None:
+                _af_round_ids.add(f"{_inst}.r{_k}")
+            for q in (r.get("questions") or []):
+                if isinstance(q, dict) and isinstance(q.get("qid"), str) and q["qid"].strip():
+                    _qid = q["qid"].strip()
+                    _af_round_ids.add(_qid)
+                    _af_round_ids.add(re.sub(r"\.q[0-9]+$", "", _qid))
+
+    def _af_resolves(ref):
+        return (not _af_blank(ref)) and str(ref).strip() in _af_round_ids
+
+    _af_t2any = (_af_prov_present or _af_halt is not None
+                 or any(not _af_blank(r.get("round_ref")) for r in _af_reg))
+    _af_probs0 = len(rep.problems)
+
+    # halt-freshness (AF-42): a run cannot be "halted at the clarification surface" with EXECUTED work
+    # on disk. Cartography/graph presence alone does NOT violate freshness (a P3-round halt is legit).
+    _af_synth = os.path.exists(os.path.join(rd, "SYNTHESIS.md"))
+    _af_debrief = any(os.path.exists(os.path.join(units_dir, _u, "debrief.json")) for _u in unit_subdirs)
+    _af_fresh = (not _af_synth) and phase not in ("P8_SYNTHESIS", "DONE") and (not _af_debrief)
+
+    if isinstance(_af_clar, dict):
+        # AF-14 illegal default (T1 v T1h) — a CC row resolved logged-default is ILLEGAL (register #2).
+        if _af_t1 or _af_t1h:
+            for r in _af_reg:
+                if _af_cc(r) and r.get("resolution_source") == "logged-default":
+                    rep.fail(f"{_af_stem} (illegal default {r.get('id', '?')})",
+                             f"consequential-class row ({_af_prong(r)} prong) is logged-default; register #2 "
+                             "makes this class ask-first (AF-14; CC is materiality-blind)")
+        # AF-15 dimension required (T1 v T1h) — every register row must carry an enum dimension.
+        if _af_t1 or _af_t1h:
+            for r in _af_reg:
+                if r.get("dimension") not in _I27_DIMS:
+                    rep.fail(f"{_af_stem} (dimension missing {r.get('id', '?')})",
+                             f"register row carries dimension {r.get('dimension')!r} not in the nine-literal "
+                             "enum — an untagged row silently evades K1 (AF-15; version-gated requiredness)")
+        # AF-16 unlinked human-gate (T1 requiredness) + dangling round_ref (T2 adoption, any version).
+        for r in _af_reg:
+            _rr = r.get("round_ref")
+            if _af_t1 and _af_cc(r) and r.get("resolution_source") == "human-gate":
+                if not _af_resolves(_rr):
+                    rep.fail(f"{_af_stem} (unlinked human-gate {r.get('id', '?')})",
+                             "consequential human-gate row has no round_ref resolving into the dialogue "
+                             "transcript round-id set (AF-16; human-gate without dialogue residue is LP-5)")
+            elif (not _af_blank(_rr)) and not _af_resolves(_rr):
+                rep.fail(f"{_af_stem} (dangling round_ref {r.get('id', '?')})",
+                         f"round_ref {_rr!r} resolves into no dialogue transcript round id "
+                         "(AF-16 T2 adoption arm — writing the key submits to the check)")
+        # AF-17 provenance well-formedness (T2 adoption) — all three blocks checked identically.
+        if _af_prov_present:
+            for _bn, _pi in _af_prov_items:
+                _dangling = sorted(i for i in (_pi.get("register_ids") or [])
+                                   if isinstance(i, int) and i not in _af_regids)
+                if _dangling:
+                    rep.fail(f"{_af_stem} (provenance dangling)",
+                             f"{_bn} item register_ids {_dangling} resolve into no register row (AF-17)")
+                _item = _pi.get("item")
+                if isinstance(_item, str) and _item not in _AF_MIRROR[_bn]:
+                    rep.fail(f"{_af_stem} (provenance dangling)",
+                             f"{_bn} item {_item!r} is not a verbatim member of its mirror anchor list (AF-17)")
+        # AF-45 provenance attribution coherence + round-resolution (T2 adoption).
+        if _af_prov_present:
+            for _bn, _pi in _af_prov_items:
+                _src, _rr = _pi.get("source"), _pi.get("round_ref")
+                if _src == "register-row" and not [i for i in (_pi.get("register_ids") or [])
+                                                   if isinstance(i, int)]:
+                    rep.fail(f"{_af_stem} (provenance attribution)",
+                             f"{_bn} item claims source 'register-row' but carries no register_ids (AF-45)")
+                if _src == "human-round" and _af_blank(_rr):
+                    rep.fail(f"{_af_stem} (provenance attribution)",
+                             f"{_bn} item claims source 'human-round' but carries no round_ref (AF-45)")
+                if (not _af_blank(_rr)) and not _af_resolves(_rr):
+                    rep.fail(f"{_af_stem} (provenance round dangling)",
+                             f"{_bn} item round_ref {_rr!r} resolves into no transcript round id (AF-45)")
+        # AF-35 halt-marker shape (T2 adoption, any version) — register_ids must resolve.
+        if _af_halt is not None:
+            _hd = sorted(i for i in (_af_halt.get("register_ids") or [])
+                         if isinstance(i, int) and i not in _af_regids)
+            if _hd:
+                rep.fail(f"{_af_stem} (halt dangling {_hd})",
+                         f"pending_halt.register_ids {_hd} resolve into no register row (AF-35)")
+        # AF-36 halt-materiality coherence (T1h) — EVERY marker-listed row must be materiality:material.
+        if _af_t1h:
+            _byid = {r.get("id"): r for r in _af_reg if isinstance(r.get("id"), int)}
+            for _hi in [i for i in (_af_halt.get("register_ids") or []) if isinstance(i, int)]:
+                _hr = _byid.get(_hi)
+                if _hr is not None and _hr.get("materiality") != "material":
+                    rep.fail(f"{_af_stem} (halt materiality {_hi})",
+                             "a pending_halt-listed row is not materiality:material — a gap the run halted "
+                             "for is material by that act; declaring it minor is the clean-exit dodge (AF-36)")
+        # AF-42 halt-freshness / anti-forgery (T2 marker adoption, any version).
+        if _af_halt is not None and not _af_fresh:
+            rep.fail(f"{_af_stem} (halt after work)",
+                     "pending_halt present but the run carries completed-work evidence (SYNTHESIS.md / P8 "
+                     "phase / a unit debrief.json) — a run cannot be halted at the clarification surface "
+                     "with executed work on disk (AF-42 park-and-ship closure)")
+        # AF-18 open consequential with structural evidence (T1) — freshness-conditional marker exemption.
+        if _af_t1:
+            _af_listed = set()
+            if _af_halt is not None and _af_fresh:
+                _af_listed = {i for i in (_af_halt.get("register_ids") or []) if isinstance(i, int)}
+            for r in _af_reg:
+                if _af_cc(r) and r.get("resolved") is False and r.get("id") not in _af_listed:
+                    rep.fail(f"{_af_stem} (open consequential {r.get('id', '?')})",
+                             "consequential row is open (resolved:false) and unlisted while structural work "
+                             "exists — proceeding on a consequential gap is illegal (AF-18; the marker "
+                             "exemption is halt-freshness-conditional)")
+        # AF-19 verbatim spot-check (T1 ∧ phase in {P8_SYNTHESIS, DONE}).
+        if _af_t1 and phase in ("P8_SYNTHESIS", "DONE"):
+            _af_vc = None
+            _af_vp = os.path.join(rd, "verify.json")
+            if os.path.exists(_af_vp):
+                try:
+                    _af_vc = load_json(_af_vp)
+                except Exception:
+                    _af_vc = None
+            _af_checked = {s.get("register_id") for s in
+                           ((_af_vc.get("consequential_verbatim_check") if isinstance(_af_vc, dict) else None) or [])
+                           if isinstance(s, dict) and not _af_blank(s.get("outcome"))}
+            for r in _af_reg:
+                if _af_cc(r) and r.get("resolution_source") == "prompt-verbatim" and r.get("id") not in _af_checked:
+                    rep.fail(f"{_af_stem} (verbatim spot-check {r.get('id', '?')})",
+                             "consequential prompt-verbatim row is not enumerated with a non-blank outcome in "
+                             "verify.json consequential_verbatim_check[] (AF-19)")
+
+        # ---- NOTE lines (advisory; never a non-zero exit) ----
+        # AF-35 NOTE (T1h): a well-formed marker listing >=1 CC row reports the pending question + the
+        #   AF-43 structural-artifact count (the R8 discriminator) — visibility, never a clean exit.
+        if _af_t1h and not args.quiet:
+            _hids = [i for i in (_af_halt.get("register_ids") or []) if isinstance(i, int)]
+            _byid = {r.get("id"): r for r in _af_reg if isinstance(r.get("id"), int)}
+            if (_hids and not [i for i in _hids if i not in _af_regids]
+                    and any(_af_cc(_byid[i]) for i in _hids if i in _byid)):
+                _nstruct = (sum(1 for _p in ("CARTOGRAPHY.md", "GRAPH.md", "SYNTHESIS.md")
+                                if os.path.exists(os.path.join(rd, _p)))
+                            + (1 if (docs.get("cartography") is not None or graph_json_exists) else 0)
+                            + len(unit_subdirs))
+                print(f"  NOTE  {_af_note} (halted pending human): row(s) {_hids} pending at "
+                      f"{_af_halt.get('surface')!r}; {_nstruct} structural artifact(s)")
+        # AF-20 verbatim-heavy NOTE (T1): > half of consequential rows resolved prompt-verbatim.
+        if _af_t1 and not args.quiet:
+            _cc_rows = [r for r in _af_reg if _af_cc(r)]
+            _cc_pv = [r for r in _cc_rows if r.get("resolution_source") == "prompt-verbatim"]
+            if _cc_rows and len(_cc_pv) * 2 > len(_cc_rows):
+                print(f"  NOTE  {_af_note} (verbatim-heavy): {len(_cc_pv)}/{len(_cc_rows)} consequential "
+                      "rows resolved prompt-verbatim — stretch-laundering suspect (AF-20; LP-4)")
+        # AF-38 unsolicited-authorship NOTE (T1v stamp-only): self-declared orchestrator-draft items.
+        if _af_t1v and _af_prov_present and not args.quiet:
+            _auth = [_pi.get("item") for _bn, _pi in _af_prov_items if _pi.get("source") == "orchestrator-draft"]
+            if _auth:
+                print(f"  NOTE  {_af_note} (unsolicited authorship): {_auth} item(s) authored from neither a "
+                      "register row nor a dialogue round (AF-38; self-declared authorship only)")
+
+    # AF-21 success line (armed via T1 or an adopted key + no clause failed). Zero-trigger runs (stamp
+    # unarmed / stamp-only with no adopted key) emit nothing (adoption-scoped emission).
+    if (_af_t1 or _af_t2any) and isinstance(_af_clar, dict) and len(rep.problems) == _af_probs0:
+        _cc_n = sum(1 for r in _af_reg if _af_cc(r))
+        rep.ok(f"{_af_stem} (T1={_af_t1}, {_cc_n} consequential row(s); keying + linkage + legality OK)")
+
+    # ---- I39 anchor confirmation, provenance & baseline integrity (socratic-guardrail 1.10.0; U03/U04/U06) ----
+    # governance.md §1-§2/§5 (GV-3/7/8/9/11/23/34/35). OFFLINE post-hoc predicate over emitted
+    # artifacts: gates NO FSM transition, adds no back-edge, NEVER guards LT7, adds no REQUIRED_GATES
+    # flag => the correction-loop termination proof (Claim D), AO-1..7 and I1-I34 are UNTOUCHED
+    # (PRESERVES; GV-28/GV-33). All schema deltas are OPTIONAL (archives stay schema-valid). Reads
+    # clarifications.json.item_confirmations[]/anchors_retired[]/definition_of_done/non_goals RAW
+    # (reuses I27's _i27_clar_raw) and dialogues.json.anchors_baseline RAW (reuses _dlg_raw) — the
+    # I22/I25/I26/I27 raw-parse posture; never crashes. Two-level trigger (§1 doctrine): _gov_t1 =
+    # _i27_struct ∧ stamp>=1.10.0 (GV-9 fail-closed item_confirmations presence); _gov_semver1 =
+    # stamp>=1.10.0 (the anchors_baseline fail-closed dissent-1 arm on clarification_resolved).
+    # Adoption arms (T2) fire on item_confirmations/anchors_baseline PRESENCE at ANY version. GV-8(d)/
+    # GV-23 replay is anchored to the IMMUTABLE anchors_baseline (the I17 baseline_units pattern,
+    # :1835+) so a same-file coordinated list+record rewrite (dissent 2) cannot move the baseline it is
+    # judged against — closed up to transcript-file integrity (Limitation X: a fully-coordinated
+    # baseline+hash rewrite in the one transcript file is git-only-witnessed, unread). GV-29
+    # required-once-stamped presence is a flagged REVISES of the clarifications artifact contract for
+    # NEW runs only (archives silent via the version gate); no live guard, no FSM edge => PRESERVES.
+    _gov_stem = LABEL_STEM['i39_anchor']
+    _gov_note = LABEL_STEM['note_i39']
+    _GOV_SHIP = "1.10.0"
+    _gov_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    _gov_semver1 = _i27_semver_ge(_gov_ver, _GOV_SHIP)          # stamp-only arm (dissent 1)
+    _gov_t1 = _i27_struct and _gov_semver1                      # version-gated presence (GV-9; reuse _i27_struct)
+    _gov_gates = fsm.get("gates") if isinstance(fsm, dict) else None
+    _gov_gates = _gov_gates if isinstance(_gov_gates, dict) else {}
+    _gov_resolved = _gov_gates.get("clarification_resolved") is True
+    _gov_clar = _i27_clar_raw if isinstance(_i27_clar_raw, dict) else None   # RAW clarifications (reuse I27)
+    _gov_ic_present = isinstance(_gov_clar, dict) and "item_confirmations" in _gov_clar
+    _gov_ic = [r for r in ((_gov_clar.get("item_confirmations") if isinstance(_gov_clar, dict) else None) or [])
+               if isinstance(r, dict)]
+    _gov_retired = [r for r in ((_gov_clar.get("anchors_retired") if isinstance(_gov_clar, dict) else None) or [])
+                    if isinstance(r, dict)]
+    _gov_dod = [x for x in ((_gov_clar.get("definition_of_done") if isinstance(_gov_clar, dict) else None) or [])
+                if isinstance(x, str)]
+    _gov_ng = [x for x in ((_gov_clar.get("non_goals") if isinstance(_gov_clar, dict) else None) or [])
+               if isinstance(x, str)]
+    _gov_baseline = _dlg_raw.get("anchors_baseline") if isinstance(_dlg_raw, dict) else None
+    _gov_baseline = _gov_baseline if isinstance(_gov_baseline, dict) else None
+
+    def _gov_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _gov_anchor_hash(dod, ng):
+        # content hash over the two verbatim lists (GV-34); a self-inconsistent hash is a FAIL (§E).
+        canon = json.dumps({"definition_of_done": list(dod), "non_goals": list(ng)},
+                           ensure_ascii=False, separators=(",", ":"))
+        return "sha256:" + hashlib.sha256(canon.encode("utf-8")).hexdigest()
+
+    def _gov_superseded(idx):
+        # GV-35: r is superseded iff a LATER record carries prior_text == r.item on the same list.
+        r = _gov_ic[idx]
+        for j in range(idx + 1, len(_gov_ic)):
+            r2 = _gov_ic[j]
+            if r2.get("list") == r.get("list") and r2.get("prior_text") == r.get("item"):
+                return True
+        return False
+
+    def _gov_current_records(x, L):
+        # GV-35: the current record(s) for (x, L) — non-superseded records with item==x, list==L.
+        return [_gov_ic[i] for i in range(len(_gov_ic))
+                if _gov_ic[i].get("item") == x and _gov_ic[i].get("list") == L
+                and not _gov_superseded(i)]
+
+    def _gov_human_confirmed(x, L):
+        # GV-7: current record with disposition in {confirmed,edited,added} + a human evidence ref.
+        for r in _gov_current_records(x, L):
+            if r.get("disposition") in ("confirmed", "edited", "added") and (
+                    not _gov_blank(r.get("transcript_ref")) or not _gov_blank(r.get("amendment_ref"))):
+                return True
+        return False
+
+    _gov_probs0 = len(rep.problems)
+
+    # I39-4(i) [GV-9] — fail-closed item_confirmations presence on a stamped structural run.
+    if _gov_t1 and not _gov_ic_present:
+        rep.fail(f"{_gov_stem} (item_confirmations missing)",
+                 f"structural work + validator_version {_gov_ver!r} (>= {_GOV_SHIP}) but "
+                 "clarifications.json carries no item_confirmations[] — anchor confirmation is now "
+                 "required (GV-9 fail-closed; archived/unstamped runs stay silent)")
+
+    # I39-4(ii) [DISSENT 1] — anchors_baseline fail-closed: on a stamped clarification_resolved run an
+    # ABSENT baseline OR a self-inconsistent content_hash disarms the coordinated-rewrite layer => FAIL.
+    if _gov_semver1 and _gov_resolved:
+        if _gov_baseline is None:
+            rep.fail(f"{_gov_stem} (baseline missing)",
+                     "clarification_resolved on a >=1.10.0 run but dialogues.json carries no "
+                     "anchors_baseline — omission must not disarm the immutable-baseline layer "
+                     "(dissent 1; the I17 amend_missing_baseline / GV-34 fail-closed posture)")
+        else:
+            _bl_dod = [x for x in (_gov_baseline.get("definition_of_done") or []) if isinstance(x, str)]
+            _bl_ng = [x for x in (_gov_baseline.get("non_goals") or []) if isinstance(x, str)]
+            _bl_hash = _gov_baseline.get("content_hash")
+            if _gov_blank(_bl_hash) or _bl_hash != _gov_anchor_hash(_bl_dod, _bl_ng):
+                rep.fail(f"{_gov_stem} (baseline hash)",
+                         f"anchors_baseline.content_hash {_bl_hash!r} is not self-consistent with its "
+                         "own verbatim lists — a tampered/forged snapshot cannot anchor the replay "
+                         "(dissent 1; GV-34 content-hash self-consistency)")
+
+    # I39-2 [GV-7/GV-35] — record currency: two non-superseded records for one (item,list) => FAIL.
+    if _gov_ic_present:
+        _seen_cur = {}
+        for i in range(len(_gov_ic)):
+            if _gov_superseded(i):
+                continue
+            _key = (_gov_ic[i].get("item"), _gov_ic[i].get("list"))
+            _seen_cur[_key] = _seen_cur.get(_key, 0) + 1
+        for _key in sorted(_seen_cur, key=lambda k: str(k)):
+            _it, _L = _key
+            if _seen_cur[_key] > 1 and isinstance(_it, str) and isinstance(_L, str):
+                rep.fail(f"{_gov_stem} (duplicate currency {_it!r})",
+                         f"{_seen_cur[_key]} non-superseded item_confirmations records for ({_it!r}, "
+                         f"{_L!r}) — a re-clarified item must SUPERSEDE the earlier record (GV-35)")
+
+    # I39-3 [GV-8(a-d)] — list <-> record <-> baseline reconciliation.
+    if _gov_ic_present:
+        _dod_set, _ng_set = set(_gov_dod), set(_gov_ng)
+        # (a) every list item has a current confirming (confirmed|edited|added) record.
+        for _L, _items, _lset in (("definition_of_done", _gov_dod, _dod_set),
+                                  ("non_goals", _gov_ng, _ng_set)):
+            for _it in _items:
+                if not [r for r in _gov_current_records(_it, _L)
+                        if r.get("disposition") in ("confirmed", "edited", "added")]:
+                    rep.fail(f"{_gov_stem} (unreconciled {_it!r})",
+                             f"{_L} item {_it!r} has no current confirming item_confirmations record "
+                             "(GV-8(a))")
+        # (b) a `removed` current record must have NO matching list item; (c) a non-superseded,
+        #     non-removed record matching no list item is dangling (superseded records are history).
+        for i in range(len(_gov_ic)):
+            if _gov_superseded(i):
+                continue
+            r = _gov_ic[i]
+            _L, _it, _disp = r.get("list"), r.get("item"), r.get("disposition")
+            _lset = _dod_set if _L == "definition_of_done" else (_ng_set if _L == "non_goals" else set())
+            if _disp == "removed" and _it in _lset:
+                rep.fail(f"{_gov_stem} (removed present {_it!r})",
+                         f"a current `removed` record for {_it!r} but the item is still in {_L} (GV-8(b))")
+            if _disp in ("confirmed", "edited", "added") and _it not in _lset:
+                rep.fail(f"{_gov_stem} (dangling record {_it!r})",
+                         f"non-superseded {_disp} record for {_it!r} matches no {_L} item — a dangling "
+                         "record (GV-8(c); superseded records are history, not dangling)")
+        # (d) replay the POST-baseline record sequence forward from the IMMUTABLE anchors_baseline; the
+        #     result must reproduce EXACTLY the current lists (GV-8(d), dissent 2 — the coordinated-
+        #     rewrite catch anchored to a baseline a same-file edit cannot move).
+        if _gov_baseline is not None:
+            _rp_dod = [x for x in (_gov_baseline.get("definition_of_done") or []) if isinstance(x, str)]
+            _rp_ng = [x for x in (_gov_baseline.get("non_goals") or []) if isinstance(x, str)]
+            for r in _gov_ic:
+                if _gov_blank(r.get("amendment_ref")):
+                    continue                       # a gate/baseline-establishing record, not a post-baseline mutation
+                _L = r.get("list")
+                _tgt = _rp_dod if _L == "definition_of_done" else (_rp_ng if _L == "non_goals" else None)
+                if _tgt is None:
+                    continue
+                _disp, _it, _prior = r.get("disposition"), r.get("item"), r.get("prior_text")
+                if _disp == "added" and _it not in _tgt:
+                    _tgt.append(_it)
+                elif _disp == "edited":
+                    if _prior in _tgt:
+                        _tgt[_tgt.index(_prior)] = _it
+                    elif _it not in _tgt:
+                        _tgt.append(_it)
+                elif _disp == "removed" and _prior in _tgt:
+                    _tgt.remove(_prior)
+            if set(_rp_dod) != _dod_set or set(_rp_ng) != _ng_set:
+                rep.fail(f"{_gov_stem} (baseline replay mismatch)",
+                         "replaying post-baseline item_confirmations forward from the immutable "
+                         f"anchors_baseline yields dod={sorted(set(_rp_dod))}/ng={sorted(set(_rp_ng))} "
+                         f"!= current dod={sorted(_dod_set)}/ng={sorted(_ng_set)} — a coordinated "
+                         "list+record rewrite cannot move the baseline it is judged against (GV-8(d); dissent 2)")
+
+    # I39-1 [GV-3] — forbid-round residue lands: every non_goal a transcript R-FORBID round added must
+    # carry a current elicited-forbid-round confirmation record (never silently merged as an
+    # orchestrator item). Reads the RAW transcript effects.non_goals_added + item_confirmations.
+    if _gov_ic_present:
+        _forbid_added = []
+        for d in _dialogues:
+            for r in _dlg_rounds(d):
+                if r.get("kind") == "R-FORBID":
+                    eff = r.get("effects") if isinstance(r.get("effects"), dict) else {}
+                    _forbid_added += [s for s in (eff.get("non_goals_added") or []) if isinstance(s, str)]
+        for s in _forbid_added:
+            if not [r for r in _gov_current_records(s, "non_goals")
+                    if r.get("origin") == "elicited-forbid-round" and not _gov_blank(r.get("transcript_ref"))]:
+                rep.fail(f"{_gov_stem} (forbid residue lost {s!r})",
+                         f"forbid-round non_goal {s!r} has no current elicited-forbid-round "
+                         "item_confirmations record with a transcript_ref — the residue was silently "
+                         "merged, not deposited as a candidate item (GV-3)")
+
+    # I39-5 [GV-11] — no unconfirmed anchor item past the P2 gate (clarification_resolved).
+    if _gov_ic_present and _gov_resolved:
+        for _L, _items in (("definition_of_done", _gov_dod), ("non_goals", _gov_ng)):
+            for _it in _items:
+                if not _gov_human_confirmed(_it, _L):
+                    rep.fail(f"{_gov_stem} (unconfirmed past gate {_it!r})",
+                             f"clarification_resolved but {_L} item {_it!r} fails human_confirmed "
+                             "(GV-11; the item-by-item confirmation gate is mechanical, offline)")
+
+    # I39-6 [GV-23] — baseline-anchored totality: every current-vs-baseline anchor delta must be
+    # explained by a post-baseline receipt (an amendment-referencing added/edited/removed record).
+    if _gov_ic_present and _gov_baseline is not None:
+        _blt_dod = set(x for x in (_gov_baseline.get("definition_of_done") or []) if isinstance(x, str))
+        _blt_ng = set(x for x in (_gov_baseline.get("non_goals") or []) if isinstance(x, str))
+        _post = [r for r in _gov_ic if not _gov_blank(r.get("amendment_ref"))]
+        for _L, _cur, _base in (("definition_of_done", set(_gov_dod), _blt_dod),
+                                ("non_goals", set(_gov_ng), _blt_ng)):
+            for _it in sorted(_cur - _base):
+                if not any(r.get("list") == _L and r.get("item") == _it
+                           and r.get("disposition") in ("added", "edited") for r in _post):
+                    rep.fail(f"{_gov_stem} (unexplained delta {_it!r})",
+                             f"{_L} item {_it!r} is not in the immutable anchors_baseline and no "
+                             "post-baseline add/edit receipt explains it — a seventh unenumerated "
+                             "route cannot exist silently (GV-23)")
+            for _it in sorted(_base - _cur):
+                if not any(r.get("list") == _L and r.get("prior_text") == _it
+                           and r.get("disposition") in ("removed", "edited") for r in _post):
+                    rep.fail(f"{_gov_stem} (unexplained delta {_it!r})",
+                             f"{_L} baseline item {_it!r} left the current list with no post-baseline "
+                             "remove/edit receipt (GV-23)")
+
+    # N-I39 [GV-9/GV-26] — unstamped-disarm NOTE: a structural run that ADOPTED governance artifacts
+    # (item_confirmations/anchors_baseline/anchors_retired) but is NOT stamped >=1.10.0 disarms the
+    # fail-closed layer; emit an advisory NOTE so the disarm is visible, never silent (the honest
+    # residual — a stripped scaffold bypasses the version gate). True pre-1.10.0 archives (no
+    # governance artifact) stay SILENT (§1 posture). Exit-neutral (print, gated on --quiet).
+    if (_i27_struct and not _gov_semver1
+            and (_gov_ic_present or _gov_baseline is not None or _gov_retired) and not args.quiet):
+        print(f"  NOTE  {_gov_note} (governance disarmed; unstamped): structural work adopted anchor "
+              "governance artifacts but validator_version is absent/<1.10.0 — confirmation, baseline "
+              "integrity and mutation-gating are advisory here (GV-9/GV-26 honest residual)")
+
+    # I39 success line (armed via T1 or an adopted governance artifact + no clause failed).
+    if ((_gov_t1 or _gov_ic_present or _gov_baseline is not None or _gov_retired)
+            and len(rep.problems) == _gov_probs0):
+        rep.ok(f"{_gov_stem} (t1={_gov_t1}, {len(_gov_ic)} confirmation record(s); reconciliation + "
+               "baseline integrity + provenance OK)")
+
+    # ---- I40 anchor mutation gating (socratic-guardrail 1.10.0; U03/U04/U06) ----
+    # governance.md §3-§5 (GV-13/14/15/16/17/18/21/25/36). OFFLINE post-hoc predicate over emitted
+    # artifacts: gates NO FSM transition, NEVER guards LT7 => PRESERVES per-unit Claims A-D (GV-30: no
+    # back-edge, adds no units, revise_anchors fuel cost >=1 keeps amendment events <= fuel_0; N <=
+    # N0+fuel_0 verbatim). **I18 (:1990+) is carried BYTE-VERBATIM — NO fuel REVISES here:** the
+    # revise_anchors fuel cost == max(1,0-0) == 1 and the fuel-0-unwritable corner (GV-14/GV-36) are
+    # enforced ENTIRELY by the EXISTING I18 arithmetic; I40-2 DELEGATES to it (gov_revise_fuel_cost /
+    # amend_fuel0_revise_unwritable pin that composition under the I18 label, not a duplicated formula).
+    # Adoption-armed on revise_anchors / item_confirmations / anchors_retired presence (AF-25 pattern;
+    # archive-safe — no archive carries the kind). GV-16 membership-union is applied at I20/I21/I22
+    # above; I40-4 adds the later-record ordering rule. Reads amendment records + item_confirmations +
+    # anchors_retired + graph units + verify guardrail rows RAW; never crashes.
+    _gov40_stem = LABEL_STEM['i40_anchor']
+    _gov40_probs0 = len(rep.problems)
+    _amend_recs = [(fn, rec) for fn, rec in amendments if isinstance(rec, dict)]
+    _revise_recs = [(fn, rec) for fn, rec in _amend_recs if rec.get("kind") == "revise_anchors"]
+    _addunit_recs = [(fn, rec) for fn, rec in _amend_recs if rec.get("kind") == "add_units"]
+    _gov40_units = ([u for u in (graph_doc.get("units") or []) if isinstance(u, dict)]
+                    if graph_doc is not None else [])
+    _gov40_byid = {u.get("id"): u for u in _gov40_units}
+
+    def _gov40_executed(uid):
+        return os.path.exists(os.path.join(units_dir, str(uid), "debrief.json"))
+
+    def _gov40_refs(u, listname):
+        _key = "dod_refs" if listname == "definition_of_done" else "non_goal_refs"
+        _v = u.get(_key)
+        return [r for r in _v if isinstance(r, str)] if isinstance(_v, list) else []
+
+    # I40-1 [GV-13] — every revise_anchors record is human_gate:true + carries a transcript_ref.
+    for _fn, rec in _revise_recs:
+        if rec.get("human_gate") is not True:
+            rep.fail(f"{_gov40_stem} (revise ungated {rec.get('id')})",
+                     "revise_anchors record without human_gate==true — anchor mutation has no "
+                     "autonomous branch, for any list, for any op (GV-13)")
+        if _gov_blank(rec.get("transcript_ref")):
+            rep.fail(f"{_gov40_stem} (revise no transcript {rec.get('id')})",
+                     "revise_anchors record carries no transcript_ref to the gate-dialogue residue (GV-13)")
+
+    # I40-3 [GV-15(4a-c)] — ref-reconciliation in the transaction: after an edit/remove, no UNEXECUTED
+    # unit may still bind the retired text (4b rewrite / 4c sole-ref disposition); a sole dod_refs
+    # element removed must be re-pointed or paired with cancel_unit (never left [] under I20 minItems:1).
+    _cancelled = set()
+    _added_at = {}                                 # uid -> index of the amendment that added it
+    for _fn, rec in _amend_recs:
+        if rec.get("kind") == "cancel_unit":
+            _cancelled |= set(rec.get("units_retired") or [])
+    for _idx, (_fn, rec) in enumerate(_amend_recs):
+        for _uid in (rec.get("units_added") or []):
+            _added_at[_uid] = _idx
+    _revise_idx = {rec.get("id"): _idx for _idx, (_fn, rec) in enumerate(_amend_recs)}
+    for _fn, rec in _revise_recs:
+        _L = rec.get("list")
+        _ri = _revise_idx.get(rec.get("id"), -1)
+        for op in (rec.get("revise_ops") or []):
+            if not isinstance(op, dict) or op.get("op") not in ("edit", "remove"):
+                continue
+            _prior = op.get("prior_text")
+            if not isinstance(_prior, str):
+                continue
+            for u in _gov40_units:
+                _uid = u.get("id")
+                if _gov40_executed(_uid):
+                    continue                       # frozen prefix (I17/GV-16) — retired text allowed
+                if _added_at.get(_uid, -1) > _ri:
+                    continue                       # a unit added AFTER this revise is I40-4's domain, not the
+                                                   # in-transaction sweep's (GV-15 reconciles existing units only)
+                _refs = _gov40_refs(u, _L)
+                if _prior in _refs:
+                    if op.get("op") == "remove" and _refs == [_prior] and _uid not in _cancelled:
+                        rep.fail(f"{_gov40_stem} (sole-ref stranded {_uid})",
+                                 f"revise_anchors removed {_prior!r} but unexecuted unit {_uid} binds it "
+                                 "as its SOLE ref — re-point it or pair a cancel_unit; it may not be left "
+                                 "[] under I20 minItems:1 (GV-15 4c)")
+                    else:
+                        rep.fail(f"{_gov40_stem} (ref not reconciled {_uid})",
+                                 f"revise_anchors {op.get('op')} of {_prior!r} but unexecuted unit "
+                                 f"{_uid} still binds the retired text — refs must be rewritten/dropped "
+                                 "in the same transaction (GV-15 4a-c; brief/graph mirror)")
+
+    # I40-4 [GV-16] — a unit ADDED by an amendment ordered AFTER a retirement may not cite retired text
+    # (amendments are in sorted/chronological filename order; the retiring id is the anchors_retired
+    # entry's amendment_ref). The frozen-prefix union (I20/I21/I22) does NOT license a later add.
+    _amend_order = {rec.get("id"): idx for idx, (_fn, rec) in enumerate(_amend_recs)}
+    for r in _gov_retired:
+        _prior = r.get("prior_text")
+        _L = r.get("list")
+        _ret_amd = r.get("amendment_ref")
+        if not isinstance(_prior, str) or _ret_amd not in _amend_order:
+            continue
+        _ret_idx = _amend_order[_ret_amd]
+        for _fn, rec in _amend_recs:
+            if _amend_order.get(rec.get("id"), -1) <= _ret_idx:
+                continue
+            for _uid in (rec.get("units_added") or []):
+                u = _gov40_byid.get(_uid)
+                if u is not None and _prior in _gov40_refs(u, _L):
+                    rep.fail(f"{_gov40_stem} (later unit cites retired {_uid})",
+                             f"unit {_uid} was ADDED by {rec.get('id')} (ordered after the {_ret_amd} "
+                             f"retirement) yet binds retired text {_prior!r} — the frozen-prefix union "
+                             "does not license a later-added unit to cite retired anchors (GV-16)")
+
+    # I40-5 [GV-17] — a revise_anchors `add` op must name >=1 propagation_target OR record
+    # propagation:remaining-scope-none; silence at the I23 successor is a FAIL.
+    for _fn, rec in _revise_recs:
+        if any(isinstance(op, dict) and op.get("op") == "add" for op in (rec.get("revise_ops") or [])):
+            if not (rec.get("propagation_targets") or rec.get("propagation") == "remaining-scope-none"):
+                rep.fail(f"{_gov40_stem} (added item stranded {rec.get('id')})",
+                         "revise_anchors add op names no propagation_targets and records no "
+                         "propagation:remaining-scope-none — a mid-run added anchor must close at P8 (GV-17)")
+
+    # I40-6 [GV-18] — ANY op (remove OR edit) whose target NG carries a `violated` row anywhere must
+    # route to P7 (disagreement dossier), never a P6 gate approval (a violated-on-PASS row stays an I22
+    # FAIL regardless of later edits; GV-16 keeps the old attestation binding).
+    _violated_ng = set()
+    for _u2 in sorted(unit_subdirs):
+        _vp2 = os.path.join(units_dir, _u2, "verify.json")
+        if os.path.exists(_vp2):
+            try:
+                _vd2 = load_json(_vp2)
+            except Exception:
+                _vd2 = None
+            for _row in ((_vd2.get("guardrail_compliance") if isinstance(_vd2, dict) else None) or []):
+                if isinstance(_row, dict) and _row.get("status") == "violated" and isinstance(_row.get("non_goal"), str):
+                    _violated_ng.add(_row.get("non_goal"))
+    for _fn, rec in _revise_recs:
+        if rec.get("list") != "non_goals":
+            continue
+        _trig = (rec.get("origin") or {}).get("trigger") if isinstance(rec.get("origin"), dict) else None
+        for op in (rec.get("revise_ops") or []):
+            if isinstance(op, dict) and op.get("op") in ("edit", "remove") and op.get("prior_text") in _violated_ng:
+                if _trig != "p7_resolution":
+                    rep.fail(f"{_gov40_stem} (violated-target {rec.get('id')})",
+                             f"revise_anchors {op.get('op')} targets non-goal {op.get('prior_text')!r} "
+                             "that a unit already VIOLATED — this must route to P7 (disagreement "
+                             "dossier), not a P6 gate approval (GV-18; ESCALATE)")
+
+    # I40-7 [GV-21] — a scope_change add produces a transcript_ref on the amendment + an `added`
+    # confirmation record for the appended DoD item (human-confirmed by construction).
+    for _fn, rec in _amend_recs:
+        if rec.get("scope_change") is True:
+            _aid = rec.get("id")
+            if _gov_blank(rec.get("transcript_ref")):
+                rep.fail(f"{_gov40_stem} (scope_change no transcript {_aid})",
+                         "scope_change amendment carries no transcript_ref to its gate residue (GV-21)")
+            if not any(r.get("disposition") == "added" and r.get("amendment_ref") == _aid for r in _gov_ic):
+                rep.fail(f"{_gov40_stem} (scope_change no confirmation {_aid})",
+                         "scope_change amendment appends a DoD item but no `added` item_confirmations "
+                         "record references it (amendment_ref) — the appended item is not "
+                         "human-confirmed by construction (GV-21)")
+
+    # I40-8 [GV-25] — an autonomous add_units record (human_gate absent/false) must have EVERY dod_refs
+    # element human_confirmed once item_confirmations is adopted (downgrade-laundering guard: verbatim
+    # presence is not confirmation).
+    if _gov_ic_present:
+        for _fn, rec in _addunit_recs:
+            if rec.get("human_gate") is True:
+                continue
+            for x in (rec.get("dod_refs") or []):
+                if isinstance(x, str) and not _gov_human_confirmed(x, "definition_of_done"):
+                    rep.fail(f"{_gov40_stem} (autonomous unconfirmed {rec.get('id')})",
+                             f"autonomous add_units cites DoD item {x!r} that is not human_confirmed "
+                             "(GV-25 downgrade-laundering guard; even a verbatim-present item needs standing)")
+
+    # I40 success line (armed via a revise record or an adopted governance artifact + no clause failed).
+    if ((_revise_recs or _gov_ic_present or _gov_retired) and len(rep.problems) == _gov40_probs0):
+        rep.ok(f"{_gov40_stem} ({len(_revise_recs)} revise record(s); gating + ref-reconciliation + "
+               "membership-ordering + narrowed autonomy OK)")
 
     # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
     # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.

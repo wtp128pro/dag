@@ -1,0 +1,33 @@
+{
+  "run_dir": "tests/gov_ref_recon_briefdrift",
+  "phase": "P6_EXECUTE_VERIFY",
+  "updated_at": "2026-07-18T12:00:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true
+  },
+  "expansion": {
+    "fuel_initial": 1,
+    "fuel_remaining": 0,
+    "amendments_applied": 1
+  },
+  "loop": {
+    "unit_id": "U01",
+    "state": "DONE",
+    "retries": 1,
+    "iteration": 2,
+    "last_verdict": "PASS"
+  },
+  "units": [
+    {
+      "unit_id": "U01",
+      "status": "passed"
+    },
+    {
+      "unit_id": "U02",
+      "status": "pending"
+    }
+  ]
+}

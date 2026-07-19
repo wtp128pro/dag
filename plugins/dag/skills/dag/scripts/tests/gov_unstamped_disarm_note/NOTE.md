@@ -1,0 +1,1 @@
+gov_unstamped_disarm_note: a structural run that ADOPTED item_confirmations but is NOT stamped >=1.10.0 disarms the fail-closed governance layer; N-I39 advisory NOTE makes the disarm visible (GV-9/GV-26). Exit 0 + NOTE `N-I39`.

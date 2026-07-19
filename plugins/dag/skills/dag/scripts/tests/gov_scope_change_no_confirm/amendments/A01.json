@@ -1,0 +1,24 @@
+{
+  "id": "A01",
+  "kind": "add_units",
+  "origin": {
+    "trigger": "debrief_handoff",
+    "source_unit": "U01",
+    "source_ref": "units/U01/debrief.json handoff_notes"
+  },
+  "rationale": "Add a dedicated unit for a surfaced gap (GV-24/25).",
+  "scope_change": true,
+  "human_gate": true,
+  "dod_refs": [
+    "DoD-NEW"
+  ],
+  "fuel_cost": 1,
+  "fuel_before": 1,
+  "fuel_after": 0,
+  "frontier_wave": 2,
+  "units_added": [
+    "U02"
+  ],
+  "graph_revision_after": 2,
+  "timestamp": "2026-07-18T12:30:00-0400"
+}

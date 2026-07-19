@@ -1,0 +1,1 @@
+askfirst_open_conseq_past_p2: a consequential (K1) row left OPEN (resolved:false), minor-declared (so I8 is silent), while a structural artifact (CARTOGRAPHY.md) exists. Exit 1 via I38 AF-18 `open consequential` — materiality-blind, no marker. (U04 may rename to _structural.)

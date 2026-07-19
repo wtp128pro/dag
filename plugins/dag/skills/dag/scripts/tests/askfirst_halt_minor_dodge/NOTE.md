@@ -1,0 +1,1 @@
+askfirst_halt_minor_dodge: THE round-2 clean-exit dodge, dead. A marker-listed row declared `minor` so phase-blind I8 stays SILENT — but I38 AF-36 fires via the T1h arm (stamp ∧ marker, no structural conjunct). Exit 1 is produced by I38 ITSELF (`halt materiality`), not I8. Regression sentinel: remove I38 and this fixture wrongly exits 0.

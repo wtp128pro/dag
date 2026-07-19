@@ -1,0 +1,20 @@
+{
+  "id": "L9",
+  "trigger": "U02 P7-resolution confirmation: the human-gated targeted revision after retry exhaustion produced verify/debrief iteration=4, which FAILed validate_run.py I4 (iteration <= retries+1 <= 3 because retries caps at 2).",
+  "lesson": "The dag FSM's I4 iteration ceiling does not model a P7-authorized post-exhaustion revision: when the disagreement gate approves an in-place 'targeted revision' (rather than re-decomposition into a fresh unit), the extra executor pass has no legal iteration slot, so the ledger must fold it to the ceiling and document the true pass count in prose.",
+  "how_to_apply": "When resolving a P7 escalation with an in-place revision, keep verify/debrief.iteration at retries+1 (the ceiling) and record the true pass sequence in DECISIONS/PROGRESS/audit_notes; OR resolve via re-decomposition (a fresh unit whose retries restart) if a clean iteration lineage is needed. NOTE: this is an out-of-pillar observation about the skill's own FSM — do NOT fold it into the remediation plan's scope (P-A..P-D); surface it to the human at synthesis as a separate candidate.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "units/U02/verify.json + debrief.json (iteration folded 4->3 with audit note); validate_run.py I4 FAIL lines pre-fix; DECISIONS #13/#16. (persisted to project store at user request despite run-scoped origin; expiry widened to project.)",
+  "since_wave": 4,
+  "grounding": "re-grounded",
+  "promotable": false,
+  "origin": {
+    "store": "project"
+  }
+}

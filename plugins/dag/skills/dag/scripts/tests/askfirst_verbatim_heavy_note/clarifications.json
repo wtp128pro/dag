@@ -1,0 +1,93 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "scope-boundaries",
+      "resolution": "v2 only per prompt",
+      "resolution_source": "prompt-verbatim",
+      "prompt_span": "the tool covers v2 only"
+    },
+    {
+      "id": 2,
+      "ambiguity": "ambiguity 2",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "success-criteria",
+      "resolution": "exit 0 per prompt",
+      "resolution_source": "prompt-verbatim",
+      "prompt_span": "the run must exit 0 (RESULT: PASS)"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "item_confirmations": [
+    { "item": "DoD-A", "list": "definition_of_done", "disposition": "confirmed",
+      "origin": "prompt-verbatim", "transcript_ref": "p1.r1" },
+    { "item": "NG-1", "list": "non_goals", "disposition": "confirmed",
+      "origin": "derived-orchestrator", "transcript_ref": "p1.r1" }
+  ],
+  "dimension_sweep": {
+    "dimensions": [
+      {
+        "dimension": "terms",
+        "disposition": "probed-clear",
+        "search_statement": "probed terms: no ambiguity beyond the stated prompt"
+      },
+      {
+        "dimension": "success-criteria",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          2
+        ]
+      },
+      {
+        "dimension": "scope-boundaries",
+        "disposition": "ambiguity-found",
+        "register_ids": [
+          1
+        ]
+      },
+      {
+        "dimension": "audience-format",
+        "disposition": "probed-clear",
+        "search_statement": "probed audience-format: no ambiguity beyond the stated prompt"
+      },
+      {
+        "dimension": "constraints",
+        "disposition": "probed-clear",
+        "search_statement": "probed constraints: no ambiguity beyond the stated prompt"
+      },
+      {
+        "dimension": "assumptions",
+        "disposition": "probed-clear",
+        "search_statement": "probed assumptions: no ambiguity beyond the stated prompt"
+      },
+      {
+        "dimension": "failure-modes",
+        "disposition": "probed-clear",
+        "search_statement": "probed failure-modes: no ambiguity beyond the stated prompt"
+      },
+      {
+        "dimension": "sources",
+        "disposition": "probed-clear",
+        "search_statement": "probed sources: no ambiguity beyond the stated prompt"
+      },
+      {
+        "dimension": "stakes",
+        "disposition": "probed-clear",
+        "search_statement": "probed stakes: no ambiguity beyond the stated prompt"
+      }
+    ],
+    "cartography_round": {
+      "status": "no-register-unknowns"
+    }
+  }
+}

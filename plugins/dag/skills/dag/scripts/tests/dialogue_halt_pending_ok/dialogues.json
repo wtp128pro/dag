@@ -1,0 +1,36 @@
+{
+  "run_label": "dialogue_halt_pending_ok",
+  "dialogues": [
+    {
+      "surface_id": "DS-5",
+      "instance": "p8",
+      "phase": "P8_SYNTHESIS",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-GATE",
+          "moves_used": [
+            "ADMIT"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p8.r1.q1",
+              "q": "Accept the deliverable as-is, or iterate?",
+              "move": "ADMIT",
+              "recommended": "Accept \u2014 every DoD item passed."
+            }
+          ],
+          "answers": []
+        }
+      ],
+      "termination": {
+        "reason": "halt-pending",
+        "pending_questions": [
+          "Accept the deliverable as-is, or iterate?"
+        ]
+      }
+    }
+  ]
+}

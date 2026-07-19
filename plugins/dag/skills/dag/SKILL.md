@@ -325,6 +325,19 @@ Goal: eliminate every *material* lapse in the requirements before any work begin
    Right-size their *contents* to the task, never their *presence*: trigger the underlying
    questions on a *detected ambiguity signal* (materiality), not as a fixed ritual — but DoD
    and Non-Goals are always required.
+   **DP-39 — the one fixed-ritual surface (a labeled REVISES, 1.10.0).** The single carve-out
+   from "not a fixed ritual" is the negative-scope forbid round (R-FORBID) at THIS surface
+   (DS-2, `p2`): it becomes a **fixed ritual** — it runs at EVERY P2, even on a clean dimensional
+   sweep, soliciting Non-Goals *unconditionally* instead of waiting for a detected signal. This is
+   an explicit **REVISES** of the anti-theater no-fixed-ritual *trigger* doctrine, scoped to this
+   ONE surface. *Migration argument:* across two prior full runs the selective trigger produced
+   ZERO dedicated negative-scope solicitation (9+7 and 13+10 DoD/NG items shipped with no forbid
+   question) while Non-Goals anchor the entire I21/I22/I23 enforcement chain — so for this one
+   surface the trigger is made unconditional. **The anti-theater CONTENT half is PRESERVED
+   (DP-35):** the round mandates the *asking*, never manufactured findings — "no additions" is a
+   legal, recorded answer to every forbid question. Everywhere else the *selective, not-ritual*
+   doctrine stands verbatim (the general clarifying questions here, the gate below, and
+   references/socratic-protocol.md).
 5. **This is mechanically enforced, not advisory — two layers.** (Layer-1) the schema marks
    `definition_of_done` and `non_goals` **required** + non-empty, so a present
    `clarifications.json` missing either field hard-fails; (Layer-2) the validator's **`I-dod`**
@@ -352,6 +365,40 @@ Goal: eliminate every *material* lapse in the requirements before any work begin
    honest residual, same class as I13.
 6. Write `CLARIFICATIONS.md`; fold resolved criteria into `PLAN.md` (Objective + Success
    criteria + **Definition of Done + Non-Goals/Guardrails**); log decisions.
+
+**Bounded Socratic dialogue series at the P2 gate (DS-2 — 1.10.0).** The clarification gate
+runs a bounded Socratic **dialogue series** as node-internal conduct *inside* Phase 2 — riding
+the already-modeled T4 self-loop (`material_open ⇒ P2_CLARIFICATION (block; ask user)`) and
+completed **before** `clarification_resolved` is set. It attaches at the existing gate: **no new
+FSM state, edge, back-edge, or REQUIRED_GATES flag** is created (the dialogue is node-internal at
+the gates that already exist). The series has three round kinds:
+- **consequential-gap round (ask-first, R-OPEN)** — every gap classed *consequential* (touching
+  DoD, Non-Goals, scope boundaries, or acceptance criteria) MUST be asked here with a recommended
+  default; a `logged-default` is NOT a legal resolution source for a consequential gap, and a
+  non-interactive run with an open consequential gap **halts at the gate** (U3 — never
+  self-answers). Cosmetic gaps stay logged defaults and never enter.
+- **negative-scope round (R-FORBID)** — the unconditional forbid round that solicits Non-Goals at
+  EVERY P2 (a fixed ritual for this one surface — see the DP-39 REVISES note in step 4).
+- **DoD/Non-Goals confirmation round (R-CONFIRM)** — item-by-item confirmation of the final
+  `definition_of_done` / `non_goals` lists (each item presented, ≤4 per `AskUserQuestion` page; a
+  bulk "confirm all" page is the happy path). An item the human just authored in R-FORBID is
+  auto-settled and never re-presented.
+
+**Anti-drift.** A round's page queue is FROZEN at round open — questions/items discovered
+mid-round are recorded and DEFERRED to the NEXT round, never appended live, so scope cannot
+silently grow inside a round; and a settled item is never re-asked without a `reopened_by`
+reference naming new evidence. **Termination — convergence-or-cap of N = 3 rounds per surface
+instance:** the human may converge earlier, but nothing may run a fourth round; an unconverged
+cap terminates into a node-internal impasse dossier (still inside the blocked P2 visit, phase
+unchanged — no P7 transition is created or claimed). The whole series is transcripted to a
+run-root **`dialogues.json`** (+ a human-readable `DIALOGUES.md` companion), RAW-parsed by the
+validator — one surface record per instance, its `rounds[]`, `rounds_used ≤ 3`, and a termination
+record. Six **offline post-hoc** invariants **I35–I40** enforce all of the above over the emitted
+`dialogues.json` / `clarifications.json` (transcript presence & shape; disposition &
+presentation-bind; termination & probe accounting; ask-first consequential-default legality;
+anchor confirmation & baseline integrity; anchor-mutation gating) — **each an offline predicate
+that gates no FSM transition and never guards `LT7`** (the correction loop's sole back-edge — the
+CLAUDE.md deadlock rule).
 
 **Gate that matters.** Only proceed once no *material* ambiguity remains, **every sweep
 dimension carries a disposition (I27),** and **the Definition of Done + Non-Goals are

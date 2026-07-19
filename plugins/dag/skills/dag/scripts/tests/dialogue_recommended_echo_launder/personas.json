@@ -1,0 +1,10 @@
+{
+  "run_label": "dialogue_recommended_echo_launder",
+  "confirmed_by_user": true,
+  "roster": [
+    {
+      "persona": "Elicitor",
+      "mandate": "conduct the bounded Socratic dialogue at the gate"
+    }
+  ]
+}

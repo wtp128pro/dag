@@ -1,0 +1,35 @@
+{
+  "run_label": "gov_autonomous_unconfirmed_ref",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "amb",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "ok"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A",
+    "DoD-B"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "item_confirmations": [
+    {
+      "item": "DoD-B",
+      "list": "definition_of_done",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    },
+    {
+      "item": "NG-1",
+      "list": "non_goals",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    }
+  ]
+}

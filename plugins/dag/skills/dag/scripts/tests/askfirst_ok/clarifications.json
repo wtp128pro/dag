@@ -1,0 +1,41 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "scope-boundaries",
+      "resolution": "cover both v1 and v2",
+      "resolution_source": "human-gate",
+      "round_ref": "p1.r1"
+    },
+    {
+      "id": 2,
+      "ambiguity": "ambiguity 2",
+      "materiality": "minor",
+      "resolved": true,
+      "dimension": "audience-format",
+      "resolution": "ISO 8601",
+      "resolution_source": "logged-default"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A",
+    "DoD-B"
+  ],
+  "non_goals": [
+    "NG-A"
+  ],
+  "definition_of_done_provenance": [
+    {
+      "item": "DoD-A",
+      "register_ids": [
+        1
+      ],
+      "source": "human-round",
+      "round_ref": "p1.r1"
+    }
+  ]
+}

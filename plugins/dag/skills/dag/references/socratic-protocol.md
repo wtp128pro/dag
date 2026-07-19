@@ -29,6 +29,15 @@ to stakes: one material claim → one pass; a lookup unit → none.
 > move finds nothing, write **"sought X; none found"** in one line and move on. Never invent
 > a counterexample to look diligent. Fewer, real questions beat many hollow ones.
 
+> **One fixed-ritual exception (DP-39 — a labeled REVISES, 1.10.0).** Exactly ONE surface
+> overrides the selective trigger above: the P2 (DS-2 `p2`) **negative-scope forbid round** runs
+> unconditionally at EVERY P2 (SKILL.md Phase 2), because across prior runs the selective trigger
+> produced ZERO dedicated negative-scope solicitation while Non-Goals anchor the I21/I22/I23
+> enforcement chain. This REVISES only the *trigger* half; the **anti-theater CONTENT half above
+> still governs that surface** — the round mandates the *asking*, never manufactured findings
+> ("no additions" is a legal, recorded answer). The selective, not-a-ritual doctrine is PRESERVED
+> everywhere else in this file and at every other surface.
+
 ## The five moves (mnemonic: FORK · COUNTER · ADMIT · PIVOT · RESIDUAL)
 
 | # | Move | Self-interrogation mode (answer from evidence) | Elicitation mode (ask the user) |

@@ -1,0 +1,1 @@
+gov_no_item_confirmations: a stamped (1.10.0) structural run (CARTOGRAPHY.md + dimension_sweep + DS-1 transcript so I27/I35 pass) with NO item_confirmations -> fail-closed GV-9 FAIL (I39-4i). Exit 1, `I39 anchor`.

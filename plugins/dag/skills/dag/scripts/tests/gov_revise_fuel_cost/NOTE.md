@@ -1,0 +1,1 @@
+gov_revise_fuel_cost: a revise_anchors record with fuel_cost=2 != max(1,|added|=0-|retired|=0)=1 — caught by the EXISTING I18 arithmetic (I40-2 delegates fuel to I18, carried VERBATIM). Exit 1, stem `I18 fuel bound`.

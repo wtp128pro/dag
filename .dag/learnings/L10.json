@@ -1,0 +1,20 @@
+{
+  "id": "L10",
+  "trigger": "U06 panel-of-5 verify FAILed I1c/I16: the formal-rigor verifier was staffed with persona 'Formal Methods Professor', which is U06's own EXECUTOR persona — the validator flagged maker==checker even though the verification was blind and independent.",
+  "lesson": "Staffing a verification-panel lens with the SAME persona label as the unit's executor trips the mechanical maker!=checker checks (I1c artifact reconciliation, I16 panel distinctness), regardless of genuine independence — the validator can only see the label, not the instance separation.",
+  "how_to_apply": "When assigning panel verifier personas, exclude the unit's executor_persona from the panel roster up front; give each lens a DISTINCT non-executor roster persona (the lens/prompt carries the actual review angle, the persona label just needs to be a distinct roster member). Especially watch domain-expert executors (Formal Methods Professor, LLM Skills Architect) whose natural verification lens is the same persona.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "units/U06/verify.json audit_notes (persona re-attribution); validate_run.py I1c/I16 FAIL lines pre-fix; DECISIONS #18. (since_wave corrected 3->4: admitted after wave-3 units U06/U07 executed, so it binds from the wave-4 brief frontier — forward-only per 02/P4, never retroactively into executed briefs.)",
+  "since_wave": 4,
+  "grounding": "re-grounded",
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

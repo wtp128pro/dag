@@ -1,0 +1,13 @@
+{
+  "run_label": "askfirst",
+  "roster": [
+    {
+      "persona": "Researcher",
+      "mandate": "investigate the ambiguities"
+    },
+    {
+      "persona": "Skeptic",
+      "mandate": "challenge the logged defaults"
+    }
+  ]
+}

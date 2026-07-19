@@ -1,0 +1,1 @@
+askfirst_authorship_note: an orchestrator-draft provenance item on an otherwise-green 1.10.0 run (struct-free — AF-38 arms on T1v stamp-only). Exit 0 + advisory NOTE `N-I38 (unsolicited authorship)`. Self-declared authorship only (R4/R6 remainder).

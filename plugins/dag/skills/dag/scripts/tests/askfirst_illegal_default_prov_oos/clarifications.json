@@ -1,0 +1,34 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "terms",
+      "resolution": "legacy v1 excluded",
+      "resolution_source": "logged-default"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "scope": {
+    "out_of_scope": [
+      "legacy v1"
+    ]
+  },
+  "out_of_scope_provenance": [
+    {
+      "item": "legacy v1",
+      "register_ids": [
+        1
+      ],
+      "source": "orchestrator-draft"
+    }
+  ]
+}

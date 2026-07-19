@@ -1,0 +1,22 @@
+{
+  "id": "L8",
+  "trigger": "Wave-1 round-1 verify FAILs on all three units: U01 (cap-3 arithmetic makes required R-PROBE unschedulable; DS-2→P7 escape unmodeled vs FSM edge set), U02 (AF-18 cites a nonexistent I8 phase predicate; halt path cannot validate clean), U03 (GV-22 zero-fuel carve-out breaks I18 fuel arithmetic).",
+  "lesson": "A design unit composing a NEW mechanism with an EXISTING invariant reliably gets the corner cells wrong (fuel 0, halt state, cap boundary, edge set) when it works from the invariant's headline description instead of re-deriving the composed behavior from the invariant's actual source text at that exact corner.",
+  "how_to_apply": "For every mechanism that touches an existing invariant or bound (I8, I18, round caps, FSM edges), write an explicit corner-composition table — mechanism state × invariant predicate → outcome — and verify each cell against the invariant's SOURCE text (code/spec), not its summary. Verifiers: probe the corners first (zero fuel, halt, cap-full, gate-closed).",
+  "scope": {
+    "applies_to": [
+      "tag:design",
+      "tag:validator",
+      "tag:formal"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "units/U01/verify.json, units/U02/verify.json, units/U03/verify.json (round-1 aggregated FAILs) + member reports verify_p1..p3; the same defect class appears independently in ≥3 units.",
+  "since_wave": 2,
+  "grounding": "re-grounded",
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

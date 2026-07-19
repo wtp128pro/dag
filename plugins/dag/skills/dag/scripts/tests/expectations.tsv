@@ -204,3 +204,94 @@ rl_param_compliant_ok	0
 rl_premise_missing	1	I33 premise-extraction presence
 co1_owed_uncovered	1	I34 owed coverage
 retrieval_standard_ok	0
+# --- socratic-guardrail 1.10.0 dialogue family (I35/I36/I37; U04) ---
+dialogue_ok	0	
+dialogue_confirm_ok	0	
+dialogue_reentry_noforbid_ok	0	
+dialogue_halt_pending_ok	0	
+dialogue_regrow_impasse_ok	0	
+dialogue_rubberstamp_note	0	N-I36
+dialogue_lapse_at_cap_ok	0	
+dialogue_probe_humanearly_ok	0	
+dialogue_version_gated_silent	0	
+dialogue_missing_stamped	1	I35 dialogue
+dialogue_shape_bad	1	I35 dialogue
+dialogue_missing_ds2	1	I35 dialogue
+dialogue_ds4_missing	1	I35 dialogue
+dialogue_rounds_over	1	I35 dialogue
+dialogue_rounds_desync	1	I35 dialogue
+dialogue_missing_forbid	1	I35 dialogue
+dialogue_missing_confirm	1	I35 dialogue
+dialogue_blank_answer	1	I35 dialogue
+dialogue_missing_recommended	1	I35 dialogue
+dialogue_empty_answer_no_halt	1	I35 dialogue
+dialogue_confirm_unpresented	1	I36 dialogue
+dialogue_confirm_stuffing	1	I36 dialogue
+dialogue_confirm_bijection	1	I36 dialogue
+dialogue_recommended_echo_launder	1	I36 dialogue
+dialogue_draftedit_echo_launder	1	I36 dialogue
+dialogue_forbid_dangling	1	I36 dialogue
+dialogue_forbid_topics_missing	1	I36 dialogue
+dialogue_draftedit_unbacked	1	I36 dialogue
+dialogue_reask	1	I36 dialogue
+dialogue_regrow_uncovered	1	I36 dialogue
+dialogue_capped_no_dossier	1	I37 dialogue
+dialogue_gate_answer_missing	1	I37 dialogue
+dialogue_lapse_wrong_rung	1	I37 dialogue
+dialogue_lapse_dangling_qref	1	I37 dialogue
+dialogue_probe_unserved	1	I37 dialogue
+dialogue_instance_freeform	1	I37 dialogue
+dialogue_reentry_unlicensed	1	I37 dialogue
+dialogue_reentry_noninjective	1	I37 dialogue
+# --- socratic-guardrail 1.10.0 ask-first family (I38 AF-14..21/35/36/38/42/45; U02/U05) ---
+askfirst_ok	0	
+askfirst_version_gated_silent	0	
+askfirst_verbatim_heavy_note	0	N-I38 (verbatim-heavy)
+askfirst_authorship_note	0	N-I38 (unsolicited authorship)
+askfirst_illegal_default_dim	1	I38 ask-first (illegal default
+askfirst_illegal_default_prov	1	I38 ask-first (illegal default
+askfirst_illegal_default_prov_oos	1	I38 ask-first (illegal default
+askfirst_missing_dimension	1	I38 ask-first (dimension missing
+askfirst_unlinked_humangate	1	I38 ask-first (unlinked human-gate
+askfirst_dangling_round_ref	1	I38 ask-first (dangling round_ref
+askfirst_prov_dangling	1	I38 ask-first (provenance dangling
+askfirst_oos_prov_dangling	1	I38 ask-first (provenance dangling
+askfirst_prov_item_unmirrored	1	not a verbatim member of its mirror anchor list
+askfirst_prov_attribution	1	I38 ask-first (provenance attribution
+askfirst_prov_round_dangling	1	I38 ask-first (provenance round dangling
+askfirst_prov_humanround	1	source 'human-round' but carries no round_ref
+askfirst_open_conseq_past_p2	1	I38 ask-first (open consequential
+askfirst_verbatim_unchecked	1	I38 ask-first (verbatim spot-check
+askfirst_halt_p2	1	unresolved material item(s)
+askfirst_halt_note	1	N-I38 (halted pending human
+askfirst_halt_minor_dodge	1	I38 ask-first (halt materiality
+askfirst_halt_dangling	1	I38 ask-first (halt dangling
+askfirst_halt_default	1	I38 ask-first (illegal default
+askfirst_halt_after_work	1	I38 ask-first (halt after work
+# --- socratic-guardrail 1.10.0 anchor-governance family (I39/I40; U06) ---
+gov_reclarify_supersede_ok	0	
+gov_replay_ok	0	
+gov_revise_ok	0	
+gov_retired_membership_ok	0	
+gov_autonomous_confirmed_ok	0	
+gov_unstamped_disarm_note	0	N-I39
+gov_forbid_residue_lost	1	I39 anchor
+gov_dup_currency	1	I39 anchor
+gov_recon_dangling	1	I39 anchor
+gov_coordinated_rewrite	1	I39 anchor
+gov_no_item_confirmations	1	I39 anchor
+gov_missing_baseline	1	I39 anchor
+gov_bad_baseline_hash	1	I39 anchor
+gov_unconfirmed_past_gate	1	I39 anchor
+gov_unexplained_delta	1	I39 anchor
+gov_revise_ungated	1	I40 anchor
+gov_ref_recon_soleref	1	I40 anchor
+gov_ref_recon_briefdrift	1	I40 anchor
+gov_later_unit_cites_retired	1	I40 anchor
+gov_added_item_stranded	1	I40 anchor
+gov_revise_violated_target	1	I40 anchor
+gov_scope_change_no_confirm	1	I40 anchor
+gov_scope_change_no_confirm_record	1	I40 anchor (scope_change no confirmation
+gov_autonomous_unconfirmed_ref	1	I40 anchor
+gov_revise_fuel_cost	1	I18 fuel bound
+amend_fuel0_revise_unwritable	1	I18 fuel bound

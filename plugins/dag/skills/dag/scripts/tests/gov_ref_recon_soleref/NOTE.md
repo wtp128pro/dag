@@ -1,0 +1,1 @@
+gov_ref_recon_soleref: revise_anchors removed DoD-X but the unexecuted U02 binds it as its SOLE dod_refs element and is neither re-pointed nor paired with a cancel_unit — it would be left [] under I20 minItems:1 -> FAIL (GV-15 4c/I40-3). Exit 1, `I40 anchor`.

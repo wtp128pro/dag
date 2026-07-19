@@ -1,0 +1,34 @@
+{
+  "run_label": "gov_unstamped_disarm_note",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "amb 1",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "resolved cleanly"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "item_confirmations": [
+    {
+      "item": "DoD-A",
+      "list": "definition_of_done",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    },
+    {
+      "item": "NG-1",
+      "list": "non_goals",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    }
+  ]
+}

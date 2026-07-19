@@ -1,0 +1,1 @@
+gov_added_item_stranded: a revise_anchors add op appends NG-NEW but names no propagation_targets and records no propagation:remaining-scope-none — a mid-run added anchor must close at P8 -> FAIL (GV-17/I40-5). Exit 1, `I40 anchor`.

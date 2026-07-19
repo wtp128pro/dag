@@ -80,6 +80,15 @@ block on every verify that carries a verdict:
 - Honesty boundary: presence / verbatim membership / coverage are mechanical; whether a
   `respected` row is *true* remains your attestation (presence-not-genuineness).
 
+## Consequential-verbatim block (`consequential_verbatim_check` — the whole-run verify field, AF-19)
+On the **whole-run** `verify.json`, enumerate the consequential prompt-verbatim spot-checks:
+one row per consequential ambiguity-register item, recording that item's `register_id` and the
+non-blank `outcome` of re-checking that the resolution matched the prompt verbatim. This is the
+AF-19-named home for the consequential prompt-verbatim enumeration (a whole-run field, distinct from
+the per-unit `retrieval_coverage`/`guardrail_compliance` blocks above).
+- `consequential_verbatim_check[]` — items `{register_id (integer `≥1`), outcome (string minLength 1,
+  `.strip()`-non-blank)}`, `additionalProperties:false`. OPTIONAL: absent ⇒ the archive stays valid.
+
 **Required keys** (`schemas/verify.schema.json`):
 - `unit_id`, `verifier_persona`, `verdict` (`PASS|FAIL|DISAGREE`), `iteration`
 - `executor_reasoning_seen: false` (independence invariant AO-7)
@@ -105,6 +114,8 @@ block on every verify that carries a verdict:
 **required on `high-stakes` units**, I16), `verify_rounds` (1–3, loop-until-dry), `converged` (bool),
 `guardrail_compliance[]` (`{non_goal (verbatim ∈ non_goals), status ∈
 respected|violated|not-applicable, note?}` — the scaffolded default above; adoption-closure I22),
+`consequential_verbatim_check[]` (`{register_id (int ≥1), outcome (string, non-blank)}` — whole-run
+verify only, AF-19; see the block above),
 `disagreement{why_unresolvable}` (**iff** `verdict==DISAGREE`).
 
 Conditional (schema-enforced): `PASS ⇒ no blocker/major defect` (minor observations allowed — I6

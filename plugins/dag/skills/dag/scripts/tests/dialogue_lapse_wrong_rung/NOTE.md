@@ -1,0 +1,1 @@
+dialogue_lapse_wrong_rung: the trigger fired in round 1 with a later round (2) on record and no probe_discharge/R-PROBE after it, yet the lapse is recorded cap-exhausted -> I37 dialogue (lapse wrong rung). NEGATIVE (MC-9/DP-50 row 10 rung-choice laundering).

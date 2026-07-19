@@ -25,6 +25,10 @@
       "type": "string",
       "description": "OPTIONAL (F1/WP-E). The plugin/validator version that scaffolded this run (init_run.sh stamps it from .claude-plugin/plugin.json). Enables the version-skew policy (state-machine.md §5): the CURRENT validator's findings on a run stamped with an OLDER version are expected-skew, not defects. NEVER gates a check — an absent stamp (legacy/pre-1.7.0 runs) is judged exactly as before."
     },
+    "anchors_baseline_hash": {
+      "type": "string",
+      "description": "OPTIONAL (1.10.0; schema-deltas §D). Ledger-side mirror of dialogues.json.anchors_baseline.content_hash — a cross-check hook if U04 wants the GV-34 write-once anchor snapshot echoed in fsm-state. Absent => valid (the zero-delta primary posture; round counters + the anchor baseline live in dialogues.json, DP-21). DECLARED so the top-level additionalProperties:false is not violated (the lens2 rule); NEVER required (archive-safe) and NEVER gates a transition — still PRESERVES (GV-28)."
+    },
     "gates": {
       "type": "object",
       "additionalProperties": true,

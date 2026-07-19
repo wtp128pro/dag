@@ -1,0 +1,9 @@
+{
+  "run_dir": "tests/askfirst",
+  "phase": "P2_CLARIFICATION",
+  "updated_at": "2026-07-18T12:00:00-0400",
+  "gates": {
+    "personas_confirmed": true
+  },
+  "validator_version": "1.10.0"
+}

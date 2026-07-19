@@ -432,6 +432,57 @@ hand-proved.
 
 ---
 
+## Socratic-guardrail 1.10.0 (I35–I40) — REVISES classification & formal-models verdict (TLA+/Alloy untouched)
+
+The 1.10.0 landing (six OFFLINE post-hoc invariants **I35–I40** + their optional schema deltas) touches
+several formal *guarantees*. Per the CLAUDE.md guarantee-touching rule, **every** guarantee-touching change
+is classified **PRESERVES** or **REVISES** with a migration argument for each REVISES, and each REVISES
+records a concrete `.tla`/`.als` delta **or** an explicit "models untouched — `<reason>`" note — **never
+silent**. Source of record: `spec/formal-classification.md` (U06) + `spec/invariants-i35plus.md` §5.
+
+**Verdict (whole landing): the TLA+/Alloy scope is UNTOUCHED.** `formal/Pipeline.tla`,
+`formal/Pipeline.cfg`, `formal/WorkGraph.als`, and `formal/Amendment.als` need **no edit**, so the pinned
+model-check counts remain valid **unchanged**: 853 generated / 408 distinct / depth 36 at `MaxFuel = 2`;
+2,923 / 1,608 / depth 156 at `MaxFuel = 32`; Alloy **8/8** commands (all `check`s → no counterexample, both
+`run` witnesses → instance found). `run_formal.sh` was **NOT re-run** for this landing and is **not
+required**: re-running proves nothing new when `formal/` is byte-identical (the counts are a function of the
+model text alone). Grounding (the "covered by one layer only" / "no new TLA action, no new variable, no
+second back-edge" class of the PR1 and BGA PRESERVES precedents above): every I35–I40 predicate is an
+offline post-hoc check over emitted artifacts — **none writes `retries`/`fuel`, gates a transition, or
+guards `LT7`** (the correction loop's sole back-edge; a live guard there deadlocks `RETRY`, breaking
+Property 2 Claim D) — so `GateOrdering`, `Termination`, and `Quiesce` **hold verbatim**, and **I18 is
+carried VERBATIM** (no fuel REVISES).
+
+The `revise_anchors` amendment kind (GV-30) is a **fuel-1 sub-case of the already-modeled `Amend` action**
+(§5; `Pipeline.tla` `Amend`, ~lines 223–232): it spends `fuel' = fuel − 1` via the **existing** I18 cost
+formula `max(1,|units_added|−|units_retired|) = max(1,0−0) = 1`, **adds zero units**, and is unwritable at
+`fuel == 0` (`fuel_after = −1` violates `FuelBound`). So it is *dominated by* the modeled re-arm the TLC
+`Quiesce` proof already covers — `N ≤ N0 + fuel₀` is unchanged. A new *kind* is a validator/schema
+enumeration the model already abstracts away (the model's `Amend` is kind-agnostic), so it needs no new
+action or variable.
+
+| Guarantee-touching change | Class | Model artifact | Formal-models verdict + migration argument |
+|---|---|---|---|
+| **DP-39** — R-FORBID becomes a fixed ritual at DS-2 / P2 | **REVISES** | — | **Models untouched — the no-fixed-ritual / anti-theater doctrine is `SKILL.md` / `socratic-protocol.md` prose, not in the modeled state space.** Migration: revision scoped to exactly one surface (DS-2 R-FORBID); non-goals still anchor I21/I22/I23 and the anti-theater *content* half survives (DP-35). Precedent: the I25 REVISES row (templates scaffold compliance; archived offenders read as §5 version-skew). |
+| **GV-29** — `item_confirmations` required-once-stamped | **REVISES** | — | **Models untouched — the clarifications-artifact contract is a schema/validator-layer contract (the I25 class); no temporal/structural content.** Migration: version-gated on `validator_version ≥ 1.10.0` (I27-T1 semver, `None ⇒ False`) so archives stay silent; **new runs only**; templates scaffold compliance. |
+| **GV-30** — `revise_anchors` amendment kind + I19 kind-closure | **REVISES** (enumeration) / termination **PRESERVES** | `Pipeline.tla` / `Amendment.als` | **Models untouched — a fuel-1 sub-case of the abstract `Amend` action** (adds no unit, spends 1 fuel via the existing I18 formula); `Quiesce` + the `Amendment.als` layering theorem already cover it; the "kind" is abstracted away like every other amendment kind. Migration: the closed BGA kind-whitelist stays closed; **no new fuel formula, I18 VERBATIM**; Quiesce argument unchanged; one new, always-human-gated kind. |
+| **GV-16** — I20/I21/I22 membership-union (`current ∪ anchors_retired[].prior_text`) | **REVISES** | — | **Models untouched — I20/I21/I22 are validator membership checks ("covered by one layer only"); the models do not model anchor lists.** Migration: the frozen executed prefix (I17) may legitimately cite text a later edit retired; the union keeps those refs resolvable **without** weakening I22's decidable bite (GV-18 keeps a `violated`-row-on-PASS a FAIL regardless of later edits); the later-record anti-drift FAIL (I40-4) arms a new violation. |
+| **GV-25** — I19 `add_units` autonomy narrowed to human-confirmed DoD items | **REVISES** (strengthening) | — | **Models untouched — I19 autonomy is a validator predicate; the model's `Amend` is origin-agnostic (autonomous-vs-gated abstracted); a human wait adds no TLA action.** Migration: strict narrowing (`autonomous ⇔ verbatim-member ∧ human_confirmed(x)`) — every previously-gated case stays gated, **no guarantee weakens**; no new state/edge (P4/P6 tables unchanged). |
+| **GV-31** — `SKILL.md` P4 conditional touchpoint | **REVISES** (doctrine) / three-gates **PRESERVES** | — | **Models untouched — P4 is a linear `Complete(P4)` phase; a node-internal conditional `AskUserQuestion` adds no action / variable / edge (the PR1 "no new TLA action" precedent); `GateOrdering` unaffected, no gate bypassed.** Migration: revises only the `SKILL.md` P4 "never opens a new prompt here" doctrine (enumeration-level); the three-human-gates `REQUIRED_GATES` set is immutable (no P4→P2 edge exists); conditional (most runs have no P4 DoD gap); the fuel question stays forbidden at P4. |
+| **AF-41** — "the stamp gates nothing" §5 doc-drift | **PRESERVES** (documentation repair) | — | **Models untouched — documentation.** No guarantee changes: the imprecise sentence was **already** contradicted by the already-shipped I27-T1 presence arm (depth-1.9.0), independent of this landing; correcting the prose to match shipped behavior revises no guarantee. (Authoritatively PRESERVES — not double-classified from the "GV-31 / AF-41" §5 shorthand.) |
+
+**Independent verification (this unit, re-derived against SOURCE — not the spec's framing).**
+(1) *No LT7 guard / no counter write:* every I35–I40 clause routes to the existing offline
+`rep.fail` / `print("  NOTE …")` / ESCALATE; **none** appears on `LRetry` (`Pipeline.tla` ~line 191,
+`\* spec: LT7 : the SOLE back-edge`) or on any other `L*` / phase action — so Claims A–D and AO-1..7 hold.
+(2) *I18 VERBATIM:* the cost formula `max(1,|a|−|r|)`, the `fuel_remaining ≥ 0` floor, the immutable-seed
+chain, and `FuelBound` are unchanged; `revise_anchors` *consumes* the existing formula, it does not amend
+it. (3) *`revise_anchors` → modeled `Amend`:* fuel-1, adds no unit, floor-disabled — dominated by the
+TLC-checked re-arm (`Pipeline.tla` `Amend`, ~lines 223–232). (4) *Counts valid without a re-run:* `formal/`
+is byte-untouched, so 853/408/36, 2,923/1,608/156, and Alloy 8/8 stand as recorded above.
+
+---
+
 ## Consistency with the runtime validator (two levels, same invariants)
 
 | Invariant | Design-time proof (here) | Runtime enforcement (`validate_run.py`) |

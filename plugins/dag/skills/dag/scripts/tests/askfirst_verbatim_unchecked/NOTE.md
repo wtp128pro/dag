@@ -1,0 +1,1 @@
+askfirst_verbatim_unchecked: at P8, a consequential prompt-verbatim row is NOT enumerated in verify.json consequential_verbatim_check[] (no verify.json). Exit 1 via I38 AF-19 `verbatim spot-check`. (Dirty: other P8 checks — pin is the sentinel.)

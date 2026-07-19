@@ -1,0 +1,1 @@
+askfirst_halt_dangling (1.9.0): pending_halt.register_ids [99] resolve into no register row. Exit 1 via I38 AF-35 SHAPE (`halt dangling`) — the T2 adoption arm fires BELOW ship (T1h stays silent at 1.9.0, so AF-36/the NOTE do not fire).

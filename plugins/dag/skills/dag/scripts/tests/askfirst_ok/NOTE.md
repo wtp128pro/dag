@@ -1,0 +1,1 @@
+askfirst_ok: the positive control. A consequential (K1) human-gate row carries a round_ref (p1.r1) that RESOLVES into the transcript round-id set (AF-16 T2 passes); a cosmetic audience-format logged-default is legal (E2); a human-round provenance item resolves (AF-17/AF-45 pass). Exit 0.

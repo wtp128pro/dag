@@ -1,0 +1,1 @@
+askfirst_halt_p2: the sanctioned LOUD halt. A material CC row is open + listed in a well-formed pending_halt marker, ZERO structural artifacts. Exit is produced by EXISTING I8 (`unresolved material item(s)`, byte-untouched, phase/version-blind); I38 T1h emits the N-I38 halt NOTE. I8 stays loud (AF-40 relaxation DECLINED). Pin: I8's detail line.

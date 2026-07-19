@@ -1,0 +1,37 @@
+{
+  "run_label": "dialogue_instance_freeform",
+  "dialogues": [
+    {
+      "surface_id": "DS-2",
+      "instance": "p2a",
+      "phase": "P2_CLARIFICATION",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-OPEN",
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "x.q1",
+              "q": "Q?",
+              "move": "FORK",
+              "recommended": "R."
+            }
+          ],
+          "answers": [
+            {
+              "a": "A.",
+              "q_ref": "x.q1",
+              "deviation": false
+            }
+          ]
+        }
+      ],
+      "termination": {
+        "reason": "converged",
+        "gate_answer": "Proceed."
+      }
+    }
+  ]
+}

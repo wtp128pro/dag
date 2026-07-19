@@ -1,0 +1,27 @@
+{
+  "unit_id": "U02",
+  "title": "Coverage U02",
+  "wave": 2,
+  "depends_on": [
+    "U01"
+  ],
+  "persona": "Validator Engineer",
+  "budget_tokens": 16000,
+  "acceptance_criteria": [
+    "the gap is covered"
+  ],
+  "context_pointers": [
+    "CARTOGRAPHY.md"
+  ],
+  "outputs": [
+    "units/U02/debrief.json"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "validator"
+  ],
+  "learnings_applied": [],
+  "dod_refs": [
+    "DoD-A"
+  ]
+}

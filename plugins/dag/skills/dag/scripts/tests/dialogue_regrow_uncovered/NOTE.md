@@ -1,0 +1,1 @@
+dialogue_regrow_uncovered: material human-gate register row 7 is resolved but appears in no DS-2 round's register_rows_resolved[] and carries no round_ref -> I36 dialogue (register-row coverage). NEGATIVE (MC-14).

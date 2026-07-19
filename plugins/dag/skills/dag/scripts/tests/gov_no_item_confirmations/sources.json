@@ -1,0 +1,25 @@
+{
+  "run_label": "askfirst",
+  "sources": [
+    {
+      "id": "S1",
+      "title": "the prompt under clarification",
+      "tier": "T-LOCAL",
+      "locator": "INPUT.md:1",
+      "disposition": "consulted",
+      "why": "the task's own ground truth",
+      "accessed": "2026-07-18",
+      "yielded": "the consequential ambiguities are pinned by the prompt wording"
+    }
+  ],
+  "coverage": [
+    {
+      "area": "task prompt state",
+      "claim": "the prompt's scope and DoD are mapped",
+      "based_on": [
+        "S1"
+      ],
+      "gaps": "none"
+    }
+  ]
+}
