@@ -1360,6 +1360,211 @@
         "references/state-machine.md#4",
         "PLAN §5.6"
       ]
+    },
+    {
+      "id": "I35",
+      "tier": "mechanical",
+      "title": "Dialogue transcript presence & shape — version-gated (T1 @1.10.0) presence + adoption (T2) shape over dialogues.json; offline post-hoc, no FSM edge/flag/guard (PRESERVES); genuineness is Limitation U/V",
+      "validator_label_prefixes": [
+        "I35 dialogue"
+      ],
+      "fixtures": [
+        "dialogue_missing_stamped",
+        "dialogue_shape_bad",
+        "dialogue_version_gated_silent",
+        "dialogue_missing_ds2",
+        "dialogue_ds4_missing",
+        "dialogue_rounds_over",
+        "dialogue_rounds_desync",
+        "dialogue_missing_forbid",
+        "dialogue_missing_confirm",
+        "dialogue_reentry_noforbid_ok",
+        "dialogue_blank_answer",
+        "dialogue_missing_recommended",
+        "dialogue_empty_answer_no_halt",
+        "dialogue_halt_pending_ok",
+        "dialogue_ok"
+      ],
+      "provenance": [
+        "socratic-guardrail-plan",
+        "U01",
+        "U04"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "socratic-guardrail-plan spec/dialogue-protocol.md"
+      ]
+    },
+    {
+      "id": "I36",
+      "tier": "mechanical",
+      "title": "Dialogue disposition & presentation-bind — three-arm union, maxItems:4 anti-stuffing, recommended-echo counter-join, forbid residue + register-row coverage; offline (PRESERVES); presentation fidelity is Limitation U",
+      "validator_label_prefixes": [
+        "I36 dialogue",
+        "N-I36"
+      ],
+      "fixtures": [
+        "dialogue_confirm_unpresented",
+        "dialogue_confirm_stuffing",
+        "dialogue_confirm_bijection",
+        "dialogue_confirm_ok",
+        "dialogue_recommended_echo_launder",
+        "dialogue_draftedit_echo_launder",
+        "dialogue_forbid_dangling",
+        "dialogue_forbid_topics_missing",
+        "dialogue_draftedit_unbacked",
+        "dialogue_reask",
+        "dialogue_regrow_uncovered",
+        "dialogue_regrow_impasse_ok",
+        "dialogue_rubberstamp_note"
+      ],
+      "provenance": [
+        "socratic-guardrail-plan",
+        "U01",
+        "U04"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "socratic-guardrail-plan spec/dialogue-protocol.md"
+      ]
+    },
+    {
+      "id": "I37",
+      "tier": "mechanical",
+      "title": "Dialogue termination & probe accounting — enum + conditional payloads, rung-choice legality (human-early carve-out), instance closure with license injectivity; offline (PRESERVES); unrecorded-trigger residual Limitation V",
+      "validator_label_prefixes": [
+        "I37 dialogue"
+      ],
+      "fixtures": [
+        "dialogue_capped_no_dossier",
+        "dialogue_gate_answer_missing",
+        "dialogue_lapse_wrong_rung",
+        "dialogue_lapse_dangling_qref",
+        "dialogue_probe_unserved",
+        "dialogue_lapse_at_cap_ok",
+        "dialogue_probe_humanearly_ok",
+        "dialogue_instance_freeform",
+        "dialogue_reentry_unlicensed",
+        "dialogue_reentry_noninjective"
+      ],
+      "provenance": [
+        "socratic-guardrail-plan",
+        "U01",
+        "U04"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "socratic-guardrail-plan spec/dialogue-protocol.md"
+      ]
+    },
+    {
+      "id": "I38",
+      "tier": "mechanical",
+      "title": "Ask-first consequential-default legality — CC(K1∨K2) materiality-blind; split trigger T1/T1h/T1v/T2 @1.10.0; loud declared halt (N-I38); I27 + I8 carried BYTE-UNTOUCHED; offline post-hoc, no FSM edge/flag/guard, never guards LT7 (PRESERVES); residuals Limitation W (R1–R8)",
+      "validator_label_prefixes": [
+        "I38 ask-first",
+        "N-I38"
+      ],
+      "fixtures": [
+        "askfirst_illegal_default_dim",
+        "askfirst_illegal_default_prov",
+        "askfirst_missing_dimension",
+        "askfirst_unlinked_humangate",
+        "askfirst_dangling_round_ref",
+        "askfirst_prov_dangling",
+        "askfirst_prov_item_unmirrored",
+        "askfirst_open_conseq_past_p2",
+        "askfirst_verbatim_unchecked",
+        "askfirst_verbatim_heavy_note",
+        "askfirst_version_gated_silent",
+        "askfirst_ok",
+        "askfirst_halt_p2",
+        "askfirst_halt_note",
+        "askfirst_halt_minor_dodge",
+        "askfirst_halt_dangling",
+        "askfirst_authorship_note",
+        "askfirst_halt_default",
+        "askfirst_halt_after_work",
+        "askfirst_illegal_default_prov_oos",
+        "askfirst_oos_prov_dangling",
+        "askfirst_prov_attribution",
+        "askfirst_prov_round_dangling",
+        "askfirst_prov_humanround"
+      ],
+      "provenance": [
+        "socratic-guardrail-plan",
+        "U02",
+        "U04"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "socratic-guardrail-plan spec/ask-first.md"
+      ]
+    },
+    {
+      "id": "I39",
+      "tier": "mechanical",
+      "title": "Anchor confirmation, provenance & baseline integrity — fail-closed item_confirmations + anchors_baseline (dissent 1); immutable-baseline replay vs coordinated rewrite (dissent 2, I17 pattern); GV-29 REVISES artifact contract for new runs (offline, version-gated); transcript-file integrity Limitation X; offline post-hoc, no FSM edge/flag/guard (PRESERVES)",
+      "validator_label_prefixes": [
+        "I39 anchor",
+        "N-I39"
+      ],
+      "fixtures": [
+        "gov_forbid_residue_lost",
+        "gov_dup_currency",
+        "gov_reclarify_supersede_ok",
+        "gov_recon_dangling",
+        "gov_coordinated_rewrite",
+        "gov_replay_ok",
+        "gov_no_item_confirmations",
+        "gov_missing_baseline",
+        "gov_bad_baseline_hash",
+        "gov_unstamped_disarm_note",
+        "gov_unconfirmed_past_gate",
+        "gov_unexplained_delta"
+      ],
+      "provenance": [
+        "socratic-guardrail-plan",
+        "U03",
+        "U04"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "socratic-guardrail-plan spec/governance.md"
+      ]
+    },
+    {
+      "id": "I40",
+      "tier": "mechanical",
+      "title": "Anchor mutation gating — revise_anchors always-gated (GV-13); fuel cost 1 / fuel-0 unwritable via I18 VERBATIM (no fuel REVISES); ref-reconciliation (GV-15); membership-union (GV-16 REVISES I20/21/22, current ∪ retired) + later-record rule; violated-target P7 routing (GV-18); narrowed add_units autonomy (GV-25 REVISES I19); offline post-hoc per-unit PRESERVES, never guards LT7",
+      "validator_label_prefixes": [
+        "I40 anchor"
+      ],
+      "fixtures": [
+        "gov_revise_ungated",
+        "gov_revise_fuel_cost",
+        "amend_fuel0_revise_unwritable",
+        "gov_revise_ok",
+        "gov_ref_recon_soleref",
+        "gov_ref_recon_briefdrift",
+        "gov_retired_membership_ok",
+        "gov_later_unit_cites_retired",
+        "gov_added_item_stranded",
+        "gov_revise_violated_target",
+        "gov_scope_change_no_confirm",
+        "gov_scope_change_no_confirm_record",
+        "gov_autonomous_unconfirmed_ref",
+        "gov_autonomous_confirmed_ok"
+      ],
+      "provenance": [
+        "socratic-guardrail-plan",
+        "U03",
+        "U04"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "socratic-guardrail-plan spec/governance.md"
+      ]
     }
   ]
 }

@@ -1,0 +1,1 @@
+askfirst_verbatim_heavy_note: 2/2 consequential rows resolved prompt-verbatim (> half) on a valid 1.10.0 run (struct + full dimension_sweep + DS-1 transcript so I27/I35 presence pass; not P8 so AF-19 is dormant). Exit 0 + advisory NOTE `N-I38 (verbatim-heavy)` (AF-20; a FAIL would Goodhart rows away from honest verbatim citation).

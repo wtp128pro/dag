@@ -1,0 +1,25 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "material",
+      "resolved": false,
+      "dimension": "scope-boundaries"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "pending_halt": {
+    "register_ids": [
+      1
+    ],
+    "surface": "P2 clarification surface",
+    "declared": "awaiting the human on a non-interactive run"
+  }
+}

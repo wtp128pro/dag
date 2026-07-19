@@ -1,0 +1,49 @@
+{
+  "run_label": "gov_revise_fuel_cost",
+  "revision": 2,
+  "amendments_applied": [
+    "A01"
+  ],
+  "baseline_units": [
+    "U01"
+  ],
+  "fuel_initial": 2,
+  "v_tag": [
+    "research",
+    "design",
+    "schema",
+    "validator",
+    "formal",
+    "core"
+  ],
+  "units": [
+    {
+      "id": "U01",
+      "title": "Research",
+      "goal": "map the landscape",
+      "executor_persona": "Researcher",
+      "verifier_persona": "Skeptic",
+      "deps": [],
+      "outputs": [
+        "units/U01/debrief.json"
+      ],
+      "est_footprint_tokens": 21000,
+      "acceptance_criteria": [
+        "10-14 findings with sources"
+      ],
+      "tags": [
+        "research",
+        "core"
+      ]
+    }
+  ],
+  "edges": [],
+  "waves": [
+    {
+      "wave": 1,
+      "units": [
+        "U01"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "run_label": "gov_retired_membership_ok",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "amb",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "ok"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-B"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "item_confirmations": [
+    {
+      "item": "DoD-B",
+      "list": "definition_of_done",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    },
+    {
+      "item": "DoD-A",
+      "list": "definition_of_done",
+      "disposition": "removed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p7-U01-1",
+      "amendment_ref": "A01",
+      "prior_text": "DoD-A"
+    },
+    {
+      "item": "NG-1",
+      "list": "non_goals",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    }
+  ],
+  "anchors_retired": [
+    {
+      "list": "definition_of_done",
+      "prior_text": "DoD-A",
+      "amendment_ref": "A01"
+    }
+  ]
+}

@@ -3,6 +3,24 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.12] — 2026-07-18
+
+### Changed
+- **`dag` plugin → 1.10.0** — **Socratic-guardrail enforcement**: the run's front-of-run
+  discipline becomes mechanically checkable via six new **offline** validator invariants
+  **I35–I40**, across four pillars — **(P-A)** bounded multi-round Socratic dialogue-series
+  solicitation recorded in a new machine-checkable `dialogues.json` transcript (+ schema);
+  **(P-B)** consequential-gap **ask-first** (a logged default is illegal for a DoD, non-goal,
+  scope, or acceptance gap — materiality-blind); **(P-C)** non-goal **solicitation + enforcement**
+  (an unconditional forbid round plus a new `revise_anchors` amendment kind); and **(P-D)**
+  anti-drift (membership-union semantics, an immutable anchor baseline, and `add_units` autonomy
+  narrowing). Every predicate is **post-hoc/offline** — **none is a live LT7 guard** — so the
+  correction-loop **termination proof is PRESERVED** and I1–I34 are unrelaxed. Groundwork is
+  additive: new `dialogues.json` artifact + schema, additive schema/template deltas (every new
+  field OPTIONAL), and ~88 new self-test fixtures; TLA+/Alloy models re-verified **unchanged**
+  (pinned formal counts untouched). See `plugins/dag/CHANGELOG.md` for the full breakdown.
+- Marketplace catalog version → 1.0.12.
+
 ## [1.0.11] — 2026-07-16
 
 ### Changed

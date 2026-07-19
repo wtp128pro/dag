@@ -1,0 +1,10 @@
+{
+  "run_label": "dlg",
+  "confirmed_by_user": true,
+  "roster": [
+    {
+      "persona": "Elicitor",
+      "mandate": "conduct the bounded Socratic dialogue at the gate"
+    }
+  ]
+}

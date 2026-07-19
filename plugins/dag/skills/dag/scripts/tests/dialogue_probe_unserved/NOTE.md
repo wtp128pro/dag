@@ -1,0 +1,1 @@
+dialogue_probe_unserved: an R-CONFIRM edit fired a DP-12(c) probe obligation but there is no R-PROBE round, probe_discharge, probes_lapsed entry, or human-early termination -> I37 dialogue (probe unserved). NEGATIVE (MC-10 no-unserved).

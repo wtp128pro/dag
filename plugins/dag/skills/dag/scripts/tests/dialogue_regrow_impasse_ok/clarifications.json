@@ -1,0 +1,20 @@
+{
+  "run_label": "dialogue_regrow_impasse_ok",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "scope of X",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "resolved via the impasse dossier per-item choice",
+      "resolution_source": "human-gate",
+      "round_ref": "p2.r2"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ]
+}

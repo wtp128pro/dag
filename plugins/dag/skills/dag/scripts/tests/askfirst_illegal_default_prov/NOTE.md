@@ -1,0 +1,1 @@
+askfirst_illegal_default_prov: E3 — a benign-dimension (terms) row whose fill became DoD text (register_ids [1] in definition_of_done_provenance) is CC via K2. material + logged-default, so this is ALSO the I38xI27 corner: the output carries BOTH `N-I27 (material self-default)` (I27 byte-untouched) AND the I38 AF-14 `illegal default` FAIL. Exit 1 (I38). (Dirty: I35 missing.)

@@ -1,0 +1,37 @@
+{
+  "run_label": "dialogue_reentry_unlicensed",
+  "dialogues": [
+    {
+      "surface_id": "DS-2",
+      "instance": "p2-r1",
+      "phase": "P2_CLARIFICATION",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-OPEN",
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p2r1.q1",
+              "q": "Keep?",
+              "move": "FORK",
+              "recommended": "Keep."
+            }
+          ],
+          "answers": [
+            {
+              "a": "Keep.",
+              "q_ref": "p2r1.q1",
+              "deviation": false
+            }
+          ]
+        }
+      ],
+      "termination": {
+        "reason": "converged",
+        "gate_answer": "Proceed."
+      }
+    }
+  ]
+}

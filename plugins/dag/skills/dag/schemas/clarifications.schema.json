@@ -26,7 +26,9 @@
           "resolution_source": { "type": "string",
             "enum": ["human-gate", "logged-default", "prompt-verbatim"] },
           "prompt_span": { "type": "string" },
-          "round": { "type": "integer", "minimum": 1 }
+          "round": { "type": "integer", "minimum": 1 },
+          "round_ref": { "type": "string", "minLength": 1,
+            "description": "CL-4/AF-28: OPTIONAL opaque round-id string resolving into the transcript (dialogues.json) round-id set. The existing integer `round` above is UNTOUCHED (AF-29)." }
         },
         "allOf": [
           { "$comment": "F7: a material item marked resolved must carry non-empty resolution text.",
@@ -124,6 +126,101 @@
       "type": "array",
       "minItems": 1,
       "items": { "type": "string", "minLength": 1 }
+    },
+    "item_confirmations": {
+      "type": "array",
+      "description": "CL-1/GV-6 append-only confirmation event log. Records are NEVER updated in place or deleted; array order is record order. Currency (GV-35) + reconciliation (GV-8) + narrowing (GV-24/25) are U04 predicates over this array. OPTIONAL: absent => archives valid; presence arms GV-8/11.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "list", "disposition", "origin"],
+        "properties": {
+          "item": { "type": "string", "minLength": 1 },
+          "list": { "type": "string", "enum": ["definition_of_done", "non_goals"] },
+          "disposition": { "type": "string", "enum": ["confirmed", "edited", "added", "removed"] },
+          "origin": { "type": "string", "enum": ["elicited-forbid-round", "elicited-confirmation-round", "derived-orchestrator", "prompt-verbatim", "amendment"] },
+          "transcript_ref": { "type": "string", "minLength": 1 },
+          "amendment_ref": { "type": "string", "minLength": 1 },
+          "prior_text": { "type": "string", "minLength": 1 }
+        },
+        "allOf": [
+          { "$comment": "GV-6/I25: prior_text REQUIRED iff disposition in {edited,removed}.",
+            "if":   { "properties": { "disposition": { "enum": ["edited", "removed"] } }, "required": ["disposition"] },
+            "then": { "required": ["prior_text"] } },
+          { "$comment": "GV-7: a confirming record needs a human evidence ref — transcript_ref OR amendment_ref (mid-run additions).",
+            "anyOf": [ { "required": ["transcript_ref"] }, { "required": ["amendment_ref"] } ] }
+        ]
+      }
+    },
+    "anchors_retired": {
+      "type": "array",
+      "description": "CL-2/GV-15: append-only log of anchor list items retired by a revise_anchors amendment. Each entry names the list, the verbatim prior text, and the retiring amendment. OPTIONAL: absent => archives valid.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["list", "prior_text", "amendment_ref"],
+        "properties": {
+          "list": { "type": "string", "enum": ["definition_of_done", "non_goals"] },
+          "prior_text": { "type": "string", "minLength": 1 },
+          "amendment_ref": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "pending_halt": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "CL-3/AF-35: non-interactive halt marker recorded when a material ambiguity cannot be resolved without the human on a non-interactive run. OPTIONAL: absent => archives valid; adoption arms AF-35/36/42.",
+      "required": ["register_ids", "surface", "declared"],
+      "properties": {
+        "register_ids": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 1 } },
+        "surface": { "type": "string" },
+        "declared": { "type": "string" }
+      }
+    },
+    "definition_of_done_provenance": {
+      "type": "array",
+      "description": "CL-5/AF-32: per-item provenance for the definition_of_done anchor list. OPTIONAL: absent => archives valid; presence arms AF-17/AF-45.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "register_ids", "source"],
+        "properties": {
+          "item": { "type": "string" },
+          "register_ids": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+          "source": { "type": "string", "enum": ["orchestrator-draft", "register-row", "human-round"] },
+          "round_ref": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "non_goals_provenance": {
+      "type": "array",
+      "description": "CL-5/AF-33: per-item provenance for the non_goals anchor list. OPTIONAL: absent => archives valid; presence arms AF-17/AF-45.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "register_ids", "source"],
+        "properties": {
+          "item": { "type": "string" },
+          "register_ids": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+          "source": { "type": "string", "enum": ["orchestrator-draft", "register-row", "human-round"] },
+          "round_ref": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "out_of_scope_provenance": {
+      "type": "array",
+      "description": "CL-5/AF-32: per-item provenance for the scope.out_of_scope list. OPTIONAL: absent => archives valid; presence arms AF-17/AF-45.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["item", "register_ids", "source"],
+        "properties": {
+          "item": { "type": "string" },
+          "register_ids": { "type": "array", "items": { "type": "integer", "minimum": 1 } },
+          "source": { "type": "string", "enum": ["orchestrator-draft", "register-row", "human-round"] },
+          "round_ref": { "type": "string", "minLength": 1 }
+        }
+      }
     }
   }
 }

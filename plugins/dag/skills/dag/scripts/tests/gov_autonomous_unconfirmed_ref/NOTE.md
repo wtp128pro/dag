@@ -1,0 +1,1 @@
+gov_autonomous_unconfirmed_ref: an autonomous (human_gate:false) add_units cites DoD-A, which is verbatim-present in definition_of_done (so I19 passes) but has NO human_confirmed record — the downgrade-laundering guard -> FAIL (GV-25/I40-8; I39-3a co-fires on the unconfirmed item). Exit 1, `I40 anchor`.

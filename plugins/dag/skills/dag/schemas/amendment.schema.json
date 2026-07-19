@@ -8,7 +8,7 @@
   "required": ["id", "kind", "origin", "rationale", "scope_change", "human_gate", "fuel_cost", "fuel_before", "fuel_after", "graph_revision_after"],
   "properties": {
     "id": { "type": "string", "pattern": "^A[0-9]{2,}$" },
-    "kind": { "enum": ["add_units", "split_unit", "add_edges", "cancel_unit"] },
+    "kind": { "enum": ["add_units", "split_unit", "add_edges", "cancel_unit", "revise_anchors"] },
     "origin": {
       "type": "object",
       "additionalProperties": false,
@@ -52,7 +52,47 @@
       "description": "split_unit only: parent acceptance criterion (verbatim key) -> child unit id(s) now covering it."
     },
     "graph_revision_after": { "type": "integer", "minimum": 2 },
-    "timestamp": { "type": "string" }
+    "timestamp": { "type": "string" },
+    "revise_ops": {
+      "type": "array",
+      "description": "AM-2/GV-12: revise_anchors payload — the ordered anchor-list edits. Each op names the operation, the (post-edit) item text, and (for edit/remove) the verbatim prior_text. OPTIONAL: absent on non-revise records => valid.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["op", "item"],
+        "properties": {
+          "op": { "type": "string", "enum": ["add", "edit", "remove"] },
+          "item": { "type": "string", "minLength": 1 },
+          "prior_text": { "type": "string", "minLength": 1 }
+        },
+        "allOf": [
+          { "$comment": "AM-2/I25: prior_text REQUIRED iff op in {edit,remove} (forward).",
+            "if":   { "properties": { "op": { "enum": ["edit", "remove"] } }, "required": ["op"] },
+            "then": { "required": ["prior_text"], "properties": { "prior_text": { "minLength": 1 } } } },
+          { "$comment": "AM-2/I25: prior_text FORBIDDEN unless op in {edit,remove} (backward — strict iff; an add has no prior text).",
+            "if":   { "properties": { "op": { "const": "add" } }, "required": ["op"] },
+            "then": { "not": { "required": ["prior_text"] } } }
+        ]
+      }
+    },
+    "list": {
+      "enum": ["definition_of_done", "non_goals"],
+      "description": "AM-3/GV-12: which anchor list revise_anchors edits. OPTIONAL: absent => valid."
+    },
+    "transcript_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "AM-4/GV-13/GV-21: ref to the gate-dialogue residue backing a human-gated revise. OPTIONAL: requiredness on human-gated records is I19's job (mirrors the human-gate-policy-is-I19 note above), not this schema's allOf."
+    },
+    "propagation_targets": {
+      "type": "array",
+      "description": "AM-5/GV-17: unit ids the anchor revision propagates to. OPTIONAL: absent => valid.",
+      "items": { "type": "string", "pattern": "^U[0-9]{2,}$" }
+    },
+    "propagation": {
+      "const": "remaining-scope-none",
+      "description": "AM-5/GV-17: attestation that no remaining in-scope unit needs the revision. OPTIONAL: absent => valid."
+    }
   },
   "allOf": [
     { "$comment": "add_units/split_unit carry a non-empty dod_refs tracing to definition_of_done, and add >=1 unit.",
@@ -87,6 +127,12 @@
       "if": { "properties": { "kind": { "const": "cancel_unit" } }, "required": ["kind"] },
       "then": { "required": ["units_retired"],
                 "properties": { "units_retired": { "minItems": 1 } },
-                "not": { "required": ["units_added"] } } }
+                "not": { "required": ["units_added"] } } },
+    { "$comment": "AM-6/GP-4 kind closure — revise_anchors: an anchor edit (revise_ops+list), NO unit growth (units_added/units_retired forbidden) so no anchor edit is laundered inside a growth kind. human_gate==true unconditionality stays an I19 predicate (GV-13), matching the cancel_unit precedent.",
+      "if": { "properties": { "kind": { "const": "revise_anchors" } }, "required": ["kind"] },
+      "then": { "required": ["revise_ops", "list"],
+                "allOf": [
+                  { "not": { "required": ["units_added"] } },
+                  { "not": { "required": ["units_retired"] } } ] } }
   ]
 }

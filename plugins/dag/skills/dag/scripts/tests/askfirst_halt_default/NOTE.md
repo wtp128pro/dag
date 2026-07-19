@@ -1,0 +1,1 @@
+askfirst_halt_default: AF-14's T1h arm. A halted structureless dir (marker present) also carries a DIFFERENT resolved CC row with resolution_source logged-default. Exit 1 via I38 AF-14 `illegal default` (fires even with zero structural artifacts). (I8 also fires on the open material row 1.)

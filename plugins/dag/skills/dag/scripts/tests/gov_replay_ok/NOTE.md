@@ -1,0 +1,1 @@
+gov_replay_ok: a legitimate post-baseline edit (DoD-B->DoD-C, amendment_ref A01) supersedes the DoD-B gate record; the forward replay from the immutable baseline reproduces the current list EXACTLY (GV-8(d)) and every delta has a receipt (GV-23) — exit 0 (+ N-I39 disarm NOTE, unstamped-independent: this run IS stamped, so no NOTE).

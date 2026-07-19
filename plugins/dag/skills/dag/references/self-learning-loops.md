@@ -196,6 +196,30 @@ so wall-clock work is finite too. ∎
 > fails on a keep-fuel mutant (formal-models.md Property 5). Any unbounded counter is forbidden (§3),
 > exactly as softmaxing the PR1 panel is.
 
+> **FLAG — Socratic-guardrail 1.10.0 (I35–I40), classified PRESERVES (termination + AO-1..7 + fuel/Quiesce)
+> with a scoped, migration-argued REVISES set.** The 1.10.0 landing adds six **OFFLINE post-hoc**
+> validator invariants (I35–I40) over emitted artifacts (`dialogues.json`; `clarifications.json` optional
+> keys incl. `item_confirmations[]`; the U01-transcript `anchors_baseline`; the `revise_anchors` amendment
+> kind). **Per-unit Claims A–D hold verbatim and AO-1..7 are preserved:** no I35–I40 predicate writes
+> `retries` or `fuel`, none adds a row to the §1.3 table, none introduces a second back-edge, and — the
+> load-bearing point — **none is a live guard on `LT7`** (the sole back-edge; a live guard there would
+> leave `RETRY` with no out-edge → deadlock, breaking §2 Claim D — the 02/P1 deadlock lesson). Every
+> violation routes to the existing offline `rep.fail` / advisory `NOTE` / ESCALATE, exactly like
+> I14/I15/I16. **Scoped REVISES set (each flagged, never silent — full adjudication + migration arguments
+> in `references/formal-models.md` "Socratic-guardrail 1.10.0 … REVISES classification"):** **DP-39**
+> (no-fixed-ritual doctrine, one surface only), **GV-29** (clarifications artifact contract, new runs only
+> — I25/I27-T1 class), **GV-30** (`revise_anchors` amendment-kind enumeration + I19 kind-closure), **GV-16**
+> (I20/I21/I22 membership-union `current ∪ retired`, frozen-prefix migration), **GV-25** (I19 `add_units`
+> autonomy — strict narrowing, no guarantee weakens), **GV-31** (`SKILL.md` P4 "never solicits" doctrine —
+> node-internal conditional touchpoint, three-human-gates model immutable). **AF-41** is authoritatively
+> **PRESERVES** (a §5 documentation repair, not a guarantee change). **`revise_anchors` is a fuel-1 sub-case
+> of the already-modeled `Amend` action** (formal-models.md Property 5; `Pipeline.tla` `Amend`): cost
+> `max(1,|added|−|retired|) = max(1,0−0) = 1` via the **existing** I18 formula, adds zero units, unwritable
+> at `fuel == 0` — so `N ≤ N0 + fuel₀`, `Quiesce`, and **I18 carried VERBATIM** all hold; **no fuel REVISES**
+> and no `formal/*` edit (the TLA+/Alloy counts 853/408/36, 2,923/1,608/156, Alloy 8/8 stand unchanged).
+> Each offline-check-PRESERVES-termination argument is the same category as the I14/I15/I16 (PR1) and
+> I17/I18/I19 (BGA) precedents already in this file.
+
 > The load-bearing point the brief demands: the guarantee is **not** the cap. It is that
 > the *only* cycle strictly descends a well-founded, floor-bounded measure whose back-edge
 > is disabled at the floor, `ADJUDICATE`'s guards are exhaustive (no deadlock), and both

@@ -1,0 +1,1 @@
+gov_scope_change_no_confirm: a scope_change add_units amendment appends DoD-NEW but carries NO transcript_ref to its gate residue -> FAIL (GV-21/I40-7). (An `added` confirmation record IS present, so I39 is clean and the transcript-ref arm of GV-21 is isolated.) Exit 1, `I40 anchor`.

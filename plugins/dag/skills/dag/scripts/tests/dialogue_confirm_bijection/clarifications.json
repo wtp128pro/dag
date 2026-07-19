@@ -1,0 +1,19 @@
+{
+  "run_label": "dialogue_confirm_bijection",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "a",
+      "materiality": "minor",
+      "resolved": true,
+      "resolution": "r"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A",
+    "DoD-UNCOVERED"
+  ],
+  "non_goals": [
+    "NG-1"
+  ]
+}

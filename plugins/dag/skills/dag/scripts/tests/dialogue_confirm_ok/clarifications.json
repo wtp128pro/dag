@@ -1,0 +1,20 @@
+{
+  "run_label": "dialogue_confirm_ok",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "scope of X",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "do X",
+      "resolution_source": "human-gate"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A",
+    "DoD-B2"
+  ],
+  "non_goals": [
+    "NG-1"
+  ]
+}

@@ -1,0 +1,143 @@
+{
+  "run_label": "dialogue_lapse_at_cap_ok",
+  "dialogues": [
+    {
+      "surface_id": "DS-2",
+      "instance": "p2",
+      "phase": "P2_CLARIFICATION",
+      "rounds_used": 2,
+      "mandatory_kinds_completed": [
+        "R-FORBID",
+        "R-CONFIRM"
+      ],
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-FORBID",
+          "moves_used": [
+            "PIVOT",
+            "RESIDUAL"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p2.r1.q1",
+              "q": "What must this run NOT build, change, or touch?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "forbid"
+            },
+            {
+              "qid": "p2.r1.q2",
+              "q": "What failure or outcome do you fear most from this task?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "fear"
+            },
+            {
+              "qid": "p2.r1.q3",
+              "q": "What would make you REJECT the deliverable even if every DoD item passes?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "rejection"
+            },
+            {
+              "qid": "p2.r1.q4",
+              "q": "What currently-working thing must not regress?",
+              "move": "PIVOT",
+              "recommended": "No additions.",
+              "battery_topic": "invariant"
+            }
+          ],
+          "answers": [
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q1",
+              "deviation": false
+            },
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q2",
+              "deviation": false
+            },
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q3",
+              "deviation": false
+            },
+            {
+              "a": "No additions.",
+              "q_ref": "p2.r1.q4",
+              "deviation": false
+            }
+          ],
+          "effects": {
+            "decisions_ref": "DECISIONS.md#forbid",
+            "summary": "forbid battery posed (all four topics)"
+          }
+        },
+        {
+          "round": 2,
+          "kind": "R-CONFIRM",
+          "moves_used": [
+            "RESIDUAL"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p2.r2.q1",
+              "q": "Confirm each DoD/NG item (or edit / drop).",
+              "move": "RESIDUAL",
+              "recommended": "Confirm all on this page.",
+              "items_presented": [
+                "DoD-A",
+                "DoD-B"
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "a": "Confirm all on this page.",
+              "q_ref": "p2.r2.q1",
+              "deviation": true
+            }
+          ],
+          "dispositions": [
+            {
+              "item": "DoD-A",
+              "disposition": "confirm",
+              "origin": "orchestrator-authored",
+              "q_ref": "p2.r2.q1"
+            },
+            {
+              "item": "DoD-B",
+              "disposition": "edit",
+              "edited_to": "DoD-B2",
+              "rationale": "sharpened",
+              "origin": "orchestrator-authored",
+              "q_ref": "p2.r2.q1"
+            }
+          ],
+          "effects": {
+            "decisions_ref": "DECISIONS.md#confirm",
+            "summary": "item-by-item confirmation",
+            "dod_edits": [
+              "DoD-B2"
+            ]
+          }
+        }
+      ],
+      "termination": {
+        "reason": "converged",
+        "probes_lapsed": [
+          {
+            "trigger": "R-CONFIRM edit (DP-12(c))",
+            "q_ref": "p2.r2.q1",
+            "cause": "cap-exhausted"
+          }
+        ],
+        "gate_answer": "Proceed."
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+gov_unexplained_delta: DoD-B is in the current list but not in the immutable baseline and its `added` record carries NO amendment_ref (no post-baseline receipt) -> FAIL (GV-23/I39-6; replay co-fires). Exit 1, `I39 anchor`.

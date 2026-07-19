@@ -1,0 +1,1 @@
+gov_coordinated_rewrite (dissent 2): current list + confirmation records were coordinated-rewritten (DoD-B->DoD-C) but the IMMUTABLE anchors_baseline still reads [DoD-A,DoD-B]; the GV-8(d) forward replay cannot reproduce the current list -> FAIL (I39-3d). Exit 1, `I39 anchor`.

@@ -1,0 +1,1 @@
+gov_later_unit_cites_retired: U02 was ADDED by A02 (ordered after the A01 retirement) yet its dod_refs bind the retired DoD-A; the frozen-prefix union does not license a later-added unit -> FAIL (GV-16/I40-4). (A02's amendment dod_refs=[DoD-B] trace fine, so I19 passes and I40-4 is isolated.) Exit 1, `I40 anchor`.

@@ -3,6 +3,28 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] — 2026-07-18
+
+**Socratic-guardrail enforcement** — the pipeline's front-of-run discipline (Socratic
+questioning, ask-before-assuming, non-goal solicitation, and anchor-stability) becomes
+mechanically checkable via six new OFFLINE post-hoc validator invariants (**I35–I40**), across
+four pillars: **(P-A) bounded multi-round Socratic dialogue-series** — clarification solicits a
+bounded series of Socratic rounds recorded in a new machine-checkable `dialogues.json` transcript
+(+ schema), so the questioning actually happened and is auditable rather than asserted; **(P-B)
+consequential-gap ask-first** — a logged default is illegal for a Definition-of-Done, non-goal,
+scope, or acceptance gap (materiality-blind: any such gap must be *asked*, never silently
+defaulted); **(P-C) non-goal solicitation + enforcement** — an unconditional forbid round
+solicits explicit non-goals, and a new `revise_anchors` amendment kind lets a run legitimately
+amend its anchor set under the bounded-graph-amendment discipline; **(P-D) anti-drift** —
+membership-union semantics, an immutable anchor baseline, and `add_units` autonomy narrowing keep
+the executed graph from drifting off its confirmed anchors. All six predicates are OFFLINE/
+post-hoc over emitted artifacts — **none is a live guard and none guards LT7** (the correction
+loop's sole back-edge), so the per-unit termination proof (Claims A–D) is **PRESERVED**; AO-1..7,
+I1–I34, the three-human-gates model, and the FSM edge set are unchanged. Groundwork is additive:
+new `dialogues.json` artifact + schema, additive schema/template deltas (every new field
+OPTIONAL, nothing added to any required list), and ~88 new self-test fixtures. TLA+ (TLC) and
+Alloy models re-verified **unchanged** — the pinned formal counts are untouched.
+
 ## [1.9.0] — 2026-07-16
 
 **Depth & retrieval enforcement** — retrieval effort and clarification depth become mechanically

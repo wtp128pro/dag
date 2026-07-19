@@ -1,0 +1,27 @@
+{
+  "unit_id": "U01",
+  "title": "Research",
+  "wave": 1,
+  "depends_on": [],
+  "persona": "Researcher",
+  "budget_tokens": 32000,
+  "acceptance_criteria": [
+    "10-14 findings with sources"
+  ],
+  "context_pointers": [
+    "INPUT.md",
+    "CARTOGRAPHY.md"
+  ],
+  "outputs": [
+    "units/U01/debrief.json"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "research",
+    "core"
+  ],
+  "learnings_applied": [],
+  "dod_refs": [
+    "DoD-Y"
+  ]
+}

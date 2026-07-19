@@ -131,6 +131,18 @@ You may right-size their *contents* to the task, but never their *presence*. And
 input-gap coverage: a resolution that names what to build but not what to steer clear of is
 not resolved — cover both the what-to-do and the what-to-avoid for every material gap.
 
+**One fixed-ritual exception (DP-39 — a labeled REVISES, 1.10.0).** The selective, not-ritual
+doctrine (§Socratic) holds everywhere except ONE surface: the P2 (DS-2 `p2`) **negative-scope
+forbid round** is a fixed ritual — it solicits Non-Goals at EVERY P2, even on a clean sweep,
+because across prior runs the selective trigger produced ZERO dedicated negative-scope
+solicitation while Non-Goals anchor the I21/I22/I23 enforcement chain. This REVISES only the
+*trigger* half; the **anti-theater CONTENT half is preserved (DP-35)** — the round mandates the
+*asking*, never manufactured findings ("no additions" is a legal, recorded answer). The whole P2
+clarification is a bounded Socratic **dialogue series** (consequential-gap / forbid / DoD-NG
+confirmation rounds) transcripted to `dialogues.json`, node-internal to the existing P2 gate (no
+new FSM edge or gate flag), bounded by a **convergence-or-cap of N = 3 rounds per surface**; six
+offline invariants **I35–I40** enforce it post-hoc.
+
 **These are mechanically enforced in two layers**, so this is not advice you can skip. The
 schema fields are `definition_of_done` and `non_goals` (both required, non-empty). (Layer-1) a
 present `clarifications.json` missing or emptying either field hard-fails the schema; (Layer-2)

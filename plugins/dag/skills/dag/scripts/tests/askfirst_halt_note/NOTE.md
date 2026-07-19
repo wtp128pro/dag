@@ -1,0 +1,1 @@
+askfirst_halt_note: same structureless material halt as askfirst_halt_p2; here the pin is the N-I38 `halted pending human` NOTE, emitted via the T1h arm (stamp ∧ marker, NO structural conjunct). Exit 1 is produced by EXISTING I8 (the material open row); the NOTE is advisory/visibility.

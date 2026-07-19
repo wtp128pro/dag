@@ -206,7 +206,17 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.9.0** — **Depth & retrieval enforcement**: nine new **offline** validator
+Current version: **1.10.0** — **Socratic-guardrail enforcement**: six new **offline** validator
+invariants (**I35–I40**) make the run's front-of-run discipline mechanically checkable across four
+pillars — a **bounded multi-round Socratic dialogue-series** recorded in a machine-checkable
+`dialogues.json` transcript (+ schema); **consequential-gap ask-first** (a logged default is
+illegal for a DoD, non-goal, scope, or acceptance gap — materiality-blind); **non-goal
+solicitation + enforcement** (an unconditional forbid round plus a new `revise_anchors` amendment
+kind); and **anti-drift** (membership-union semantics, an immutable anchor baseline, and
+`add_units` autonomy narrowing). Every predicate is **post-hoc/offline** (no live LT7 guard) — the
+correction-loop **termination proof is PRESERVED** and I1–I34 are unrelaxed. Additive only: new
+`dialogues.json` artifact + schema, OPTIONAL schema/template deltas, and ~88 new self-test
+fixtures; TLA+/Alloy re-verified unchanged. **1.9.0** — **Depth & retrieval enforcement**: nine new **offline** validator
 invariants (**I26–I34**) make retrieval effort and clarification depth mechanically checkable —
 a mandatory claim-type→source-tier standard with a declared fallback ladder, a first-class
 SOURCES register feeding clarification and briefs, a nine-dimension dispositioned clarification

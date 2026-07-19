@@ -1,0 +1,48 @@
+{
+  "run_label": "gov_unexplained_delta",
+  "dialogues": [
+    {
+      "surface_id": "DS-1",
+      "instance": "p1",
+      "phase": "P1_PERSONAS",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-GATE",
+          "moves_used": [
+            "RESIDUAL"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p1.r1.q1",
+              "q": "Confirm roster?",
+              "move": "RESIDUAL",
+              "recommended": "Proceed."
+            }
+          ],
+          "answers": [
+            {
+              "a": "Proceed.",
+              "q_ref": "p1.r1.q1",
+              "deviation": false
+            }
+          ]
+        }
+      ],
+      "termination": {
+        "reason": "converged"
+      }
+    }
+  ],
+  "anchors_baseline": {
+    "definition_of_done": [
+      "DoD-A"
+    ],
+    "non_goals": [
+      "NG-1"
+    ],
+    "content_hash": "sha256:302f6c242f9f48d49f1e8b6df9d738f9eeb55cb57b812b67666ae8407c6022eb"
+  }
+}

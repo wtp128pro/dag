@@ -178,6 +178,19 @@
           "note":     { "type": "string" }
         }
       }
+    },
+    "consequential_verbatim_check": {
+      "type": "array",
+      "description": "VR-1/AF-19: OPTIONAL whole-run verify field — the consequential prompt-verbatim enumeration the whole-run verify.json spot-checks. One row per consequential register item: its register_id plus a non-blank outcome. Absent => valid.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["register_id", "outcome"],
+        "properties": {
+          "register_id": { "type": "integer", "minimum": 1 },
+          "outcome": { "type": "string", "minLength": 1, "pattern": "\\S" }
+        }
+      }
     }
   },
   "allOf": [

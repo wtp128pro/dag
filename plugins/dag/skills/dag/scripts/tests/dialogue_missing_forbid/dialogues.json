@@ -1,0 +1,51 @@
+{
+  "run_label": "dialogue_missing_forbid",
+  "dialogues": [
+    {
+      "surface_id": "DS-2",
+      "instance": "p2",
+      "phase": "P2_CLARIFICATION",
+      "rounds_used": 1,
+      "mandatory_kinds_completed": [
+        "R-CONFIRM"
+      ],
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-CONFIRM",
+          "moves_used": [
+            "RESIDUAL"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p2.r1.q1",
+              "q": "Confirm each DoD/NG item (or edit / drop).",
+              "move": "RESIDUAL",
+              "recommended": "Confirm all on this page.",
+              "items_presented": [
+                "DoD-A"
+              ]
+            }
+          ],
+          "answers": [
+            {
+              "a": "Confirm all on this page.",
+              "q_ref": "p2.r1.q1",
+              "deviation": false
+            }
+          ],
+          "dispositions": [],
+          "effects": {
+            "decisions_ref": "DECISIONS.md#confirm",
+            "summary": "item-by-item confirmation"
+          }
+        }
+      ],
+      "termination": {
+        "reason": "converged",
+        "gate_answer": "Proceed."
+      }
+    }
+  ]
+}

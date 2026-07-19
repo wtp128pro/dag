@@ -1,0 +1,1 @@
+gov_ref_recon_briefdrift: revise_anchors edited DoD-A->DoD-A2 but the unexecuted U02 (graph AND brief) still binds the retired DoD-A — its ref was not rewritten in the same transaction -> FAIL (GV-15 4b/I40-3). Exit 1, `I40 anchor`.

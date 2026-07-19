@@ -1,0 +1,1 @@
+askfirst_illegal_default_prov_oos: AF-14 via K2's AF-33 out_of_scope channel — a benign-dimension (terms) row whose id [1] appears in out_of_scope_provenance.register_ids is CC, and it is logged-defaulted. Exit 1 via I38 AF-14 `illegal default` (proving the third K2 channel cannot drop).

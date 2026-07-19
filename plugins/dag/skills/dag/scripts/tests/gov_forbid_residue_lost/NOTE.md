@@ -1,0 +1,1 @@
+gov_forbid_residue_lost: the R-FORBID round elicited NG-1 (effects.non_goals_added) but its item_confirmations record claims origin `derived-orchestrator` (no elicited-forbid-round provenance) — the forbid residue was silently merged, not deposited as a candidate item -> FAIL (GV-3/I39-1). Exit 1, `I39 anchor`.

@@ -1,0 +1,12 @@
+{
+  "run_dir": "tests/askfirst",
+  "phase": "P8_SYNTHESIS",
+  "updated_at": "2026-07-18T12:00:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true
+  },
+  "validator_version": "1.10.0"
+}

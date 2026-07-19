@@ -1,0 +1,1 @@
+gov_revise_ok: a valid human-gated revise_anchors edit (DoD-A->DoD-A2), fuel cost 1 (I18), transcript_ref present, records reconcile — exit 0 (+ N-I39 disarm NOTE: this BGA fixture is unstamped, like amend_ok, so the fail-closed layer is advisory while the adoption-armed I40 clauses still run).

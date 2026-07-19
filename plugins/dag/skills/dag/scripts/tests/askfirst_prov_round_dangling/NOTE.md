@@ -1,0 +1,1 @@
+askfirst_prov_round_dangling (1.9.0): a provenance item source 'human-round' cites round_ref 'P2.R7' with no such transcript round (the fictional-round repro). Exit 1 via I38 AF-45 `provenance round dangling` — the strongest-looking-provenance-for-an-invented-string bypass, closed.

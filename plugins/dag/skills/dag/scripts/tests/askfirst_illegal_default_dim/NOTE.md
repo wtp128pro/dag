@@ -1,0 +1,1 @@
+askfirst_illegal_default_dim: E1 — a scope-boundaries row declared `minor` and logged-defaulted. K1 holds; CC is materiality-blind (AF-2) so the minor label buys nothing. Exit 1 via I38 AF-14 `illegal default`. (Also dirty: I27 not-swept + I35 missing — negative fixture, pin is the sentinel.)

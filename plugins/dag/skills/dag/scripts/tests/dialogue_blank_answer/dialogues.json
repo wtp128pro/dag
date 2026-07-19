@@ -1,0 +1,36 @@
+{
+  "run_label": "dialogue_blank_answer",
+  "dialogues": [
+    {
+      "surface_id": "DS-5",
+      "instance": "p8",
+      "phase": "P8_SYNTHESIS",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-GATE",
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p8.r1.q1",
+              "q": "Accept?",
+              "move": "ADMIT",
+              "recommended": "Accept."
+            }
+          ],
+          "answers": [
+            {
+              "a": " ",
+              "q_ref": "p8.r1.q1",
+              "answer_ref": "DECISIONS.md#x"
+            }
+          ]
+        }
+      ],
+      "termination": {
+        "reason": "converged"
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+gov_revise_violated_target: a revise_anchors edit targets NG-1, which U01 already VIOLATED (verify.guardrail_compliance status:violated); it must route to P7 (disagreement dossier), not a P6 gate approval (origin.trigger != p7_resolution) -> FAIL/ESCALATE (GV-18/I40-6). Exit 1, `I40 anchor`.

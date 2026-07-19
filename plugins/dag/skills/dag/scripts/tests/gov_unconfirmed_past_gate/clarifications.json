@@ -1,0 +1,36 @@
+{
+  "run_label": "gov_unconfirmed_past_gate",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "scope of X",
+      "materiality": "material",
+      "resolved": true,
+      "resolution": "do X",
+      "resolution_source": "human-gate"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A",
+    "DoD-B2"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "item_confirmations": [
+    {
+      "item": "DoD-A",
+      "list": "definition_of_done",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    },
+    {
+      "item": "NG-1",
+      "list": "non_goals",
+      "disposition": "confirmed",
+      "origin": "elicited-forbid-round",
+      "transcript_ref": "p2.r1"
+    }
+  ]
+}

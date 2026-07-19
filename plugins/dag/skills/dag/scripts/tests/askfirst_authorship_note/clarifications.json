@@ -1,0 +1,27 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "minor",
+      "resolved": true,
+      "dimension": "terms",
+      "resolution": "x",
+      "resolution_source": "logged-default"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "definition_of_done_provenance": [
+    {
+      "item": "DoD-A",
+      "register_ids": [],
+      "source": "orchestrator-draft"
+    }
+  ]
+}

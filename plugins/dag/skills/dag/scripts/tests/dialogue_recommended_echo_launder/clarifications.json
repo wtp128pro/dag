@@ -1,0 +1,10 @@
+{
+  "run_label": "dialogue_recommended_echo_launder",
+  "ambiguity_register": [],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-EVIL"
+  ]
+}

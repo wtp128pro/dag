@@ -1,0 +1,1 @@
+askfirst_dangling_round_ref (1.9.0): a row carries round_ref 'P2.R9' but there is no transcript, so it resolves into no round id. Exit 1 via I38 AF-16 `dangling round_ref` — the T2 adoption arm fires BELOW ship (adoption-independence proof).

@@ -1,0 +1,87 @@
+{
+  "run_label": "gov_ref_recon_briefdrift",
+  "revision": 2,
+  "amendments_applied": [
+    "A01"
+  ],
+  "baseline_units": [
+    "U01",
+    "U02"
+  ],
+  "fuel_initial": 1,
+  "v_tag": [
+    "research",
+    "design",
+    "schema",
+    "validator",
+    "formal",
+    "core"
+  ],
+  "units": [
+    {
+      "id": "U01",
+      "title": "Research",
+      "goal": "map the landscape",
+      "executor_persona": "Researcher",
+      "verifier_persona": "Skeptic",
+      "deps": [],
+      "outputs": [
+        "units/U01/debrief.json"
+      ],
+      "est_footprint_tokens": 21000,
+      "acceptance_criteria": [
+        "10-14 findings with sources"
+      ],
+      "tags": [
+        "research",
+        "core"
+      ],
+      "dod_refs": [
+        "DoD-STABLE"
+      ]
+    },
+    {
+      "id": "U02",
+      "title": "Coverage U02",
+      "goal": "cover a gap",
+      "executor_persona": "Validator Engineer",
+      "verifier_persona": "Adversarial Auditor",
+      "deps": [
+        "U01"
+      ],
+      "outputs": [
+        "units/U02/debrief.json"
+      ],
+      "est_footprint_tokens": 16000,
+      "acceptance_criteria": [
+        "the gap is covered"
+      ],
+      "tags": [
+        "validator"
+      ],
+      "dod_refs": [
+        "DoD-A"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "U01",
+      "to": "U02"
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "units": [
+        "U01"
+      ]
+    },
+    {
+      "wave": 2,
+      "units": [
+        "U02"
+      ]
+    }
+  ]
+}

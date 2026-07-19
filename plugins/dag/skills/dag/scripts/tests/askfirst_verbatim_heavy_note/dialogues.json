@@ -1,0 +1,39 @@
+{
+  "run_label": "askfirst_verbatim_heavy_note",
+  "dialogues": [
+    {
+      "surface_id": "DS-1",
+      "instance": "p1",
+      "phase": "P1_PERSONAS",
+      "rounds_used": 1,
+      "rounds": [
+        {
+          "round": 1,
+          "kind": "R-GATE",
+          "moves_used": [
+            "RESIDUAL"
+          ],
+          "pages": 1,
+          "questions": [
+            {
+              "qid": "p1.r1.q1",
+              "q": "Confirm the persona roster for this run?",
+              "move": "RESIDUAL",
+              "recommended": "Proceed with the recommended roster."
+            }
+          ],
+          "answers": [
+            {
+              "a": "Proceed with the recommended roster.",
+              "q_ref": "p1.r1.q1",
+              "deviation": false
+            }
+          ]
+        }
+      ],
+      "termination": {
+        "reason": "converged"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "success-criteria",
+      "resolution": "done means exit 0",
+      "resolution_source": "prompt-verbatim",
+      "prompt_span": "the run must exit 0 (RESULT: PASS)"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ]
+}

@@ -1,0 +1,1 @@
+amend_fuel0_revise_unwritable: at fuel_remaining==0 a second revise_anchors (A02) drives fuel_after to -1; the EXISTING I18 `fuel_remaining >= 0` clause rejects it — a fuel-0 amendment of ANY kind is unwritable (GV-14/GV-36 corner; I18 VERBATIM). Exit 1, stem `I18 fuel bound`.

@@ -1,0 +1,20 @@
+{
+  "run_label": "askfirst",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "ambiguity 1",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "scope-boundaries",
+      "resolution": "x",
+      "resolution_source": "human-gate"
+    }
+  ],
+  "definition_of_done": [
+    "DoD-A"
+  ],
+  "non_goals": [
+    "NG-1"
+  ]
+}
