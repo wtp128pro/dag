@@ -85,6 +85,19 @@ occur at `ADJUDICATE` because it is reachable only via LT2, which sets `verdict`
 > emit `DISAGREE` (→ `ESCALATE`, LT6), not `FAIL`. So every `FAIL` reaching `ADJUDICATE` is
 > already actionable, and the FAIL branch reduces to the counter guard alone.
 
+> **P7-authorized post-exhaustion revision — the I4 ceiling holds; fold + record the true count
+> (L9).** `ESCALATE` is terminal *for the automated loop*; the Phase-7 human gate may then approve an
+> **in-place targeted revision** of the escalated unit instead of a fresh re-decomposition. That extra
+> executor pass has **no legal iteration slot** — I4 caps `iteration ≤ retries+1 ≤ 3` because `retries`
+> caps at 2 (the schema ceiling `maximum: 2`) — and the loop FSM is deliberately **not** re-entered
+> (there is no back-edge from `ESCALATE`; the termination proof depends on its absence). **Sanctioned
+> handling:** keep `verify`/`debrief.iteration` at the ceiling (`retries+1`) and record the **true** pass
+> sequence in prose — `DECISIONS.md` / `PROGRESS.md` and the whole-run verify's `audit_notes`. If a clean
+> iteration lineage is needed instead, resolve the P7 escalation by **re-decomposition** — a fresh unit
+> whose `retries` restart at 0 — which the BGA `split_unit` / `add_units` machinery already supports.
+> Either way **I4 is unchanged** (the ceiling is a real invariant, not a bug to widen) ⇒ **PRESERVES**:
+> this documents the existing handling and adds **no** FSM edge, schema field, or validator predicate.
+
 ### 1.4 Diagram
 
 ```

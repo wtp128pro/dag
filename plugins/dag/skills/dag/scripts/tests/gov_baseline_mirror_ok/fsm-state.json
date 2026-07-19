@@ -1,0 +1,10 @@
+{
+  "run_dir": "tests/gov_baseline_mirror_ok",
+  "phase": "P2_CLARIFICATION",
+  "updated_at": "2026-07-18T12:00:00-0400",
+  "gates": {
+    "personas_confirmed": true
+  },
+  "validator_version": "1.10.0",
+  "anchors_baseline_hash": "sha256:229974580a8eb53ffe50fc0404feec8b2eb13b93fb4a21870e6d825201c0b64c"
+}

@@ -3,6 +3,43 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] — 2026-07-19
+
+**Residual cleanup + Limitation-X hardening** — a follow-up to 1.10.0's socratic-guardrail landing.
+**No shipped guarantee changes**; TLA+/Alloy are untouched (`formal/` byte-identical, the pinned
+model-check counts stand) and I1–I34 are unrelaxed.
+
+### Added
+- **I39-7 — optional anchors-baseline mirror cross-check (Limitation X hardening).** When the OPTIONAL
+  `fsm-state.anchors_baseline_hash` mirror is present, `validate_run.py` now requires it to equal
+  `dialogues.json.anchors_baseline.content_hash`, raising the coordinated-rewrite cost from two run-dir
+  files to three. The predicate is OFFLINE post-hoc, **adoption-gated on mirror presence** (absent ⇒
+  silent, archive-safe), gates no FSM transition and never guards `LT7` ⇒ **PRESERVES**. Limitation X is
+  **narrowed, NOT "Closed"** (git history remains the only mutation witness, unread). New fixtures
+  `gov_baseline_mirror_ok` (present + matching ⇒ PASS) / `gov_baseline_mirror_mismatch` (present +
+  mismatched ⇒ FAIL), registered under I39 in `spec/invariants.json`.
+
+### Changed
+- **N-I39 disarm-NOTE accuracy.** Reworded the unstamped-disarm NOTE to name only what actually disarms
+  on an unstamped run — the I39-4 version-gated presence layer (item_confirmations/anchors_baseline
+  requiredness) + the GV-34 baseline content-hash self-consistency — and to state that I39's
+  adoption-armed content checks (confirmation/reconciliation/forbid-residue/replay) and **all I40
+  mutation-gating** stay armed and still FAIL. (The prior wording over-claimed "mutation-gating … advisory".)
+- **CI regression-resistance.** Tightened the 48 I35–I40 negative-fixture pins in
+  `scripts/tests/expectations.tsv` from the coarse family stem to the per-sub-clause parenthetical, so a
+  regression that fired the *wrong* clause is now caught (stem-sharing / prefix-colliding pins carry a
+  body discriminator).
+- **L9 documentation (PRESERVES).** Sanctioned the "fold `iteration` to the I4 ceiling (`retries+1`) +
+  record the true pass count in prose" handling of a Phase-7-authorized post-exhaustion **in-place
+  revision**, in `SKILL.md` (Phase 7) and `references/self-learning-loops.md` §1.3. **I4 is unchanged.**
+
+### Fixed (docs)
+- Corrected two stale in-`validate_run.py`-comment line-number cites (`I27`, `I8`) that pointed at the
+  invariants' pre-insertion locations (comment-only; the byte-untouched guarantee is intact).
+- Added an **AF-40-declined** traceability note to `references/formal-models.md` (the I8 clean-exit
+  relaxation was declined — I8 kept LOUD, byte-untouched — so its absence from the classification table
+  is intentional, not an omission).
+
 ## [1.10.0] — 2026-07-18
 
 **Socratic-guardrail enforcement** — the pipeline's front-of-run discipline (Socratic

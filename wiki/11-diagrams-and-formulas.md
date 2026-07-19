@@ -326,3 +326,14 @@ different model behind their persona labels, or that the verifier was *truly* bl
 reasoning — those are the semantic residuals (`state-machine.md` §5 Limitations A–H;
 `formal-models.md` §Residual A–E). This page mirrors the source proof-status verbatim and stops
 there.
+
+**Unchanged through plugin 1.10.1 / catalog 1.0.13.** The socratic-guardrail invariants **I35–I40**
+(1.10.0) and **I39-7** (1.10.1) are **node-internal / offline post-hoc** checks over emitted artifacts
+(a new optional `dialogues.json` transcript, `item_confirmations`, and the `revise_anchors` amendment
+kind): each writes no `retries`/`fuel`, gates no transition, and **never guards LT7**, so they add
+**no FSM state, no edge, and no new back-edge** — every diagram and formula above is **unchanged**. The
+one new amendment kind, `revise_anchors`, is a **fuel-1 sub-case of the modeled `Amend`** (adds no
+unit, spends 1 fuel via the existing I18 cost), already inside the §5.1 `fuel` variant / `Quiesce`
+bound. The `formal/` models stay **byte-untouched**, so the pinned counts cited under Diagram 1
+(853 / 408 / depth 36) still hold (`formal-models.md` §"Socratic-guardrail 1.10.0"; `state-machine.md`
+§4 rows I35–I40).

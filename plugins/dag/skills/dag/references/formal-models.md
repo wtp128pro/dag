@@ -471,6 +471,12 @@ action or variable.
 | **GV-31** — `SKILL.md` P4 conditional touchpoint | **REVISES** (doctrine) / three-gates **PRESERVES** | — | **Models untouched — P4 is a linear `Complete(P4)` phase; a node-internal conditional `AskUserQuestion` adds no action / variable / edge (the PR1 "no new TLA action" precedent); `GateOrdering` unaffected, no gate bypassed.** Migration: revises only the `SKILL.md` P4 "never opens a new prompt here" doctrine (enumeration-level); the three-human-gates `REQUIRED_GATES` set is immutable (no P4→P2 edge exists); conditional (most runs have no P4 DoD gap); the fuel question stays forbidden at P4. |
 | **AF-41** — "the stamp gates nothing" §5 doc-drift | **PRESERVES** (documentation repair) | — | **Models untouched — documentation.** No guarantee changes: the imprecise sentence was **already** contradicted by the already-shipped I27-T1 presence arm (depth-1.9.0), independent of this landing; correcting the prose to match shipped behavior revises no guarantee. (Authoritatively PRESERVES — not double-classified from the "GV-31 / AF-41" §5 shorthand.) |
 
+> **AF-40 (I8 clean-exit relaxation) — DECLINED, not shipped.** The considered relaxation of I8
+> (`i8_open`) to a quieter clean-exit disposition was **declined**: I8 is kept LOUD and its predicate is
+> **byte-untouched** by this landing. No formal guarantee is touched, so there is nothing to classify —
+> AF-40's absence from the table above is **intentional, not an omission** (the six REVISES + AF-41
+> PRESERVES are the complete set; AF-40 shipped nothing).
+
 **Independent verification (this unit, re-derived against SOURCE — not the spec's framing).**
 (1) *No LT7 guard / no counter write:* every I35–I40 clause routes to the existing offline
 `rep.fail` / `print("  NOTE …")` / ESCALATE; **none** appears on `LRetry` (`Pipeline.tla` ~line 191,
@@ -480,6 +486,17 @@ chain, and `FuelBound` are unchanged; `revise_anchors` *consumes* the existing f
 it. (3) *`revise_anchors` → modeled `Amend`:* fuel-1, adds no unit, floor-disabled — dominated by the
 TLC-checked re-arm (`Pipeline.tla` `Amend`, ~lines 223–232). (4) *Counts valid without a re-run:* `formal/`
 is byte-untouched, so 853/408/36, 2,923/1,608/156, and Alloy 8/8 stand as recorded above.
+
+**1.10.1 addendum — I39-7 (Limitation X hardening) = PRESERVES.** The optional-mirror cross-check
+(`fsm-state.anchors_baseline_hash == dialogues.json.anchors_baseline.content_hash`, **adoption-gated on
+mirror presence**; absent ⇒ silent) is an OFFLINE post-hoc predicate of the same class as every I35–I40
+clause above: it writes no `retries`/`fuel`, gates no transition, and **never guards `LT7`** (the sole
+back-edge — a live guard there deadlocks `RETRY`, Property 2 Claim D), so `GateOrdering`, `Termination`,
+and `Quiesce` hold **verbatim** and `formal/` stays **byte-untouched** (no `run_formal.sh` re-run; the
+pinned counts stand). It **NARROWS** Limitation X — the coordinated-rewrite cost rises from two run-dir
+files to three — but does **NOT "Close"** it (git history remains the only mutation witness, unread).
+Fixtures: `gov_baseline_mirror_ok` (present+matching ⇒ PASS) / `gov_baseline_mirror_mismatch`
+(present+mismatched ⇒ FAIL) / absent ⇒ silent (every other fixture).
 
 ---
 

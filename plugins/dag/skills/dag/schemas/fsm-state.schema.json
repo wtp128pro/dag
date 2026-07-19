@@ -27,7 +27,7 @@
     },
     "anchors_baseline_hash": {
       "type": "string",
-      "description": "OPTIONAL (1.10.0; schema-deltas §D). Ledger-side mirror of dialogues.json.anchors_baseline.content_hash — a cross-check hook if U04 wants the GV-34 write-once anchor snapshot echoed in fsm-state. Absent => valid (the zero-delta primary posture; round counters + the anchor baseline live in dialogues.json, DP-21). DECLARED so the top-level additionalProperties:false is not violated (the lens2 rule); NEVER required (archive-safe) and NEVER gates a transition — still PRESERVES (GV-28)."
+      "description": "OPTIONAL (1.10.0; schema-deltas §D). Ledger-side mirror of dialogues.json.anchors_baseline.content_hash. As of 1.10.1 it is CROSS-CHECKED by I39-7 when present: a present mirror MUST equal that content_hash (Limitation X hardening — a coordinated rewrite must then also rewrite fsm-state, raising the cost to three files; adoption-gated on presence, absent => silent). Absent => valid (the zero-delta primary posture; round counters + the anchor baseline live in dialogues.json, DP-21). DECLARED so the top-level additionalProperties:false is not violated (the lens2 rule); NEVER required (archive-safe) and NEVER gates a transition — still PRESERVES (GV-28)."
     },
     "gates": {
       "type": "object",

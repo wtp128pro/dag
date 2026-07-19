@@ -76,7 +76,7 @@ without penalty; never staff it as a rubber stamp"*).
 Be honest about the seam: the schema can prove the *field says* `false`, but it cannot prove the
 verifier *actually* never saw the reasoning — that is a **self-attestation**, *asserted
 (consistent)*, not a platform guarantee. The schema itself says so at line 17: *"Self-attestation,
-not a platform guarantee (see state-machine Limitation A)."* See §9.
+not a platform guarantee (see state-machine Limitation A)."* See §11.
 
 **Structural persona identity (1.7.0 — I1c / I1d).** I1/I1b compare only the *declared* graph
 personas; nothing tied the *actual* artifact personas to them, so one persona could execute a unit
@@ -390,7 +390,73 @@ high**, aggregating it **discretely**, and auditing it **structurally**.
 
 ---
 
-## 9. How verification interweaves across Phases 6 / 7 / 8
+## 9. Ask-first and the bounded Socratic dialogue-series (front-of-run guardrail — I35–I40)
+
+Verification's discipline reaches the *front* of the run, too. Before Phase 2 sets
+`clarification_resolved`, the clarification gate runs a bounded Socratic **dialogue-series**
+(DS-2) as node-internal conduct — riding the already-modeled T4 self-loop and adding **no FSM
+state, edge, back-edge, or `REQUIRED_GATES` flag** (`SKILL.md` lines 369–401). Six OFFLINE
+post-hoc invariants **I35–I40** (socratic-guardrail, 1.10.0) make that front-of-run discipline
+mechanically checkable over an emitted `dialogues.json` transcript — the same way §8's I16
+mechanizes the panel (`references/state-machine.md` I35–I40, lines 223–228).
+
+**The three round kinds** (`SKILL.md` lines 375–385):
+
+- **R-OPEN — consequential-gap ask-first.** Every gap classed *consequential* (touching a
+  Definition-of-Done item, a Non-Goal, a scope boundary, or an acceptance criterion) MUST be
+  *asked* with a recommended default; a `logged-default` is **not** a legal resolution source for
+  such a gap. **I38 mechanizes this ask-first legality, materiality-BLIND by construction** — a run
+  cannot buy a clean exit by re-labelling a consequential gap "minor" — and a non-interactive run
+  with an open consequential gap **HALTS at the gate** rather than self-answering
+  (`references/state-machine.md` I38, line 226; `SKILL.md` lines 375–379). Cosmetic gaps stay
+  logged defaults and never enter.
+- **R-FORBID — non-goal solicitation.** An **unconditional** forbid round solicits Non-Goals at
+  *every* P2, so the I21/I22/I23 guardrail chain of §4 rests on an explicitly-*asked* Non-Goals
+  list rather than a silently-defaulted one; "no additions" is a legal, recorded answer. (Making
+  this one round unconditional is a labeled **REVISES** of the no-fixed-ritual doctrine — DP-39 —
+  with its anti-theater *content* half preserved: the round mandates the asking, never manufactured
+  findings — `SKILL.md` lines 328–338, 380–381.) A run may later legitimately amend its confirmed
+  anchor set through a new **`revise_anchors`** amendment kind under the bounded-graph-amendment
+  discipline (`references/state-machine.md` I40, line 228).
+- **R-CONFIRM — item-by-item confirmation.** The final `definition_of_done` / `non_goals` lists are
+  confirmed item by item (≤4 per `AskUserQuestion` page — I36 caps `items_presented` at 4, so
+  stuffing FAILs; a bulk "confirm all" page is the happy path). **I36 binds every recorded
+  disposition back to a presented item**, so an orchestrator cannot self-cover a DoD/Non-Goal the
+  human never saw (`references/state-machine.md` I36, line 224; `SKILL.md` lines 382–385).
+
+**Bounded — `rounds_used ≤ 3`.** The human may converge earlier, but nothing runs a fourth round;
+an unconverged cap terminates into a node-internal impasse dossier (phase unchanged — no P7
+transition is created). **I35** checks transcript presence, the `rounds_used ≤ 3` cap
+(`len(rounds[]) == rounds_used`), and per-instance round coverage; **I37** checks the termination
+bookkeeping and probe accounting (`references/state-machine.md` I35 line 223, I37 line 225;
+`SKILL.md` lines 390–397). This is the front-of-run twin of §8's loop-until-dry sweep: bounded, and
+finite by construction.
+
+**Anti-drift — the confirmed anchors cannot silently move.** A round's page queue is **frozen at
+round open**: an item discovered mid-round is recorded and DEFERRED to the *next* round, never
+appended live, so scope cannot grow *inside* a round, and a settled item is never re-asked without
+a `reopened_by` reference (`SKILL.md` lines 387–389). **I39** anchors its list↔record
+reconciliation to an **immutable `anchors_baseline`** (the I17 `baseline_units` pattern), so an
+uncoordinated edit of the confirmed anchor set is caught; **I40** carries a **membership-union**
+rule (I20/I21/I22 accept `current ∪ anchors_retired[].prior_text`, so a legitimately-retired anchor
+is still honoured) and **narrows `add_units` autonomy** — an autonomous `add_units` whose
+`dod_refs` were never human-confirmed FAILs, closing a downgrade-laundering hole
+(`references/state-machine.md` I39 line 227, I40 line 228).
+
+**All six PRESERVE termination.** Every one of I35–I40 is an OFFLINE predicate over emitted
+artifacts that **gates no FSM transition and never guards `LT7`** — the correction loop's sole
+back-edge, the CLAUDE.md deadlock rule. So the per-unit correction-loop termination proof
+(Claims A–D) is **PRESERVED**, and AO-1..7, I1–I34, the three-human-gates model, and the FSM edge
+set are all unchanged (`plugins/dag/CHANGELOG.md` [1.10.0]; `SKILL.md` lines 396–401). As with I16
+this is **presence/shape, not substance**: that a human *genuinely spoke*, that `q`/`a` are
+verbatim-faithful, and that the forbid battery was task-tailored stay verifier/human judgment — the
+honest limits catalogued as [07-accuracy.md](07-accuracy.md) Limitations **U / V / W / X**. As of
+**1.10.1** the family ships unchanged (residual cleanup only); its I39-7 tightens the anchor-baseline
+mirror without relaxing any guarantee (see [07-accuracy.md](07-accuracy.md)).
+
+---
+
+## 10. How verification interweaves across Phases 6 / 7 / 8
 
 Verification isn't a single station at the end — the same discipline recurs at three scopes.
 
@@ -439,7 +505,7 @@ Trace of authority for this section: verdict semantics and loop caps →
 
 ---
 
-## 10. Honest limits
+## 11. Honest limits
 
 This page would violate its own subject if it overstated the guarantee. Two limits, stated plainly:
 

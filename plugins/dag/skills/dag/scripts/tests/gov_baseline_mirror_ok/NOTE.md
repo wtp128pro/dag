@@ -1,0 +1,1 @@
+gov_baseline_mirror_ok: the OPTIONAL fsm-state.anchors_baseline_hash mirror is PRESENT and equals dialogues.json.anchors_baseline.content_hash — the I39-7 Limitation-X-hardening cross-check corroborates (three-file agreement) — exit 0. (base: gov_replay_ok + a matching mirror.)

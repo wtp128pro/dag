@@ -3,6 +3,28 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.13] — 2026-07-19
+
+### Changed
+- **`dag` plugin → 1.10.1** — residual cleanup + **Limitation-X hardening** atop the 1.10.0
+  socratic-guardrail landing. A new OFFLINE **I39-7** optional-mirror cross-check requires
+  `fsm-state.anchors_baseline_hash`, when present, to equal
+  `dialogues.json.anchors_baseline.content_hash` (adoption-gated on presence; gates no transition,
+  never guards `LT7` ⇒ **PRESERVES**) — it **narrows** Limitation X (coordinated-rewrite cost two files
+  → three) but does **not** Close it (git remains the only mutation witness). Plus: the `N-I39`
+  unstamped-disarm NOTE reworded for accuracy; the I35–I40 negative-fixture pins tightened to
+  per-sub-clause parentheticals (CI regression-resistance); the L9 P7-revision fold-to-ceiling handling
+  documented (**PRESERVES**, I4 unchanged); two stale in-comment line cites fixed; an AF-40-declined
+  traceability note. TLA+/Alloy untouched (`formal/` byte-identical; the pinned model-check counts
+  stand). See the plugin changelog for the full entry.
+
+### Docs
+- **Project wiki refreshed `1.9.0` → `1.10.1`** (catalog `1.0.11` → `1.0.13`): the socratic-guardrail
+  invariants **I35–I40** + **I39-7**, the new `dialogues.json` artifact + schema, the ask-first /
+  non-goal / anti-drift behavior, **Limitations U–X**, the updated fixture total (**293**), and
+  re-resolved `validate_run.py` / `state-machine.md` line cites across the validator-and-invariants,
+  artifacts, verification, accuracy, and formal-methods pages.
+
 ## [1.0.12] — 2026-07-18
 
 ### Changed
