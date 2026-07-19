@@ -206,6 +206,38 @@ export JAVA_HOME=$(/usr/libexec/java_home)
 > the correction-loop termination proof, AO-1..7, I1–I25, and the FSM edge set — so every figure in
 > this section (853 / 408 / depth 36; Alloy 8/8) is left **unchanged**.
 
+> **Socratic-guardrail 1.10.0 + residual 1.10.1 — the model is UNCHANGED. As of plugin 1.10.1 /
+> catalog 1.0.13.** The socratic-guardrail landing added six OFFLINE post-hoc invariants **I35–I40**
+> (1.10.0) plus **I39-7** (1.10.1). Every one is an offline post-hoc check over emitted artifacts that
+> **writes no `retries`/`fuel`, gates no transition, and never guards `LT7`** (the correction loop's
+> sole back-edge — a live guard there deadlocks `RETRY`, breaking Property 2 Claim D), so
+> `GateOrdering`, `Termination`, and `Quiesce` **hold verbatim** and **I18 is carried VERBATIM** (no
+> fuel REVISES). `formal/Pipeline.tla`, `formal/Pipeline.cfg`, `formal/WorkGraph.als`, and
+> `formal/Amendment.als` are **byte-untouched**, so every figure in this section stands **unchanged**
+> (853 / 408 / depth 36; MaxFuel 32 → 2,923 / 1,608 / depth 156; Alloy 8/8). `run_formal.sh` was
+> **NOT re-run** and is not required — the counts are a function of the byte-identical model text. The
+> one amendment kind added, `revise_anchors` (I40 / GV-30), is a **fuel-1 sub-case of the
+> already-modeled `Amend` action** (adds no unit, spends 1 fuel via the existing I18 cost
+> `max(1,0−0)=1`, unwritable at `fuel==0`), so the TLC `Quiesce` bound `N ≤ N0 + fuel₀` already covers
+> it (`references/formal-models.md` §"Socratic-guardrail 1.10.0").
+
+> **Guarantee-touching classification (append, never silent — the CLAUDE.md rule).** The landing is
+> **six REVISES**, each "models untouched — `<reason>`" with a migration argument and none touching the
+> modeled state space: **DP-39** (R-FORBID a fixed ritual at DS-2 / P2), **GV-29** (`item_confirmations`
+> required-once-stamped), **GV-30** (`revise_anchors` kind + I19 kind-closure — termination itself
+> PRESERVES), **GV-16** (I20/I21/I22 membership-union `current ∪ anchors_retired[].prior_text`),
+> **GV-25** (I19 `add_units` autonomy narrowed to human-confirmed DoD items — a strengthening), and
+> **GV-31** (`SKILL.md` P4 conditional touchpoint — three-human-gates PRESERVES). Plus **AF-41 =
+> PRESERVES** (a §5 doc-drift repair) and, in 1.10.1, **I39-7 = PRESERVES**. **AF-40 (an I8 clean-exit
+> relaxation) was DECLINED** — I8 is kept LOUD and byte-untouched — so it is intentionally absent from
+> the set (`references/formal-models.md` §"Socratic-guardrail 1.10.0" classification table + the
+> AF-40-DECLINED note). **I39-7 (Limitation X hardening)** is the 1.10.1 optional-mirror cross-check
+> (`fsm-state.anchors_baseline_hash == dialogues.json.anchors_baseline.content_hash`, adoption-gated on
+> mirror presence; absent ⇒ silent): the same offline post-hoc class (never guards `LT7`), so `formal/`
+> stays byte-untouched and the counts stand; it **NARROWS** Limitation X (coordinated-rewrite cost rises
+> from two run-dir files to three) but does **NOT "Close"** it — git history remains the only, unread,
+> mutation witness (`references/state-machine.md` Limitation X).
+
 **Reported TLC result** (2026-07-10, TLC 2.19, JDK 25.0.3 — *after* adding the Bounded Graph
 Amendments `Amend` action, the `fuel` variable, the `FuelBound` invariant, and the `Quiesce`
 property; `references/formal-models.md` lines 91–104), quoted verbatim:
@@ -374,8 +406,12 @@ the acceptance criteria ask to be named explicitly:
 The runtime validator additionally enforces a fleet of data-shape invariants the models
 don't model — I5–I7, I9, **I11–I16**, **I-dod**, the persona-identity reconciliations
 **I1c**/**I1d**, and the Bounded Graph Amendments frozen-prefix + scope + graph-closure checks
-(**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I34** (plus
-**I1b**/**I1c**/**I1d**/**I3b**/**I3c** and **I-dod**). Three of these — I14, I15, I16 — are the post-hoc,
+(**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I40** (plus
+**I1b**/**I1c**/**I1d**/**I3b**/**I3c** and **I-dod**). The newest additions — the guardrail checks
+**I20–I25** (1.8.0), the depth & retrieval checks **I26–I34** (1.9.0), and the socratic-guardrail
+checks **I35–I40** + **I39-7** (1.10.0 / 1.10.1) — are all this same post-hoc, offline class: each
+gates **no** transition and never guards LT7, so each **preserves** the termination proof
+(`references/formal-models.md` §"Socratic-guardrail 1.10.0"). Three of these — I14, I15, I16 — are the post-hoc,
 *offline* checks added since the earlier releases; each gates **no** transition (and never
 guards the sole back-edge LT7), so each **preserves** the termination proof
 (`references/state-machine.md` §4 lines 203–205):

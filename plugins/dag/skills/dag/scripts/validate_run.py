@@ -4463,7 +4463,7 @@ def main(argv=None):
     # ask-first.md §invariant/§trigger/§laundering. OFFLINE post-hoc predicate over emitted artifacts:
     # gates NO FSM transition, adds no back-edge, never guards LT7, adds no REQUIRED_GATES flag => the
     # correction-loop termination proof (Claim D), AO-1..7 and I1-I34 are UNTOUCHED (PRESERVES; AF-22).
-    # All schema deltas are OPTIONAL (archives stay schema-valid). I27 (:2622+) and I8 (:4804+) are
+    # All schema deltas are OPTIONAL (archives stay schema-valid). I27 (:2645+) and I8 (:5470+) are
     # carried BYTE-UNTOUCHED: I27-6 keeps its N-I27 NOTE at all versions and I8 stays LOUD — so a
     # >=1.10.0 material consequential logged-default draws BOTH N-I27 AND this AF-14 FAIL (intended; the
     # AF-40 marker-aware I8 relaxation is DECLINED here — U06's flagged item). CC(r) = AF-1 v AF-33: K1
@@ -4916,6 +4916,24 @@ def main(argv=None):
                              f"{_L} baseline item {_it!r} left the current list with no post-baseline "
                              "remove/edit receipt (GV-23)")
 
+    # I39-7 [Limitation X hardening; 1.10.1] — OPTIONAL ledger-side mirror cross-check. When
+    # fsm-state.anchors_baseline_hash is present it MUST equal dialogues.json.anchors_baseline.content_hash
+    # — raising the coordinated-rewrite cost from two files (clarifications + dialogues) to three
+    # (fsm-state too). ADOPTION-gated on mirror PRESENCE (fires at ANY version; ABSENT => silent,
+    # archive-safe — the zero-delta primary posture). This does NOT "Close" Limitation X (git remains the
+    # ONLY mutation witness) — it NARROWS it. Offline post-hoc: gates NO transition, adds no back-edge,
+    # NEVER guards LT7 => PRESERVES (GV-28 write-once-mirror pattern; classification in state-machine.md §5).
+    _gov_abh = fsm.get("anchors_baseline_hash") if isinstance(fsm, dict) else None
+    if not _gov_blank(_gov_abh):
+        _gov_bl_ch = _gov_baseline.get("content_hash") if isinstance(_gov_baseline, dict) else None
+        if _gov_baseline is None or _gov_abh != _gov_bl_ch:
+            rep.fail(f"{_gov_stem} (baseline mirror)",
+                     f"fsm-state.anchors_baseline_hash {_gov_abh!r} does not equal "
+                     f"dialogues.json.anchors_baseline.content_hash {_gov_bl_ch!r} — the OPTIONAL "
+                     "ledger-side mirror, once present, must corroborate the transcript baseline "
+                     "(Limitation X hardening: a coordinated rewrite must now also rewrite fsm-state; git "
+                     "remains the only witness, so X is NARROWED, not Closed)")
+
     # N-I39 [GV-9/GV-26] — unstamped-disarm NOTE: a structural run that ADOPTED governance artifacts
     # (item_confirmations/anchors_baseline/anchors_retired) but is NOT stamped >=1.10.0 disarms the
     # fail-closed layer; emit an advisory NOTE so the disarm is visible, never silent (the honest
@@ -4924,8 +4942,11 @@ def main(argv=None):
     if (_i27_struct and not _gov_semver1
             and (_gov_ic_present or _gov_baseline is not None or _gov_retired) and not args.quiet):
         print(f"  NOTE  {_gov_note} (governance disarmed; unstamped): structural work adopted anchor "
-              "governance artifacts but validator_version is absent/<1.10.0 — confirmation, baseline "
-              "integrity and mutation-gating are advisory here (GV-9/GV-26 honest residual)")
+              "governance artifacts but validator_version is absent/<1.10.0 — only the I39-4 version-"
+              "gated layer (item_confirmations/anchors_baseline presence-requiredness + the GV-34 "
+              "baseline content-hash self-consistency) is advisory here; the adoption-armed checks — "
+              "I39 confirmation/reconciliation/forbid-residue/replay and all I40 mutation-gating — stay "
+              "armed and still FAIL (GV-9/GV-26 honest residual)")
 
     # I39 success line (armed via T1 or an adopted governance artifact + no clause failed).
     if ((_gov_t1 or _gov_ic_present or _gov_baseline is not None or _gov_retired)

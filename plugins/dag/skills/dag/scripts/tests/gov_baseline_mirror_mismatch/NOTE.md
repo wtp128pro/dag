@@ -1,0 +1,1 @@
+gov_baseline_mirror_mismatch: the OPTIONAL fsm-state.anchors_baseline_hash mirror is PRESENT but does NOT equal dialogues.json.anchors_baseline.content_hash — the I39-7 Limitation-X-hardening cross-check FAILs (`I39 anchor (baseline mirror`), exit 1. Adoption-gated on mirror presence; absent => silent (every other fixture). (base: gov_replay_ok + a wrong mirror.)

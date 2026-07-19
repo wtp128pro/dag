@@ -264,7 +264,9 @@ verify-time `guardrail_compliance`, P8 DoD/non-goal closure, the ambiguity-regis
 resolution-required on resolved-material items — is enforced by the same post-hoc/offline
 validator but catalogued on
 [`14-validator-and-invariants.md`](14-validator-and-invariants.md); this page lists the
-evidence/retrieval-facing invariants.)*
+evidence/retrieval-facing invariants. The 1.10.0 socratic-guardrail family **I35–I40** —
+front-of-run dialogue / ask-first / anchor-mutation discipline — is likewise catalogued there,
+with its semantic residuals mirrored as Limitations **U–X** in §4.1 below.)*
 
 ### 3.2 The machine-checked design-time properties (TLA+/Alloy)
 
@@ -309,7 +311,7 @@ layer closes with a Residual section: the proofs establish "the *plumbing and th
 correctness-of-content remains the independent verifier's semantic judgment"
 ([`formal-models.md` Residual](../plugins/dag/skills/dag/references/formal-models.md)).
 
-### 4.1 The semantic limitations A–H — NOT mechanically decidable
+### 4.1 The semantic limitations A–H, U–X — NOT mechanically decidable
 
 These are the things no schema, validator, or model checker can decide; they stay a
 human/verifier judgment. Enumerated verbatim from
@@ -354,6 +356,48 @@ human/verifier judgment. Enumerated verbatim from
   boundary as I13/I14/I15). Being post-hoc, it gates no transition, so it can never deadlock the
   loop
   ([`state-machine.md:326-337`, Limitation H](../plugins/dag/skills/dag/references/state-machine.md)).
+
+The **1.10.0 socratic-guardrail** family (I35–I40) adds four more of exactly this class — the
+front-of-run dialogue / ask-first / anchor discipline is mechanically *shape*-checked, but its
+*genuineness* stays judgment (mirrored from
+[`state-machine.md` §5 U–X](../plugins/dag/skills/dag/references/state-machine.md)):
+
+- **U — dialogue genuineness.** I35/I36/I37 prove the `dialogues.json` transcript has *shape*,
+  coverage, disposition bijection, and termination bookkeeping — never that a human *actually
+  spoke*, that `q`/`a` are verbatim-faithful, that `move`/`moves_used` are truthful, that the
+  R-FORBID non-goal battery was task-tailored rather than boilerplate, or that a `draft_edits`
+  one-click accept reflects a genuine edit. Backstop: the independent verifier + the human who
+  *lives* the dialogue at the gate + the advisory `N-I36 (rubber-stamp signature)` NOTE (validity ≠
+  correctness, the I13 class)
+  ([`state-machine.md` §5 U, line 451](../plugins/dag/skills/dag/references/state-machine.md)).
+- **V — recompute-substrate honesty.** I37's deviation recompute and rung-legality arithmetic are
+  only as honest as the literal `a`/`recommended` fields and the recorded round indices they read;
+  an *unrecorded* trigger is invisible to every rung/probe check, so rung legality proves a probe
+  was *accounted-for on the record*, not that every owed probe was recorded. The recompute
+  over-fires toward *more* probing (the safe direction), so the residual is under-, not
+  over-enforcement
+  ([`state-machine.md` §5 V, line 460](../plugins/dag/skills/dag/references/state-machine.md)).
+- **W — ask-first semantic remainders R1–R8.** I38 proves consequential-default *legality*
+  mechanically, but the remainders stay judgment: dimension self-assignment (R1), human-presence
+  behind a `round_ref` (R2), verbatim aptness (R3), provenance completeness / silent
+  non-registration / mis-attribution (R4/R6), materiality self-declaration (R5), an unmarked silent
+  stop (R7), and **R8 — the unclosable forged-halt window**, where a run withholds the completion
+  evidence that would prove work remained. The `N-I38` structural-artifact count is only a *partial*
+  R8 handle; the verifier and the gate render are the backstop
+  ([`state-machine.md` §5 W, line 466](../plugins/dag/skills/dag/references/state-machine.md)).
+- **X — anchor transcript-file integrity (narrowed in 1.10.1, NOT Closed).** I39-3(d) anchors the
+  anchor list↔record reconciliation to the *immutable* `anchors_baseline` (the I17 `baseline_units`
+  pattern), so an uncoordinated hand-edit and even a same-file coordinated list+record rewrite are
+  caught. What is *not* caught is a fully-coordinated rewrite that ALSO rewrites the baseline itself
+  — `item_confirmations` + `anchors_baseline` + its hash + the join's per-item texts — spanning
+  two/three run-dir files; git history is the only mutation witness, and nothing mechanically reads
+  it. **1.10.1's I39-7 narrows X:** the OPTIONAL `fsm-state.anchors_baseline_hash` mirror, *when
+  present*, MUST equal `dialogues.json.anchors_baseline.content_hash` (adoption-gated on mirror
+  presence), so a coordinated rewrite must now ALSO rewrite a *third* file (`fsm-state.json`) —
+  raising coordination cost from two files to three. This tightens the scope but does **not
+  "Close" X**: git history remains the only mutation witness
+  ([`state-machine.md` §5 X, lines 474–492](../plugins/dag/skills/dag/references/state-machine.md);
+  [`CHANGELOG` 1.10.1](../plugins/dag/CHANGELOG.md)).
 
 ### 4.2 Reading the seam correctly
 

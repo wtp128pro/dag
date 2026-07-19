@@ -2,7 +2,7 @@
 
 **Audience:** technical readers who want to know *exactly* what the runtime enforcement layer
 mechanically guarantees — and, just as important, what it deliberately does **not**. Every claim
-here carries a `path:line` locator into the 1.9.0 tree that a verifier can open; the wiki's own
+here carries a `path:line` locator into the 1.10.1 tree that a verifier can open; the wiki's own
 rule is that an unresolved locator is a defect.
 
 **TL;DR.** `scripts/validate_run.py` is `dag`'s **external correctness signal** — the one part of
@@ -10,7 +10,7 @@ the pipeline whose verdict does not come from a model's judgment. It reads a run
 schema-validates every artifact, then checks the FSM invariants that schemas alone cannot express,
 and **exits non-zero on any violation**. It is invoked as an **explicit Bash step** the skill must
 call (Prime Directive 7), *not* a passive platform hook. What it enforces is **shape and structure**
-— the full invariant catalog **I1..I34 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates. What it cannot
+— the full invariant catalog **I1..I40 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates. What it cannot
 enforce is **truth of content**: whether a PASS is *correct*, whether evidence resolves, whether a
 lens was *genuinely* applied. The single sentence to carry away, repeated verbatim across the repo:
 **validity ≠ correctness**
@@ -61,7 +61,7 @@ deadlock lesson).
 flowchart LR
   ART["run dir artifacts<br/>(JSON extracts + markdown ledger)"] --> V["validate_run.py<br/>(explicit Bash step, Prime Directive 7)"]
   V -->|"schema layer"| S["Draft-2020-12 schema validity<br/>(jsonschema OR stdlib mini)"]
-  V -->|"invariant layer"| I["I1..I34 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates"]
+  V -->|"invariant layer"| I["I1..I40 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates"]
   S --> EX{"exit code"}
   I --> EX
   EX -->|0| OK["ok — shape + structure sound"]
@@ -141,7 +141,7 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I34 + I1b/I1c/I1d/I3b/I3c + I-dod
+## 4. The invariant catalog — I1..I40 + I1b/I1c/I1d/I3b/I3c + I-dod
 
 The primary table (§4 below) is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
 (`:187-211`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
@@ -269,7 +269,7 @@ REVISES** across the two releases: it strengthens the `clarifications.json` arti
 argument — archived offenders read as expected version-skew, never edited. Every field the two releases
 add is **OPTIONAL** (a pre-feature-shape run trips nothing — fixture `legacy_prefeature_ok`). The full
 LABELS registry for all fifteen is
-[`validate_run.py:426-452`](../plugins/dag/skills/dag/scripts/validate_run.py).
+[`validate_run.py:427-453`](../plugins/dag/skills/dag/scripts/validate_run.py).
 
 **Guardrail enforcement (1.8.0) — I20–I25** binds a run's own declared guardrails (Definition-of-Done
 items, non-goals, ambiguity resolutions) to mechanical checks. All six carry
@@ -277,51 +277,106 @@ items, non-goals, ambiguity resolutions) to mechanical checks. All six carry
 
 | Inv | What it requires (one line; full clauses in the cited §4 row) | Class | `validate_run.py` · `state-machine.md` §4 |
 |---|---|---|---|
-| **I20** per-unit `dod_refs` binding | adoption-closure + each ref verbatim ∈ `definition_of_done` + graph↔brief mirror (a bound unit needs ≥1 ref; a unit-level `[]` never reaches the validator) | **PRESERVES** | [`:2172`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :212`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I21** per-unit `non_goal_refs` binding | I20's shape over `non_goals`, with the one difference that `non_goal_refs: []` is the legal explicit "none applies" while an absent key under adoption is a closure FAIL | **PRESERVES** | [`:2236`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :213`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I22** `guardrail_compliance` block | closure over verdict-bearing verifies + each row's `non_goal` verbatim ∈ `non_goals` + `non_goal_refs` coverage + the decidable bite: a `violated` row on a `PASS` ⇒ FAIL | **PRESERVES** | [`:2330`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :214`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I23** P8 DoD/non-goal closure | at P8/DONE under adoption, every DoD item covered by some PASS unit's `dod_refs` and every non-goal attested `respected`/`not-applicable` by a PASS unit (under the I10 phase gate) | **PRESERVES** | [`:2378`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :215`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I24** ambiguity-register floor | once structural work exists and `clarifications.json` parses, an empty/non-list `ambiguity_register` ⇒ FAIL ("none found" is recorded as an ordinary register item) — validator-only floor, **NOT** archive-silent | **PRESERVES** | [`:2425`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :216`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I25** resolution required | a `material`+`resolved:true` register item MUST carry non-empty `resolution` text — a schema `allOf` conditional **plus** a raw-parse validator mirror whose `.strip()` bar also rejects whitespace-only text | **REVISES** *(sole)* | [`:2449`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :217`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I20** per-unit `dod_refs` binding | adoption-closure + each ref verbatim ∈ `definition_of_done` + graph↔brief mirror (a bound unit needs ≥1 ref; a unit-level `[]` never reaches the validator) | **PRESERVES** | [`:2185`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :212`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I21** per-unit `non_goal_refs` binding | I20's shape over `non_goals`, with the one difference that `non_goal_refs: []` is the legal explicit "none applies" while an absent key under adoption is a closure FAIL | **PRESERVES** | [`:2257`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :213`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I22** `guardrail_compliance` block | closure over verdict-bearing verifies + each row's `non_goal` verbatim ∈ `non_goals` + `non_goal_refs` coverage + the decidable bite: a `violated` row on a `PASS` ⇒ FAIL | **PRESERVES** | [`:2355`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :214`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I23** P8 DoD/non-goal closure | at P8/DONE under adoption, every DoD item covered by some PASS unit's `dod_refs` and every non-goal attested `respected`/`not-applicable` by a PASS unit (under the I10 phase gate) | **PRESERVES** | [`:2407`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :215`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I24** ambiguity-register floor | once structural work exists and `clarifications.json` parses, an empty/non-list `ambiguity_register` ⇒ FAIL ("none found" is recorded as an ordinary register item) — validator-only floor, **NOT** archive-silent | **PRESERVES** | [`:2454`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :216`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I25** resolution required | a `material`+`resolved:true` register item MUST carry non-empty `resolution` text — a schema `allOf` conditional **plus** a raw-parse validator mirror whose `.strip()` bar also rejects whitespace-only text | **REVISES** *(sole)* | [`:2478`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :217`](../plugins/dag/skills/dag/references/state-machine.md) |
 
 **Depth & retrieval enforcement (1.9.0) — I26–I34** makes retrieval effort and clarification depth
 mechanically checkable. **I26–I30 carry `state-machine.md` §4 rows**
 ([`:218-222`](../plugins/dag/skills/dag/references/state-machine.md)); **I31–I34 (= RL-1 / RL-2 / RL-3 /
 CO-1) have NO §4 row — they are enumerated only in the §5 enforce-list**
-([`:289-291`](../plugins/dag/skills/dag/references/state-machine.md); doctrine home
+([`:295-297`](../plugins/dag/skills/dag/references/state-machine.md); doctrine home
 [`evidence-standards.md`](../plugins/dag/skills/dag/references/evidence-standards.md) §Source tiers). All
 nine are **PRESERVES** (classified **46/46, zero REVISES** against the termination proof, AO-1..7,
 I1–I25, the three-human-gates model, and the FSM edge set).
 
 | Inv | What it requires (one line; full clauses in the cited §4 row) | `validate_run.py` · `state-machine.md` §4 |
 |---|---|---|
-| **I26** sources register | structural trigger, fail-closed presence (≥1 row, ≥1 consulted), per-row disposition completeness, venue K-A/K-B/K-C admissions, coverage-basis membership — **NOT** archive-silent | [`:2463`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :218`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I27** clarification sweep | nine-dimension exact-once coverage, per-entry disposition completeness, `cartography_round` record, `resolution_source` visibility, P8 `sweep_spot_check[]` presence (version-honest T1 trigger + shape-triggered T2) | [`:2616`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :219`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I28** depth-tier floors | adoption-gated on `fsm-state.depth`; unconditional Phase-2 touch; append-only upward-only ratchet with per-unit time-scoping; canonical `skipped_floors` completeness; probe/sweep/register/panel floors; external-surface consistency | [`:2856`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :220`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I29** execution-effort briefs | adoption-closure on `claims_owed`; owed-entry shape/no-straw (`trigger_ref` verbatim ∈ criteria ∪ `dod_refs`); register linkage; CB-1 bridge presence; explicit-none; queued-consumer closure | [`:3151`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :221`](../plugins/dag/skills/dag/references/state-machine.md) |
-| **I30** retrieval-coverage verify | adoption-closure + forced linkage; `owed_check` totality; re-computed coverage arithmetic; the headline PASS-with-uncovered contradiction FAIL; probe floor; target-list superset; consulted/unreachable joins | [`:3345`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :222`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I26** sources register | structural trigger, fail-closed presence (≥1 row, ≥1 consulted), per-row disposition completeness, venue K-A/K-B/K-C admissions, coverage-basis membership — **NOT** archive-silent | [`:2492`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :218`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I27** clarification sweep | nine-dimension exact-once coverage, per-entry disposition completeness, `cartography_round` record, `resolution_source` visibility, P8 `sweep_spot_check[]` presence (version-honest T1 trigger + shape-triggered T2) | [`:2645`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :219`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I28** depth-tier floors | adoption-gated on `fsm-state.depth`; unconditional Phase-2 touch; append-only upward-only ratchet with per-unit time-scoping; canonical `skipped_floors` completeness; probe/sweep/register/panel floors; external-surface consistency | [`:2885`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :220`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I29** execution-effort briefs | adoption-closure on `claims_owed`; owed-entry shape/no-straw (`trigger_ref` verbatim ∈ criteria ∪ `dod_refs`); register linkage; CB-1 bridge presence; explicit-none; queued-consumer closure | [`:3180`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :221`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I30** retrieval-coverage verify | adoption-closure + forced linkage; `owed_check` totality; re-computed coverage arithmetic; the headline PASS-with-uncovered contradiction FAIL; probe floor; target-list superset; consulted/unreachable joins | [`:3374`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :222`](../plugins/dag/skills/dag/references/state-machine.md) |
 
 **I31–I34 (§5-only — no §4 row).** These four retrieval-standard predicates are named only in the §5
-enforce-list ([`state-machine.md` :289-291](../plugins/dag/skills/dag/references/state-machine.md); their
+enforce-list ([`state-machine.md` :295-297](../plugins/dag/skills/dag/references/state-machine.md); their
 doctrine home is [`evidence-standards.md`](../plugins/dag/skills/dag/references/evidence-standards.md)
 §Source tiers). All are offline/post-hoc (**PRESERVES**), enforced in one `validate_run.py` block
-([`:3620`](../plugins/dag/skills/dag/scripts/validate_run.py)):
+([`:3649`](../plugins/dag/skills/dag/scripts/validate_run.py)):
 
 - **I31 = RL-1 rung presence** — an evidence row that adopts `source_tier`/`retrieval_rung` records which
-  fallback rung it stands on ([`:3688`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+  fallback rung it stands on ([`:3717`](../plugins/dag/skills/dag/scripts/validate_run.py)).
 - **I32 = RL-2 parametric-downgrade consistency** — a parametric-only row carries the `ASSUMPTION` label,
   a `residual_risks[]` entry naming its claim, and a confidence capped below `high`
-  ([`:3730`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+  ([`:3759`](../plugins/dag/skills/dag/scripts/validate_run.py)).
 - **I33 = RL-3 premise-extraction presence** — scoped to DESIGN-JUDGMENT rows only, a non-empty
   extracted-premises array (or an explicit none-reason)
-  ([`:3774`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+  ([`:3803`](../plugins/dag/skills/dag/scripts/validate_run.py)).
 - **I34 = CO-1 per-entry owed coverage** — per owed claim, an existential min-tier satisfaction join (the
   same lattice I30 uses), verify-independent
-  ([`:3807`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+  ([`:3836`](../plugins/dag/skills/dag/scripts/validate_run.py)).
 
 None of I20–I34 adds an FSM state, transition, guard, or gate flag, and none is a live guard on the
 correction loop's sole back-edge `LT7` — so all fifteen are **offline/post-hoc** and the termination
 proof stands unchanged.
+
+### 4.4 Socratic-guardrail enforcement (1.10.0 / 1.10.1, I35–I40)
+
+The 1.10.0 release makes the pipeline's *front-of-run discipline* — Socratic questioning,
+ask-before-assuming, non-goal solicitation, and anchor-stability — mechanically checkable through
+**six** new invariants, **I35–I40**. All six read a **new run-root artifact `dialogues.json`** (the
+bounded Socratic dialogue-series transcript; schema `dialogues.schema.json` — see
+[page 15](15-artifacts-and-schemas.md)) plus the anchor records in `clarifications.json`/`fsm-state.json`.
+Every predicate keeps the same discipline as everything since 1.1.1: **offline/post-hoc, gates no FSM
+transition, and none is a live guard on `LT7`** — so the correction-loop termination proof (Claims A–D)
+stands *verbatim*, and **I1–I34, AO-1..7, the three-human-gates model, and the FSM edge set are
+unrelaxed**. Each one-liner is a *summary*; the authoritative multi-clause definition is the cited
+[`state-machine.md` §4 row](../plugins/dag/skills/dag/references/state-machine.md). Every schema delta
+the release adds is **OPTIONAL**; the `dialogues.json`/`item_confirmations`/`anchors_baseline` presence
+floors are **version-gated at 1.10.0** (T1) and archive-silent below it, with a shape-triggered T2 that
+fires whenever the artifact is present — the I27-T1/T2 pattern.
+
+| Inv | What it requires (one line; full clauses in the cited §4 row) | Class | `validate_run.py` · `state-machine.md` §4 |
+|---|---|---|---|
+| **I35** dialogue transcript presence/shape/coverage | version-honest T1 (presence @1.10.0) + T2 (shape, any version) over `dialogues.json`; surface coverage (a DS-2 `p2` record before clarification resolves; DS-1/4/5/6 records when their gates/flags fire); `rounds_used ≤ 3` ∧ `len(rounds)==rounds_used`; per-**instance** mandatory kinds (R-FORBID+R-CONFIRM at `p2`, R-CONFIRM on a re-entry list-delta, R-GATE at gate surfaces); non-blank literal `a` on every answer + `recommended` on every question; every answer slot filled **or** a `halt-pending` termination with non-empty `pending_questions[]` | **PRESERVES** | [`:3956`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :223`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I36** dialogue disposition & presentation-bind | R-CONFIRM disposition ↔ final `definition_of_done`/`non_goals` bijection via the **three-arm union** (presented-verbatim in `items_presented[]` \| edit-of-a-presented item \| `origin:human-elicited` passing the DP-31 bind); `items_presented[] maxItems:4` **anti-stuffing FAIL**; per-disposition `q_ref` join; **presentation-bind dissent** (a disposition over an unpresented/unbound item ⇒ FAIL — orchestrator records can't self-cover); the **I36-1b recommended-echo counter-join** (an item verbatim in its question's `recommended` text can't claim `human-elicited`); forbid-round residue joins + never-re-ask + register-row coverage; advisory `N-I36` rubber-stamp NOTE | **PRESERVES** | [`:4077`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :224`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I37** dialogue termination & probe accounting | termination enum + conditional payloads (`capped_open[]`+`impasse_dossier` iff `capped-unconverged`; `pending_questions[]` iff `halt-pending`; non-blank `gate_answer` at DS-2 on `converged`/`human-early`); `probes_lapsed[]` totality + **rung-choice legality** (`cap-exhausted` vs `human-early` carve-outs); probe-obligation accounting both directions; **instance closure** (DP-49 vocabulary, per-key uniqueness + cardinalities, re-entry `rollback_ref` license join with **injectivity**) | **PRESERVES** | [`:4313`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :225`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I38** ask-first consequential-default legality | `CC(r) = AF-1 ∨ AF-33` (dimension-keying ∨ content-linkage), **materiality-BLIND by construction** — a **logged default is illegal for any Definition-of-Done / non-goal / scope / acceptance gap**; FAILs on an illegal consequential logged-default, missing dimension, unlinked/dangling human-gate, malformed provenance, open-consequential-past-P2, a failed verbatim spot-check, and halt shape/materiality-coherence/anti-forgery; `N-I38` halt/authorship NOTEs; **I27 stays byte-untouched and I8 stays LOUD** (a ≥1.10.0 material consequential logged-default draws BOTH the `N-I27` NOTE and the I38 AF-14 FAIL — intended) | **PRESERVES** | [`:4462`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :226`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I39** anchor confirmation, provenance & baseline integrity (incl. **I39-7**, 1.10.1) | reads `clarifications.json.item_confirmations[]`/`anchors_retired[]` + the transcript's **immutable `anchors_baseline`**; `human_confirmed` via the current non-superseded record; list↔record↔baseline reconciliation **replayed forward from the immutable baseline** (the I17 `baseline_units` pattern — a same-file coordinated rewrite can't move the baseline it is judged against); **fail-closed `item_confirmations` presence** on a ≥1.10.0 structural run; no unconfirmed anchor past the gate; baseline-anchored delta totality; unstamped runs disarm to `N-I39`. **I39-7 (1.10.1):** the OPTIONAL `fsm-state.anchors_baseline_hash` mirror, when present, MUST equal `dialogues.json.anchors_baseline.content_hash` (Limitation X hardening) | **REVISES** *(GV-29 only: required-once-stamped `item_confirmations` presence, new-runs-only; the rest PRESERVES)* | [`:4700`](../plugins/dag/skills/dag/scripts/validate_run.py) (I39-7 mirror [`:4919`](../plugins/dag/skills/dag/scripts/validate_run.py)) · [`§4 :227`](../plugins/dag/skills/dag/references/state-machine.md) |
+| **I40** anchor mutation gating | adoption-armed on `revise_anchors`/`item_confirmations`; every `revise_anchors` record **human-gated** + `transcript_ref` (no autonomous branch); fuel cost `== 1` with **I18 carried VERBATIM** (at `fuel_remaining==0` no record is writable); in-transaction ref-reconciliation; **membership-union** — I20/I21/I22 accept `current ∪ anchors_retired[].prior_text`; added-item closure; a `violated`-NG op routes to ESCALATE; **`add_units` autonomy narrowed** (an ungated `add_units` whose every `dod_refs` element is un-`human_confirmed` ⇒ FAIL — downgrade-laundering guard) | **REVISES** *(three enumeration-level items)* | [`:4957`](../plugins/dag/skills/dag/scripts/validate_run.py) · [`§4 :228`](../plugins/dag/skills/dag/references/state-machine.md) |
+
+**The I40 REVISES, spelled out.** I40 is the block's only substantive **REVISES**, and it is *narrow* —
+three enumeration-level widenings, everything else preserved: (1) the new **`revise_anchors` amendment
+kind** joins the BGA kind-whitelist (**GV-30**); (2) the **membership-union `current ∪ retired`** widens
+I20/I21/I22's verbatim-membership sets so a legitimately retired anchor's prior text still resolves
+(**GV-16**); (3) I19's `add_units` autonomy is **narrowed** so an ungated add cannot smuggle in
+unconfirmed `dod_refs` (**GV-25**). Crucially I40 **carries I18 verbatim** (fuel cost ≥ 1, fuel-0
+unwritable) — there is **no fuel REVISES** — so the pipeline-level termination budget `N ≤ N₀ + fuel₀`
+and Claims A–D are untouched. **I39** carries the block's other flagged REVISES, **GV-29** only: on a
+run stamped ≥ 1.10.0, `item_confirmations` becomes required-present (the I25/I27-T1 new-runs-only class,
+with its migration argument — archived offenders read as expected version-skew, never edited). Every
+other I35–I40 clause **PRESERVES**.
+
+**The honest boundary (Limitations U–X).** As with every layer of the catalog, I35–I40 secure *shape*,
+not *truth*. The 1.10.0/1.10.1 residuals are Limitations **U–X**
+([`state-machine.md` §5](../plugins/dag/skills/dag/references/state-machine.md)): **U — dialogue
+genuineness** (the transcript is shape/coverage/bijection/bookkeeping — never proof a human actually
+spoke, that `q`/`a` are verbatim-faithful, that a `move`/`moves_used` is truthful, or that a DP-31
+disjunct-2 `draft_edits` echo is a genuine edit rather than a one-click accept); **V — recompute
+substrate honesty** (the deviation/rung-legality/origin-bind recomputes are only as honest as the literal
+`a`/`recommended` fields and recorded round indices they read; an *unrecorded* trigger is invisible);
+**W — ask-first semantic remainders R1–R8** (I38 proves consequential-default *legality* mechanically,
+but dimension self-assignment, verbatim aptness, provenance completeness, materiality self-declaration,
+and the R8 completion-evidence-withholding forged-halt window stay judgment); **X — anchor
+transcript-file integrity** (the reconciliation is anchored to the immutable `anchors_baseline`, so a
+hand-edit and even a same-file coordinated rewrite are caught, but a rewrite that ALSO rewrites the
+baseline + its hash across two/three run-dir files is not — I39-7 raises that cost to three files but
+**narrows, never "Closes"** it: git history remains the only mutation witness, and nothing mechanically
+reads it). The backstop is the same one that carries every A–T residual: the independent adversarial
+verifier and the human who lives the dialogue at the gate.
 
 ---
 
@@ -367,10 +422,11 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   deterministically absent, and cleans it on exit
   ([`run_tests.sh:38-46`](../plugins/dag/skills/dag/scripts/run_tests.sh)). A `--real-home` escape
   hatch exists only for manually exercising the global-store (G1/G2) paths.
-- **What it sweeps.** A schema self-check (15 schemas well-formed), then **every fixture row** in
-  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **203 fixtures
-  at 1.9.0** (54→203 across the BGA, audit-round-2, guardrail-enforcement, and depth-&-retrieval
-  releases) — on **BOTH backends, unconditionally**:
+- **What it sweeps.** A schema self-check (16 schemas well-formed — `dialogues.schema.json` joined at
+  1.10.0), then **every fixture row** in
+  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **293 fixtures
+  at 1.10.1** (54→293 across the BGA, audit-round-2, guardrail-enforcement, depth-&-retrieval, and
+  socratic-guardrail releases) — on **BOTH backends, unconditionally**:
   the normal backend (`jsonschema` if importable, else the stdlib mini) **and** a forced
   `DAG_FORCE_MINI=1` pass, so the pure-stdlib fallback is exercised even on hosts (CI) where
   `jsonschema` is installed and would otherwise hide it (the harness **never pip-installs**; a
@@ -382,7 +438,7 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   ([`run_tests.sh:74-99`](../plugins/dag/skills/dag/scripts/run_tests.sh);
   [`expectations.tsv:1-3`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv)). This is why
   the fixtures are cited throughout this page — each one is an executable proof that a specific check
-  fires (43 rows expect exit 0, 160 expect exit 1 with a pinned message). It exits non-zero if **any**
+  fires (63 rows expect exit 0, 230 expect exit 1 with a pinned message). It exits non-zero if **any**
   fixture, the manifest pair, or the self-check mismatches
   ([`run_tests.sh:136-144`](../plugins/dag/skills/dag/scripts/run_tests.sh)).
 - **The dev-time drift + formal layer (same CI, never at validation time).** Two tools sit **outside**

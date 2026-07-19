@@ -7,7 +7,7 @@
 > **Proof-status legend (used verbatim below, never softened).** A claim is one of:
 > *machine-checked (in scope)* — a validator/model-checker mechanically enforces it over emitted artifacts; *hand-proved* — argued on paper (e.g. loop termination); *asserted (consistent)* — a discipline the system relies on but cannot mechanically enforce today. Never "proved for all inputs."
 
-*This page describes `dag` as of **plugin 1.9.0 / catalog 1.0.11** ([`plugin.json`](../plugins/dag/.claude-plugin/plugin.json) line 4; [`marketplace.json`](../.claude-plugin/marketplace.json) line 7 = catalog, line 13 = plugin). Every `file:line` locator below is re-resolved against that tree — an unresolved locator is a bug.*
+*This page describes `dag` as of **plugin 1.10.1 / catalog 1.0.13** ([`plugin.json`](../plugins/dag/.claude-plugin/plugin.json) line 4; [`marketplace.json`](../.claude-plugin/marketplace.json) line 7 = catalog, line 13 = plugin). Every `file:line` locator below is re-resolved against that tree — an unresolved locator is a bug.*
 
 ---
 

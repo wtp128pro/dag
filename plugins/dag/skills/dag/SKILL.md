@@ -816,6 +816,16 @@ Triggered by any unresolved **material** disagreement.
 
 Never resolve a material disagreement silently. Never hide an option because you dislike it.
 
+**P7 in-place revision & the I4 iteration ceiling (L9).** When the human resolves a *retry-exhausted*
+escalation with an **in-place targeted revision** (not a fresh re-decomposition), that extra executor
+pass has no legal iteration slot — I4 caps `verify/debrief.iteration ≤ retries+1 ≤ 3` (`retries` caps at
+2), and the correction loop is deliberately not re-entered (there is no back-edge from `ESCALATE`; the
+termination proof depends on its absence). **Sanctioned handling:** keep `iteration` at the ceiling
+(`retries+1`) and record the TRUE pass sequence in prose — `DECISIONS.md` / `PROGRESS.md` / the whole-run
+verify's `audit_notes`; or, for a clean iteration lineage, resolve by **re-decomposition** — a fresh unit
+whose `retries` restart at 0 (a BGA `split_unit` / `add_units`). I4 stays exactly as shipped (a real
+invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/self-learning-loops.md §1.3.
+
 ---
 
 ## Phase 8 — Synthesis & sign-off

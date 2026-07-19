@@ -1521,7 +1521,9 @@
         "gov_bad_baseline_hash",
         "gov_unstamped_disarm_note",
         "gov_unconfirmed_past_gate",
-        "gov_unexplained_delta"
+        "gov_unexplained_delta",
+        "gov_baseline_mirror_ok",
+        "gov_baseline_mirror_mismatch"
       ],
       "provenance": [
         "socratic-guardrail-plan",

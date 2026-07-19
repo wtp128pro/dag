@@ -206,7 +206,13 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.10.0** — **Socratic-guardrail enforcement**: six new **offline** validator
+Current version: **1.10.1** — **residual cleanup + Limitation-X hardening**: a new **offline I39-7**
+optional anchors-baseline mirror cross-check (a present `fsm-state.anchors_baseline_hash` must equal the
+transcript `anchors_baseline.content_hash`) raises the coordinated-rewrite cost to three files
+(Limitation X **narrowed, NOT "Closed"** — git remains the only mutation witness); plus an N-I39
+disarm-NOTE accuracy reword, per-sub-clause CI fixture pins (I35–I40), and the L9 P7-revision
+fold-to-ceiling handling documented — all **PRESERVES**, `formal/` byte-untouched. **1.10.0** —
+**Socratic-guardrail enforcement**: six new **offline** validator
 invariants (**I35–I40**) make the run's front-of-run discipline mechanically checkable across four
 pillars — a **bounded multi-round Socratic dialogue-series** recorded in a machine-checkable
 `dialogues.json` transcript (+ schema); **consequential-gap ask-first** (a logged default is

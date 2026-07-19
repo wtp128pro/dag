@@ -116,12 +116,12 @@ This is the one that bites. The plugin version is mirrored in **six** places, an
 
 1. `plugins/dag/.claude-plugin/plugin.json` — plugin `version`
 2. `plugins/dag/CHANGELOG.md` — a new plugin entry
-3. `plugins/dag/README.md` — the `Current version:` line (currently `1.9.0` at `plugins/dag/README.md:209`)
+3. `plugins/dag/README.md` — the `Current version:` line (currently `1.10.1` at `plugins/dag/README.md:209`)
 4. `.claude-plugin/marketplace.json` — the plugin entry `version` **and** the top-level catalog `version` (two edits in one file: `marketplace.json:13` and `marketplace.json:7`)
-5. `README.md` (root) — the plugin-table version cell (currently `1.9.0` at `README.md:12`)
+5. `README.md` (root) — the plugin-table version cell (currently `1.10.1` at `README.md:12`)
 6. `CHANGELOG.md` (root) — a new catalog entry
 
-Convention (`CLAUDE.md`): a new skill/feature is a **minor** plugin bump; each catalog release is a **patch** bump of the marketplace top-level version. That is why the two version fields differ today — the **plugin** is at `1.9.0` (`plugin.json:4`, `marketplace.json:13`, `README.md:12`, `plugins/dag/README.md:209`) while the **catalog/marketplace top-level** is at `1.0.11` (`marketplace.json:7`). They are two independent counters that happen to live in the same manifest.
+Convention (`CLAUDE.md`): a new skill/feature is a **minor** plugin bump; each catalog release is a **patch** bump of the marketplace top-level version. That is why the two version fields differ today — the **plugin** is at `1.10.1` (`plugin.json:4`, `marketplace.json:13`, `README.md:12`, `plugins/dag/README.md:209`) while the **catalog/marketplace top-level** is at `1.0.13` (`marketplace.json:7`). They are two independent counters that happen to live in the same manifest.
 
 ```mermaid
 flowchart TD

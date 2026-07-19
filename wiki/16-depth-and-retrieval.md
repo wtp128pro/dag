@@ -4,7 +4,7 @@
 retrieval subsystem decides *how hard to try* and then *mechanically holds a run to that
 decision* — how much source-chasing a run owes, how that obligation is written into briefs,
 and how a verifier catches a claim that was answered from the model's memory instead of a
-source. Every claim here carries a `path:line` locator into the current (1.9.0) tree that a
+source. Every claim here carries a `path:line` locator into the current (1.10.1) tree that a
 verifier can re-open; the wiki's own rule is that an unresolved locator is a defect.
 
 **TL;DR.** 1.9.0 adds a *depth dial* and a *retrieval spine*, both enforced offline. The dial
@@ -127,7 +127,7 @@ contentfulness, P1 gate provenance, P1b the unconditional Phase-2 touch, P2 cano
 conformance (probe/sweep/register/panel), P5 external-surface consistency — and **adds no gate
 flag: `REQUIRED_GATES` is untouched, the three-human-gates model is immutable**
 ([`state-machine.md` I28 §4 row `:220`](../plugins/dag/skills/dag/references/state-machine.md);
-[`validate_run.py` I28 `:2856`](../plugins/dag/skills/dag/scripts/validate_run.py)). Adoption is
+[`validate_run.py` I28 `:2885`](../plugins/dag/skills/dag/scripts/validate_run.py)). Adoption is
 gated on `fsm-state.depth` — absent ⇒ I28 is silent (archive-safe).
 
 ---
@@ -152,7 +152,7 @@ enum with **no `T-PARAM`** — "T-PARAM is not registrable"
 brief's `required_sources[].tier` mirrors that three-value enum
 ([`brief.schema.json:64`](../plugins/dag/skills/dag/schemas/brief.schema.json)). The doctrine
 home for the tiers is `evidence-standards.md` §Source tiers
-([`state-machine.md:290-291`](../plugins/dag/skills/dag/references/state-machine.md)).
+([`state-machine.md:296-297`](../plugins/dag/skills/dag/references/state-machine.md)).
 
 ### 3.2 The fallback ladder
 
@@ -213,7 +213,7 @@ coverage monoculture (≥2 claims resting on one consulted row), and external ti
 none consulted. I26 is **NOT archive-silent** — like I-dod/I24 it fires on positive structural
 evidence, because the failure it guards against is *silent* cartography-skipping
 ([`state-machine.md` I26 §4 row `:218`](../plugins/dag/skills/dag/references/state-machine.md);
-[`validate_run.py` I26 `:2463`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+[`validate_run.py` I26 `:2492`](../plugins/dag/skills/dag/scripts/validate_run.py)).
 
 ---
 
@@ -261,7 +261,7 @@ T2 (shape) fires whenever `dimension_sweep` is present. It checks I27-1..11: nin
 exact-once coverage at every tier; per-entry completeness; the `cartography_round` record;
 `resolution_source` on resolved rows; and — at P8 — a `sweep_spot_check[]`, with NOTEs at
 -6/-7/-11 ([`state-machine.md` I27 §4 row `:219`](../plugins/dag/skills/dag/references/state-machine.md);
-[`validate_run.py` I27 `:2616`](../plugins/dag/skills/dag/scripts/validate_run.py)). "Not swept"
+[`validate_run.py` I27 `:2645`](../plugins/dag/skills/dag/scripts/validate_run.py)). "Not swept"
 is thereby mechanically distinguishable from "swept, nothing found."
 
 ---
@@ -306,7 +306,7 @@ carries `claims_owed`/`required_sources`, every graph unit's brief must carry `c
 owed-entry shape/no-straw, register linkage (S-ids resolve; rejected rows unrequirable), CB-1
 presence, and explicit-none
 ([`state-machine.md` I29 §4 row `:221`](../plugins/dag/skills/dag/references/state-machine.md);
-[`validate_run.py` I29 `:3151`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+[`validate_run.py` I29 `:3180`](../plugins/dag/skills/dag/scripts/validate_run.py)).
 
 ---
 
@@ -338,7 +338,7 @@ a FAIL**. Other clauses re-compute coverage arithmetic (clause 2), enforce the �
 **probe floor** on external coverage (clause 4, tier-independent; DT-K2 scales *on top*), a
 target-list superset (clause 5), and consulted/unreachable joins (clauses 6–7)
 ([`state-machine.md` I30 §4 row `:222`](../plugins/dag/skills/dag/references/state-machine.md);
-[`validate_run.py` I30 `:3345`](../plugins/dag/skills/dag/scripts/validate_run.py)). Termination
+[`validate_run.py` I30 `:3374`](../plugins/dag/skills/dag/scripts/validate_run.py)). Termination
 is preserved — the verdict enum and the LT3–LT6 loop partition are untouched.
 
 ---
@@ -346,27 +346,33 @@ is preserved — the verdict enum and the LT3–LT6 loop partition are untouched
 ## 8. The invariant catalog — I26–I34
 
 I26–I30 have full **§4 rows**; **I31–I34 have NO §4 row — they live only in the §5 enforce-list**
-([`state-machine.md:289-291`](../plugins/dag/skills/dag/references/state-machine.md)), with their
+([`state-machine.md:295-297`](../plugins/dag/skills/dag/references/state-machine.md)), with their
 doctrine home in `evidence-standards.md` §Source tiers. All nine are **post-hoc / offline, gate
 no transition, and PRESERVE** the termination proof, AO-1..7, I1–I25, the three-human-gates
 model, and the FSM edge set.
 
 | Inv | What it requires | Class | Locators |
 |---|---|---|---|
-| **I26** sources register | Structural-trigger, fail-closed presence of a schema-valid `sources.json` (≥1 row, ≥1 consulted); disposition completeness; unique ids; per-venue K-A/K-B/K-C admissions; T-COMM consulted/queued ⇒ admitted venue; coverage `based_on` ⇒ register ids incl. ≥1 consulted. **NOT archive-silent.** | PRESERVES | [`state-machine.md:218`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:2463`](../plugins/dag/skills/dag/scripts/validate_run.py); [`sources.schema.json`](../plugins/dag/skills/dag/schemas/sources.schema.json) |
-| **I27** clarification sweep | Two-level trigger (T1 presence, version-stamped ≥ release, **archive-silent**; T2 shape whenever `dimension_sweep` present). I27-1..11: nine-dim exact-once coverage; per-entry completeness; `cartography_round` record; `resolution_source` on resolved rows; P8 `sweep_spot_check[]`. NOTEs at -6/-7/-11. | PRESERVES | [`state-machine.md:219`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:2616`](../plugins/dag/skills/dag/scripts/validate_run.py); [`clarifications.schema.json` `dimension_sweep`](../plugins/dag/skills/dag/schemas/clarifications.schema.json) |
-| **I28** depth-tier floors | Adoption-gated on `fsm-state.depth` (absent ⇒ silent). P0 shape; P1 gate provenance; P1b unconditional Phase-2 touch; P2 canonical `skipped_floors`=={DT-K2,K4,K5,K6}; P3 upward-only ratchet + per-unit `tier_at_verification`; P4 probe/sweep/register/panel floor conformance; P5 external-surface consistency. **Adds NO gate flag — `REQUIRED_GATES` untouched.** | PRESERVES | [`state-machine.md:220`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:2856`](../plugins/dag/skills/dag/scripts/validate_run.py); [`fsm-state.schema.json` `depth`](../plugins/dag/skills/dag/schemas/fsm-state.schema.json) |
-| **I29** execution-effort briefs | Adoption-closure (I20/I21): once any brief carries `claims_owed`/`required_sources`, every brief carries `claims_owed`. Owed-entry shape (`trigger_ref` verbatim ∈ criteria ∪ dod_refs); register linkage; **CB-1 bridge presence** (clause 4); explicit-none; queued-consumer closure (adoption-independent, rides I26). | PRESERVES | [`state-machine.md:221`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3151`](../plugins/dag/skills/dag/scripts/validate_run.py); [`brief.schema.json:54-105`](../plugins/dag/skills/dag/schemas/brief.schema.json) |
-| **I30** retrieval-coverage verify | Adoption-closure (I22) + forced linkage. `owed_check` totality (set equality); recomputed coverage arithmetic; **PASS-with-uncovered ⇒ FAIL** (headline); probe floor; target-list superset; consulted/unreachable joins. | PRESERVES | [`state-machine.md:222`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3345`](../plugins/dag/skills/dag/scripts/validate_run.py); [`verify.schema.json:112-168`](../plugins/dag/skills/dag/schemas/verify.schema.json) |
-| **I31** = RL-1 rung presence | Any evidence row carrying `source_tier`/`retrieval_rung` ⇒ the rung is declared (no silent skip). | PRESERVES | [`state-machine.md:289-291`](../plugins/dag/skills/dag/references/state-machine.md) (§5 only); [`validate_run.py:3688`](../plugins/dag/skills/dag/scripts/validate_run.py) |
-| **I32** = RL-2 parametric-downgrade consistency | A parametric-only row needs (a) an `ASSUMPTION` label in its evidence text, (b) `residual_risks[]` naming that claim, and (c) confidence **capped below `high`** — parametric coverage can't be `high`. | PRESERVES | [`state-machine.md:289-291`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3730`](../plugins/dag/skills/dag/scripts/validate_run.py) |
-| **I33** = RL-3 premise-extraction presence | `design-judgment` rows **only** ⇒ `extracted_premises` present. | PRESERVES | [`state-machine.md:289-291`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3774`](../plugins/dag/skills/dag/scripts/validate_run.py) |
-| **I34** = CO-1 per-entry owed coverage | Any brief with a non-empty `claims_owed` ⇒ per-entry owed coverage. | PRESERVES | [`state-machine.md:289-291`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3807`](../plugins/dag/skills/dag/scripts/validate_run.py) |
+| **I26** sources register | Structural-trigger, fail-closed presence of a schema-valid `sources.json` (≥1 row, ≥1 consulted); disposition completeness; unique ids; per-venue K-A/K-B/K-C admissions; T-COMM consulted/queued ⇒ admitted venue; coverage `based_on` ⇒ register ids incl. ≥1 consulted. **NOT archive-silent.** | PRESERVES | [`state-machine.md:218`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:2492`](../plugins/dag/skills/dag/scripts/validate_run.py); [`sources.schema.json`](../plugins/dag/skills/dag/schemas/sources.schema.json) |
+| **I27** clarification sweep | Two-level trigger (T1 presence, version-stamped ≥ release, **archive-silent**; T2 shape whenever `dimension_sweep` present). I27-1..11: nine-dim exact-once coverage; per-entry completeness; `cartography_round` record; `resolution_source` on resolved rows; P8 `sweep_spot_check[]`. NOTEs at -6/-7/-11. | PRESERVES | [`state-machine.md:219`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:2645`](../plugins/dag/skills/dag/scripts/validate_run.py); [`clarifications.schema.json` `dimension_sweep`](../plugins/dag/skills/dag/schemas/clarifications.schema.json) |
+| **I28** depth-tier floors | Adoption-gated on `fsm-state.depth` (absent ⇒ silent). P0 shape; P1 gate provenance; P1b unconditional Phase-2 touch; P2 canonical `skipped_floors`=={DT-K2,K4,K5,K6}; P3 upward-only ratchet + per-unit `tier_at_verification`; P4 probe/sweep/register/panel floor conformance; P5 external-surface consistency. **Adds NO gate flag — `REQUIRED_GATES` untouched.** | PRESERVES | [`state-machine.md:220`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:2885`](../plugins/dag/skills/dag/scripts/validate_run.py); [`fsm-state.schema.json` `depth`](../plugins/dag/skills/dag/schemas/fsm-state.schema.json) |
+| **I29** execution-effort briefs | Adoption-closure (I20/I21): once any brief carries `claims_owed`/`required_sources`, every brief carries `claims_owed`. Owed-entry shape (`trigger_ref` verbatim ∈ criteria ∪ dod_refs); register linkage; **CB-1 bridge presence** (clause 4); explicit-none; queued-consumer closure (adoption-independent, rides I26). | PRESERVES | [`state-machine.md:221`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3180`](../plugins/dag/skills/dag/scripts/validate_run.py); [`brief.schema.json:54-105`](../plugins/dag/skills/dag/schemas/brief.schema.json) |
+| **I30** retrieval-coverage verify | Adoption-closure (I22) + forced linkage. `owed_check` totality (set equality); recomputed coverage arithmetic; **PASS-with-uncovered ⇒ FAIL** (headline); probe floor; target-list superset; consulted/unreachable joins. | PRESERVES | [`state-machine.md:222`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3374`](../plugins/dag/skills/dag/scripts/validate_run.py); [`verify.schema.json:112-168`](../plugins/dag/skills/dag/schemas/verify.schema.json) |
+| **I31** = RL-1 rung presence | Any evidence row carrying `source_tier`/`retrieval_rung` ⇒ the rung is declared (no silent skip). | PRESERVES | [`state-machine.md:295-297`](../plugins/dag/skills/dag/references/state-machine.md) (§5 only); [`validate_run.py:3717`](../plugins/dag/skills/dag/scripts/validate_run.py) |
+| **I32** = RL-2 parametric-downgrade consistency | A parametric-only row needs (a) an `ASSUMPTION` label in its evidence text, (b) `residual_risks[]` naming that claim, and (c) confidence **capped below `high`** — parametric coverage can't be `high`. | PRESERVES | [`state-machine.md:295-297`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3759`](../plugins/dag/skills/dag/scripts/validate_run.py) |
+| **I33** = RL-3 premise-extraction presence | `design-judgment` rows **only** ⇒ `extracted_premises` present. | PRESERVES | [`state-machine.md:295-297`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3803`](../plugins/dag/skills/dag/scripts/validate_run.py) |
+| **I34** = CO-1 per-entry owed coverage | Any brief with a non-empty `claims_owed` ⇒ per-entry owed coverage. | PRESERVES | [`state-machine.md:295-297`](../plugins/dag/skills/dag/references/state-machine.md); [`validate_run.py:3836`](../plugins/dag/skills/dag/scripts/validate_run.py) |
 
 These join the existing catalog (`I1..I25 + I1b/I1c/I1d/I3b/I3c + I-dod`) documented on
 [`14-validator-and-invariants.md`](14-validator-and-invariants.md); their stem labels live in
 the validator's `LABELS` block
-([`validate_run.py:434-452`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+([`validate_run.py:435-453`](../plugins/dag/skills/dag/scripts/validate_run.py)).
+
+The catalog does not stop at I34: the later **socratic-guardrail invariants I35–I40**
+(1.10.0/1.10.1 — bounded Socratic dialogue-series, consequential-gap ask-first, non-goal
+solicitation, and anchor-stability, over the new `dialogues.json` transcript) share this same
+offline/post-hoc, never-a-guard-on-`LT7` discipline; they are documented on
+[`14-validator-and-invariants.md`](14-validator-and-invariants.md) §4.4.
 
 ---
 
@@ -374,7 +380,7 @@ the validator's `LABELS` block
 
 Everything in §2–§8 is a check of **shape or structure**; none of it decides **truth of
 content**. The 1.9.0 residuals are enumerated verbatim as Limitations **P–T**
-([`state-machine.md` §5 `:384-423`](../plugins/dag/skills/dag/references/state-machine.md)) —
+([`state-machine.md` §5 `:411-450`](../plugins/dag/skills/dag/references/state-machine.md)) —
 the same *validity ≠ correctness* seam that governs the whole catalog (see
 [`07-accuracy.md`](07-accuracy.md), [`14-validator-and-invariants.md`](14-validator-and-invariants.md)).
 
