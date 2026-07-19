@@ -1,0 +1,14 @@
+{
+  "id": "L11",
+  "trigger": "dag 1.10.0 run, U04 round-1 panel-of-3: the I36-1b block and its named fixture (dialogue_recommended_echo_launder) were co-developed and BOTH implemented only the human-adopted disjunct-2 (amendment not-a-substring-of-offered) join while silently dropping the SPEC's mandatory disjunct-1 (recommended-echo over origin:human-elicited dispositions). The mechanical panel majority was 2 PASS / 1 FAIL: the correctness lens FOUND the gap but mis-scored it as 'faithful to the adopted contract'; only the reproduce lens's independent schema-valid repro (+ the orchestrator's own repro) flipped it to FAIL.",
+  "lesson": "When a validator/enforcement unit co-develops a block WITH its own pinning fixture, a green suite can hide a dropped spec SUB-clause: the fixture gets (re)purposed to exercise the implemented arm while the unimplemented arm goes unpinned (the L4 trap, recurring at sub-clause granularity). Two compounding failure modes: (1) a human decision that ADDS an option ('adopt the stronger join') is mis-read as REPLACING the mandatory base clause; (2) the discrete-majority panel verdict can be PASS even when a member's own report contains a confirmed blocker/major it under-scored.",
+  "how_to_apply": "For an enforcement unit: (a) the verifier panel MUST enumerate EVERY spec sub-clause and confirm each has a fixture that FAILs when THAT sub-clause is violated - build the repro from the SPEC, never trust the fixture NAME (which arm does dialogue_X_launder actually exercise?). (b) When a human decision adds an option, confirm it ADDS to, not REPLACES, the mandatory base clause (re-read the P2 register row). (c) The orchestrator/adjudicator reads the spec and OVERRIDES a mechanical PASS majority when a panel member's own findings contain a confirmed blocker/major it under-scored - a PASS may carry only minors (I6). (d) Prefer separating the block author from the fixture author, or require the panel to build fresh /tmp repros that isolate each sub-clause.",
+  "scope": {
+    "applies_to": ["tag:validator", "tag:design", "tag:formal"],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "run .wip/2026-07-18_172737_socratic-guardrail-remediation DECISIONS #7; units/U04 round-1 verify.json (correctness PASS-but-found-it, reproduce FAIL w/ repro, guardrail PASS) -> orchestrator re-ran correctness with the P2-decision fact -> majority FAIL -> retry iteration 2 added the disjunct-1 loop (validate_run.py:4131-4174) + re-pointed dialogue_recommended_echo_launder + added dialogue_draftedit_echo_launder; iteration-2 panel 3/3 PASS.",
+  "since_wave": 1,
+  "promotable": true
+}
