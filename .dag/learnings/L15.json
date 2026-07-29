@@ -1,0 +1,21 @@
+{
+  "id": "L15",
+  "trigger": "In one release a schema addition (panel_adjudication, I41) landed ELEVEN MINUTES after a script that hand-mirrors those schemas. Its self-test went red (69/71) and the script began advising that the new field be folded into audit_notes - destroying an object the same release's I41-1 requires. Two of the release's own new pieces destroyed each other.",
+  "lesson": "When one artifact hand-mirrors another's schema, a sibling unit editing that schema silently rots the mirror, and per-unit verification structurally cannot catch it because each unit passes on its own scope.",
+  "how_to_apply": "When one artifact hand-mirrors another's schema, a sibling unit editing that schema silently rots the mirror, and per-unit verification structurally cannot catch it because each unit passes on its own scope. At Phase-4 critique, identify every mirror relationship and assign ONE unit to own both sides, or add a cross-unit acceptance criterion. Make mirror checks BIDIRECTIONAL - a forward-only check can never notice a newly ADDED pointer. Add the re-run obligation to the repo's editing guidance, since nothing invokes a self-test automatically.",
+  "scope": {
+    "applies_to": [
+      "tag:validator",
+      "tag:design",
+      "tag:code"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_090706_cross-repo-lessons-intake: 9 units, 6 retry iterations, 33 independent lens-verdicts across panels of 3 at depth tier full. Shipped as PR #34 (commits 0fd8dbe, f7c3d92).",
+  "since_wave": 6,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "L16",
+  "trigger": "U08's archive-safety number (25 of 40 runs green before and after) reproduced three times and was correct, but the MECHANISM cited was false: only some invariant arms are version-gated, the rest fire on adoption at any version, and the release's own 1.10.0 fixture emitted a FAIL. The parity held because 0 of 506 archived documents had adopted the new fields - an unmeasured empirical accident. One verifier initially re-derived the same wrong mechanism and shipped a PASS on it.",
+  "lesson": "A correct number with a wrong mechanism is a defect, because the mechanism is what a human reads at sign-off and what the next run reasons from.",
+  "how_to_apply": "A correct number with a wrong mechanism is a defect, because the mechanism is what a human reads at sign-off and what the next run reasons from. Whenever a safety claim rests on an absence, state the mechanism by which the thing WOULD have appeared, verify that mechanism is the real one (MU-L47), and publish the census that actually carries the guarantee together with its command. Treat a verifier reproducing the executor's reasoning as evidence the claim is MISLEADING, not as corroboration.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_090706_cross-repo-lessons-intake: 9 units, 6 retry iterations, 33 independent lens-verdicts across panels of 3 at depth tier full. Shipped as PR #34 (commits 0fd8dbe, f7c3d92).",
+  "since_wave": 6,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

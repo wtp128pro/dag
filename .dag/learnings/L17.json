@@ -1,0 +1,19 @@
+{
+  "id": "L17",
+  "trigger": "Across roughly 20 subagent dispatches under elevated API 5xx and 529 errors, most agents reporting a hard failure had ALREADY written their output file; the notification's result text is the last thing the agent said, not its final state. Re-reading contents and mtimes after each failure prevented at least four needless re-runs, and several agents' analyses were recovered by resuming them from transcript with a write-only instruction.",
+  "lesson": "After a subagent failure, NEVER re-dispatch on the strength of the notification text.",
+  "how_to_apply": "After a subagent failure, NEVER re-dispatch on the strength of the notification text. Read the artifact and its mtime first; if the file landed, the work is done. If not, resume the SAME agent from its transcript rather than starting fresh - its analysis survives - and instruct it to write in ONE tool call, since failures cluster on tool rounds. Under sustained overload, reduce concurrency: piling on resumes produces the next wave of failures.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_090706_cross-repo-lessons-intake: 9 units, 6 retry iterations, 33 independent lens-verdicts across panels of 3 at depth tier full. Shipped as PR #34 (commits 0fd8dbe, f7c3d92).",
+  "since_wave": 6,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

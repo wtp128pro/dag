@@ -1,0 +1,19 @@
+{
+  "id": "L14",
+  "trigger": "Two instances in one run: a 25/25 self-test sat on a content-corrupting bug because every fixture fed already-left-trimmed strings; the fix's new 49/49 suite then sat on the adjacent class because its new tests never called the function under test. Separately a 61-arm ablation harness ablated failure MESSAGE lines rather than logic, so its unpinned-zero claim was false at spec granularity.",
+  "lesson": "A test written by the same agent that wrote the code reliably certifies the property it was built to demonstrate and is blind to the adjacent class.",
+  "how_to_apply": "A test written by the same agent that wrote the code reliably certifies the property it was built to demonstrate and is blind to the adjacent class. Never accept a green suite as evidence a class is closed: demand the counterfactual (which input would have made it red?) and require the test's enumeration axis to be derived independently of the code under test. For an ablation harness, ablate CONDITIONS, never emissions.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_090706_cross-repo-lessons-intake: 9 units, 6 retry iterations, 33 independent lens-verdicts across panels of 3 at depth tier full. Shipped as PR #34 (commits 0fd8dbe, f7c3d92).",
+  "since_wave": 6,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}
