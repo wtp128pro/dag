@@ -463,6 +463,11 @@ LABELS = [
     {"key": "i39_anchor", "stem": "I39 anchor", "invariant": "I39"},
     {"key": "note_i39", "stem": "N-I39", "invariant": "I39", "emitted_via": "print"},
     {"key": "i40_anchor", "stem": "I40 anchor", "invariant": "I40"},
+    # FSM invariants — panel dissent accounting / evidence digest integrity (cross-repo-lessons 1.11.0; U05/U07)
+    {"key": "i41_dissent", "stem": "I41 panel dissent", "invariant": "I41"},
+    {"key": "note_i41", "stem": "N-I41", "invariant": "I41", "emitted_via": "print"},
+    {"key": "i42_digest", "stem": "I42 evidence digest", "invariant": "I42"},
+    {"key": "note_i42", "stem": "N-I42", "invariant": "I42", "emitted_via": "print"},
     # FSM invariants — verification presence / synthesis
     {"key": "i9_missing", "stem": "I9 missing verification", "invariant": "I9"},
     {"key": "i9_present", "stem": "I9 verification present", "invariant": "I9"},
@@ -5122,6 +5127,403 @@ def main(argv=None):
     if ((_revise_recs or _gov_ic_present or _gov_retired) and len(rep.problems) == _gov40_probs0):
         rep.ok(f"{_gov40_stem} ({len(_revise_recs)} revise record(s); gating + ref-reconciliation + "
                "membership-ordering + narrowed autonomy OK)")
+
+    # ---- I41 panel dissent accounting & adjudication (cross-repo-lessons 1.11.0; U05/U07) ----
+    # invariant-spec.md §2 (run-experience candidate (b); DAG-L11(c); DAG-L4; R15 kernel; AO-5). The hole:
+    # I16 (:1568-1677) forces `top_verdict == discrete majority`, so on a [PASS,PASS,FAIL] panel the ONLY
+    # legal top verdict is PASS, and I6 (:1463-1478) lets a PASS carry only `minor` — a dissenting lens'
+    # major finding must therefore be downgraded, dropped or buried in prose, and every one of those is
+    # invisible to every shipped predicate. I41 makes the accounting auditable. OFFLINE post-hoc predicate
+    # over emitted artifacts: reads units/<uid>/verify.json RAW, gates NO FSM transition, is evaluated on
+    # NO edge and **NEVER guards LT7** (the correction loop's sole back-edge — a live guard there leaves
+    # RETRY with no enabled out-edge and deadlocks, breaking Property 2 Claim D), writes no `retries` and
+    # no `fuel`, adds no state/edge/gate flag => PRESERVES the termination proof (Claims A-D) and
+    # AO-1/-2/-3/-4/-6/-7; `formal/` byte-untouched (no run_formal.sh re-run). TWO REVISES are carried
+    # openly (formal-models.md §1.11.0, with migration arguments): (i) **AO-5 doctrine** — a BOUNDED
+    # intra-node re-poll becomes a sanctioned PRE-escalation path; capped by the EXISTING verify_rounds<=3
+    # (I16-(c), byte-untouched — I41 adds no bound and no counter), and I41-4c makes "re-run the dissenter
+    # until it flips" (exactly what AO-5 prohibits) a hard FAIL where it was previously unconstrained.
+    # (ii) **the I16 verify ARTIFACT CONTRACT** — a verify recording PASS + a dissenting member + no
+    # panel_adjudication was VALID and becomes INVALID; version-gated to >=_I41_SHIP via _i27_semver_ge
+    # (:2668-2681) so no archive newly flags (the 4 archived dissent-on-PASS verifies live in a run stamped
+    # 1.9.0), strictly narrowing, every schema delta OPTIONAL. I16's own predicate is byte-untouched;
+    # I41-4d RE-USES its `_discrete_majority` rather than replacing it, and pins the previously-unspecified
+    # semantic that panel[].verdict holds the FINAL vote. Trigger: T1 (presence floor; clauses I41-1/-2a)
+    # arms only at validator_version >= _I41_SHIP; T2 (shape; clauses I41-2b/-3/-4/-5/-6) arms on ADOPTION
+    # (a panel_adjudication OR any member defects[]), any version — measured 0/156 archived verifies carry
+    # either key, so archives are silent in BOTH arms. No clause fires on a verify with no panel[].
+    # Limitation Y: an UNRECORDED dissent is invisible; only the latest verify per unit survives a retry
+    # (Limitation F/L1); tested_defect / rationale genuineness stay attestation (validity != correctness).
+    _I41_SHIP = "1.11.0"                 # release shipping I41; validator_version >= this arms T1
+    _I41_DISSENT = ("FAIL", "DISAGREE")
+    _I41_RESOLUTIONS = ("repoll", "withdrawn", "escalated-p7")
+    _I41_EXCUSED = ("downgraded-minor", "withdrawn", "overruled-by-repoll")
+    _i41_stem = LABEL_STEM['i41_dissent']
+    _i41_note = LABEL_STEM['note_i41']
+    _i41_probs0 = len(rep.problems)
+    _i41_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    _i41_t1 = _i27_semver_ge(_i41_ver, _I41_SHIP)
+
+    def _i41_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _i41_norm(s):
+        # whitespace-normalized criterion comparison (the I29 clause-4 idiom)
+        return " ".join(str(s).split()) if isinstance(s, str) else None
+
+    # RAW reads (load_json + isinstance guards, the I26/I27/I40-6 posture) — never the schema-filtered
+    # unit_docs, so a schema-invalid verify still gets accounted rather than silently skipped.
+    _i41_verifies = []                   # [(uid, verify_dict)] in sorted unit order
+    for _u41 in sorted(unit_subdirs):
+        _vp41 = os.path.join(units_dir, _u41, "verify.json")
+        if not os.path.exists(_vp41):
+            continue
+        try:
+            _vd41 = load_json(_vp41)
+        except Exception:
+            _vd41 = None
+        if isinstance(_vd41, dict):
+            _i41_verifies.append((_u41, _vd41))
+
+    def _i41_members(v):
+        _p = v.get("panel")
+        return [m for m in _p if isinstance(m, dict)] if isinstance(_p, list) else []
+
+    def _i41_defects(m):
+        _d = m.get("defects")
+        return [x for x in _d if isinstance(x, dict)] if isinstance(_d, list) else []
+
+    def _i41_adj(v):
+        _a = v.get("panel_adjudication")
+        return _a if isinstance(_a, dict) else None
+
+    def _i41_rows(a, key):
+        _r = a.get(key)
+        return [x for x in _r if isinstance(x, dict)] if isinstance(_r, list) else []
+
+    # verdict-bearing verifies (the I22/I30 adoption-closure domain)
+    _i41_vb = [(u, v) for u, v in _i41_verifies if isinstance(v.get("verdict"), str)]
+    _i41_vb_uids = {u for u, _v in _i41_vb}
+    # T2 adoption arm — ANY panel_adjudication OR ANY member-level defects[] anywhere in the run.
+    _i41_adopted = any(_i41_adj(v) is not None or any("defects" in m for m in _i41_members(v))
+                       for _u, v in _i41_verifies)
+    # I41-2(b) closure arm — armed once ANY member on ANY verdict-bearing verify RECORDS findings.
+    _i41_defects_adopted = any(_i41_defects(m) for _u, v in _i41_vb for m in _i41_members(v))
+
+    for uid, v in _i41_verifies:
+        _mem = _i41_members(v)
+        if not _mem:
+            continue                     # a verify with no panel[] is entirely outside I41
+        _adj = _i41_adj(v)
+        _top = v.get("verdict")
+        _dis = [m for m in _mem if m.get("verdict") in _I41_DISSENT]
+
+        # I41-1 [T1] — dissent on an aggregate PASS requires an adjudication record.
+        if _i41_t1 and _top == "PASS" and _dis and _adj is None:
+            _lenses = sorted(str(m.get("lens")) for m in _dis)
+            rep.fail(f"{_i41_stem} (unadjudicated {uid})",
+                     f"verify records verdict=PASS with {len(_dis)} dissenting panel member(s) {_lenses} "
+                     "but no panel_adjudication record — under I16 a 2-1 majority FORCES the PASS, so the "
+                     "dissent must be resolved at panel level (re-poll / withdrawal) and recorded, never "
+                     "absorbed silently (I41-1)")
+
+        # I41-2 — a dissenting vote must be substantiated. (a) version floor; (b) adoption closure.
+        for m in _dis:
+            _lens = m.get("lens")
+            _has = any(not _i41_blank(d.get("criterion")) for d in _i41_defects(m))
+            if _has:
+                continue
+            # (a) version floor, any verify; (b) adoption closure, verdict-bearing verifies, any version.
+            _arm = "a" if _i41_t1 else ("b" if (_i41_defects_adopted and uid in _i41_vb_uids) else None)
+            if _arm is None:
+                continue
+            rep.fail(f"{_i41_stem} (bare dissent {uid}/{_lens})",
+                     f"panel member with lens={_lens!r} voted {m.get('verdict')} but records no defects[] "
+                     "entry — a dissenting vote with no recorded finding is unauditable and cannot be "
+                     f"adjudicated (I41-2{_arm})")
+
+        if not _i41_adopted:
+            continue                     # T2 clauses below are adoption-armed only (archive-silent)
+
+        _dispos = _i41_rows(_adj, "dispositions") if _adj is not None else []
+
+        # I41-3 [T2] — no unexplained member blocker/major on an aggregate PASS. Deliberately NOT a flat
+        # ban: banning member majors on a PASS reproduces the pathology (severity laundering); the honest
+        # artifact KEEPS the member's severity and records the disposition. `upheld` on a PASS is a FAIL
+        # (an upheld major contradicts the verdict), so it is not in _I41_EXCUSED.
+        if _top == "PASS":
+            for m in _mem:
+                _lens = m.get("lens")
+                for _j, _df in enumerate(_i41_defects(m)):
+                    if _df.get("severity") not in ("blocker", "major"):
+                        continue
+                    if any(x.get("lens") == _lens and x.get("defect_index") == _j
+                           and x.get("disposition") in _I41_EXCUSED
+                           and not _i41_blank(x.get("rationale")) for x in _dispos):
+                        continue
+                    rep.fail(f"{_i41_stem} (unexplained major {uid}/{_lens}#{_j})",
+                             f"panel member lens={_lens!r} records a {_df.get('severity')} defect on "
+                             f"criterion {_df.get('criterion')!r} but the PASS carries no "
+                             "panel_adjudication disposition for it — a mechanical majority may not "
+                             "absorb a member's own blocker/major (I41-3; DAG-L11(c))")
+
+        if _adj is None:
+            continue
+
+        # I41-4a [T2] — adjudication enum + rationale.
+        _res = _adj.get("resolution")
+        if _res not in _I41_RESOLUTIONS:
+            rep.fail(f"{_i41_stem} (bad resolution {uid})",
+                     f"panel_adjudication.resolution={_res!r} is not one of "
+                     f"{list(_I41_RESOLUTIONS)} — an adjudication with no legal resolution disposes of "
+                     "nothing (I41-4a)")
+        if _i41_blank(_adj.get("rationale")):
+            rep.fail(f"{_i41_stem} (no rationale {uid})",
+                     "panel_adjudication carries no non-blank rationale — an unreasoned adjudication is "
+                     "the laundering surface it exists to close (I41-4a)")
+
+        # I41-4b [T2] — dissent_refs[]/dispositions[] must resolve to a real (lens, defect_index).
+        _bylens = {}
+        for m in _mem:
+            _bylens.setdefault(m.get("lens"), m)
+        for _key in ("dissent_refs", "dispositions"):
+            for _r in _i41_rows(_adj, _key):
+                _L, _ix = _r.get("lens"), _r.get("defect_index")
+                _m = _bylens.get(_L)
+                _ok = (_m is not None and isinstance(_ix, int) and not isinstance(_ix, bool)
+                       and 0 <= _ix < len(_i41_defects(_m)))
+                if not _ok:
+                    rep.fail(f"{_i41_stem} (dangling ref {uid}/{_L}#{_ix})",
+                             f"panel_adjudication.{_key} names lens={_L!r} defect_index={_ix!r}, which "
+                             "does not resolve to a panel member's recorded defect — an adjudication may "
+                             "only dispose of findings that exist (I41-4b)")
+
+        _repoll = _i41_rows(_adj, "repoll")
+
+        # I41-4c [T2] — the dissenter may not be re-polled. A lens "cast a dissenting vote" if its FINAL
+        # panel verdict dissents OR the re-poll record's own pre_verdict does; the flip-the-dissenter
+        # pathology lives entirely in pre_verdict, so the final-vote reading alone would never see it.
+        if _res == "repoll":
+            for _r in _repoll:
+                _L = _r.get("lens")
+                _m = _bylens.get(_L)
+                _cast = ((_m is not None and _m.get("verdict") in _I41_DISSENT)
+                         or _r.get("pre_verdict") in _I41_DISSENT)
+                if _cast or _r.get("tested_defect") is True:
+                    rep.fail(f"{_i41_stem} (repoll of dissenter {uid}/{_L})",
+                             f"panel_adjudication re-polls lens={_L!r}, which itself dissented (or had "
+                             "already tested the finding) — only lenses that never tested the disputed "
+                             "defect may be re-polled; re-running the dissenter until it flips is the "
+                             "AO-5 prohibition (I41-4c)")
+
+        # I41-4d [T2] — panel[] records the FINAL vote (pre_verdict preserves the original), and the
+        # discrete majority recomputed over that final list with I16's OWN rule must equal the top verdict.
+        for _r in _repoll:
+            _L, _post = _r.get("lens"), _r.get("post_verdict")
+            _m = _bylens.get(_L)
+            if _m is not None and _m.get("verdict") != _post:
+                rep.fail(f"{_i41_stem} (repoll desync {uid}/{_L})",
+                         f"panel_adjudication records post_verdict={_post!r} for lens={_L!r} but "
+                         f"panel[] records {_m.get('verdict')!r} — panel[] holds the FINAL vote "
+                         "(pre_verdict preserves the original), so the two must agree (I41-4d)")
+        if _repoll:
+            _maj41 = _discrete_majority([m.get("verdict") for m in _mem])
+            if _maj41 != _top:
+                rep.fail(f"{_i41_stem} (post-repoll majority {uid})",
+                         f"the discrete majority recomputed over the FINAL panel verdicts is {_maj41!r} "
+                         f"but the top-level verdict is {_top!r} — a re-poll must be carried through to "
+                         "the aggregate under I16's own majority rule, never left half-applied (I41-4d)")
+
+        # I41-4e [T2] — the re-poll rides verify_rounds (a second loop-until-dry round). I41 introduces NO
+        # new bound: verify_rounds stays policed by I16-(c) at <=3, and at 3 no further re-poll is legal.
+        if _res == "repoll":
+            _vr41 = _as_int(v.get("verify_rounds"))
+            if _vr41 is None or _vr41 < 2:
+                rep.fail(f"{_i41_stem} (repoll unrounded {uid})",
+                         f"panel_adjudication.resolution=repoll but verify_rounds={v.get('verify_rounds')!r} "
+                         "— a re-poll IS a second loop-until-dry round and must be counted against the "
+                         "existing I16-(c) bound of 3 (I41-4e)")
+
+        # I41-5 [T2] — a downgrade must surface at the top level. Coverage-first: a downgrade that leaves
+        # no trace in the canonical defects[] is a deletion wearing a downgrade's label. The mandated echo
+        # is a `minor`, which I6 permits and which I14/AO-2 deliberately does not scope (A2: do_not_touch
+        # intersects blocker|major only — fixture i14_minor_on_sealed).
+        _topdef = [d for d in (v.get("defects") or []) if isinstance(d, dict)]
+        _topminor = {_i41_norm(d.get("criterion")) for d in _topdef if d.get("severity") == "minor"}
+        for _r in _dispos:
+            if _r.get("disposition") != "downgraded-minor":
+                continue
+            _L, _ix = _r.get("lens"), _r.get("defect_index")
+            _m = _bylens.get(_L)
+            if _m is None or not isinstance(_ix, int) or isinstance(_ix, bool):
+                continue                 # dangling ref is I41-4b's clause, not I41-5's
+            _md = _i41_defects(_m)
+            if not (0 <= _ix < len(_md)):
+                continue
+            _crit = _i41_norm(_md[_ix].get("criterion"))
+            if _crit not in _topminor:
+                rep.fail(f"{_i41_stem} (downgrade unechoed {uid}/{_L}#{_ix})",
+                         f"panel_adjudication downgrades a {_md[_ix].get('severity')} on criterion "
+                         f"{_md[_ix].get('criterion')!r} to minor, but no top-level minor defect records "
+                         "it — a downgrade with no coverage-first echo is a silent deletion (I41-5)")
+
+        # I41-6 [T2] — escalation is incompatible with a PASS. It deliberately does NOT demand a
+        # `disagreement` block: the schema enforces `disagreement` present IFF verdict==DISAGREE in BOTH
+        # directions (PR-6/N-06), so demanding a dossier on a FAIL would mandate a schema-INVALID artifact.
+        if _res == "escalated-p7" and _top == "PASS":
+            rep.fail(f"{_i41_stem} (escalate on PASS {uid})",
+                     "panel_adjudication records resolution=escalated-p7 while the top-level verdict is "
+                     "PASS — an escalation and a pass cannot be the same artifact; under I16 escalation "
+                     "requires the FINAL panel to carry a FAIL majority or no strict majority (I41-6)")
+
+        # N-I41 (advisory NOTE, exit-neutral, gated on --quiet) — the rubber-stamp signature (N-I36
+        # precedent). A NOTE never appends to rep.problems, so it is exit-neutral by construction.
+        if _res == "withdrawn" and not _repoll and _dis and not args.quiet:
+            print(f"  NOTE  {_i41_note} (dissent withdrawn without re-poll) (units/{uid}): lens "
+                  f"{sorted(str(m.get('lens')) for m in _dis)} recorded a dissent that was withdrawn with "
+                  "no independent re-poll — the rubber-stamp signature (N-I36 precedent); genuineness "
+                  "stays verifier judgment")
+
+    # I41 success line (adoption-armed + no clause failed) — a zero-adoption run emits NOTHING.
+    if _i41_adopted and len(rep.problems) == _i41_probs0:
+        _i41_n = sum(1 for _u, v in _i41_verifies if _i41_adj(v) is not None)
+        rep.ok(f"{_i41_stem} ({_i41_n} adjudicated dissent(s); accounting + re-poll legality + "
+               "downgrade echo OK)")
+
+    # ---- I42 evidence digest integrity (cross-repo-lessons 1.11.0; U05/U07) ----
+    # invariant-spec.md §3 (R18 / BB-L46: a verifier gets content DIGESTS, not just paths). OFFLINE
+    # post-hoc predicate: a digest of a RUN-DIR-RELATIVE path is recomputable from the run dir alone, so
+    # it clears the "decidable from emitted artifacts alone" bar; out-of-run paths deliberately do NOT and
+    # are an honest NOTE (I42-5), never a FAIL. Gates NO FSM transition, appears on no edge and **NEVER
+    # guards LT7**; writes no `retries`/`fuel`; adds no state/edge/gate => PRESERVES the termination proof
+    # and AO-1..AO-7 and I1..I41, all of them; `formal/` byte-untouched. The schema delta is a WIDENING
+    # (inputs_reviewed items become string|object via oneOf), so no previously-valid artifact becomes
+    # invalid — this is NOT the I25/GV-29 contract-revision class; the closest neighbour is I22's
+    # adoption-closure, whose pattern I42-1b copies. T2 adoption only (armed when ANY inputs_reviewed
+    # element on ANY verdict-bearing verify is an object); measured 964/964 archived inputs_reviewed
+    # elements across 156 archived verify documents are strings, so archives are silent with no version
+    # gate needed. _I42_SHIP gates the CLOSURE arm (I42-1b) alone,
+    # so a half-adopted pre-1.11.0 experiment is a NOTE rather than a FAIL. Limitation Z: a digest proves
+    # the bytes match NOW; it does not prove the verifier ever READ them, and a verifier that fabricates a
+    # digest from the current file passes trivially. I42 detects DRIFT, not READING. Stated, not implied.
+    _I42_SHIP = "1.11.0"
+    _I42_HEX = re.compile(r"^[0-9a-f]{64}$")
+    _i42_stem = LABEL_STEM['i42_digest']
+    _i42_note = LABEL_STEM['note_i42']
+    _i42_probs0 = len(rep.problems)
+    _i42_t1 = _i27_semver_ge(_i41_ver, _I42_SHIP)
+    _i42_rows = []                       # [(uid, index, element)] over verdict-bearing verifies
+    for uid, v in _i41_vb:
+        _ir = v.get("inputs_reviewed")
+        if not isinstance(_ir, list):
+            continue
+        for _ix, _el in enumerate(_ir):
+            _i42_rows.append((uid, _ix, _el))
+    _i42_armed = any(isinstance(_el, dict) for _u, _ix, _el in _i42_rows)
+    _i42_status = {}
+    if isinstance(fsm, dict) and isinstance(fsm.get("units"), list):
+        for _u42 in fsm["units"]:
+            if isinstance(_u42, dict):
+                _i42_status[_u42.get("unit_id")] = _u42.get("status")
+
+    def _i42_relok(p):
+        # run-dir-relative == not absolute AND no `..` segment (the only shape whose bytes the run dir
+        # owns; anything else is I42-5's NOTE, never a FAIL).
+        if not isinstance(p, str) or not p.strip() or p.startswith("/"):
+            return False
+        return ".." not in p.replace("\\", "/").split("/")
+
+    _i42_outofrun = []
+    _i42_digested = 0
+    if _i42_armed:
+        for uid, _ix, _el in _i42_rows:
+            # I42-1b — adoption closure: once armed, EVERY element of EVERY verdict-bearing verify's
+            # inputs_reviewed must be an object (partial adoption is the laundering surface). FAIL at
+            # >=_I42_SHIP; below it an exit-neutral NOTE, so a pre-ship experiment is not punished.
+            if not isinstance(_el, dict):
+                if _i42_t1:
+                    rep.fail(f"{_i42_stem} (mixed shape {uid}#{_ix})",
+                             f"inputs_reviewed[{_ix}]={_el!r} is a bare string while this run has adopted "
+                             "digested evidence objects — partial adoption lets an undigested input ride "
+                             "along unchecked (I42-1b; the I22 adoption-closure pattern)")
+                elif not args.quiet:
+                    print(f"  NOTE  {_i42_note} (partial adoption) (units/{uid}): inputs_reviewed[{_ix}] "
+                          f"is a bare string on a run stamped {_i41_ver!r} (< {_I42_SHIP}) — the closure "
+                          "arm is advisory below the ship version (I42-1b)")
+                continue
+            _p = _el.get("path")
+            # I42-1a — every object element carries a non-blank path.
+            if _i41_blank(_p):
+                rep.fail(f"{_i42_stem} (no path {uid}#{_ix})",
+                         f"inputs_reviewed[{_ix}] is an evidence object with no non-blank `path` — a "
+                         "digest that names nothing cannot be re-checked (I42-1a)")
+                continue
+            _sha = _el.get("sha256")
+            _shaok = None
+            if _sha is not None:
+                # I42-2 — digest well-formedness; a malformed digest is fail-CLOSED, never silently
+                # skipped (a typo'd hash must not read as "no digest recorded").
+                _shaok = isinstance(_sha, str) and bool(_I42_HEX.match(_sha))
+                if not _shaok:
+                    rep.fail(f"{_i42_stem} (malformed digest {uid}/{_p})",
+                             f"inputs_reviewed[{_ix}] records sha256={_sha!r}, which is not 64 lowercase "
+                             "hex characters — a malformed digest is fail-closed, never treated as absent "
+                             "(I42-2)")
+                    continue
+            # I42-5 — an absolute path / a path escaping the run dir is NOT decidable from emitted
+            # artifacts (it may legitimately have changed, or not exist on the validating machine):
+            # an honest exit-neutral NOTE, never a FAIL.
+            if not _i42_relok(_p):
+                _i42_outofrun.append(f"units/{uid}#{_ix}:{_p}")
+                continue
+            _fp42 = os.path.join(rd, _p)
+            # I42-4 — dangling evidence: the verifier cites evidence that is not in the run.
+            if not os.path.isfile(_fp42):
+                rep.fail(f"{_i42_stem} (dangling evidence {uid}/{_p})",
+                         f"inputs_reviewed[{_ix}] cites run-relative path {_p!r}, which does not exist "
+                         "under the run dir — a verifier cannot have adjudicated an artifact the run "
+                         "never emitted (I42-4)")
+                continue
+            if not _shaok:
+                continue
+            # Counted HERE, not at the well-formedness check: `digested` in the success line means "this
+            # digest was actually RE-COMPUTED against run bytes". Incrementing earlier let an out-of-run
+            # element (I42-5, explicitly reported as UNDIGESTABLE) be counted as `integrity OK` in the
+            # same run — the OK line contradicting the NOTE two lines above it.
+            _i42_digested += 1
+            # I42-3 — integrity. Mismatch is a hard FAIL EXCEPT inside the I9 transient window
+            # (:5126-5133 posture, copied verbatim for the same reason: a retry legitimately rewrites
+            # debrief.json under a verify that has not yet been re-written). At every other phase, every
+            # other status, and ALWAYS at P8/DONE, it is a FAIL.
+            try:
+                with open(_fp42, "rb") as _fh42:
+                    _act42 = hashlib.sha256(_fh42.read()).hexdigest()
+            except Exception:
+                _act42 = None
+            if _act42 is None or _act42 == _sha:
+                continue
+            _st42 = _i42_status.get(uid)
+            if phase == "P6_EXECUTE_VERIFY" and _st42 in ("executing", "verifying"):
+                if not args.quiet:
+                    print(f"  NOTE  {_i42_note} (digest drift mid-loop) (units/{uid}): {_p} hashes to "
+                          f"{_act42[:12]}… but the verify records {_sha[:12]}… — an in-flight unit "
+                          f"(fsm status {_st42!r} at P6) may legitimately have rewritten it; not yet a "
+                          "defect (I42-3 transient, the I9 window)")
+            else:
+                rep.fail(f"{_i42_stem} (digest mismatch {uid}/{_p})",
+                         f"verify records sha256={_sha[:12]}… for {_p!r} but the file now hashes to "
+                         f"{_act42[:12]}… — the evidence moved under the verification (BB-L46); a finding "
+                         "adjudicated against a superseded artifact is not a finding (I42-3)")
+
+        if _i42_outofrun and not args.quiet:
+            print(f"  NOTE  {_i42_note} (undigestable evidence): {len(_i42_outofrun)} inputs_reviewed "
+                  f"entry/entries name a path outside the run dir {sorted(_i42_outofrun)} — integrity is "
+                  "not decidable from emitted artifacts alone, so it is recorded, never failed (I42-5)")
+
+    # I42 success line (adoption-armed + no clause failed) — an unadopted run emits NOTHING.
+    if _i42_armed and len(rep.problems) == _i42_probs0:
+        rep.ok(f"{_i42_stem} ({_i42_digested} digested input(s) across "
+               f"{len({u for u, _i, _e in _i42_rows})} verify file(s); integrity OK)")
 
     # I9 MISSING VERIFICATION (MUST-FIX D; status-aware per WP6/B10) — a debrief without a verify is a
     # DEFECT everywhere EXCEPT the one legitimate transient: a unit still IN the correction loop at P6.

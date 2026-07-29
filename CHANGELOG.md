@@ -3,6 +3,36 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.14] — 2026-07-29
+
+### Changed
+- **`dag` plugin → 1.11.0** — **cross-repo lessons intake**. 92 learnings from three independent
+  `.dag/learnings` stores (BubbleBrain 33 · music 49 · dag 10) are distilled into **18
+  orchestrator-conduct rules**, landing as a new lazy-loaded `references/orchestrator-conduct.md`
+  (indexed by binding decision moment, every rule carrying qualified sources and an honest strength
+  tier — exactly one rule is T3 and nine of eighteen rest on a single entry) plus **+33 net lines** of
+  `SKILL.md` hooks: a **continuation contract** (only a human gate or a non-interactive halt-at-gate
+  licenses a stop — a red validator does not), a **RESUME banner** for any unlicensed turn end, and
+  **foreground-dispatch** guidance for wave dispatch. Two new **offline** validator invariants ship with
+  it — **I41** (panel dissent accounting: a `PASS` over a dissenting panel member must carry a
+  `panel_adjudication`, and re-polling the dissenter is forbidden) and **I42** (evidence digest
+  integrity: `inputs_reviewed[]` sha256 digests re-hashed against disk) — both version-gated to
+  `validator_version ≥ 1.11.0`, alongside an offline `scripts/normalize_artifacts.py` shape normalizer
+  and 42 new fixtures (293 → **335**). **TWO REVISES are flagged, not silent**: the **AO-5** doctrine (a
+  bounded intra-panel re-poll becomes a sanctioned pre-escalation path, capped by the existing
+  `verify_rounds ≤ 3`) and the **I16 verify artifact contract** (a `PASS` + dissent + no adjudication was
+  valid, becomes invalid) — the I16 *predicate* is byte-untouched, and both carry migration arguments in
+  `references/formal-models.md`. Neither invariant guards `LT7`, so the correction-loop **termination
+  proof is PRESERVED** and `formal/` is byte-untouched (the pinned TLC/Alloy counts stand without a
+  re-run). See the plugin changelog for the full entry.
+
+### Fixed
+- **`SKILL.md` R-CONFIRM correction.** The Phase-2 DoD/Non-Goals confirmation paragraph called a bulk
+  "confirm all" `AskUserQuestion` page *the happy path*, while `validate_run.py` **hard-FAILs exactly
+  that** above four items under I36's DP-29 anti-stuffing bound — both shipped in the same commit
+  (`91e473e`). The paragraph now prescribes `pages ≥ ceil(n/4)` and names the `(stuffing)` / `(pages)`
+  FAIL labels.
+
 ## [1.0.13] — 2026-07-19
 
 ### Changed

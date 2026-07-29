@@ -206,7 +206,21 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.10.1** — **residual cleanup + Limitation-X hardening**: a new **offline I39-7**
+Current version: **1.11.0** — **cross-repo lessons intake**: 18 orchestrator-conduct rules distilled from
+92 learnings across three independent `.dag/learnings` stores (BubbleBrain, music, dag) land as
+[`references/orchestrator-conduct.md`](skills/dag/references/orchestrator-conduct.md) (lazy-loaded, indexed
+by decision moment) plus ~33 net lines of `SKILL.md` hooks — a **continuation contract** and **RESUME
+banner** for unlicensed turn ends, foreground-dispatch guidance, and a correction to the R-CONFIRM
+paragraph that had called a bulk "confirm all" page the happy path while `validate_run.py` hard-fails
+exactly that. Two new **offline** validator invariants: **I41** (panel dissent accounting — a `PASS` with a
+dissenting panel member must carry a `panel_adjudication`) and **I42** (evidence digest integrity —
+`inputs_reviewed[]` sha256 digests are re-hashed against the files on disk), both version-gated to
+`validator_version ≥ 1.11.0`, plus an offline `scripts/normalize_artifacts.py` shape normalizer. **TWO
+FLAGGED REVISES** (see `references/formal-models.md`): the **AO-5 doctrine** (a bounded intra-node re-poll
+becomes a sanctioned pre-escalation path, capped by the existing `verify_rounds ≤ 3`) and the **I16 verify
+artifact contract** (a `PASS` + dissent + no adjudication was valid, becomes invalid) — the I16
+*predicate* is byte-untouched. Neither new invariant guards `LT7`, so the correction-loop **termination
+proof is PRESERVED** and `formal/` is byte-untouched. **1.10.1** — **residual cleanup + Limitation-X hardening**: a new **offline I39-7**
 optional anchors-baseline mirror cross-check (a present `fsm-state.anchors_baseline_hash` must equal the
 transcript `anchors_baseline.content_hash`) raises the coordinated-rewrite cost to three files
 (Limitation X **narrowed, NOT "Closed"** — git remains the only mutation witness); plus an N-I39

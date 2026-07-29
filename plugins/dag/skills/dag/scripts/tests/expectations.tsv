@@ -297,3 +297,47 @@ gov_scope_change_no_confirm_record	1	I40 anchor (scope_change no confirmation
 gov_autonomous_unconfirmed_ref	1	I40 anchor (autonomous unconfirmed
 gov_revise_fuel_cost	1	I18 fuel bound
 amend_fuel0_revise_unwritable	1	I18 fuel bound
+# --- I41 panel dissent accounting & adjudication (cross-repo-lessons 1.11.0; U05 spec §6) ---
+panel_dissent_unadjudicated	1	I41 panel dissent (unadjudicated
+panel_dissent_version_silent	0	
+panel_dissent_bare	1	bare dissent
+panel_dissent_closure	1	bare dissent
+panel_major_unexplained	1	unexplained major
+panel_adj_badresolution	1	I41 panel dissent (bad resolution
+panel_adj_no_rationale	1	I41 panel dissent (no rationale
+panel_adj_dangling_ref	1	I41-4b
+panel_repoll_dissenter	1	repoll of dissenter
+panel_repoll_tested	1	repoll of dissenter
+panel_repoll_majority_desync	1	I41-4d
+panel_repoll_majority_raw	1	I41-4d
+panel_repoll_rounds	1	I41-4e
+panel_downgrade_unechoed	1	downgrade unechoed
+panel_escalate_on_pass	1	escalate on PASS
+panel_withdrawn_note	0	N-I41 (dissent withdrawn
+panel_dissent_ok	0	
+panel_upheld_on_pass	1	unexplained major
+panel_disposition_blank_rationale	1	unexplained major
+panel_dissent_refs_dangling	1	dangling ref
+panel_repoll_final_dissent	1	repoll of dissenter
+panel_dissent_nonpass_ok	0	
+panel_major_on_nonpass_ok	0	
+panel_withdrawn_flipped	0	
+panel_blocker_unexplained	1	unexplained major
+panel_disposition_wrong_lens	1	unexplained major
+panel_disposition_wrong_index	1	unexplained major
+panel_dissent_blank_criterion	1	bare dissent
+panel_repoll_rounds_one	1	I41-4e
+panel_withdrawn_after_repoll	0	
+panel_unanimous_ok	0	
+# --- I42 evidence digest integrity (cross-repo-lessons 1.11.0; U05 spec §6) ---
+digest_ok	0	2 digested input(s) across 1 verify file(s); integrity OK
+digest_shape_mixed	1	I42 evidence digest (mixed shape
+digest_blank_path	1	I42 evidence digest (no path
+digest_malformed	1	I42 evidence digest (malformed digest
+digest_mismatch	1	digest mismatch
+digest_mismatch_p6_note	0	N-I42 (digest drift mid-loop
+digest_dangling	1	I42 evidence digest (dangling evidence
+digest_outofrun_note	0	N-I42 (undigestable evidence
+digest_shape_mixed_below	0	N-I42 (partial adoption
+digest_mismatch_offphase	1	digest mismatch
+digest_mismatch_p6_terminal	1	digest mismatch

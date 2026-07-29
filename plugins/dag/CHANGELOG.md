@@ -3,6 +3,96 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] — 2026-07-29
+
+**Cross-repo lessons intake** — 92 learnings from three independent `.dag/learnings` stores
+(BubbleBrain 33 · music 49 · dag 10) distilled into 18 orchestrator-conduct rules, plus two new
+**offline** validator invariants. **TWO guarantee changes are FLAGGED as REVISES**, both with migration
+arguments in `references/formal-models.md` — the AO-5 doctrine and the I16 verify **artifact contract**.
+The correction-loop **termination proof is PRESERVED**: neither new invariant guards `LT7`, both are
+post-hoc reads of emitted artifacts, and `formal/` is byte-untouched (the pinned TLC/Alloy counts stand
+without a re-run).
+
+### Added
+- **`references/orchestrator-conduct.md`** — a new lazy-loaded depth file carrying the reasoning behind
+  18 cross-repo orchestrator rules, indexed by the decision moment each one binds. Every rule declares
+  its qualified sources (`BB-`/`MU-`/`DAG-`, since the three stores number independently) and a
+  **strength tier**; the file states plainly that exactly one rule is T3 and that nine of eighteen rest
+  on a single entry, so a reader cites the tier rather than "the learnings say so". Rule id `R2` is left
+  **vacant** (an earlier draft's rule had no corpus source and was retired). Read once at the head of
+  Phase 3; `SKILL.md` carries only a one-or-two-line hook per rule at the moment it binds. Nothing here
+  is a new invariant, state, edge or gate — it is orchestrator conduct at existing decision points.
+- **I41 — panel dissent accounting (OFFLINE).** A `verify.json` with `verdict == PASS` and a dissenting
+  `panel[]` member must carry a `panel_adjudication` recording the dissent, its disposition, and a
+  rationale. **I41-4c FORBIDS re-polling the dissenter** (or any lens that already tested the finding),
+  so re-running to "win" a judgment call is now a hard FAIL where it was previously unconstrained. The
+  presence floors arm only at `validator_version ≥ 1.11.0` (via `_i27_semver_ge` — proper semver, not a
+  lexicographic string compare, which `panel_dissent_version_silent` pins); the shape clauses arm on
+  adoption. Pins a previously-unspecified semantic: `panel[].verdict` holds the **FINAL** vote and
+  `panel_adjudication.repoll[].pre_verdict` preserves the original.
+- **I42 — evidence digest integrity (OFFLINE).** `inputs_reviewed[]` entries may now carry a sha256
+  digest alongside the path; when they do, the validator re-hashes the run-dir-relative file and FAILs on
+  a mismatch. I42-3 downgrades to a NOTE inside exactly the I9 transient window
+  (`phase == P6_EXECUTE_VERIFY` ∧ unit `executing`/`verifying`) and is a hard FAIL everywhere else,
+  always at P8/DONE. The schema delta is a union **WIDENING** (`items` = string | object), so no archived
+  verify becomes invalid — I42 carries **zero** REVISES.
+- **`scripts/normalize_artifacts.py`** — an offline, idempotent, shape-only normalizer for landed
+  `debrief.json` / `verify.json` pairs (key names, container types, enum casing). It gates nothing and is
+  run before `validate_run.sh`, not instead of it. Sourced from `BB-L26`, `DAG-L2`, `MU-L32`: quoting the
+  exact shape in a brief is necessary but not sufficient — subagents drift every wave.
+- **42 new test fixtures** (293 → 335 registry rows), including green controls that pin the OVER-fire
+  direction a negative-only suite cannot see, and paired arms (`digest_mismatch` /
+  `digest_mismatch_p6_note`) where neither alone pins the conjunctive I9 window.
+
+### Changed
+- **`SKILL.md` +33 net lines** (38 added / 5 removed) across eleven hunks, all one-or-two-line hooks at
+  existing decision points:
+  - **Continuation contract** — exactly two conditions license a stop (a human gate, a non-interactive
+    halt-at-gate); a non-zero validator exit is **not** one of them (directive 7 bars *advancing* and is
+    discharged by fix-and-re-run in the same turn). An unchosen boundary is *excused*, not licensed.
+  - **RESUME banner** — a turn that ends unlicensed makes its last output
+    `RESUME: <next action> — <resume point> — <trigger>`. The text says outright that prose cannot hold a
+    turn open and does not pretend to; the durable guarantee is still the run dir.
+  - **Foreground dispatch** — dispatch a wave with `run_in_background: false` whenever you need its
+    results before continuing (for a dag wave, always); a background dispatch ends your turn there.
+  - Hooks for R1/R3/R4/R5/R6/R7/R8/R9/R10 at their binding moments, and the Phase-3 read-once pointer.
+- **Correction to the R-CONFIRM paragraph (`SKILL.md:384`).** The Phase-2 DoD/Non-Goals confirmation
+  round described a bulk "confirm all" page as *the happy path* — while `validate_run.py` **hard-FAILs
+  exactly that** above four items, under I36's DP-29 anti-stuffing bound. Both were shipped in the same
+  commit (`91e473e`), so the always-read instruction file has been telling the orchestrator to do the one
+  thing the validator rejects. The paragraph now says to plan `pages ≥ ceil(n/4)` from the start and
+  names the `(stuffing)` / `(pages)` FAIL labels to grep for.
+
+### Guarantee classification — TWO REVISES, flagged, not silent
+- **AO-5 bounded intra-node re-poll — REVISES (doctrine, narrow); termination PRESERVES.** AO-5's prose
+  says an objective-irresolvable split is `DISAGREE → ESCALATE`, "never an unbounded retry". I41 sanctions
+  a **bounded intra-panel re-poll** before escalation, which that prose did not contemplate. Migration:
+  the re-poll is capped by the **existing** `verify_rounds ≤ 3` bound (I16-(c), byte-untouched) — no new
+  counter, no new fuel, no new edge; I41-4c forbids re-polling the dissenter, so the specific behavior
+  AO-5 prohibits is now a hard FAIL; the escalation arm stays mandatory when no majority emerges; and
+  AO-5's own subject (the *aggregate* executor↔verifier split) is untouched — I41 governs *intra-panel*
+  dissent. Net effect is a **narrowing**.
+- **I16 verify ARTIFACT CONTRACT — REVISES (I25/GV-29 class); the I16 predicate PRESERVES
+  (byte-untouched).** A `verify.json` recording `PASS` with a dissenting panel member and no
+  `panel_adjudication` was **VALID** and becomes **INVALID**. Filed as a contract revision rather than
+  smuggled in as a PRESERVES. Migration: version-gated to `≥ 1.11.0`; measured — the only archived
+  dissent-on-PASS verifies live in a run stamped `1.9.0`, so **no archived run newly flags**; every schema
+  delta is OPTIONAL, so no archived verify becomes schema-invalid; `templates/verify.md` scaffolds the
+  block, so compliance is the default path; and the revision is strictly narrowing — no previously-FAILING
+  artifact becomes legal. I16's majority test, lens-trio test, persona-independence test and
+  `verify_rounds` bound are unchanged, and I41-4d *re-uses* `_discrete_majority` rather than replacing it.
+
+### Verification
+- `run_tests.sh`: **335 passed / 0 failed on each of two schema backends** (jsonschema
+  `Draft202012Validator`, and the stdlib-only minimal validator under `DAG_FORCE_MINI=1`); 6/0 negative
+  fixtures. `spec_check.py`: **PASS 7 · NOTE 1 · FAIL 0**, exit 0.
+- `validate_run.py` is **two pure-insertion hunks, +402 / -0** — confirmed by reconstructing the file
+  minus the new hunks and getting a **byte-identical** match to `HEAD`, so every I1–I40 predicate is
+  physically unmoved.
+- A 61-arm predicate-ablation harness (each arm neutralizing exactly one conjunct/disjunct/branch/constant,
+  asserted unique in the source, re-running the full 335-row matrix per arm): **unpinned = 0**, baseline
+  clean.
+
 ## [1.10.1] — 2026-07-19
 
 **Residual cleanup + Limitation-X hardening** — a follow-up to 1.10.0's socratic-guardrail landing.

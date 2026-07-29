@@ -1567,6 +1567,90 @@
         "references/state-machine.md#4",
         "socratic-guardrail-plan spec/governance.md"
       ]
+    },
+    {
+      "id": "I41",
+      "tier": "mechanical",
+      "title": "Panel dissent accounting & adjudication — a mechanical majority may not launder a member's own blocker/major (DAG-L11(c) / R15 kernel). I41-1 dissent on an aggregate PASS requires a panel_adjudication record (T1, version-gated >=1.11.0); I41-2 a dissenting vote must be substantiated (version floor + adoption closure); I41-3 no unexplained member blocker/major on a PASS (a disposition, deliberately NOT a flat ban); I41-4a-e adjudication enum+rationale, refs resolve, THE DISSENTER MAY NOT BE RE-POLLED, post-re-poll majority recomputed with I16's own rule, the re-poll rides the EXISTING verify_rounds<=3; I41-5 a downgrade must echo as a top-level minor (coverage-first); I41-6 escalated-p7 is incompatible with a PASS. REVISES the AO-5 doctrine (a bounded intra-node re-poll becomes a sanctioned pre-escalation path) and the I16 verify ARTIFACT CONTRACT (PASS + dissent + no adjudication was valid, becomes invalid) — both with migration arguments; I16's own predicate is byte-untouched. Offline post-hoc, adds no FSM state/edge/gate, NEVER guards LT7 => PRESERVES the termination proof. Limitation Y.",
+      "validator_label_prefixes": [
+        "I41 panel dissent",
+        "N-I41"
+      ],
+      "fixtures": [
+        "panel_dissent_unadjudicated",
+        "panel_dissent_version_silent",
+        "panel_dissent_bare",
+        "panel_dissent_closure",
+        "panel_major_unexplained",
+        "panel_adj_badresolution",
+        "panel_adj_no_rationale",
+        "panel_adj_dangling_ref",
+        "panel_repoll_dissenter",
+        "panel_repoll_tested",
+        "panel_repoll_majority_desync",
+        "panel_repoll_majority_raw",
+        "panel_repoll_rounds",
+        "panel_downgrade_unechoed",
+        "panel_escalate_on_pass",
+        "panel_withdrawn_note",
+        "panel_dissent_ok",
+        "panel_upheld_on_pass",
+        "panel_disposition_blank_rationale",
+        "panel_disposition_wrong_lens",
+        "panel_disposition_wrong_index",
+        "panel_blocker_unexplained",
+        "panel_dissent_blank_criterion",
+        "panel_dissent_refs_dangling",
+        "panel_repoll_final_dissent",
+        "panel_repoll_rounds_one",
+        "panel_dissent_nonpass_ok",
+        "panel_major_on_nonpass_ok",
+        "panel_unanimous_ok",
+        "panel_withdrawn_flipped",
+        "panel_withdrawn_after_repoll"
+      ],
+      "provenance": [
+        "cross-repo-lessons-intake",
+        "U05",
+        "U07"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "references/formal-models.md",
+        "cross-repo-lessons-intake artifacts/invariant-spec.md §2"
+      ]
+    },
+    {
+      "id": "I42",
+      "tier": "mechanical",
+      "title": "Evidence digest integrity (R18 / BB-L46) — a verifier's inputs_reviewed may carry content DIGESTS, not just paths. I42-1a every evidence object carries a non-blank path; I42-1b adoption closure (mixed string/object in an armed run FAILs at >=1.11.0, NOTE below it); I42-2 a present sha256 must be 64 lowercase hex, fail-CLOSED; I42-3 recomputed digest must match, EXCEPT the I9 status-aware transient (P6 + executing/verifying => NOTE), hard FAIL everywhere else and ALWAYS at P8/DONE; I42-4 a dangling run-relative path FAILs; I42-5 out-of-run paths are an exit-neutral NOTE, never a FAIL (not decidable from emitted artifacts). Schema delta is a union WIDENING, so no previously-valid artifact becomes invalid — NOT the I25/GV-29 contract-revision class. Offline post-hoc, T2 adoption-armed (0/156 archived verifies adopt; all 964 archived inputs_reviewed elements are strings), NEVER guards LT7 => PRESERVES the termination proof, AO-1..7 and I1..I41. Limitation Z: I42 detects DRIFT, not READING.",
+      "validator_label_prefixes": [
+        "I42 evidence digest",
+        "N-I42"
+      ],
+      "fixtures": [
+        "digest_ok",
+        "digest_shape_mixed",
+        "digest_blank_path",
+        "digest_malformed",
+        "digest_mismatch",
+        "digest_mismatch_p6_note",
+        "digest_dangling",
+        "digest_outofrun_note",
+        "digest_shape_mixed_below",
+        "digest_mismatch_offphase",
+        "digest_mismatch_p6_terminal"
+      ],
+      "provenance": [
+        "cross-repo-lessons-intake",
+        "U05",
+        "U07"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "references/formal-models.md",
+        "cross-repo-lessons-intake artifacts/invariant-spec.md §3"
+      ]
     }
   ]
 }

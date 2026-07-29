@@ -470,6 +470,9 @@ action or variable.
 | **GV-25** — I19 `add_units` autonomy narrowed to human-confirmed DoD items | **REVISES** (strengthening) | — | **Models untouched — I19 autonomy is a validator predicate; the model's `Amend` is origin-agnostic (autonomous-vs-gated abstracted); a human wait adds no TLA action.** Migration: strict narrowing (`autonomous ⇔ verbatim-member ∧ human_confirmed(x)`) — every previously-gated case stays gated, **no guarantee weakens**; no new state/edge (P4/P6 tables unchanged). |
 | **GV-31** — `SKILL.md` P4 conditional touchpoint | **REVISES** (doctrine) / three-gates **PRESERVES** | — | **Models untouched — P4 is a linear `Complete(P4)` phase; a node-internal conditional `AskUserQuestion` adds no action / variable / edge (the PR1 "no new TLA action" precedent); `GateOrdering` unaffected, no gate bypassed.** Migration: revises only the `SKILL.md` P4 "never opens a new prompt here" doctrine (enumeration-level); the three-human-gates `REQUIRED_GATES` set is immutable (no P4→P2 edge exists); conditional (most runs have no P4 DoD gap); the fuel question stays forbidden at P4. |
 | **AF-41** — "the stamp gates nothing" §5 doc-drift | **PRESERVES** (documentation repair) | — | **Models untouched — documentation.** No guarantee changes: the imprecise sentence was **already** contradicted by the already-shipped I27-T1 presence arm (depth-1.9.0), independent of this landing; correcting the prose to match shipped behavior revises no guarantee. (Authoritatively PRESERVES — not double-classified from the "GV-31 / AF-41" §5 shorthand.) |
+| **AO-5 bounded intra-node re-poll** (I41, 1.11.0) | **REVISES** (doctrine, narrow) / termination **PRESERVES** | — | **Models untouched — AO-5 is `self-learning-loops.md` prose doctrine, not a TLA+/Alloy property.** AO-5 reads: an objective-irresolvable executor↔verifier split is `DISAGREE → ESCALATE`, "never an unbounded retry… The loop never tries to 'win' a judgment call by re-running." I41 sanctions a **bounded intra-node re-poll** *before* escalation, which AO-5's prose did not contemplate. **Migration argument:** (i) the re-poll is capped by the **EXISTING** `verify_rounds ≤ 3` bound (I16-(c), byte-untouched) — no new counter, no new fuel, no new edge, finiteness unchanged; (ii) **I41-4c FORBIDS re-polling the dissenter** (or any lens that had already tested the finding), so the specific behavior AO-5 prohibits — re-running to win — is now a hard FAIL where it was previously unconstrained; (iii) the escalation arm stays mandatory whenever the re-poll fails to produce a majority (I41-4d recompute + I16); (iv) AO-5's own subject, the *executor↔verifier* split at the AGGREGATE level, is untouched — I41 governs *intra-panel* dissent, which AO-5 never addressed. Net effect is a **narrowing**: cases previously resolvable by silence now require either a recorded, rule-bound re-poll or an escalation. |
+| **I16 verify ARTIFACT CONTRACT** (I41, 1.11.0) | **REVISES** (artifact contract; I25/GV-29 class) / I16 predicate **PRESERVES (byte-untouched)** | — | **Models untouched — the verify artifact contract is a schema/validator-layer contract, not a temporal property.** I16's majority test, lens-trio test, persona-independence test and `verify_rounds` bound are **unchanged**, and I41-4d *re-uses* `_discrete_majority` rather than replacing it. **But** a `verify.json` recording `PASS` with a dissenting `panel[]` member and no `panel_adjudication` was previously **VALID** and becomes **INVALID**. Filed as a contract revision, not smuggled in as a PRESERVES. **Migration argument:** (i) **version-gated** — the presence floors (I41-1/-2a) arm only at `validator_version ≥ 1.11.0` via `_i27_semver_ge`; an absent/older stamp parses to `None`/lower ⇒ `False`. Measured: the only archived dissent-on-PASS verifies live in a run stamped `1.9.0`, so **no archive newly flags** (fixture `panel_dissent_version_silent` pins the semver-vs-lexicographic distinction, since `"1.9.0" >= "1.11.0"` is TRUE on a raw string compare). (ii) **New runs only**; archived offenders read as state-machine.md §5 version-skew and are never backfilled or edited. (iii) `templates/verify.md` scaffolds the block, so compliance is the default path. (iv) Every schema delta is **OPTIONAL** — no archived verify becomes schema-invalid. (v) The revision is **strictly narrowing**: no previously-FAILING artifact becomes legal. It also pins a previously-unspecified semantic — `panel[].verdict` holds the **FINAL** vote, `panel_adjudication.repoll[].pre_verdict` preserves the original. |
+| **I42 evidence digest integrity** (1.11.0) | **PRESERVES** (all of it) | — | **Models untouched.** I42 is an offline post-hoc read + re-hash of files already on disk: it writes no `retries`/`fuel`, adds no state, edge, gate or back-edge, appears on no `L*` action and **never guards `LT7`**, so Claims A–D, `GateOrdering`, `Termination` and `Quiesce` hold verbatim and `formal/` is byte-untouched. AO-1..AO-7 are untouched — I42 has no retry, panel or verdict semantics; it reads a path list, and a digest records *what* was read, never *whose reasoning* (AO-7 in particular). I1..I41: the schema change is a union **WIDENING** (`inputs_reviewed.items` = string | object), so **no previously-valid artifact becomes invalid** — deliberately **NOT** the I25/GV-29 contract-revision class; the closest neighbour is I22's adoption-closure, whose pattern I42-1b copies. |
 
 > **AF-40 (I8 clean-exit relaxation) — DECLINED, not shipped.** The considered relaxation of I8
 > (`i8_open`) to a quieter clean-exit disposition was **declined**: I8 is kept LOUD and its predicate is
@@ -497,6 +500,37 @@ pinned counts stand). It **NARROWS** Limitation X — the coordinated-rewrite co
 files to three — but does **NOT "Close"** it (git history remains the only mutation witness, unread).
 Fixtures: `gov_baseline_mirror_ok` (present+matching ⇒ PASS) / `gov_baseline_mirror_mismatch`
 (present+mismatched ⇒ FAIL) / absent ⇒ silent (every other fixture).
+
+**1.11.0 addendum — I41 (panel dissent accounting) + I42 (evidence digest integrity).** Both are OFFLINE
+post-hoc predicates of the same class as every I35–I40 clause above: they read emitted artifacts
+(`units/<uid>/verify.json` RAW, plus a re-hash of run-dir-relative files for I42), emit only `rep.fail` /
+`rep.ok` / `print("  NOTE …")`, write no `retries` and no `fuel`, add no FSM state, edge, back-edge or gate
+flag, appear on **no** `L*` action, and **never guard `LT7`** (the correction loop's sole back-edge — a
+live guard there leaves `RETRY` with no enabled out-edge and deadlocks, breaking Property 2 Claim D). So
+`GateOrdering`, `Termination` and `Quiesce` **hold verbatim**, `formal/` stays **byte-untouched**, and the
+pinned counts (853/408/36; 2,923/1,608/156; Alloy 8/8) stand **without** a `run_formal.sh` re-run.
+
+**The classification is NOT "zero REVISES."** I41 carries **two**, both in the table above with migration
+arguments: the **AO-5 doctrine** (a bounded intra-node re-poll becomes a sanctioned pre-escalation path)
+and the **I16 verify artifact contract** (a `PASS` + dissent + no `panel_adjudication` document was valid
+and becomes invalid). Calling I41 wholly PRESERVES because "it is offline and gates no transition" would be
+true **only of the termination proof** — the self-misfiling that `DAG-L4` predicts for exactly this kind of
+unit. I42, by contrast, genuinely carries **zero** REVISES: its schema delta is a union widening.
+
+**Corner composition re-derived against SOURCE (DAG-L8), not against headlines.** `verify_rounds == 3`
+(I16-(c) `R_MAX`, at `validate_run.py`): **no further re-poll is legal** — the legal moves are `withdrawn`
+(+ the `N-I41` NOTE) or recording the honest FAIL majority; I41 adds **no** round budget. `retries == 2`
+(I4 `maximum:2`; AO-1 monotone counter): FAIL→RETRY is unavailable and the sanctioned move is ESCALATE —
+I41 neither creates that situation nor blocks any edge, and the orchestrator retains every out-edge
+including `LT7`. `fuel_remaining == 0` (I18): **no interaction whatsoever** — I41/I42 mandate no amendment
+record, no `units_added` and no fuel spend, so their outcome is identical at `fuel == 0` and `fuel > 0`
+(contrast I40-2, which had to delegate to I18). A downgraded major echoed as a `minor` on a sealed
+criterion: **NOTE at most, never a FAIL** — I14/AO-2 intersects `do_not_touch` with `blocker|major` only
+(A2 severity scoping, `self-learning-loops.md` §5; fixture `i14_minor_on_sealed`), and I6 permits `minor`
+on a PASS, so I41-5's mandated echo cannot trip either. A retry that rewrites `debrief.json` under a
+not-yet-rewritten verify: I42-3 downgrades to a NOTE in **exactly** the I9 transient window
+(`phase == P6_EXECUTE_VERIFY` ∧ unit `executing`/`verifying`) and is a hard FAIL everywhere else, always at
+P8/DONE — the pair `digest_mismatch` / `digest_mismatch_p6_note` pins both arms; **neither alone does.**
 
 ---
 

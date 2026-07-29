@@ -94,6 +94,21 @@ so most are dead weight until their phase arrives.
    human attestations — no human touchpoint sits at cartography or decomposition.) **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
    unavailable, substitute a plain numbered question in your reply for the gate, and track unit state in
    `PROGRESS.md` instead of the task tools — the gates and the ledger are what matter, not the tool.
+   **Continuation contract (U01).** Exactly two conditions license a stop: a human gate and a
+   non-interactive halt-at-gate (both above) — each leaves a question open and addressed to the human,
+   so it is self-legible. A non-zero validator exit is **not** one of them: directive 7 bars
+   *advancing* (phase / gate) and is discharged by fix-and-re-run in the SAME turn, so a turn that dies
+   on a red validator is an unlicensed stop like any other. Ending a turn anywhere else — mid-phase,
+   between waves, after a dispatch, "to check in" — is a **defect**, not a courtesy: no gate is open,
+   so nothing is waiting on the human and no event is scheduled to resume the run. A boundary you did
+   not choose (an interrupt, a truncation) is **excused** — not licensed, not a defect — but owes the
+   same banner best-effort; a background dispatch IS your choice (Phase 6 dispatches a wave in the
+   foreground), so it is a discretionary stop, not an excused one.
+   **Resume banner (U01).** Prose cannot hold a turn open, so this rule does not pretend to — it makes
+   stopping *legible* instead. Whenever a turn ends unlicensed — excused or defect, a red validator
+   included — its LAST output is `RESUME: <exact next action> — <resume point: phase / wave / pending
+   unit ids> — <what triggers it>`. The banner does not prevent the stop; the durable guarantee is
+   still the run dir (`## Failure & resumption`), which survives turns that end with no banner at all.
 6. **Learn within the run.** Capture generalizable lessons in LEARNINGS.md and inject
    them into later briefs. Cap retries; never loop forever.
 7. **Validate mechanically at every step.** Most artifacts are written as free-form prose
@@ -123,6 +138,8 @@ so most are dead weight until their phase arrives.
    (The validator cooperates: **I9 is status-aware (B10)** — a debrief with no verify emits a NOTE,
    not a FAIL, when `phase == P6_EXECUTE_VERIFY` and the unit's `fsm-state.units[]` status is
    `executing`/`verifying`; everywhere else, and always at P8/DONE, it stays a hard FAIL.)
+   **Normalize the pair BEFORE you validate it (`BB-L26`, `DAG-L2`, `MU-L32`).** Quoting the exact shape in a brief is necessary, not sufficient — subagents still drift on key names, container types and enum casing, every wave. Run
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/normalize_artifacts.py" <RUN_DIR> --write` on each landed pair first: shape-only, offline, idempotent, and it gates nothing.
 
 ---
 
@@ -380,9 +397,11 @@ the gates that already exist). The series has three round kinds:
 - **negative-scope round (R-FORBID)** — the unconditional forbid round that solicits Non-Goals at
   EVERY P2 (a fixed ritual for this one surface — see the DP-39 REVISES note in step 4).
 - **DoD/Non-Goals confirmation round (R-CONFIRM)** — item-by-item confirmation of the final
-  `definition_of_done` / `non_goals` lists (each item presented, ≤4 per `AskUserQuestion` page; a
-  bulk "confirm all" page is the happy path). An item the human just authored in R-FORBID is
-  auto-settled and never re-presented.
+  `definition_of_done` / `non_goals` lists (each item presented, ≤4 per `AskUserQuestion` page — plan
+  `pages ≥ ceil(n/4)` pages from the start, n = the DISTINCT items you present in this round; a bulk
+  "confirm all" page is not the happy path, and above 4 items it hard-FAILs I36's DP-29 anti-stuffing
+  bound — grep `validate_run.py` for the `(stuffing)` / `(pages)` FAIL labels, :4104-4117 today). An
+  item the human just authored in R-FORBID is auto-settled and never re-presented.
 
 **Anti-drift.** A round's page queue is FROZEN at round open — questions/items discovered
 mid-round are recorded and DEFERRED to the NEXT round, never appended live, so scope cannot
@@ -409,6 +428,7 @@ any I27 NOTEs — so the sweep's review surface is the gate the human is already
 unprompted file read. Trigger clarifying questions on a *detected ambiguity
 signal*, not as a fixed ritual (references/socratic-protocol.md). Run the validator before
 opening the gate; a non-zero exit (including a missing/empty `I-dod`) is a hard stop.
+**No count in a gate message without its counting rule (`BB-L44`):** every tally or exhaustive-sounding number here carries the command/predicate that produced it, so the human can falsify it instead of trusting it.
 
 ---
 
@@ -418,6 +438,7 @@ Map the terrain the task lives in — **contextually, not mechanically.** A file
 is not cartography. Capture *meaning and relationships*: what exists, what matters here
 and why, how the pieces relate, where the risks/unknowns/authorities are, and what
 resources or sources are ground-truth. (methodology.md §Cartography.)
+**Read once, here:** [references/orchestrator-conduct.md](references/orchestrator-conduct.md) — cross-repo orchestrator conduct binding Phases 3→8, indexed by decision moment; **§1 binds now**.
 
 **Source sweep (first cartography product — runs BEFORE the cartography-informed clarification
 round, which reads it).** Enumerate the task's source landscape into `RUN_DIR/SOURCES.md` +
@@ -467,7 +488,8 @@ file listing.
    shard locator), not by pulling it into context. The tightest test of atomicity: *can an
    independent verifier reach PASS/FAIL from this unit's brief + artifacts alone, within 32K, without
    running the rest of the task?* If not — too big, or its evidence isn't reproducible — **split it**
-   (smaller units need less model IQ per unit and verify better; PR2).
+   (smaller units need less model IQ per unit and verify better; PR2). Budget by **evidence-production
+   obligation, not reading load** (`BB-L32`): a unit that must MEASURE something *and* WRITE a deliverable from it is two units.
 2. For each unit record: `id`, title, goal, **inputs** (which prior debriefs/artifacts),
    outputs, **acceptance criteria** — each of which **MUST trace to a Definition-of-Done
    item** (a unit whose criteria map to no DoD item is either scope creep or a DoD gap — fix
@@ -496,6 +518,7 @@ file listing.
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
    atomization, any unit whose footprint would exceed budget (→ re-atomize), **that every
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
+   Coverage is **clause-granular, not item-granular**: every CLAUSE of a multi-clause DoD item needs its own covering unit (`MU-L9`).
 5. Write `GRAPH.md` (template) **and its authoritative `graph.json` sidecar** — the moment `GRAPH.md`
    exists the validator REQUIRES a schema-valid `graph.json` and treats it as the authoritative DAG
    (I3 fail-closed; U7 — the sidecar instruction, previously only in `templates/graph.md`), so write
@@ -558,7 +581,8 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
 - the **persona** to adopt and its mandate;
 - the minimal **context**: pointers (file paths) to the specific prior debriefs,
   cartography sections, decisions, and relevant LEARNINGS — quote only the few
-  load-bearing facts inline;
+  load-bearing facts inline; a pointer into a file too large to read whole MUST carry a line range or
+  section anchor (`DAG-L5`), and an unmeasured mechanism ships as an assumption to falsify, never as one of the brief's premises (`BB-L40`);
 - the **retrieval obligations**: `required_sources[]` (register S-ids with INLINE locators —
   the executor never opens `sources.json`) and `claims_owed[]`, derived by YOU the orchestrator
   — never the executor — from the unit's acceptance criteria + the SOURCES register per the
@@ -588,6 +612,11 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
 
 Process waves in topological order. Units in the same wave run in parallel (one Agent
 call per unit, ideally in a single message). For **each unit**:
+
+*(Wave-level, before you dispatch — then the per-unit steps below.)* Dispatch in the **FOREGROUND**
+(`run_in_background: false`) whenever you need the wave's results before continuing — for a dag wave,
+always; a background dispatch ends your turn there (U01). **Same-wave units own DISJOINT files; never
+run an evidence-reproducing verifier concurrent with an executor mutating what it reads; dispatch no repair while that unit's verification is in flight** (`MU-L25`, `MU-L40`; orchestrator-conduct.md §4).
 
 1. **Execute.** Spawn the executor subagent (Agent tool). Prompt, tightly:
    > *Adopt persona `<X>`. Read `RUN_DIR/units/<id>/brief.md` and only the files it
@@ -862,6 +891,8 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    for `DONE`, so a run at phase `DONE` without the flag is INVALID (non-zero exit) — do not flip the
    flag or advance to `DONE` until the human has actually accepted (the flag is your attestation that
    they did).
+   **A unit that did not RUN leaves its DoD items UNDISCHARGED (`BB-L34`).** Name each such item, and
+   the skipped/blocked/unrun unit that owed it, in this message — a mostly-green run is not whole-task confirmation.
 4. **Promote durable LEARNINGS → persist (03/P2 write end).** Close the promotion loop that the
    Phase-0.5 intake re-reads: for every run-local entry marked `promotable: true` with a non-expired
    `scope.expiry`, write a schema-valid file into the project store `.dag/learnings/<id>.json` (upsert
@@ -872,6 +903,8 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    advisory only: it surfaces each `promotable` entry as a NON-gating `NOTE  G3 promotion (advisory)`
    line, flagging it as eligible for HUMAN promotion to a user-local `~/.claude/dag/principles.md` (or
    project `CLAUDE.md` / a skill) — never auto-written, never gated.
+   **Promotion is write AND land (`BB-L33`).** An uncommitted store write is local to THIS tree: after
+   writing, run `git status --porcelain .dag/learnings/` and report every untracked/modified entry as **UNLANDED** at sign-off — written is not promoted until it is committed.
 
 ---
 

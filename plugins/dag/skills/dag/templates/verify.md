@@ -54,6 +54,32 @@ Phase-7 human gate, AO-5), not an invented middle verdict. `validate_run.py` **I
 post-hoc: high-stakes ⇒ `panel[]` present (≥3, trio covered) and `verdict == discrete majority`.
 (Routine units may use a single verifier and omit `panel[]`.)
 
+### Panel dissent — record the finding, then adjudicate it (I41)
+Because the top verdict IS the discrete majority, a 2-1 panel **forces** the PASS, and I6 lets a PASS
+carry only `minor`. So a dissenting lens' major finding has nowhere honest to go unless you record it:
+- Put the member's own findings in **`panel[].defects[]`** at their **HONEST** severity (same shape as
+  the top-level `defects`). I6 is scoped to the TOP-LEVEL list, so this is not an I6 violation.
+- On a `PASS` with a dissenting member, record **`panel_adjudication`**:
+  `{resolution: repoll|withdrawn|escalated-p7, rationale, dissent_refs[], dispositions[], repoll[],
+  transcript_ref?}`. Every member `blocker`/`major` on a PASS needs a `dispositions[]` entry
+  (`downgraded-minor` | `withdrawn` | `overruled-by-repoll`) with a real rationale.
+- **You may NOT re-poll the dissenter**, nor any lens that had already tested the disputed finding
+  (`tested_defect: true`) — re-running the dissenter until it flips is the AO-5 prohibition. Re-poll
+  only lenses that never tested it; `panel[]` then holds the **FINAL** votes (`pre_verdict` preserves
+  the original), and a re-poll counts as a second `verify_rounds` (still ≤ 3 — there is no extra
+  budget; at 3, `withdrawn` or the honest FAIL majority are the only moves left).
+- A `downgraded-minor` disposition MUST also appear as a top-level `minor` defect with the same
+  criterion — a downgrade with no coverage-first echo is a deletion wearing a downgrade's label.
+- `escalated-p7` cannot sit on a `PASS`. A withdrawal with no re-poll draws an advisory `N-I41` NOTE.
+
+### Evidence digests in `inputs_reviewed` (I42)
+An `inputs_reviewed` element may stay a bare path string **or** become
+`{path, sha256?, bytes?}`. If you digest one, digest them **all** on that run (adoption closure), use
+a run-dir-relative `path` that actually exists, and record a real 64-hex `sha256` — the validator
+re-hashes it and FAILs when the evidence moved under the verification. Out-of-run/absolute paths are
+recorded as a NOTE, never failed. A digest proves the bytes did not drift; it does not prove you read
+them.
+
 ## Retrieval-coverage block (`retrieval_coverage` — emit it whenever the unit's brief carries `claims_owed`/`required_sources`; adoption-closure per I30)
 
 The verifier's RE-DERIVED comparison of debrief evidence AGAINST the brief's obligations —
@@ -108,7 +134,9 @@ the per-unit `retrieval_coverage`/`guardrail_compliance` blocks above).
 - `socratic{premise, counter, pivot, confidence}` — the verifier's own 4-key block on its verdict
 - `premise_check{executor_premise_quoted, is_load_bearing, counter_reran_independently, outcome}`
 
-**Optional keys:** `inputs_reviewed[]` (e.g. `["brief.md","debrief.json","<artifact paths>"]`),
+**Optional keys:** `inputs_reviewed[]` (e.g. `["brief.md","debrief.json","<artifact paths>"]`, or the
+digested form `[{"path":"units/U01/debrief.json","sha256":"<64-hex>","bytes":1234}]` — I42),
+`panel[].defects[]` + `panel_adjudication` (panel dissent accounting — I41),
 `audit_notes` (free-form: the criteria-check / evidence-audit / hallucination-sweep narrative),
 `panel[]` (`{lens ∈ correctness|reproduce|guardrail, verdict, verifier_persona?, summary?}` —
 **required on `high-stakes` units**, I16), `verify_rounds` (1–3, loop-until-dry), `converged` (bool),
