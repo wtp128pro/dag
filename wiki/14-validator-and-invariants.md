@@ -2,7 +2,7 @@
 
 **Audience:** technical readers who want to know *exactly* what the runtime enforcement layer
 mechanically guarantees — and, just as important, what it deliberately does **not**. Every claim
-here carries a `path:line` locator into the 1.10.1 tree that a verifier can open; the wiki's own
+here carries a `path:line` locator into the 1.11.0 tree that a verifier can open; the wiki's own
 rule is that an unresolved locator is a defect.
 
 **TL;DR.** `scripts/validate_run.py` is `dag`'s **external correctness signal** — the one part of
@@ -141,7 +141,7 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I40 + I1b/I1c/I1d/I3b/I3c + I-dod
+## 4. The invariant catalog — I1..I42 + I1b/I1c/I1d/I3b/I3c + I-dod
 
 The primary table (§4 below) is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
 (`:187-211`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
@@ -376,7 +376,62 @@ hand-edit and even a same-file coordinated rewrite are caught, but a rewrite tha
 baseline + its hash across two/three run-dir files is not — I39-7 raises that cost to three files but
 **narrows, never "Closes"** it: git history remains the only mutation witness, and nothing mechanically
 reads it). The backstop is the same one that carries every A–T residual: the independent adversarial
-verifier and the human who lives the dialogue at the gate.
+verifier and the human who lives the dialogue at the gate. (1.11.0 adds **Y–Z**; see §4.5.)
+
+---
+
+### 4.5 Cross-repo-lessons enforcement (1.11.0, I41–I42)
+
+The 1.11.0 release closes a hole that **two existing invariants created together**. **I16** forces
+`top_verdict == the DISCRETE panel majority`, so on a `[PASS, PASS, FAIL]` panel the only legal top
+verdict is `PASS`; **I6** then permits a `PASS` to carry only `minor` defects. So a dissenting lens'
+`major` finding had nowhere honest to live — downgrade it, drop it, or bury it in prose, and every one of
+those was invisible to every shipped predicate.
+
+- **I41 — panel dissent accounting & adjudication.** A `verify.json` with `verdict == PASS` and ≥1
+  `panel[]` member voting `FAIL`/`DISAGREE` must carry a **`panel_adjudication`** record; a dissenting
+  member must **substantiate** its vote (a `FAIL` member names a criterion; a `DISAGREE` member records a
+  non-blank `summary` or a `minimal_repro` — never a criterion, because **AO-3** makes `DISAGREE` the
+  mandated route for a critique that cannot name one); every member `blocker`/`major` on a `PASS` must be
+  named by a disposition with a real rationale; **the dissenter may NOT be re-polled** (nor any lens that
+  already tested the finding) — re-running the dissenter until it flips is the AO-5 prohibition; a
+  `downgraded-minor` disposition must echo as a top-level `minor` (coverage-first — a downgrade with no
+  echo is a deletion wearing a downgrade's label); `escalated-p7` cannot sit on a `PASS`. The presence
+  floors arm only at `validator_version ≥ 1.11.0` (proper semver via `_i27_semver_ge`, not a lexicographic
+  compare — the fixture `panel_dissent_version_silent` pins that, since `"1.9.0" >= "1.11.0"` is *true* on
+  a raw string compare); the shape clauses arm on adoption. Measured **0 of 156** archived verifies carry
+  `panel_adjudication` or member `defects`, so archives are silent in both arms.
+- **I42 — evidence digest integrity.** An `inputs_reviewed[]` element may stay a bare path string **or**
+  become `{path, sha256?, bytes?}`. When a digest is present the validator **re-hashes** the
+  run-dir-relative file and FAILs on drift — except inside exactly the I9 transient window
+  (`phase == P6_EXECUTE_VERIFY` **∧** the unit that owns the **digested path** is `executing`/`verifying`),
+  where it is an exit-neutral NOTE; a run-root path no unit owns leaves the phase conjunct to decide. Paths
+  outside the run dir are **not decidable from emitted artifacts** and are recorded as a NOTE, never
+  failed. The schema delta is a union **widening**, so no previously-valid verify becomes invalid.
+
+**Guarantee classification.** Both are the same offline post-hoc class — they gate no transition, appear
+on no edge, **never guard `LT7`**, and write no `retries`/`fuel` — so Claims A–D hold verbatim and
+`formal/` is byte-untouched. **I42 carries zero REVISES. I41 carries three, all flagged with migration
+arguments** ([`formal-models.md`](../plugins/dag/skills/dag/references/formal-models.md)): the **AO-5
+doctrine** (a bounded intra-panel re-poll becomes a sanctioned pre-escalation path, capped by the existing
+`verify_rounds ≤ 3`), the **I16 verify artifact contract** (a `PASS` + dissent + no `panel_adjudication`
+document was valid and becomes invalid — version-gated, strictly narrowing), and **AO-3's `DISAGREE`
+route**, which is a **SPLIT** verdict: extending "a FAIL names a criterion" to panel members *strengthens*
+AO-3, but binding `DISAGREE` members to the same obligation removed the only compliant route AO-3 itself
+mandates, leaving no legal artifact at all. That was resolved the way this repo resolved the identical A2
+pathology — **narrow the predicate, keep its purpose** — and the correction's direction
+(legality-*widening*, over a measured-empty set) is stated rather than glossed.
+
+**The honest boundary (Limitations Y–Z).** **Y — panel dissent is observed only where it is WRITTEN.** A
+dissent that is never recorded is invisible; only the latest verify per unit survives a retry;
+`tested_defect` and rationale genuineness stay attestation; and — the sharpest one — because `panel[]`
+holds the **final** vote and a self-withdrawal is only *expressible*, a dissenter that rewrites its final
+vote to `PASS` and drops its `defects` arms **zero** clauses and leaves an artifact byte-indistinguishable
+from a genuinely unanimous panel. That channel costs the launderer *nothing*, because the row it leaves
+behind is true; no predicate closes it without a mandatory retention field. **Z — a digest detects DRIFT,
+not READING**: matching bytes do not prove anyone read them, and a verifier that fabricates a digest from
+the current file passes trivially. Backstop, as always: the independent adversarial verifier and the human
+at the gate.
 
 ---
 
@@ -424,9 +479,9 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   hatch exists only for manually exercising the global-store (G1/G2) paths.
 - **What it sweeps.** A schema self-check (16 schemas well-formed — `dialogues.schema.json` joined at
   1.10.0), then **every fixture row** in
-  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **293 fixtures
-  at 1.10.1** (54→293 across the BGA, audit-round-2, guardrail-enforcement, depth-&-retrieval, and
-  socratic-guardrail releases) — on **BOTH backends, unconditionally**:
+  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **342 fixtures
+  at 1.11.0** (54→293 across the BGA, audit-round-2, guardrail-enforcement, depth-&-retrieval and
+  socratic-guardrail releases, then 293→342 across the cross-repo-lessons I41/I42 landing) — on **BOTH backends, unconditionally**:
   the normal backend (`jsonschema` if importable, else the stdlib mini) **and** a forced
   `DAG_FORCE_MINI=1` pass, so the pure-stdlib fallback is exercised even on hosts (CI) where
   `jsonschema` is installed and would otherwise hide it (the harness **never pip-installs**; a

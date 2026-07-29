@@ -59,6 +59,12 @@ Because the top verdict IS the discrete majority, a 2-1 panel **forces** the PAS
 carry only `minor`. So a dissenting lens' major finding has nowhere honest to go unless you record it:
 - Put the member's own findings in **`panel[].defects[]`** at their **HONEST** severity (same shape as
   the top-level `defects`). I6 is scoped to the TOP-LEVEL list, so this is not an I6 violation.
+- **If you cannot name an acceptance criterion, vote `DISAGREE`, not `FAIL`** — that is AO-3's own route
+  (a `FAIL` citing no criterion is schema-invalid), and I41 does **not** ask a `DISAGREE` member for a
+  criterion. It does ask you to say *something*: record a non-blank **`summary`** (or a `defects[]` entry
+  with a non-blank `minimal_repro`). A bare `{lens, verdict: "DISAGREE"}` row is unauditable and FAILs
+  I41-2(c). A `DISAGREE` member is still a full dissent — it still needs a `panel_adjudication` (I41-1)
+  and still may not be re-polled (I41-4c).
 - On a `PASS` with a dissenting member, record **`panel_adjudication`**:
   `{resolution: repoll|withdrawn|escalated-p7, rationale, dissent_refs[], dispositions[], repoll[],
   transcript_ref?}`. Every member `blocker`/`major` on a PASS needs a `dispositions[]` entry
@@ -76,8 +82,9 @@ carry only `minor`. So a dissenting lens' major finding has nowhere honest to go
 An `inputs_reviewed` element may stay a bare path string **or** become
 `{path, sha256?, bytes?}`. If you digest one, digest them **all** on that run (adoption closure), use
 a run-dir-relative `path` that actually exists, and record a real 64-hex `sha256` — the validator
-re-hashes it and FAILs when the evidence moved under the verification. Out-of-run/absolute paths are
-recorded as a NOTE, never failed. A digest proves the bytes did not drift; it does not prove you read
+re-hashes it and FAILs when the evidence moved under the verification. Citing a SIBLING unit's artifact
+is fine — the mid-loop grace period is judged on the unit that owns the **digested path**, not on yours.
+Out-of-run/absolute paths are recorded as a NOTE, never failed. A digest proves the bytes did not drift; it does not prove you read
 them.
 
 ## Retrieval-coverage block (`retrieval_coverage` — emit it whenever the unit's brief carries `claims_owed`/`required_sources`; adoption-closure per I30)

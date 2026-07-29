@@ -129,6 +129,12 @@ PROBE_KINDS = ["reopen", "chase"]
 SOURCE_ORIGINS = ["required_sources", "context_pointer", "owed_note", "coverage_basis"]
 SOURCE_OUTCOMES = ["consulted-evidenced", "unreachable-declared", "not-consulted"]
 TIERS = ["light", "standard", "full"]
+# I41 (1.11.0) panel_adjudication enums. Declared so the BIDIRECTIONAL T7a2 can see them
+# mirrored; deliberately NOT added to ALL_VOCAB, because ALL_VOCAB is the content guard's
+# allow-list of values this script may WRITE, and no code path repairs these positions.
+# Widening the guard's permission surface without a corresponding writer would weaken it.
+ADJUDICATION_RESOLUTIONS = ["repoll", "withdrawn", "escalated-p7"]
+DISPOSITIONS = ["downgraded-minor", "withdrawn", "overruled-by-repoll", "upheld"]
 
 # Closed objects (additionalProperties:false in the schemas). Unknown keys inside
 # these are stripped — and the stripped key AND its value are reported verbatim.
@@ -176,10 +182,16 @@ TOP_LEVEL_DEBRIEF = {
     "acceptance_self_check", "assumptions", "residual_risks", "confidence",
     "footprint", "handoff_notes", "prior_feedback",
 }
+# `panel_adjudication` (I41, 1.11.0) is a LEGITIMATE top-level verify property. Before it
+# was mirrored here, `unknown-top-level-key` advised an orchestrator that it "is outside
+# verify.schema.json" and to fold it into `audit_notes` — i.e. to destroy an object that
+# I41-1 REQUIRES on a PASS with a dissenting panel member. That is the exact schema-rot
+# failure mode T7b/T7c exist to catch, and it is why a schemas/*.json edit owes a
+# `--self-test` re-run (see CLAUDE.md).
 TOP_LEVEL_VERIFY = {
     "unit_id", "verifier_persona", "verdict", "iteration", "executor_reasoning_seen",
-    "inputs_reviewed", "audit_notes", "panel", "verify_rounds", "converged",
-    "feedback", "defects", "socratic", "premise_check", "disagreement",
+    "inputs_reviewed", "audit_notes", "panel", "panel_adjudication", "verify_rounds",
+    "converged", "feedback", "defects", "socratic", "premise_check", "disagreement",
     "retrieval_coverage", "guardrail_compliance", "consequential_verbatim_check",
 }
 
@@ -200,6 +212,15 @@ REQUIRED_KEYS = {
         "$": ["defects", "executor_reasoning_seen", "feedback", "iteration",
               "premise_check", "socratic", "unit_id", "verdict", "verifier_persona"],
         "$.panel[]": ["lens", "verdict"],
+        # I41 (1.11.0). Mirrored so the bidirectional T7d2 is satisfied and so a LATER
+        # schema edit at these pointers fails the self-test. No call site walks into
+        # panel_adjudication yet, so these entries are inert at runtime (check_required is
+        # dispatched from explicit pointers in normalize_verify) — they are mirror
+        # declarations, not new advisories, and the 371-artifact sweep is unchanged.
+        "$.panel[].defects[]": ["criterion", "severity"],
+        "$.panel_adjudication.dissent_refs[]": ["defect_index", "lens"],
+        "$.panel_adjudication.dispositions[]": ["defect_index", "disposition", "lens"],
+        "$.panel_adjudication.repoll[]": ["lens", "post_verdict", "pre_verdict"],
         "$.feedback": ["actionable_changes"],
         "$.defects[]": ["criterion", "severity"],
         "$.socratic": ["confidence", "counter", "pivot", "premise"],
@@ -240,6 +261,11 @@ SCALAR_TYPES = {
                             "counter_reran_independently": "boolean"},
         "$.retrieval_coverage.retrieval_probes[]": {"row_ref": "integer"},
         "$.consequential_verbatim_check[]": {"register_id": "integer"},
+        # I41 (1.11.0) — the three schema-typed scalars T7f flagged as unmirrored. Inert at
+        # runtime for the same reason as the REQUIRED_KEYS entries above.
+        "$.panel_adjudication.dissent_refs[]": {"defect_index": "integer"},
+        "$.panel_adjudication.dispositions[]": {"defect_index": "integer"},
+        "$.panel_adjudication.repoll[]": {"tested_defect": "boolean"},
     },
 }
 
@@ -1971,11 +1997,38 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
         ("verify", "$.retrieval_coverage.sources_check[].origin", SOURCE_ORIGINS, "SOURCE_ORIGINS"),
         ("verify", "$.retrieval_coverage.sources_check[].outcome", SOURCE_OUTCOMES, "SOURCE_OUTCOMES"),
         ("verify", "$.retrieval_coverage.tier_at_verification", TIERS, "TIERS"),
+        # I41 (1.11.0). Added when a sibling edit to verify.schema.json left 8 of 22 enum
+        # pointers undeclared: T7a only walked THIS table, so the new pointers were silently
+        # unmirrored (a `dispositions[].lens: "Guardrail"` row normalized to 0 changes and 0
+        # advisories). T7a2 below closes that direction.
+        ("verify", "$.panel[].defects[].severity", SEVERITIES, "SEVERITIES (panel member)"),
+        ("verify", "$.panel_adjudication.resolution", ADJUDICATION_RESOLUTIONS,
+         "ADJUDICATION_RESOLUTIONS"),
+        ("verify", "$.panel_adjudication.dissent_refs[].lens", PANEL_LENSES,
+         "PANEL_LENSES (dissent_refs)"),
+        ("verify", "$.panel_adjudication.dispositions[].lens", PANEL_LENSES,
+         "PANEL_LENSES (dispositions)"),
+        ("verify", "$.panel_adjudication.dispositions[].disposition", DISPOSITIONS,
+         "DISPOSITIONS"),
+        ("verify", "$.panel_adjudication.repoll[].lens", PANEL_LENSES,
+         "PANEL_LENSES (repoll)"),
+        ("verify", "$.panel_adjudication.repoll[].pre_verdict", VERDICTS,
+         "VERDICTS (repoll pre)"),
+        ("verify", "$.panel_adjudication.repoll[].post_verdict", VERDICTS,
+         "VERDICTS (repoll post)"),
     ]
     bad = [f"{n}@{k}{p}: {idx[k][2].get(p)} != {v}"
            for k, p, v, n in vocabs if idx[k][2].get(p) != v]
     out.append((f"T7a all {len(vocabs)} hardcoded vocabularies match the schemas' enums",
                 not bad, "; ".join(bad)))
+    # The REVERSE direction, the one that lets the mirror rot silently: T7a above iterates
+    # the HARDCODED table, so a newly added schema enum it does not name is simply not
+    # checked. Assert the other way too, exactly as T7c does for closed objects and T7f for
+    # SCALAR_TYPES. Declaring the pointer is what forces T7a to then compare its members.
+    declared = {(k, p) for k, p, _, _ in vocabs}
+    missing = [f"{k}{p}" for k in idx for p in idx[k][2] if (k, p) not in declared]
+    out.append(("T7a2 every enum in either schema has a declared vocabulary mirror here",
+                not missing, str(missing)))
 
     # (b) every closed-key set == the schema's property set where
     #     additionalProperties:false, AND no closed object in either schema is missing
@@ -2010,6 +2063,11 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
     n_req = sum(len(t) for t in REQUIRED_KEYS.values())
     out.append((f"T7d all {n_req} required-key lists match the schemas' `required` arrays",
                 not bad, "; ".join(bad)))
+    # Same reverse direction for REQUIRED_KEYS: T7d walks the table, so a `required` array
+    # added to either schema at an undeclared pointer was unchecked and unmirrored.
+    missing = [f"{k}{p}" for k in idx for p in idx[k][0] if p not in REQUIRED_KEYS.get(k, {})]
+    out.append(("T7d2 every `required` array in either schema has a declared mirror here",
+                not missing, str(missing)))
 
     # (d) SCALAR_TYPES is the mirror the scalar-type-mismatch advisory reads. Assert it
     #     in BOTH directions: no entry that the schema does not declare, and no

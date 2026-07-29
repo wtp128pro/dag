@@ -57,6 +57,17 @@ findings on older/unstamped runs are **expected version-skew, not defects** (see
 `references/state-machine.md` §5 "Version-skew policy"; `fsm-state.json.validator_version` records which
 validator scaffolded each run).
 
+## Editing `plugins/dag/skills/dag/schemas/*.json` — re-run the normalizer's self-test
+`scripts/normalize_artifacts.py` hand-mirrors both artifact schemas (enums, closed-key sets,
+`required` lists, scalar types) and **deletes** under `--write`, so **any** edit to
+`debrief.schema.json` / `verify.schema.json` must be followed by
+`python3 plugins/dag/skills/dag/scripts/normalize_artifacts.py --self-test` (exit 0) in the same
+change. Nothing invokes it automatically and no validator depends on it. Precedent: the 1.11.0
+`panel_adjudication` (I41) addition landed eleven minutes after the normalizer and left the mirror
+rotten — `--self-test` went red (T7b/T7f) *and* the script began advising orchestrators that
+`panel_adjudication` was "outside verify.schema.json" and should be folded into `audit_notes`,
+which would have destroyed an object I41-1 requires.
+
 ## Versioning / releases — keep every mirror in sync
 The plugin version is mirrored in **six** places; a bump must update all of them together
 (precedent: commit 4b19c47):

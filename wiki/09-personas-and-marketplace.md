@@ -115,13 +115,13 @@ To update later, refresh the catalog and reload: `/plugin marketplace update dag
 This is the one that bites. The plugin version is mirrored in **six** places, and a bump must update **all of them together** (`CLAUDE.md`, "Versioning / releases" section):
 
 1. `plugins/dag/.claude-plugin/plugin.json` — plugin `version`
-2. `plugins/dag/CHANGELOG.md` — a new plugin entry
-3. `plugins/dag/README.md` — the `Current version:` line (currently `1.10.1` at `plugins/dag/README.md:209`)
+2. `plugins/dag/CHANGELOG.md` — a new plugin entry (**append** a new top entry; never relabel the previous top header, and never let an entry describe anything but what that version shipped)
+3. `plugins/dag/README.md` — the `Current version:` line (currently `1.11.0` at `plugins/dag/README.md:209`)
 4. `.claude-plugin/marketplace.json` — the plugin entry `version` **and** the top-level catalog `version` (two edits in one file: `marketplace.json:13` and `marketplace.json:7`)
-5. `README.md` (root) — the plugin-table version cell (currently `1.10.1` at `README.md:12`)
+5. `README.md` (root) — the plugin-table version cell (currently `1.11.0` at `README.md:12`)
 6. `CHANGELOG.md` (root) — a new catalog entry
 
-Convention (`CLAUDE.md`): a new skill/feature is a **minor** plugin bump; each catalog release is a **patch** bump of the marketplace top-level version. That is why the two version fields differ today — the **plugin** is at `1.10.1` (`plugin.json:4`, `marketplace.json:13`, `README.md:12`, `plugins/dag/README.md:209`) while the **catalog/marketplace top-level** is at `1.0.13` (`marketplace.json:7`). They are two independent counters that happen to live in the same manifest.
+Convention (`CLAUDE.md`): a new skill/feature is a **minor** plugin bump; each catalog release is a **patch** bump of the marketplace top-level version. That is why the two version fields differ today — the **plugin** is at `1.11.0` (`plugin.json:4`, `marketplace.json:13`, `README.md:12`, `plugins/dag/README.md:209`) while the **catalog/marketplace top-level** is at `1.0.14` (`marketplace.json:7`). They are two independent counters that happen to live in the same manifest. Note this `wiki/` directory is **not** one of the six mirrors, but it does self-describe a version (`Home.md`, `03`, `08`, `10`, `11`, `14`, `16`), so a release that changes what those pages assert has to refresh them too — the `1.0.10` release set that precedent.
 
 ```mermaid
 flowchart TD

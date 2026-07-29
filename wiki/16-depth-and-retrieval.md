@@ -4,7 +4,7 @@
 retrieval subsystem decides *how hard to try* and then *mechanically holds a run to that
 decision* — how much source-chasing a run owes, how that obligation is written into briefs,
 and how a verifier catches a claim that was answered from the model's memory instead of a
-source. Every claim here carries a `path:line` locator into the current (1.10.1) tree that a
+source. Every claim here carries a `path:line` locator into the current (1.11.0) tree that a
 verifier can re-open; the wiki's own rule is that an unresolved locator is a defect.
 
 **TL;DR.** 1.9.0 adds a *depth dial* and a *retrieval spine*, both enforced offline. The dial

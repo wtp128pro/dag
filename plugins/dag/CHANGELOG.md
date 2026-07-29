@@ -7,8 +7,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 **Cross-repo lessons intake** — 92 learnings from three independent `.dag/learnings` stores
 (BubbleBrain 33 · music 49 · dag 10) distilled into 18 orchestrator-conduct rules, plus two new
-**offline** validator invariants. **TWO guarantee changes are FLAGGED as REVISES**, both with migration
-arguments in `references/formal-models.md` — the AO-5 doctrine and the I16 verify **artifact contract**.
+**offline** validator invariants. **THREE guarantee changes are FLAGGED as REVISES**, each with a migration
+argument in `references/formal-models.md` — the AO-5 doctrine, the I16 verify **artifact contract**, and
+**AO-3's `DISAGREE` route** (AO-3 is SPLIT: its `FAIL` arm strengthens, its `DISAGREE` arm is revised).
 The correction-loop **termination proof is PRESERVED**: neither new invariant guards `LT7`, both are
 post-hoc reads of emitted artifacts, and `formal/` is byte-untouched (the pinned TLC/Alloy counts stand
 without a re-run).
@@ -24,7 +25,12 @@ without a re-run).
   is a new invariant, state, edge or gate — it is orchestrator conduct at existing decision points.
 - **I41 — panel dissent accounting (OFFLINE).** A `verify.json` with `verdict == PASS` and a dissenting
   `panel[]` member must carry a `panel_adjudication` recording the dissent, its disposition, and a
-  rationale. **I41-4c FORBIDS re-polling the dissenter** (or any lens that already tested the finding),
+  rationale. A dissenting member must **substantiate** its vote: a `FAIL`-voting member names a
+  criterion (I41-2a/b), while a `DISAGREE`-voting member records a non-blank `summary` **or** a
+  `defects[]` entry with a non-blank `minimal_repro` and is **never obliged to name a criterion**
+  (**I41-2c**) — because **AO-3** makes `DISAGREE` the mandated route for a critique that cannot name
+  one, so binding it there would leave no compliant artifact. **I41-4c FORBIDS re-polling the dissenter**
+  (or any lens that already tested the finding),
   so re-running to "win" a judgment call is now a hard FAIL where it was previously unconstrained. The
   presence floors arm only at `validator_version ≥ 1.11.0` (via `_i27_semver_ge` — proper semver, not a
   lexicographic string compare, which `panel_dissent_version_silent` pins); the shape clauses arm on
@@ -33,13 +39,30 @@ without a re-run).
 - **I42 — evidence digest integrity (OFFLINE).** `inputs_reviewed[]` entries may now carry a sha256
   digest alongside the path; when they do, the validator re-hashes the run-dir-relative file and FAILs on
   a mismatch. I42-3 downgrades to a NOTE inside exactly the I9 transient window
-  (`phase == P6_EXECUTE_VERIFY` ∧ unit `executing`/`verifying`) and is a hard FAIL everywhere else,
+  (`phase == P6_EXECUTE_VERIFY` ∧ the unit that owns the **digested path** is `executing`/`verifying`;
+  a run-root path no unit owns leaves the phase conjunct to decide) and is a hard FAIL everywhere else,
   always at P8/DONE. The schema delta is a union **WIDENING** (`items` = string | object), so no archived
   verify becomes invalid — I42 carries **zero** REVISES.
 - **`scripts/normalize_artifacts.py`** — an offline, idempotent, shape-only normalizer for landed
   `debrief.json` / `verify.json` pairs (key names, container types, enum casing). It gates nothing and is
   run before `validate_run.sh`, not instead of it. Sourced from `BB-L26`, `DAG-L2`, `MU-L32`: quoting the
   exact shape in a brief is necessary but not sufficient — subagents drift every wave.
+  **Exit-code taxonomy — note the third code:** `0` normal (with or without changes/advisories, and for a
+  readable non-artifact file, which is an advisory SKIP); `2` input error (missing path, undecodable JSON,
+  non-object top level, unwritable target under `--write`, or a failing `--self-test`); **`3` CONTENT-GUARD
+  VIOLATION** — normalizing would have destroyed a leaf value at its json path without recording it, so
+  nothing is written. **`exit 3` fires in DRY RUN too**, so "non-zero only on unreadable input" does not
+  describe this taxonomy; a `3` is a bug in the script, not in the artifact.
+  The script hand-mirrors both schemas and **deletes** under `--write`, so it is coupled to
+  `schemas/*.json`: every schema edit owes a `--self-test` re-run (now recorded in `CLAUDE.md`). The
+  `panel_adjudication` (I41) addition in this same release proved the coupling live — it turned
+  `--self-test` red (T7b/T7f) and made the script advise folding `panel_adjudication` into `audit_notes`,
+  which would have destroyed an object I41-1 requires. Fixed here: the closed-key set, `required` lists and
+  scalar types now mirror I41, and **T7a/T7d are bidirectional** (new `T7a2`/`T7d2`, matching `T7c`/`T7f`),
+  so a schema pointer added in future is reported as unmirrored instead of going unchecked — the 8 enum and
+  4 `required` pointers I41 added were previously invisible to the mirror test. `--self-test`: **73 pass,
+  0 fail, exit 0**; the 371-artifact sweep is unchanged (0 changes · 0 drops · 0 guard violations,
+  `diff -rq` byte-identical).
 - **42 new test fixtures** (293 → 335 registry rows), including green controls that pin the OVER-fire
   direction a negative-only suite cannot see, and paired arms (`digest_mismatch` /
   `digest_mismatch_p6_note`) where neither alone pins the conjunctive I9 window.
@@ -63,7 +86,7 @@ without a re-run).
   thing the validator rejects. The paragraph now says to plan `pages ≥ ceil(n/4)` from the start and
   names the `(stuffing)` / `(pages)` FAIL labels to grep for.
 
-### Guarantee classification — TWO REVISES, flagged, not silent
+### Guarantee classification — THREE REVISES, flagged, not silent
 - **AO-5 bounded intra-node re-poll — REVISES (doctrine, narrow); termination PRESERVES.** AO-5's prose
   says an objective-irresolvable split is `DISAGREE → ESCALATE`, "never an unbounded retry". I41 sanctions
   a **bounded intra-panel re-poll** before escalation, which that prose did not contemplate. Migration:
@@ -71,7 +94,9 @@ without a re-run).
   counter, no new fuel, no new edge; I41-4c forbids re-polling the dissenter, so the specific behavior
   AO-5 prohibits is now a hard FAIL; the escalation arm stays mandatory when no majority emerges; and
   AO-5's own subject (the *aggregate* executor↔verifier split) is untouched — I41 governs *intra-panel*
-  dissent. Net effect is a **narrowing**.
+  dissent. Net effect, stated exactly: I41 narrows only the cases in which a dissent SURVIVES in
+  `panel[]`'s final vote — a dissenter that rewrites its final vote to `PASS` and drops its `defects`
+  arms zero clauses (Limitation Y(v)).
 - **I16 verify ARTIFACT CONTRACT — REVISES (I25/GV-29 class); the I16 predicate PRESERVES
   (byte-untouched).** A `verify.json` recording `PASS` with a dissenting panel member and no
   `panel_adjudication` was **VALID** and becomes **INVALID**. Filed as a contract revision rather than
@@ -81,16 +106,34 @@ without a re-run).
   block, so compliance is the default path; and the revision is strictly narrowing — no previously-FAILING
   artifact becomes legal. I16's majority test, lens-trio test, persona-independence test and
   `verify_rounds` bound are unchanged, and I41-4d *re-uses* `_discrete_majority` rather than replacing it.
+- **AO-3's `DISAGREE` route — SPLIT: the `FAIL` arm PRESERVES (strengthens); the `DISAGREE` arm REVISES**
+  (doctrine; the A2 no-compliant-path class). Extending "a `FAIL` names a criterion" to panel members is
+  strictly additive — that half strengthens AO-3. But binding a **`DISAGREE`**-voting member to the same
+  obligation closes the route AO-3's own text *mandates* for a critique that cannot name a criterion
+  (`self-learning-loops.md:299-302`, `:601-604`), and then **no compliant artifact exists**:
+  `FAIL`-without-criterion is schema-invalid, `FAIL`-with-a-fabricated-criterion is the hallucinated
+  nitpick AO-3 forbids, `DISAGREE`-without-`defects` fails I41-2, and `DISAGREE`-with-a-criterion is the
+  thing the panelist could not produce. That is the **A2 pathology verbatim**
+  (`self-learning-loops.md:584-591`), which this repo filed as a REVISES rather than a tightening.
+  Resolved the A2 way — **narrow the predicate, preserve its purpose**: `_I41_CRITERION_BOUND = ("FAIL",)`
+  carries I41-2(a)/(b), new arm **I41-2(c)** substantiates a `DISAGREE` member, and a bare
+  `{lens, verdict}` row still FAILs. Migration: the obligation bought **nothing mechanically** (I41-2 only
+  ever checked the criterion string was non-blank, never that it appears among the brief's acceptance
+  criteria); `_I41_DISSENT` is left **byte-untouched**, so I41-1, I41-4c and N-I41 keep treating a
+  `DISAGREE` member as a full dissent — only the criterion obligation moves; and the correction's
+  direction is stated rather than glossed: it is legality-**WIDENING**, over a set measured **empty** (no
+  archived run is stamped ≥ 1.11.0, and **0** fixture dirs and **0** archived verifies carrying a
+  `panel[]` record a `DISAGREE` member, so the withdrawn arm never fired on any artifact).
 
 ### Verification
-- `run_tests.sh`: **335 passed / 0 failed on each of two schema backends** (jsonschema
+- `run_tests.sh`: **342 passed / 0 failed on each of two schema backends** (jsonschema
   `Draft202012Validator`, and the stdlib-only minimal validator under `DAG_FORCE_MINI=1`); 6/0 negative
   fixtures. `spec_check.py`: **PASS 7 · NOTE 1 · FAIL 0**, exit 0.
-- `validate_run.py` is **two pure-insertion hunks, +402 / -0** — confirmed by reconstructing the file
+- `validate_run.py` is **two pure-insertion hunks, +451 / -0** — confirmed by reconstructing the file
   minus the new hunks and getting a **byte-identical** match to `HEAD`, so every I1–I40 predicate is
   physically unmoved.
-- A 61-arm predicate-ablation harness (each arm neutralizing exactly one conjunct/disjunct/branch/constant,
-  asserted unique in the source, re-running the full 335-row matrix per arm): **unpinned = 0**, baseline
+- A 67-arm predicate-ablation harness (each arm neutralizing exactly one conjunct/disjunct/branch/constant,
+  asserted unique in the source, re-running the full 342-row matrix per arm): **unpinned = 0**, baseline
   clean.
 
 ## [1.10.1] — 2026-07-19

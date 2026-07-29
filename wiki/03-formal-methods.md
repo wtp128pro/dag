@@ -206,9 +206,10 @@ export JAVA_HOME=$(/usr/libexec/java_home)
 > the correction-loop termination proof, AO-1..7, I1–I25, and the FSM edge set — so every figure in
 > this section (853 / 408 / depth 36; Alloy 8/8) is left **unchanged**.
 
-> **Socratic-guardrail 1.10.0 + residual 1.10.1 — the model is UNCHANGED. As of plugin 1.10.1 /
-> catalog 1.0.13.** The socratic-guardrail landing added six OFFLINE post-hoc invariants **I35–I40**
-> (1.10.0) plus **I39-7** (1.10.1). Every one is an offline post-hoc check over emitted artifacts that
+> **Socratic-guardrail 1.10.0 + residual 1.10.1 + cross-repo-lessons 1.11.0 — the model is UNCHANGED.
+> As of plugin 1.11.0 / catalog 1.0.14.** The socratic-guardrail landing added six OFFLINE post-hoc
+> invariants **I35–I40** (1.10.0) plus **I39-7** (1.10.1), and 1.11.0 added two more — **I41** (panel
+> dissent accounting & adjudication) and **I42** (evidence digest integrity). Every one is an offline post-hoc check over emitted artifacts that
 > **writes no `retries`/`fuel`, gates no transition, and never guards `LT7`** (the correction loop's
 > sole back-edge — a live guard there deadlocks `RETRY`, breaking Property 2 Claim D), so
 > `GateOrdering`, `Termination`, and `Quiesce` **hold verbatim** and **I18 is carried VERBATIM** (no
@@ -231,7 +232,20 @@ export JAVA_HOME=$(/usr/libexec/java_home)
 > PRESERVES** (a §5 doc-drift repair) and, in 1.10.1, **I39-7 = PRESERVES**. **AF-40 (an I8 clean-exit
 > relaxation) was DECLINED** — I8 is kept LOUD and byte-untouched — so it is intentionally absent from
 > the set (`references/formal-models.md` §"Socratic-guardrail 1.10.0" classification table + the
-> AF-40-DECLINED note). **I39-7 (Limitation X hardening)** is the 1.10.1 optional-mirror cross-check
+> AF-40-DECLINED note). **1.11.0 adds three more REVISES, all I41's and all "models untouched"**: the
+> **AO-5 doctrine** (a BOUNDED intra-panel re-poll becomes a sanctioned pre-escalation path, capped by
+> the existing `verify_rounds ≤ 3`), the **I16 verify ARTIFACT CONTRACT** (a `PASS` + a dissenting member
+> + no `panel_adjudication` was VALID and becomes INVALID — version-gated, strictly narrowing), and
+> **AO-3's `DISAGREE` route**, which is a **SPLIT** verdict: I41-2's criterion obligation *strengthens*
+> AO-3 on `FAIL`-voting members, but as first written it also bound `DISAGREE`-voting members to cite a
+> criterion — and AO-3's own text makes `DISAGREE` the *mandated* route for a critique that cannot name
+> one, so no compliant artifact existed (the A2 no-compliant-path shape). Resolved the A2 way, by
+> NARROWING the obligation to `FAIL` members and substantiating a `DISAGREE` member via **I41-2(c)** (a
+> non-blank `summary`, or a `defects[]` entry with a `minimal_repro`) — a legality-**widening**
+> correction, disclosed as such, over a measured-empty set. **I42 carries zero REVISES** (its schema
+> delta is a union widening). Both are the same offline post-hoc class, so `formal/` stays byte-untouched
+> and every count above still stands without a re-run. **I39-7 (Limitation X hardening)** is the 1.10.1
+> optional-mirror cross-check
 > (`fsm-state.anchors_baseline_hash == dialogues.json.anchors_baseline.content_hash`, adoption-gated on
 > mirror presence; absent ⇒ silent): the same offline post-hoc class (never guards `LT7`), so `formal/`
 > stays byte-untouched and the counts stand; it **NARROWS** Limitation X (coordinated-rewrite cost rises
@@ -409,7 +423,8 @@ don't model — I5–I7, I9, **I11–I16**, **I-dod**, the persona-identity reco
 (**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I40** (plus
 **I1b**/**I1c**/**I1d**/**I3b**/**I3c** and **I-dod**). The newest additions — the guardrail checks
 **I20–I25** (1.8.0), the depth & retrieval checks **I26–I34** (1.9.0), and the socratic-guardrail
-checks **I35–I40** + **I39-7** (1.10.0 / 1.10.1) — are all this same post-hoc, offline class: each
+checks **I35–I40** + **I39-7** (1.10.0 / 1.10.1), and the cross-repo-lessons checks **I41**/**I42**
+(1.11.0) — are all this same post-hoc, offline class: each
 gates **no** transition and never guards LT7, so each **preserves** the termination proof
 (`references/formal-models.md` §"Socratic-guardrail 1.10.0"). Three of these — I14, I15, I16 — are the post-hoc,
 *offline* checks added since the earlier releases; each gates **no** transition (and never

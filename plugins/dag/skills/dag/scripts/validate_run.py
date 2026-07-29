@@ -5138,7 +5138,7 @@ def main(argv=None):
     # NO edge and **NEVER guards LT7** (the correction loop's sole back-edge — a live guard there leaves
     # RETRY with no enabled out-edge and deadlocks, breaking Property 2 Claim D), writes no `retries` and
     # no `fuel`, adds no state/edge/gate flag => PRESERVES the termination proof (Claims A-D) and
-    # AO-1/-2/-3/-4/-6/-7; `formal/` byte-untouched (no run_formal.sh re-run). TWO REVISES are carried
+    # AO-1/-2/-4/-6/-7; `formal/` byte-untouched (no run_formal.sh re-run). THREE REVISES are carried
     # openly (formal-models.md §1.11.0, with migration arguments): (i) **AO-5 doctrine** — a BOUNDED
     # intra-node re-poll becomes a sanctioned PRE-escalation path; capped by the EXISTING verify_rounds<=3
     # (I16-(c), byte-untouched — I41 adds no bound and no counter), and I41-4c makes "re-run the dissenter
@@ -5146,16 +5146,31 @@ def main(argv=None):
     # (ii) **the I16 verify ARTIFACT CONTRACT** — a verify recording PASS + a dissenting member + no
     # panel_adjudication was VALID and becomes INVALID; version-gated to >=_I41_SHIP via _i27_semver_ge
     # (:2668-2681) so no archive newly flags (the 4 archived dissent-on-PASS verifies live in a run stamped
-    # 1.9.0), strictly narrowing, every schema delta OPTIONAL. I16's own predicate is byte-untouched;
+    # 1.9.0), strictly narrowing, every schema delta OPTIONAL. (iii) **AO-3's `DISAGREE` route** — AO-3 is
+    # SPLIT: the `FAIL` arm PRESERVES (I41-2a/b extends "a FAIL names a criterion" to panel members, which
+    # previously escaped AO-3 entirely), but the 1.11.0 pre-release predicate ALSO bound `DISAGREE`-voting
+    # members to cite a criterion, and AO-3 (self-learning-loops.md:299-302, :601-604) makes `DISAGREE` the
+    # MANDATED route for a critique that cannot name one — leaving NO compliant artifact (the A2
+    # no-compliant-path shape, :584-591). Resolved by NARROWING the criterion obligation to `FAIL` members
+    # (_I41_CRITERION_BOUND below) and substantiating a `DISAGREE` member via I41-2(c) instead; the
+    # correction is legality-WIDENING and is disclosed as such, on a set measured EMPTY (0 fixtures / 0
+    # archived verifies carry a `DISAGREE` panel member, so the withdrawn arm never fired on any artifact).
+    # I16's own predicate is byte-untouched;
     # I41-4d RE-USES its `_discrete_majority` rather than replacing it, and pins the previously-unspecified
     # semantic that panel[].verdict holds the FINAL vote. Trigger: T1 (presence floor; clauses I41-1/-2a)
     # arms only at validator_version >= _I41_SHIP; T2 (shape; clauses I41-2b/-3/-4/-5/-6) arms on ADOPTION
     # (a panel_adjudication OR any member defects[]), any version — measured 0/156 archived verifies carry
     # either key, so archives are silent in BOTH arms. No clause fires on a verify with no panel[].
     # Limitation Y: an UNRECORDED dissent is invisible; only the latest verify per unit survives a retry
-    # (Limitation F/L1); tested_defect / rationale genuineness stay attestation (validity != correctness).
+    # (Limitation F/L1); tested_defect / rationale genuineness stay attestation (validity != correctness);
+    # (iv) a dissenter that rewrites its FINAL vote to PASS and drops its defects arms ZERO clauses.
     _I41_SHIP = "1.11.0"                 # release shipping I41; validator_version >= this arms T1
     _I41_DISSENT = ("FAIL", "DISAGREE")
+    # The DISSENT set (above) is what I41-1 / I41-4c / N-I41 read and MUST stay as it is: a `DISAGREE`
+    # member is a full dissent for adjudication-presence, re-poll legality and the rubber-stamp NOTE.
+    # The CRITERION obligation (I41-2a/b) is deliberately NARROWER — see REVISES (iii) above. Narrowing
+    # _I41_DISSENT itself would silently weaken those three other clauses instead.
+    _I41_CRITERION_BOUND = ("FAIL",)
     _I41_RESOLUTIONS = ("repoll", "withdrawn", "escalated-p7")
     _I41_EXCUSED = ("downgraded-minor", "withdrawn", "overruled-by-repoll")
     _i41_stem = LABEL_STEM['i41_dissent']
@@ -5227,20 +5242,39 @@ def main(argv=None):
                      "dissent must be resolved at panel level (re-poll / withdrawal) and recorded, never "
                      "absorbed silently (I41-1)")
 
-        # I41-2 — a dissenting vote must be substantiated. (a) version floor; (b) adoption closure.
+        # I41-2 — a dissenting vote must be substantiated. (a) version floor; (b) adoption closure;
+        # (c) a `DISAGREE` member substantiates WITHOUT a criterion. (a)/(b) bind _I41_CRITERION_BOUND
+        # (`FAIL`) only: AO-3 makes `DISAGREE` the MANDATED route for a critique that cannot name a
+        # criterion, so binding it here would leave no compliant artifact (REVISES (iii) above). The
+        # purpose survives — a bare `{lens, verdict}` row is still unauditable and still FAILs — and the
+        # obligation (a) actually imposes is only "a non-blank string", which (c) extracts too.
         for m in _dis:
             _lens = m.get("lens")
-            _has = any(not _i41_blank(d.get("criterion")) for d in _i41_defects(m))
-            if _has:
-                continue
             # (a) version floor, any verify; (b) adoption closure, verdict-bearing verifies, any version.
             _arm = "a" if _i41_t1 else ("b" if (_i41_defects_adopted and uid in _i41_vb_uids) else None)
             if _arm is None:
                 continue
-            rep.fail(f"{_i41_stem} (bare dissent {uid}/{_lens})",
-                     f"panel member with lens={_lens!r} voted {m.get('verdict')} but records no defects[] "
-                     "entry — a dissenting vote with no recorded finding is unauditable and cannot be "
-                     f"adjudicated (I41-2{_arm})")
+            if m.get("verdict") in _I41_CRITERION_BOUND:
+                if any(not _i41_blank(d.get("criterion")) for d in _i41_defects(m)):
+                    continue
+                rep.fail(f"{_i41_stem} (bare dissent {uid}/{_lens})",
+                         f"panel member with lens={_lens!r} voted {m.get('verdict')} but records no "
+                         "defects[] entry — a dissenting vote with no recorded finding is unauditable and "
+                         f"cannot be adjudicated (I41-2{_arm})")
+                continue
+            # (c) a DISAGREE member: a non-blank `summary`, OR a defects[] entry with a non-blank
+            # `minimal_repro`. Never a criterion — that is the route AO-3 designated for exactly this
+            # critique. A DISAGREE member is WELCOME to name a criterion, but naming one does not by
+            # itself satisfy (c): the two disjuncts are exactly `summary` and `minimal_repro`, as the
+            # clause's failure message states. (spec 2.4's aside "satisfies (c) trivially via defects" is
+            # inconsistent with its own predicate — reported as DIVERGENCE 8, not silently widened here.)
+            if (not _i41_blank(m.get("summary"))
+                    or any(not _i41_blank(d.get("minimal_repro")) for d in _i41_defects(m))):
+                continue
+            rep.fail(f"{_i41_stem} (bare disagree {uid}/{_lens})",
+                     f"panel member with lens={_lens!r} voted DISAGREE but records neither a non-blank "
+                     "summary nor a defects[] entry with a minimal_repro — AO-3 lets a DISAGREE name no "
+                     "criterion, it does not let it say nothing (I41-2c)")
 
         if not _i41_adopted:
             continue                     # T2 clauses below are adoption-armed only (archive-silent)
@@ -5433,6 +5467,17 @@ def main(argv=None):
             return False
         return ".." not in p.replace("\\", "/").split("/")
 
+    def _i42_owner(p):
+        # The unit that owns the DIGESTED PATH (`units/<uid>/…`), NOT the unit that owns the verify. The
+        # I9 rationale I42-3's transient window copies is "unit B is still rewriting that file", which is
+        # a property of B; keying the status on the verify's own unit false-excuses a stale digest of a
+        # settled sibling and false-FAILs a legitimate mid-flight rewrite cited cross-unit (a citation
+        # R18/BB-L46 positively invites). Returns None for a run-root artifact (graph.json, fsm-state.json,
+        # …) that no unit owns — there the PHASE conjunct alone decides, so an absent status is never read
+        # as "not in flight".
+        _seg = str(p).replace("\\", "/").split("/")
+        return _seg[1] if len(_seg) >= 2 and _seg[0] == "units" and _seg[1] else None
+
     _i42_outofrun = []
     _i42_digested = 0
     if _i42_armed:
@@ -5494,7 +5539,9 @@ def main(argv=None):
             # I42-3 — integrity. Mismatch is a hard FAIL EXCEPT inside the I9 transient window
             # (:5126-5133 posture, copied verbatim for the same reason: a retry legitimately rewrites
             # debrief.json under a verify that has not yet been re-written). At every other phase, every
-            # other status, and ALWAYS at P8/DONE, it is a FAIL.
+            # other status, and ALWAYS at P8/DONE, it is a FAIL. The window is a CONJUNCTION and its
+            # status conjunct is keyed on the unit owning the DIGESTED PATH (`_i42_owner`), not on the
+            # unit owning the verify; a run-root path no unit owns leaves the phase conjunct to decide.
             try:
                 with open(_fp42, "rb") as _fh42:
                     _act42 = hashlib.sha256(_fh42.read()).hexdigest()
@@ -5502,13 +5549,15 @@ def main(argv=None):
                 _act42 = None
             if _act42 is None or _act42 == _sha:
                 continue
-            _st42 = _i42_status.get(uid)
-            if phase == "P6_EXECUTE_VERIFY" and _st42 in ("executing", "verifying"):
+            _own42 = _i42_owner(_p)
+            _st42 = _i42_status.get(_own42) if _own42 is not None else None
+            if phase == "P6_EXECUTE_VERIFY" and (_own42 is None
+                                                 or _st42 in ("executing", "verifying")):
                 if not args.quiet:
                     print(f"  NOTE  {_i42_note} (digest drift mid-loop) (units/{uid}): {_p} hashes to "
-                          f"{_act42[:12]}… but the verify records {_sha[:12]}… — an in-flight unit "
-                          f"(fsm status {_st42!r} at P6) may legitimately have rewritten it; not yet a "
-                          "defect (I42-3 transient, the I9 window)")
+                          f"{_act42[:12]}… but the verify records {_sha[:12]}… — the unit that owns the "
+                          f"PATH ({_own42 or 'run root'}, fsm status {_st42!r} at P6) may legitimately "
+                          "have rewritten it; not yet a defect (I42-3 transient, the I9 window)")
             else:
                 rep.fail(f"{_i42_stem} (digest mismatch {uid}/{_p})",
                          f"verify records sha256={_sha[:12]}… for {_p!r} but the file now hashes to "

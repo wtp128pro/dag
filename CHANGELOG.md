@@ -18,11 +18,15 @@ Individual plugins also maintain their own changelogs.
   `panel_adjudication`, and re-polling the dissenter is forbidden) and **I42** (evidence digest
   integrity: `inputs_reviewed[]` sha256 digests re-hashed against disk) — both version-gated to
   `validator_version ≥ 1.11.0`, alongside an offline `scripts/normalize_artifacts.py` shape normalizer
-  and 42 new fixtures (293 → **335**). **TWO REVISES are flagged, not silent**: the **AO-5** doctrine (a
+  and 49 new fixtures (293 → **342**). **THREE REVISES are flagged, not silent**: the **AO-5** doctrine (a
   bounded intra-panel re-poll becomes a sanctioned pre-escalation path, capped by the existing
-  `verify_rounds ≤ 3`) and the **I16 verify artifact contract** (a `PASS` + dissent + no adjudication was
-  valid, becomes invalid) — the I16 *predicate* is byte-untouched, and both carry migration arguments in
-  `references/formal-models.md`. Neither invariant guards `LT7`, so the correction-loop **termination
+  `verify_rounds ≤ 3`), the **I16 verify artifact contract** (a `PASS` + dissent + no adjudication was
+  valid, becomes invalid), and **AO-3's `DISAGREE` route** — SPLIT, since I41-2 *strengthens* AO-3 on
+  `FAIL`-voting members but, as first written, also bound `DISAGREE`-voting members to cite a criterion,
+  which is the route AO-3 itself mandates for a critique that cannot name one, leaving no compliant
+  artifact; narrowed to `FAIL` members with **I41-2(c)** taking over, and the legality-*widening*
+  direction of that correction disclosed. The I16 *predicate* is byte-untouched, and all three carry
+  migration arguments in `references/formal-models.md`. Neither invariant guards `LT7`, so the correction-loop **termination
   proof is PRESERVED** and `formal/` is byte-untouched (the pinned TLC/Alloy counts stand without a
   re-run). See the plugin changelog for the full entry.
 

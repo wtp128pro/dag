@@ -329,6 +329,9 @@ panel_dissent_blank_criterion	1	bare dissent
 panel_repoll_rounds_one	1	I41-4e
 panel_withdrawn_after_repoll	0	
 panel_unanimous_ok	0	
+panel_dissent_disagree_bare	1	bare disagree
+panel_dissent_disagree_ok	0	
+panel_dissent_disagree_repro_ok	0	
 # --- I42 evidence digest integrity (cross-repo-lessons 1.11.0; U05 spec §6) ---
 digest_ok	0	2 digested input(s) across 1 verify file(s); integrity OK
 digest_shape_mixed	1	I42 evidence digest (mixed shape
@@ -338,6 +341,10 @@ digest_mismatch	1	digest mismatch
 digest_mismatch_p6_note	0	N-I42 (digest drift mid-loop
 digest_dangling	1	I42 evidence digest (dangling evidence
 digest_outofrun_note	0	N-I42 (undigestable evidence
+digest_outofrun_abs_note	0	N-I42 (undigestable evidence
 digest_shape_mixed_below	0	N-I42 (partial adoption
 digest_mismatch_offphase	1	digest mismatch
 digest_mismatch_p6_terminal	1	digest mismatch
+digest_mismatch_crossunit_note	0	N-I42 (digest drift
+digest_mismatch_crossunit_fail	1	digest mismatch
+digest_mismatch_root_note	0	N-I42 (digest drift

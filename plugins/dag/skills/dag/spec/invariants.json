@@ -1607,7 +1607,10 @@
         "panel_major_on_nonpass_ok",
         "panel_unanimous_ok",
         "panel_withdrawn_flipped",
-        "panel_withdrawn_after_repoll"
+        "panel_withdrawn_after_repoll",
+        "panel_dissent_disagree_bare",
+        "panel_dissent_disagree_ok",
+        "panel_dissent_disagree_repro_ok"
       ],
       "provenance": [
         "cross-repo-lessons-intake",
@@ -1637,9 +1640,13 @@
         "digest_mismatch_p6_note",
         "digest_dangling",
         "digest_outofrun_note",
+        "digest_outofrun_abs_note",
         "digest_shape_mixed_below",
         "digest_mismatch_offphase",
-        "digest_mismatch_p6_terminal"
+        "digest_mismatch_p6_terminal",
+        "digest_mismatch_crossunit_note",
+        "digest_mismatch_crossunit_fail",
+        "digest_mismatch_root_note"
       ],
       "provenance": [
         "cross-repo-lessons-intake",
