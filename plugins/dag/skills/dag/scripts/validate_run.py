@@ -501,8 +501,23 @@ LABELS = [
     {"key": "gate_ordering", "stem": "gate ordering", "invariant": "gate-ordering"},
     {"key": "escalate_origin", "stem": "ESCALATE origin provenance", "invariant": "escalate-origin"},
     {"key": "note_selfcheck", "stem": "acceptance_self_check vs verify (C6)", "invariant": "selfcheck", "emitted_via": "print"},
+    {"key": "i43_currency", "stem": "I43 verification currency", "invariant": "I43"},
+    {"key": "note_i43", "stem": "N-I43 verification currency", "invariant": "I43", "emitted_via": "print"},
+    {"key": "i44_signoff_closure", "stem": "I44 sign-off closure", "invariant": "I44"},
+    {"key": "note_i44", "stem": "N-I44 sign-off closure", "invariant": "I44", "emitted_via": "print"},
+    {"key": "i45_version_skew", "stem": "N-I45 version-skew visibility", "invariant": "I45", "emitted_via": "print"},
+    {"key": "i46_nonconverged_pass", "stem": "I46 non-converged PASS", "invariant": "I46"},
+    {"key": "note_i46", "stem": "N-I46 non-converged PASS", "invariant": "I46", "emitted_via": "print"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
+
+# N-I45 version-skew visibility (P3) — shadow accumulator of version-gated ARMS that THIS run's own
+# `validator_version` stamp suppressed while the arm's non-version precondition HELD. Module-level per
+# spec §3.1(1); `main()` clears it at entry to `_skew_record`'s definition site so a repeated in-process
+# main() call cannot accumulate across runs. NOTHING existing is renamed and nothing reads _SKEW except
+# the exit-neutral NOTE emitted immediately before `return _finish(rep)` — it touches neither
+# rep.problems nor rep.checked, so it can never move an exit code (:507-518 are the only sinks).
+_SKEW = []
 
 class Report:
     def __init__(self, quiet=False):
@@ -2685,6 +2700,22 @@ def main(argv=None):
         pa, pb = _parse(a), _parse(b)
         return pa is not None and pb is not None and pa >= pb
 
+    # N-I45 (P3 §3.1) — the recorder for the skew shadow count. Records an arm as STAMP-SUPPRESSED iff
+    # its non-version precondition HELD while the semver comparison returned False; a suppressed arm is
+    # therefore an UPPER BOUND on suppressed FAILs (an armed clause may well have passed) — §3.2/L16.
+    # SCOPE NOTE (declared deviation from §3.1(1)'s "module-level ... recorder helper"): `_i27_semver_ge`
+    # is itself a `main()`-local closure (:2673), so a module-level recorder could not call the ONE
+    # canonical semver comparison without duplicating its parser — a divergence risk worse than the scope
+    # difference. The ACCUMULATOR is module-level exactly as specified; only the def is nested, and the
+    # signature is verbatim §3.1(1). P3 READS `validator_version` (it is P3's subject matter) but P3's
+    # own emission is not gated on the stamp being >= anything: calling P3 "version-gated" is a category
+    # error (§3.4). The dev-time completeness assertion lives in spec_check.py SC8 (§3.1(4)).
+    del _SKEW[:]
+
+    def _skew_record(arm_id, precondition_held, ship, stamp):
+        if precondition_held and not _i27_semver_ge(stamp, ship):
+            _SKEW.append({"arm": arm_id, "ship": ship})
+
     def _i27_blank(x):
         return not str(x if x is not None else "").strip()
 
@@ -2698,6 +2729,7 @@ def main(argv=None):
     )
     _i27_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
     _i27_t1 = _i27_struct and _i27_semver_ge(_i27_ver, _I27_SHIP)
+    _skew_record("I27-T1", _i27_struct, _I27_SHIP, _i27_ver)          # N-I45 shadow count (P3 §3.1(2))
 
     # RAW clarifications parse — independent of the schema layer (like I26 reads sources.json raw).
     _i27_clar_raw = None
@@ -3905,6 +3937,7 @@ def main(argv=None):
     _DLG_SHIP = "1.10.0"                       # release shipping I35-I40; validator_version >= this arms T1
     _dlg_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
     _dlg_t1 = _i27_struct and _i27_semver_ge(_dlg_ver, _DLG_SHIP)          # mirror I27 :2657-2666
+    _skew_record("I35-I40-T1", _i27_struct, _DLG_SHIP, _dlg_ver)      # N-I45 shadow count (P3 §3.1(2))
     _dlg_gates = fsm.get("gates") if isinstance(fsm, dict) else None
     _dlg_gates = _dlg_gates if isinstance(_dlg_gates, dict) else {}
     _dlg_path = os.path.join(rd, "dialogues.json")
@@ -4491,6 +4524,7 @@ def main(argv=None):
 
     _af_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
     _af_t1v = _i27_semver_ge(_af_ver, _AF_SHIP)                 # stamp-only arm (AF-44 _i35_t1v)
+    _skew_record("I38-T1v", True, _AF_SHIP, _af_ver)            # N-I45 shadow count; stamp-only arm => precondition True
     _af_t1 = _i27_struct and _af_t1v                            # version-gated presence (AF-23; reuse _i27_struct)
     _af_clar = _i27_clar_raw if isinstance(_i27_clar_raw, dict) else None   # RAW clarifications (reuse I27 parse)
     _af_halt = _af_clar.get("pending_halt") if isinstance(_af_clar, dict) else None
@@ -4724,6 +4758,7 @@ def main(argv=None):
     _GOV_SHIP = "1.10.0"
     _gov_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
     _gov_semver1 = _i27_semver_ge(_gov_ver, _GOV_SHIP)          # stamp-only arm (dissent 1)
+    _skew_record("I39-4-semver1", True, _GOV_SHIP, _gov_ver)    # N-I45 shadow count; stamp-only arm => precondition True
     _gov_t1 = _i27_struct and _gov_semver1                      # version-gated presence (GV-9; reuse _i27_struct)
     _gov_gates = fsm.get("gates") if isinstance(fsm, dict) else None
     _gov_gates = _gov_gates if isinstance(_gov_gates, dict) else {}
@@ -5159,8 +5194,16 @@ def main(argv=None):
     # I41-4d RE-USES its `_discrete_majority` rather than replacing it, and pins the previously-unspecified
     # semantic that panel[].verdict holds the FINAL vote. Trigger: T1 (presence floor; clauses I41-1/-2a)
     # arms only at validator_version >= _I41_SHIP; T2 (shape; clauses I41-2b/-3/-4/-5/-6) arms on ADOPTION
-    # (a panel_adjudication OR any member defects[]), any version — measured 0/156 archived verifies carry
+    # (a panel_adjudication OR any member defects[]), any version — measured 0/292 archived verifies carry
     # either key, so archives are silent in BOTH arms. No clause fires on a verify with no panel[].
+    # CENSUS (re-measured 2026-07-29; the earlier 0/156 denominator was stale, the CONCLUSION is not —
+    # zero adopters then, zero adopters now). One command derives it for I41 AND I42, printing
+    # `docs elements string-elements verifies-with-panel_adjudication verifies-with-member-defects`:
+    #   python3 -c "import json,glob;V=[p for p in sorted(glob.glob('.wip/*/units/*/verify*.json')) if
+    #   RUN not in p];D=[json.load(open(p)) for p in V];E=[e for d in D for e in
+    #   (d.get('inputs_reviewed') or [])];print(len(V),len(E),sum(isinstance(e,str) for e in E),
+    #   sum('panel_adjudication' in d for d in D),sum(any(m.get('defects') for m in d.get('panel') or [])
+    #   for d in D))"     # -> 292 2179 2179 0 0   (RUN = the in-flight run dir, not yet archived)
     # Limitation Y: an UNRECORDED dissent is invisible; only the latest verify per unit survives a retry
     # (Limitation F/L1); tested_defect / rationale genuineness stay attestation (validity != correctness);
     # (iv) a dissenter that rewrites its FINAL vote to PASS and drops its defects arms ZERO clauses.
@@ -5178,6 +5221,7 @@ def main(argv=None):
     _i41_probs0 = len(rep.problems)
     _i41_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
     _i41_t1 = _i27_semver_ge(_i41_ver, _I41_SHIP)
+    _skew_record("I41-T1", True, _I41_SHIP, _i41_ver)                 # N-I45 shadow count; stamp-only arm
 
     def _i41_blank(x):
         return not str(x if x is not None else "").strip()
@@ -5267,7 +5311,14 @@ def main(argv=None):
             # critique. A DISAGREE member is WELCOME to name a criterion, but naming one does not by
             # itself satisfy (c): the two disjuncts are exactly `summary` and `minimal_repro`, as the
             # clause's failure message states. (spec 2.4's aside "satisfies (c) trivially via defects" is
-            # inconsistent with its own predicate — reported as DIVERGENCE 8, not silently widened here.)
+            # inconsistent with its own predicate — reported as DIVERGENCE 8, not silently widened here.
+            # WHY the aside is false, stated rather than implied: it holds only if a `defects` entry
+            # NECESSARILY carries a `minimal_repro`, and it does not — `verify.schema.json` requires only
+            # ['severity','criterion'] on a member defects item and leaves `minimal_repro` OPTIONAL, so a
+            # criterion-bearing entry with no `minimal_repro` and no `summary` is schema-VALID and
+            # satisfies NEITHER disjunct. The PREDICATE below is correct and unchanged; only the aside is
+            # wrong. Anywhere else phrased as "a DISAGREE without `defects` fails (c)", read: without a
+            # `minimal_repro`-bearing `defects` entry AND without a `summary`.)
             if (not _i41_blank(m.get("summary"))
                     or any(not _i41_blank(d.get("minimal_repro")) for d in _i41_defects(m))):
                 continue
@@ -5434,9 +5485,12 @@ def main(argv=None):
     # (inputs_reviewed items become string|object via oneOf), so no previously-valid artifact becomes
     # invalid — this is NOT the I25/GV-29 contract-revision class; the closest neighbour is I22's
     # adoption-closure, whose pattern I42-1b copies. T2 adoption only (armed when ANY inputs_reviewed
-    # element on ANY verdict-bearing verify is an object); measured 964/964 archived inputs_reviewed
-    # elements across 156 archived verify documents are strings, so archives are silent with no version
-    # gate needed. _I42_SHIP gates the CLOSURE arm (I42-1b) alone,
+    # element on ANY verdict-bearing verify is an object); measured 2179/2179 archived inputs_reviewed
+    # elements across 292 archived verify documents are strings, so archives are silent with no version
+    # gate needed. (Re-measured 2026-07-29 by the CENSUS command at the I41 header above, which prints
+    # `292 2179 2179 0 0`; the previously published 964/964-across-156 denominators were stale. Both
+    # numbers MOVED; the safety conclusion did NOT — every element is still a string, so the adoption
+    # arm is still unarmed on every archive.) _I42_SHIP gates the CLOSURE arm (I42-1b) alone,
     # so a half-adopted pre-1.11.0 experiment is a NOTE rather than a FAIL. Limitation Z: a digest proves
     # the bytes match NOW; it does not prove the verifier ever READ them, and a verifier that fabricates a
     # digest from the current file passes trivially. I42 detects DRIFT, not READING. Stated, not implied.
@@ -5446,6 +5500,7 @@ def main(argv=None):
     _i42_note = LABEL_STEM['note_i42']
     _i42_probs0 = len(rep.problems)
     _i42_t1 = _i27_semver_ge(_i41_ver, _I42_SHIP)
+    _skew_record("I42-1b-T1", True, _I42_SHIP, _i41_ver)              # N-I45 shadow count; stamp-only arm
     _i42_rows = []                       # [(uid, index, element)] over verdict-bearing verifies
     for uid, v in _i41_vb:
         _ir = v.get("inputs_reviewed")
@@ -5619,6 +5674,272 @@ def main(argv=None):
            and uid not in unit_dirs_with_debrief:
             rep.fail(f"{LABEL_STEM['i9_verify_wo_debrief']} (units/{uid})",
                      "verify present but no debrief — a verifier output with nothing verified is incoherent")
+
+    # ═══ I43 verification currency · I44 sign-off closure · I46 non-converged PASS ═══════════════════
+    # Three OFFLINE, POST-HOC predicates over already-emitted artifacts. None reads or writes `retries`,
+    # `iteration`, `fuel` or any FSM variable; none adds a state, edge, gate flag or back-edge; none is
+    # evaluated on any transition. In particular NOTHING here guards LT7 (RETRY->EXECUTE), whose out-edge
+    # stays UNCONDITIONAL => the correction-loop termination proof Claims A-D and AO-1..7 all PRESERVE.
+    # Two REVISES are filed, not smuggled: (1) I43 makes `verify.iteration == debrief.iteration` a
+    # normative verify-artifact contract that no schema/predicate/doc previously stated; (2) I44 gives
+    # `gates.signoff_confirmed` an artifact-level obligation at ANY phase. Both carry migration arguments
+    # in the unit's spec (§5.4/§5.5); neither edits a schema, so no archived artifact becomes invalid.
+    # UNGATED by `validator_version` (§0.4): measured 156/156 legitimately-closed archived debrief/verify
+    # pairs across 8 distinct stamps (None -> 1.10.1) already satisfy currency, so ungated arming newly
+    # REDs ZERO archived runs. A >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at
+    # scaffold and never refreshes, so it would not arm on the very run that authors the predicate.
+    #
+    # IN-FLIGHT WINDOW — CITED, NOT HOISTED (R3). Two window sites already exist and are BYTE-UNTOUCHED:
+    #   * `:5594` I9 missing-verification: `phase == "P6_EXECUTE_VERIFY" and _st in ("executing","verifying")`
+    #   * `:5555` I42-3 digest drift: the same two conjuncts, copied verbatim for the same reason.
+    # Hoisting them into one shared helper was DECLINED: pure insertion is a confirmed guardrail for this
+    # change (Non-Goal 9), and a hoist would re-condition two shipped predicates to buy nothing. I43
+    # therefore defines its OWN window — I9's two conjuncts PLUS `not SIGNED_OFF` — as a sibling, not a
+    # shared function. That third conjunct is LOAD-BEARING in both directions: without the first two, a
+    # hard FAIL at every legal RETRY (where `debrief.iteration == N` while the newest verify still attests
+    # to `N-1` BY CONSTRUCTION) would halt a compliant orchestrator — a de-facto live guard on the sole
+    # back-edge; without `not SIGNED_OFF`, the three units that motivate the predicate (all `verifying` at
+    # P6) downgrade to NOTEs that `--quiet` (mandated by SKILL.md) then eats, leaving the predicate INERT
+    # on exactly the run it was written for. Rule made precise: mid-loop staleness is legal; staleness once
+    # the run CLAIMS to be finished is not.
+    # CRASH DISCIPLINE (§0.5): every read below is isinstance-guarded and `.get`-only (no indexing), because
+    # an exception here would abort the linear pass and SILENTLY DISABLE every downstream predicate — a
+    # failure mode already observed in this codebase (I35 raising TypeError on a schema-invalid integer).
+    # An iteration is accepted iff `isinstance(v, int) and not isinstance(v, bool)`; the bool exclusion is
+    # currently unreachable through unit_docs (a JSON `true` is dropped at :670-673) and is kept so the
+    # guard survives a future schema relaxation. NO per-member panel verify file (the numbered audit-trail
+    # siblings of the aggregated verify.json, :687-694) is opened, statted or globbed by ANY clause below,
+    # and this block contains no textual reference to their filename prefix (§0.3): they are a
+    # per-iteration AUDIT TRAIL BY DESIGN, deliberately kept out of unit_docs, and 27 of 133 archived
+    # member files legitimately sit behind their own unit's debrief — a freshness check over them would
+    # RED-flag the best audit trail in the archive (18 of those 27 are one signed-off run's 3x3 panel).
+    _vc_f = fsm if isinstance(fsm, dict) else {}
+    _vc_gates = _vc_f.get("gates") if isinstance(_vc_f.get("gates"), dict) else {}
+    _vc_signed_off = _vc_gates.get("signoff_confirmed") is True      # IDENTITY to True, never truthiness
+
+    def _vc_doc_iter(_u, _kind):
+        _d = unit_docs.get(_u)
+        _doc = _d.get(_kind) if isinstance(_d, dict) else None
+        _it = _doc.get("iteration") if isinstance(_doc, dict) else None
+        return _it if isinstance(_it, int) and not isinstance(_it, bool) else None
+
+    def _vc_agg(_u):
+        # AGG(u): the AGGREGATED verify.json only — parsed, schema-valid and unit_id-matched (:684).
+        _d = unit_docs.get(_u)
+        _v = _d.get("verify") if isinstance(_d, dict) else None
+        return _v if isinstance(_v, dict) else None
+
+    def _vc_in_flight(_u):
+        # I9's window (:5594) + the third conjunct. The carve-out EXPIRES at claimed completion.
+        return (phase == "P6_EXECUTE_VERIFY"
+                and _fsm_unit_status.get(_u) in ("executing", "verifying")
+                and not _vc_signed_off)
+
+    # ── fsm-state.json.accepted_incomplete — the recorded human override (§2.3), computed ONCE here so
+    # I44 and I46 share ONE override shape. Computation only: nothing is emitted unless SIGNED_OFF holds.
+    # Six conditions, evaluated in order so a malformed override can name THE FIRST unmet one by number.
+    # `accepted_at` / `accepted_by` are deliberately NEVER read — they exist for the human reader, and
+    # enforcing them would invent an attestation.
+    _ai_present = "accepted_incomplete" in _vc_f
+    _ai = _vc_f.get("accepted_incomplete")
+    _ai_units = _ai.get("units") if isinstance(_ai, dict) else None
+    _ai_rat = _ai.get("rationale") if isinstance(_ai, dict) else None
+    _ai_ref = _ai.get("decision_ref") if isinstance(_ai, dict) else None
+    _ai_unmet = None
+    if not isinstance(_ai, dict):
+        _ai_unmet = 1
+    elif not isinstance(_ai_units, list):
+        _ai_unmet = 2
+    elif not (isinstance(_ai_rat, str) and _ai_rat.strip() != ""):
+        _ai_unmet = 3
+    elif not (isinstance(_ai_ref, str) and _ai_ref.strip() != ""):
+        _ai_unmet = 4
+    elif "DECISIONS.md" not in _ai_ref:
+        _ai_unmet = 5
+    elif not os.path.exists(os.path.join(rd, "DECISIONS.md")):
+        _ai_unmet = 6
+    _ai_ok = _ai_present and _ai_unmet is None
+    # Elements that are not `str` are IGNORED, never coerced (§2.3(2)).
+    _ai_named = sorted({_x for _x in (_ai_units or []) if isinstance(_x, str)}) if isinstance(_ai_units, list) else []
+    _AI_COND = {
+        1: "(1) accepted_incomplete is not a JSON object",
+        2: "(2) accepted_incomplete.units is not a list",
+        3: "(3) accepted_incomplete.rationale is missing, not a string, or blank",
+        4: "(4) accepted_incomplete.decision_ref is missing, not a string, or blank",
+        5: "(5) accepted_incomplete.decision_ref does not name DECISIONS.md",
+        6: "(6) no DECISIONS.md exists under the run dir",
+    }
+
+    def _vc_override_note(_u, _why):
+        if not args.quiet:
+            print(f"  NOTE  {LABEL_STEM['note_i44']} (accepted-incomplete override) (units/{_u}): {_why} "
+                  f"— DOWNGRADED from a hard FAIL by fsm-state.json.accepted_incomplete "
+                  f"(decision_ref {_ai_ref!r}); the human accepted this unit's verification as incomplete "
+                  "at sign-off. Recorded, per-unit and grep-visible — never suppressed (I44 §2.3)")
+
+    # ── I43 (P1) — verification currency. Four EXHAUSTIVE, MUTUALLY EXCLUSIVE arms over the post-guard
+    # state space {SUPERSEDED, AHEAD, CURRENT} x {IN_FLIGHT, not IN_FLIGHT}. Two GUARDS first: I43 never
+    # fires on an indeterminate debrief (already a FAIL at :664/:673/:681) nor on an absent/unusable
+    # verify — that is I9's domain (:5592-5609) and, under sign-off, I44-a/-b's. Declining rather than
+    # piling a second FAIL on the same fact is a normative sub-clause (§0.6), not an optimization.
+    # I43 does NOT read `retries` (I4's ceiling `iteration <= retries+1` is neither widened nor narrowed —
+    # this is an equality between two ARTIFACTS), does NOT read `verdict` (complete means CURRENT, not
+    # PASS: a unit holding a current FAIL at retries==2 exits via ESCALATE), and detects STALENESS, never
+    # GENUINENESS — a loop that bumps both iterations without re-verifying satisfies I43 exactly (§9-R5).
+    for uid in sorted(unit_dirs_with_debrief):
+        _i43_dbi = _vc_doc_iter(uid, "debrief")
+        if _i43_dbi is None:
+            continue                                   # GUARD: indeterminate debrief — emit nothing (§1.5)
+        _i43_agg = _vc_agg(uid)
+        _i43_vyi = _vc_doc_iter(uid, "verify")
+        if _i43_agg is None or _i43_vyi is None:
+            continue                                   # GUARD: absent/unusable verify — I9's domain (§0.6)
+        _i43_inf = _vc_in_flight(uid)
+        _i43_st = _fsm_unit_status.get(uid)
+        _i43_so = _vc_gates.get("signoff_confirmed")
+        if _i43_vyi < _i43_dbi and not _i43_inf:                                             # P1-a
+            rep.fail(f"{LABEL_STEM['i43_currency']} (units/{uid})",
+                     f"debrief.iteration={_i43_dbi} but the aggregated verify.iteration={_i43_vyi} — the "
+                     f"verification is SUPERSEDED (fsm status {_i43_st!r}, phase {phase}, "
+                     f"gates.signoff_confirmed={_i43_so!r}), so what was adjudicated is not what the unit "
+                     "now claims; the in-flight carve-out (P6 + executing/verifying + not signed off) "
+                     "does not apply")
+        elif _i43_vyi > _i43_dbi and not _i43_inf:                                           # P1-b
+            rep.fail(f"{LABEL_STEM['i43_currency']} (units/{uid})",
+                     f"debrief.iteration={_i43_dbi} but the aggregated verify.iteration={_i43_vyi} — the "
+                     f"verification is AHEAD OF THE DEBRIEF (fsm status {_i43_st!r}, phase {phase}, "
+                     f"gates.signoff_confirmed={_i43_so!r}); no legal LT7 transient puts the verify ahead "
+                     "(LT7 increments `iteration` BEFORE the next EXECUTE writes its debrief), so either "
+                     "the debrief was rolled back under a live verification or the verify's iteration was "
+                     "AUTHORED rather than observed")
+        elif _i43_vyi != _i43_dbi and _i43_inf:                                              # P1-d
+            if not args.quiet:
+                print(f"  NOTE  {LABEL_STEM['note_i43']} (in-flight) (units/{uid}): debrief.iteration="
+                      f"{_i43_dbi} vs aggregated verify.iteration={_i43_vyi} (fsm status {_i43_st!r} at "
+                      f"P6, gates.signoff_confirmed={_i43_so!r}) — a unit mid-correction-loop legitimately "
+                      "carries a verify one iteration behind; legal transient, not yet a defect")
+        elif _i43_vyi == _i43_dbi:                                                           # P1-ok
+            rep.ok(f"{LABEL_STEM['i43_currency']} (units/{uid}: iteration {_i43_vyi} verified)")
+
+    # ── I44 (P2) — sign-off closure. The CONVERSE direction of gate ordering: from a true gate flag to a
+    # required artifact state. It is DELIBERATELY NOT in REQUIRED_GATES (:6211-6224): that table is
+    # one-directional (phase => gates) and spec_check.py SC3 DERIVES it from spec/fsm.json.guards[], whose
+    # entire vocabulary is `required_from_phase` — a lower bound on gates given a phase. "Given gate G
+    # true, artifacts A must exist" is INEXPRESSIBLE there, so adding I44 would either break SC3 or
+    # silently redefine what REQUIRED_GATES means. I44 therefore ships as its own labelled predicate,
+    # following the `gpersonas_failclosed` archetype (:6198-6201) exactly.
+    # KEYED ON ARTIFACTS, NEVER ON fsm-state STATUS LABELS: `_fsm_unit_status` is read below ONLY to
+    # interpolate into detail text, never for a decision. Measured: a status-keyed formulation newly REDs
+    # 3 archived runs for cosmetic desync (e.g. 2026-07-05_143454's U09, labelled `executing` at DONE with
+    # a complete, iteration-matched debrief+verify) while the artifact-keyed one newly REDs ZERO and still
+    # catches all 3 real defects. A stale label is a documentation defect and belongs to a separate NOTE.
+    # NO PHASE CONDITION AND NO CARVE-OUT: the antecedent SIGNED_OFF is the exact negation of I43's
+    # carve-out conjunct, so a carve-out here would be self-cancelling — and the motivating run rolled
+    # P8 -> P6 back while LEAVING `signoff_confirmed: true`, so any phase-gated formulation is inert on it.
+    if _vc_signed_off and unit_subdirs:
+        _i44_fired = False
+        if _ai_present and _ai_unmet is not None:
+            # FAIL-CLOSED (§2.3): a malformed override downgrades NOTHING and adds exactly one hard FAIL.
+            _i44_fired = True
+            rep.fail(f"{LABEL_STEM['i44_signoff_closure']} (accepted_incomplete malformed)",
+                     f"fsm-state.json.accepted_incomplete is PRESENT but unmet condition {_AI_COND[_ai_unmet]} "
+                     "of the six required by I44 §2.3 — so NO unit is downgraded and every open unit keeps "
+                     "its own hard FAIL; a malformed override may never silently suppress an emission")
+        _i44_open = []
+        for uid in sorted(unit_dirs_with_debrief):
+            _i44_agg = _vc_agg(uid)
+            _i44_dbi = _vc_doc_iter(uid, "debrief")
+            _i44_vyi = _vc_doc_iter(uid, "verify")
+            _i44_st = _fsm_unit_status.get(uid)
+            _i44_arm = None
+            if not os.path.exists(os.path.join(units_dir, uid, "verify.json")):
+                _i44_arm = ("a", "ABSENT verification (no units/%s/verify.json on disk)" % uid)
+            elif _i44_agg is None:
+                _i44_arm = ("b", "UNUSABLE verification (not JSON / not schema-valid / unit_id mismatch)")
+            elif "verdict" not in _i44_agg:
+                _i44_arm = ("c", "verification carries NO VERDICT")
+            elif not (_i44_dbi is not None and _i44_vyi is not None and _i44_dbi == _i44_vyi):
+                _i44_arm = ("d", "SUPERSEDED verification (the verify does not adjudicate this debrief)")
+            elif _i44_agg.get("verdict") == "DISAGREE":
+                _i44_arm = ("e", "unresolved DISAGREE at sign-off")
+            if _i44_arm is None:
+                continue
+            _i44_fired = True
+            _i44_why = (f"{_i44_arm[1]} while gates.signoff_confirmed=true "
+                        f"(debrief.iteration={_i44_dbi!r}, aggregated verify.iteration={_i44_vyi!r}, "
+                        f"fsm status {_i44_st!r}, phase {phase})")
+            if _i44_arm[0] == "e":
+                # NOTE, not FAIL: DISAGREE is a COMPLETE verification act declaring irresolvability; its
+                # sanctioned route is LT6 -> ESCALATE -> Phase 7, a human gate, not more verification.
+                # Failing it would conflate "verification incomplete" with "escalation unresolved" AND
+                # create an incentive against voting DISAGREE — attacking AO-5 from the incentive side.
+                if not args.quiet:
+                    print(f"  NOTE  {LABEL_STEM['note_i44']} (unresolved DISAGREE at sign-off) "
+                          f"(units/{uid}): {_i44_why} — a genuine split is closed by the Phase-7 human "
+                          "gate, never by another verification round; recorded, never failed (AO-5)")
+                continue
+            _i44_open.append(uid)
+            # Per-unit coverage (§2.3): a well-formed override downgrades the units it NAMES and leaves
+            # every other open unit a hard FAIL. There is no blanket "all open units" form.
+            if _ai_ok and uid in _ai_named:
+                _vc_override_note(uid, _i44_why)
+            else:
+                rep.fail(f"{LABEL_STEM['i44_signoff_closure']} (units/{uid})",
+                         f"{_i44_why} — a run may not claim sign-off over an executed unit whose "
+                         "verification is absent, unusable, verdict-less or superseded, at ANY phase "
+                         f"(arm {_i44_arm[0]}; record fsm-state.json.accepted_incomplete to accept it "
+                         "knowingly). Note a CURRENT FAIL verdict is CLOSED verification, not an arm.")
+        if _ai_ok:
+            _i44_surplus = sorted(set(_ai_named) - set(_i44_open))
+            if _i44_surplus and not args.quiet:
+                print(f"  NOTE  {LABEL_STEM['note_i44']} (override over-broad): "
+                      f"accepted_incomplete.units names {_i44_surplus} but those units are not currently "
+                      "open (no absent/unusable/verdict-less/superseded verification), so the override is "
+                      "stale for them — exit-neutral, and it blocks no downgrade for the units that ARE open")
+        if not _i44_fired:
+            rep.ok(f"{LABEL_STEM['i44_signoff_closure']} (signoff_confirmed with "
+                   f"{len(unit_dirs_with_debrief)} executed unit(s); all verified and current)")
+
+    # ── I46 (P4) — non-converged PASS. ADOPTION-ARMED BY IDENTITY: `v.get("converged") is False`, never
+    # falsiness — an ABSENT `converged` (an optional key in verify.schema.json) never arms I46, and neither
+    # does 0, "" or null. A run that never wrote the field emits NOTHING AT ALL (the I19/I20 zero-adoption
+    # precedent), which is what keeps I46 silent across the archive. Severity is TWO-TIER by human ruling
+    # (DECISIONS#29): exit-neutral NOTE below sign-off — `converged: false` is a LEGAL mid-run state, and
+    # an unconditional FAIL would criminalize an honest report and punish adoption of an optional honesty
+    # field — but a hard FAIL under a CLAIMED sign-off, where a unit whose own verification declares its
+    # coverage incomplete IS verification left unfinished. I43, I44 and I46 thus share ONE doctrine rather
+    # than three ad-hoc severities. `verify_rounds` is PRINTED when present but is never a CONDITION:
+    # requiring the round cap would narrow the predicate on unmeasured grounds. Reads the AGGREGATED
+    # verify only; a panel member's own `converged` is per-member audit data (§0.3).
+    _i46_declared = 0
+    _i46_fired = False
+    for uid in sorted(unit_dirs_with_debrief):
+        _i46_agg = _vc_agg(uid)
+        if _i46_agg is None:
+            continue
+        if "converged" in _i46_agg:
+            _i46_declared += 1
+        if not (_i46_agg.get("verdict") == "PASS" and _i46_agg.get("converged") is False):
+            continue
+        _i46_fired = True
+        _i46_why = ("aggregated verify records verdict=PASS with converged: false"
+                    + (f", verify_rounds={_i46_agg.get('verify_rounds')!r}" if "verify_rounds" in _i46_agg
+                       else " (no verify_rounds recorded)"))
+        if not _vc_signed_off:                                                               # P4-a
+            if not args.quiet:
+                print(f"  NOTE  {LABEL_STEM['note_i46']} (units/{uid}): {_i46_why} — the verifier is "
+                      "reporting honestly that its coverage is incomplete; legal mid-run, and it becomes "
+                      "a defect only if the run claims sign-off in this state (I46 two-tier severity)")
+        elif _ai_ok and uid in _ai_named:                                                    # P4-b, §4.3
+            _vc_override_note(uid, _i46_why)
+        else:                                                                                # P4-b
+            rep.fail(f"{LABEL_STEM['i46_nonconverged_pass']} (units/{uid})",
+                     f"{_i46_why} while gates.signoff_confirmed=true (phase {phase}) — a PASS whose own "
+                     "verification declares its coverage NOT converged is verification left unfinished at "
+                     "claimed completion; re-verify, or record fsm-state.json.accepted_incomplete")
+    if _i46_declared and not _i46_fired:
+        rep.ok(f"{LABEL_STEM['i46_nonconverged_pass']} ({_i46_declared} verify doc(s) declare converged; "
+               "none is a non-converged PASS)")
 
     # G-brief offline presence (BRK-03; T8/G-brief offline counterpart). A missing
     # units/<U>/brief.json silently DISABLES I5 (budget) / I6-FAIL criterion binding / I11 brief-tag
@@ -6227,6 +6548,18 @@ def main(argv=None):
         elif need:
             rep.ok(f"{LABEL_STEM['gate_ordering']} (phase {phase}: prior gates satisfied)")
 
+    # N-I45 version-skew visibility (P3 §3.1(3)) — exit-neutral by CONSTRUCTION: a bare print, touching
+    # neither rep.problems nor rep.checked. DELIBERATELY NOT gated on args.quiet (§3.3): SKILL.md mandates
+    # --quiet, so a quiet-gated skew NOTE would be inert in the only invocation that matters. The closest
+    # sibling (the I39-4 "governance disarmed; unstamped" NOTE) IS quiet-gated; this deviates knowingly and
+    # the divergence is filed as residual R7/§9-R7 rather than left unexplained. Zero suppressed arms emits
+    # NOTHING. Wording is normative (§3.2/L16): this counts EVALUATION GATES, never failures.
+    if len(_SKEW) >= 1:
+        print(f"  NOTE  {LABEL_STEM['i45_version_skew']}: validator_version={_i27_ver!r} suppressed "
+              f"{len(_SKEW)} version-gated arm(s) whose other preconditions HELD: "
+              f"{sorted(a['arm'] for a in _SKEW)}. Suppressed arms are an UPPER BOUND on suppressed "
+              "FAILs — an armed clause may have passed. Re-run with the stamp raised to see the actual "
+              "verdicts.")
     return _finish(rep)
 
 def _finish(rep):

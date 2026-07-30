@@ -348,3 +348,29 @@ digest_mismatch_p6_terminal	1	digest mismatch
 digest_mismatch_crossunit_note	0	N-I42 (digest drift
 digest_mismatch_crossunit_fail	1	digest mismatch
 digest_mismatch_root_note	0	N-I42 (digest drift
+panel_downgrade_major_echo	1	I41 panel dissent (downgrade unechoed
+digest_path_only_ok	0	0 digested input(s) across 1 verify file(s); integrity OK
+panel_adj_nondict	1	I41 panel dissent (unadjudicated
+# --- U07 fixtures for the four verification-currency predicates (I43/I44/N-I45/I46; predicate-spec.md) ---
+# GREEN rows pinned on 'RESULT: PASS' are absence controls: expectations.tsv cannot express
+# 'label X must NOT appear', so they pin that the pass completed instead (see each NOTE.md).
+i43_current_positive	0	I43 verification currency (units/U01: iteration 2 verified)
+i43_superseded_at_signoff	1	I43 verification currency (units/U01)
+i43_ahead_of_debrief	1	I43 verification currency (units/U01)
+i43_inflight_before_signoff	0	RESULT: PASS
+i43_inflight_signoff_expired	1	I43 verification currency (units/U01)
+i43_inflight_signoff_false	0	N-I43 verification currency (in-flight)
+i44_superseded_at_signoff	1	I44 sign-off closure (units/U01)
+i44_absent_verify_any_phase	1	I44 sign-off closure (units/U01)
+i44_override_partial	1	I44 sign-off closure (units/U02)
+i44_override_malformed	1	I44 sign-off closure (accepted_incomplete malformed)
+i44_override_wellformed	0	N-I44 sign-off closure (accepted-incomplete override) (units/U01)
+i44_no_signoff_antecedent	0	RESULT: PASS
+i44_closed_current_fail	0	RESULT: PASS
+i45_skew_note	0	N-I45 version-skew visibility
+i45_no_skew_overfire	0	RESULT: PASS
+i46_nonconverged_pass_at_signoff	1	I46 non-converged PASS (units/U01)
+i46_nonconverged_midloop_note	0	N-I46 non-converged PASS (units/U01)
+i46_converged_true_positive	0	I46 non-converged PASS (1 verify doc(s) declare converged
+i46_no_converged_key	0	RESULT: PASS
+i46_nonconverged_fail_verdict	0	RESULT: PASS

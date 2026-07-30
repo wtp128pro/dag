@@ -71,7 +71,20 @@ so most are dead weight until their phase arrives.
    gate flag true (`clarification_resolved` after P2, `cartography_done` after P3,
    `decomposition_approved` after P4, `signoff_confirmed` after P8 — `personas_confirmed` after P1),
    and bump `updated_at`. The validator's REQUIRED_GATES and its WP5 artifact→phase-floor check will
-   FAIL a run whose ledger under-reports the phase or omits a gate flag. **Never self-set a gate flag
+   FAIL a run whose ledger under-reports the phase or omits a gate flag.
+   **Re-stamp `validator_version` on every phase advance (U08).** In the SAME edit, run
+   `bash "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/init_run.sh" --restamp <RUN_DIR>` — it refreshes
+   `fsm-state.json.validator_version` in place to the CURRENT plugin version (ratchet: only ever
+   raised, never lowered) and touches no other key. `init_run.sh` writes the stamp at scaffold time
+   too, but a scaffold-only stamp goes stale the moment the run ships an invariant: the run that
+   AUTHORED I41 carried its pre-release stamp for its whole life and was version-gated out of being
+   judged by its own invariant — flipping one digit of that stamp on otherwise identical bytes turned
+   `264 checks / 0 problems / PASS` into `264 checks / 8 problems / FAIL`. Re-stamping closes that
+   self-reference: **a run that ships an invariant is judged by it.** Archive safety is unchanged —
+   this alters only WHEN the stamp is written, never how it is read, and the re-stamp path never writes
+   a blank/malformed value, so an absent or malformed stamp still parses to False on every semver
+   comparison (`_i27_semver_ge`, byte-untouched) and no unstamped archived run is newly penalized
+   (references/state-machine.md §5). **Never self-set a gate flag
    to skip a human gate** — a **human-gate** flag (`personas_confirmed`, `clarification_resolved`,
    `signoff_confirmed` — the three human gates) is your attestation the human actually decided;
    `cartography_done` and `decomposition_approved` are **mechanical** phase-completion flags, not human
@@ -140,6 +153,25 @@ so most are dead weight until their phase arrives.
    `executing`/`verifying`; everywhere else, and always at P8/DONE, it stays a hard FAIL.)
    **Normalize the pair BEFORE you validate it (`BB-L26`, `DAG-L2`, `MU-L32`).** Quoting the exact shape in a brief is necessary, not sufficient — subagents still drift on key names, container types and enum casing, every wave. Run
    `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/normalize_artifacts.py" <RUN_DIR> --write` on each landed pair first: shape-only, offline, idempotent, and it gates nothing.
+
+8. **Verification is currency, not a checkbox — a run NEVER ends with verification open or
+   superseded.** A unit is *verified* only while its `verify.json` adjudicates the debrief that is
+   on disk **now**: `verify.iteration == debrief.iteration`. Any other state is one of three things,
+   and only the first is legal — a mid-loop transient (the debrief of iteration *N* under the verify
+   of *N−1*, which is what every compliant `RETRY` looks like), a **superseded** verification
+   (the executor repaired the artifact and the old verdict now adjudicates bytes that no longer
+   exist), or an **absent** one. *Mid-loop staleness is legal; staleness once the run claims to be
+   finished is not,* and `gates.signoff_confirmed: true` IS that claim. Mechanical counterparts,
+   post-hoc and offline (they gate no transition and never guard `LT7`): **I43 verification
+   currency** FAILs an iteration mismatch outside the in-flight window, **I44 sign-off closure**
+   FAILs an absent / unusable / verdict-less / superseded verification on any executed unit once
+   `signoff_confirmed` is true — *at any phase*, including a run rolled back to P6 with the flag
+   still set — and **I46 non-converged PASS** FAILs a `PASS` whose own `converged: false` declares
+   its coverage incomplete under that same claim (an exit-neutral NOTE below sign-off). Complete
+   means **current**, never PASS: a unit holding a *current* `FAIL` at `retries == 2` is closed
+   verification and exits via `ESCALATE` → Phase 7. **Honesty boundary (Limitation AA):** these
+   predicates make verification completeness *legible*, never *true* — a loop that bumps both
+   iterations without re-verifying satisfies I43 exactly (references/state-machine.md §5).
 
 ---
 
@@ -720,7 +752,7 @@ run an evidence-reproducing verifier concurrent with an executor mutating what i
    | Guard | → | Action |
    |-------|---|--------|
    | `verdict == PASS` | **DONE** | Mark the unit done (`TaskUpdate`); append any *generalizable* lesson to `LEARNINGS.md` (see Ledger discipline → LEARNINGS entry schema); propagate handoff notes into downstream briefs; update `PROGRESS.md`. |
-   | `verdict == FAIL ∧ retries < 2` | **RETRY** | `retries += 1`; embed the prior `feedback` (verbatim) in the next executor brief; re-execute, then re-verify. Log the iteration in `PROGRESS.md`. |
+   | `verdict == FAIL ∧ retries < 2` | **RETRY** | `retries += 1`; embed the prior `feedback` (verbatim) in the next executor brief; re-execute, then re-verify (**the repair INVALIDATES the prior panel** — see below). Log the iteration in `PROGRESS.md`. |
    | `verdict == FAIL ∧ retries == 2` | **ESCALATE** | Retry budget exhausted → treat as a material disagreement → **Phase 7**. |
    | `verdict == DISAGREE` | **ESCALATE** | Objective-irresolvable executor↔verifier split → **Phase 7**. |
 
@@ -737,6 +769,25 @@ run an evidence-reproducing verifier concurrent with an executor mutating what i
    self-review (AO-3/AO-4); each retry must cite ≥1 change responsive to the prior
    `feedback.actionable_changes` (AO-6, now post-hoc-checked as **I15**). Run the validator after each
    iteration and before the loop exits.
+
+   **An executor repair INVALIDATES its prior panel — re-verification is mandatory, not optional
+   (`DAG-L13`).** The moment iteration *N+1* rewrites the artifact, every verdict from iteration *N*
+   adjudicates bytes that no longer exist: the panel's evidence has been destroyed under it, so the
+   old `verify.json` is **superseded**, not merely older. Two consequences bind you:
+   - **Never repair an artifact while its verification is in flight.** Let the verify land, then
+     retry. Repairing under a live verifier destroys the evidence the verifier is citing and can
+     convene a human gate (Phase 7) over a defect that is already fixed — and it manufactures the
+     I43 `AHEAD` state (a verify attesting to a *later* iteration than the debrief), which is a hard
+     FAIL because no legal `LT7` transient produces it.
+   - **Re-verify from scratch, and let the numbering carry the history.** AO-7 re-panels afresh: a
+     new panel of independent lenses re-examines the repaired artifact and writes a NEW aggregated
+     `verify.json` at the new `iteration`. When members are persisted individually, they are written
+     as `verify_p<N+1>…` **continuing the numbering across iterations** — never overwriting an
+     earlier iteration's member files. Measured precedent: run `2026-07-18_101631`'s U01 holds
+     `verify_p1..p9`, three rounds of three lenses across iterations 1–3, with the aggregated
+     `verify.json` current. Those per-member files legitimately lag the debrief and are an audit
+     **trail by design**, which is why no currency predicate reads `verify_p*` — I43/I44/I46 judge
+     the aggregated `verify.json` only.
 
 6. **In-run learning discipline (prose steps — not validator-gated).** The adjudicator also runs three
    learning-loop steps around the table above. **None gates the FSM** (they add no edge to the §1.3
@@ -893,6 +944,44 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    they did).
    **A unit that did not RUN leaves its DoD items UNDISCHARGED (`BB-L34`).** Name each such item, and
    the skipped/blocked/unrun unit that owed it, in this message — a mostly-green run is not whole-task confirmation.
+
+   **Precondition — verification closure (prime directive 8 / I44).** You may not set
+   `signoff_confirmed` while ANY executed unit's verification is **absent**, **unusable** (not JSON,
+   not schema-valid, `unit_id` mismatched), **verdict-less**, or **superseded**
+   (`verify.iteration != debrief.iteration`). Close the loop first: land the missing verify, or
+   re-verify the repaired artifact. This precondition is phase-independent — rolling the recorded
+   phase back to P6 while leaving the flag set does not evade it, because I44's antecedent is the
+   flag, not the phase. A `DISAGREE` parked at sign-off is *complete* verification (it declares
+   irresolvability and exits via Phase 7), so it is an exit-neutral NOTE, not a FAIL; the same is
+   true of a **current** `FAIL`.
+
+   **The recorded override — sign off knowingly, but never invisibly.** The maintainer may still
+   decline further verification and sign off anyway; that choice stays available and becomes
+   **loud, per-unit and grep-visible**. Declare it as an `accepted_incomplete` object at the top
+   level of `fsm-state.json`:
+
+   ```json
+   "accepted_incomplete": {
+     "units": ["U05", "U07", "U08"],
+     "rationale": "why sign-off proceeded with these units open (non-blank prose)",
+     "decision_ref": "DECISIONS.md#accepted-incomplete-2026-07-29",
+     "accepted_at": "2026-07-29", "accepted_by": "maintainer"
+   }
+   ```
+
+   `units`, `rationale` and `decision_ref` are required; `decision_ref` must name `DECISIONS.md`
+   and that file must exist in the run dir (`accepted_at`/`accepted_by` are for the human reader and
+   are never read by the predicate, so no attestation is invented). Effect and limits:
+   - It **downgrades**, never suppresses: each named unit's hard FAIL becomes an exit-neutral
+     `N-I44 sign-off closure (accepted-incomplete override)` row. The row is always emitted.
+   - **Coverage is per unit and there is no blanket form.** An override that omits an open unit
+     downgrades only the units it names; the omitted unit stays a hard FAIL. "All open units" is
+     inexpressible on purpose — the block must enumerate EVERY unit you are knowingly leaving open.
+   - **Malformed ⇒ fail-closed.** If the key is present but any requirement is unmet, nothing is
+     downgraded and one extra hard FAIL fires naming the unmet condition. A stale override that
+     names units which are no longer open emits an exit-neutral over-broad NOTE.
+   - Write the matching `DECISIONS.md` row (what was offered, what was declined, why) in the same
+     edit. The override is a *record of a human decision*, not a validator flag you may flip.
 4. **Promote durable LEARNINGS → persist (03/P2 write end).** Close the promotion loop that the
    Phase-0.5 intake re-reads: for every run-local entry marked `promotable: true` with a non-expired
    `scope.expiry`, write a schema-valid file into the project store `.dag/learnings/<id>.json` (upsert

@@ -1610,7 +1610,9 @@
         "panel_withdrawn_after_repoll",
         "panel_dissent_disagree_bare",
         "panel_dissent_disagree_ok",
-        "panel_dissent_disagree_repro_ok"
+        "panel_dissent_disagree_repro_ok",
+        "panel_downgrade_major_echo",
+        "panel_adj_nondict"
       ],
       "provenance": [
         "cross-repo-lessons-intake",
@@ -1626,7 +1628,7 @@
     {
       "id": "I42",
       "tier": "mechanical",
-      "title": "Evidence digest integrity (R18 / BB-L46) — a verifier's inputs_reviewed may carry content DIGESTS, not just paths. I42-1a every evidence object carries a non-blank path; I42-1b adoption closure (mixed string/object in an armed run FAILs at >=1.11.0, NOTE below it); I42-2 a present sha256 must be 64 lowercase hex, fail-CLOSED; I42-3 recomputed digest must match, EXCEPT the I9 status-aware transient (P6 + executing/verifying => NOTE), hard FAIL everywhere else and ALWAYS at P8/DONE; I42-4 a dangling run-relative path FAILs; I42-5 out-of-run paths are an exit-neutral NOTE, never a FAIL (not decidable from emitted artifacts). Schema delta is a union WIDENING, so no previously-valid artifact becomes invalid — NOT the I25/GV-29 contract-revision class. Offline post-hoc, T2 adoption-armed (0/156 archived verifies adopt; all 964 archived inputs_reviewed elements are strings), NEVER guards LT7 => PRESERVES the termination proof, AO-1..7 and I1..I41. Limitation Z: I42 detects DRIFT, not READING.",
+      "title": "Evidence digest integrity (R18 / BB-L46) — a verifier's inputs_reviewed may carry content DIGESTS, not just paths. I42-1a every evidence object carries a non-blank path; I42-1b adoption closure (mixed string/object in an armed run FAILs at >=1.11.0, NOTE below it); I42-2 a present sha256 must be 64 lowercase hex, fail-CLOSED; I42-3 recomputed digest must match, EXCEPT the I9 status-aware transient (P6 + executing/verifying => NOTE), hard FAIL everywhere else and ALWAYS at P8/DONE; I42-4 a dangling run-relative path FAILs; I42-5 out-of-run paths are an exit-neutral NOTE, never a FAIL (not decidable from emitted artifacts). Schema delta is a union WIDENING, so no previously-valid artifact becomes invalid — NOT the I25/GV-29 contract-revision class. Offline post-hoc, T2 adoption-armed (0/292 archived verifies adopt; all 2179 archived inputs_reviewed elements are strings — re-measured 2026-07-29 by the census command recorded at state-machine.md I42 / validate_run.py I41 header, which prints '292 2179 2179 0 0'; the previously published 0/156 and 964 figures were stale denominators, so the NUMBERS moved while the safety conclusion did NOT: zero adopters and zero object elements then and now), NEVER guards LT7 => PRESERVES the termination proof, AO-1..7 and I1..I41. Limitation Z: I42 detects DRIFT, not READING.",
       "validator_label_prefixes": [
         "I42 evidence digest",
         "N-I42"
@@ -1646,7 +1648,8 @@
         "digest_mismatch_p6_terminal",
         "digest_mismatch_crossunit_note",
         "digest_mismatch_crossunit_fail",
-        "digest_mismatch_root_note"
+        "digest_mismatch_root_note",
+        "digest_path_only_ok"
       ],
       "provenance": [
         "cross-repo-lessons-intake",
@@ -1657,6 +1660,105 @@
         "references/state-machine.md#4",
         "references/formal-models.md",
         "cross-repo-lessons-intake artifacts/invariant-spec.md §3"
+      ]
+    },
+    {
+      "id": "I43",
+      "title": "Verification currency \u2014 an executed unit's AGGREGATED verify.json must adjudicate the iteration its debrief claims. Four exhaustive, mutually exclusive arms over {SUPERSEDED, AHEAD, CURRENT} x {IN_FLIGHT, not IN_FLIGHT} behind two guards (an indeterminate debrief, and an absent/unusable verify, are DECLINED to I9's domain \u2014 no double-charging): I43-a verify.iteration < debrief.iteration off-window is a hard FAIL (SUPERSEDED, the measured defect class); I43-b verify.iteration > debrief.iteration off-window is a hard FAIL (AHEAD \u2014 no legal LT7 transient puts the verify ahead, since LT7 increments `iteration` BEFORE the next EXECUTE writes its debrief, so it is either a rollback under a live verification or an AUTHORED iteration); I43-d a mismatch INSIDE the in-flight window is an exit-neutral NOTE; I43-ok equality emits a positive assertion so a silently-skipped predicate is distinguishable from a clean one (closes the silent-skip domain). IN_FLIGHT(u) := I9's window at validate_run.py:5594 (phase == P6_EXECUTE_VERIFY and fsm status in executing/verifying) PLUS a third conjunct `gates.signoff_confirmed is not True` \u2014 both existing window sites (I9 :5594, I42-3 :5555) are CITED and BYTE-UNTOUCHED, never hoisted (pure insertion is a confirmed guardrail for this change). The third conjunct is LOAD-BEARING: without the first two the predicate hard-FAILs every legal RETRY (where debrief==N and verify==N-1 BY CONSTRUCTION) and acts as a de-facto live guard on the sole back-edge; without it the three motivating units (all `verifying` at P6) downgrade to NOTEs that the SKILL.md-mandated --quiet then eats, leaving the predicate INERT on the very run that motivates it. Reads the AGGREGATED verify only \u2014 per-member panel verify files are a per-iteration audit trail by design and are normatively out of domain. Never reads `retries` (I4's ceiling iteration <= retries+1 is neither widened nor narrowed: this is an equality between two ARTIFACTS) and never reads `verdict` (complete means CURRENT, not PASS \u2014 a current FAIL at retries==2 exits via ESCALATE). UNGATED by validator_version: measured 156/156 legitimately-closed archived debrief/verify pairs across 8 stamps (None -> 1.10.1) already comply, so ungated arming newly REDs ZERO archived runs; a >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at scaffold and never refreshes, so it would not arm on the run authoring the predicate. REVISES the verify ARTIFACT CONTRACT (iteration parity was previously unstated by every schema, predicate and doc, so a previously-legal combination becomes illegal) with a five-part migration argument; no schema is edited, so no archived artifact becomes invalid. Offline post-hoc, adds no state/edge/gate, NEVER guards LT7 => PRESERVES the termination proof Claims A-D and AO-1..7. Limitation: detects STALENESS, never GENUINENESS \u2014 a loop that bumps both iterations without re-verifying satisfies I43 exactly.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I43 verification currency",
+        "N-I43 verification currency"
+      ],
+      "fixtures": [
+        "i43_ahead_of_debrief",
+        "i43_current_positive",
+        "i43_inflight_before_signoff",
+        "i43_inflight_signoff_expired",
+        "i43_inflight_signoff_false",
+        "i43_superseded_at_signoff"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §1"
+      ]
+    },
+    {
+      "id": "I44",
+      "title": "Sign-off closure \u2014 gates.signoff_confirmed=true obliges every EXECUTED unit to carry a closed verification, at ANY phase. Five arms, ARTIFACT-KEYED and evaluated in order: I44-a absent verify.json; I44-b unusable verify (not JSON / not schema-valid / unit_id mismatch); I44-c verify carrying no verdict; I44-d superseded verify; I44-e an unresolved DISAGREE, which is an exit-neutral NOTE and never a FAIL (a DISAGREE is a COMPLETE verification act declaring irresolvability, closed by LT6 -> ESCALATE -> the Phase-7 human gate; failing it would conflate `verification incomplete` with `escalation unresolved` and create an incentive against voting DISAGREE, attacking AO-5 from the incentive side). A CURRENT FAIL verdict is deliberately NOT an arm: it is CLOSED verification exiting via ESCALATE, and demanding PASS would be unsatisfiable for every escalated unit. NO phase condition and NO in-flight carve-out \u2014 the antecedent is the exact negation of I43's carve-out conjunct, so a carve-out would be self-cancelling, and the motivating run rolled P8 -> P6 back while LEAVING signoff_confirmed true, so any phase-gated formulation is inert on it. Keyed on ARTIFACTS, never on fsm-state status labels (those are interpolated into detail text only): measured, a status-keyed formulation newly REDs 3 archived runs for cosmetic desync while the artifact-keyed one newly REDs ZERO and still catches all 3 real defects. DELIBERATELY NOT IN REQUIRED_GATES: that table is one-directional (phase => gates) and spec_check.py SC3 derives it from spec/fsm.json.guards[], whose entire vocabulary (`required_from_phase`) cannot express `given gate G true, artifacts A must exist`, so I44 ships as its own labelled predicate following the gpersonas_failclosed converse archetype (validate_run.py:6198). The recorded human override fsm-state.json.accepted_incomplete {units[], rationale, decision_ref} converts a hard FAIL into a per-unit exit-neutral NOTE iff ALL SIX conditions hold (object; units is a list containing u as an exact str, non-str elements ignored never coerced; non-blank rationale; non-blank decision_ref; decision_ref names DECISIONS.md; DECISIONS.md exists under the run dir) \u2014 it makes a knowing sign-off LOUD, per-unit and grep-visible instead of invisible, and never suppresses an emission. FAIL-CLOSED: an override present but malformed downgrades NOTHING and adds one hard FAIL naming THE FIRST unmet condition by number. Coverage is PER UNIT (no blanket `all open units` form), and a well-formed override naming units that are not open emits an exit-neutral over-broad NOTE so a stale override cannot accrete silently. UNGATED by validator_version. REVISES the gate contract (signoff_confirmed acquires an artifact-level obligation) on the D-06/BRK-13 precedent, with a migration argument. Offline post-hoc, NEVER guards LT7 => PRESERVES the termination proof; I10 and gate ordering are byte-untouched.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I44 sign-off closure",
+        "N-I44 sign-off closure"
+      ],
+      "fixtures": [
+        "i44_absent_verify_any_phase",
+        "i44_closed_current_fail",
+        "i44_no_signoff_antecedent",
+        "i44_override_malformed",
+        "i44_override_partial",
+        "i44_override_wellformed",
+        "i44_superseded_at_signoff"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §2"
+      ]
+    },
+    {
+      "id": "I45",
+      "title": "Version-skew visibility \u2014 an exit-neutral NOTE publishing a SHADOW COUNT of version-gated arms that THIS run's own validator_version stamp suppressed while the arm's non-version precondition HELD. Mechanism: a module-level accumulator plus a `_skew_record(arm_id, precondition_held, ship, stamp)` recorder called adjacent to EVERY existing _i27_semver_ge(...) call site, appending iff `precondition_held and not _i27_semver_ge(stamp, ship)`; the recorder is a main()-local def because _i27_semver_ge is itself a main()-local closure and duplicating its parser would risk divergence. Emitted as a bare print immediately before `return _finish(rep)`, touching neither rep.problems nor rep.checked, so it is exit-neutral BY CONSTRUCTION and can never newly RED an archive; zero suppressed arms emits nothing. NOT gated on --quiet (a deliberate, filed deviation from the quiet-gated I39-4 `governance disarmed` sibling: SKILL.md mandates --quiet, so a quiet-gated skew NOTE would be inert in the only invocation that matters). Fires LOUDLY on unstamped archives, where _i27_semver_ge(None, ship) is False for every arm \u2014 intended: it is state-machine.md \u00a75's `what would need to change to re-validate this run today` made legible. HONESTY CONSTRAINT (L16 \u2014 a right number with a wrong mechanism is a defect): the count is of EVALUATION GATES, an UPPER BOUND on suppressed FAILs since an armed clause may well have passed; the upper-bound sentence in the emission is normative text, and the measured `stamp 1.10.1 -> 0 problems / 1.11.0 -> 8 problems` figure may NOT be restated as this predicate's output. P3 READS validator_version because the stamp is its subject matter, but its own emission is not gated on the stamp being >= anything \u2014 calling it version-gated is a category error. Completeness is enforced MECHANICALLY, not by hand-listing: spec_check.py SC8 asserts count(`_skew_record(`) == count(`_i27_semver_ge(`) - 1 in validate_run.py, so a future version-gated arm added without a recorder breaks the dev-time build instead of silently under-counting. Offline post-hoc, no FSM state/edge/gate, NEVER guards LT7 => PRESERVES everything.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "N-I45 version-skew visibility"
+      ],
+      "fixtures": [
+        "i45_no_skew_overfire",
+        "i45_skew_note"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §3"
+      ]
+    },
+    {
+      "id": "I46",
+      "title": "Non-converged PASS \u2014 a verify whose own aggregated document records verdict=PASS together with `converged: false` is verification that declares its OWN coverage incomplete. ADOPTION-ARMED BY IDENTITY: `v.get(\"converged\") is False`, never falsiness, so an ABSENT `converged` (an optional key in verify.schema.json) never arms the predicate and neither does 0, \"\" or null; a run that never wrote the field emits NOTHING AT ALL (the I19/I20 zero-adoption emission precedent), which is what keeps I46 archive-silent. TWO-TIER SEVERITY by human ruling: an exit-neutral NOTE below sign-off, because `converged: false` is a LEGAL mid-run state \u2014 an unconditional FAIL would criminalize an honest report and PUNISH ADOPTION of an optional honesty field, creating an incentive to omit the field entirely \u2014 and a hard FAIL under a claimed sign-off, where a unit whose own verification declares its coverage incomplete IS verification left unfinished. I43, I44 and I46 therefore share ONE doctrine (legal mid-loop, illegal at claimed completion) rather than three ad-hoc severities. The I44 accepted_incomplete override applies per unit, unchanged \u2014 one override shape, not two. `verify_rounds` is printed when present but is never a CONDITION: requiring the round cap would narrow the predicate on unmeasured grounds. A non-converged FAIL is NOT armed \u2014 it is a coherent escalation input. Reads the AGGREGATED verify only; a panel member's own `converged` is per-member audit data. UNGATED by validator_version. Offline post-hoc, adds no state/edge/gate, NEVER guards LT7 => PRESERVES the termination proof, AO-1..7 and I1..I44; I41's panel_adjudication is untouched and no schema is edited.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I46 non-converged PASS",
+        "N-I46 non-converged PASS"
+      ],
+      "fixtures": [
+        "i46_converged_true_positive",
+        "i46_no_converged_key",
+        "i46_nonconverged_fail_verdict",
+        "i46_nonconverged_midloop_note",
+        "i46_nonconverged_pass_at_signoff"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §4"
       ]
     }
   ]

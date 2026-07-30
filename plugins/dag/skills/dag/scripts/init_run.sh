@@ -46,6 +46,77 @@ VALIDATOR_VERSION=$(python3 -c 'import json,sys
 try: print(json.load(open(sys.argv[1])).get("version",""))
 except Exception: pass' "$SCRIPT_DIR/../../../.claude-plugin/plugin.json" 2>/dev/null || true)
 
+# U08 RE-STAMP mode:  init_run.sh --restamp <RUN_DIR>
+# The scaffold-time stamp above is written ONCE and, before this mode existed, was never refreshed —
+# so a run that AUTHORS an invariant carried the pre-release stamp for its whole life and was
+# version-gated OUT of being judged by the invariant it shipped. Measured on the 1.11.0/I41 run:
+# flipping one digit of the stamp on otherwise byte-identical bytes turned
+#   264 checks / 0 problems / PASS  into  264 checks / 8 problems / FAIL.
+# The orchestrator therefore re-stamps on EVERY phase advance (SKILL.md prime directive 1's
+# fsm-state.json bookkeeping protocol), which closes the self-reference: the run that ships an
+# invariant is judged by it.
+# This mode changes only WHEN the stamp is WRITTEN — no predicate and no arming logic is touched
+# (`_i27_semver_ge` and every version gate that reads it are byte-untouched). Archive safety is
+# preserved by construction: this path NEVER writes a blank/malformed stamp and never touches a run
+# it was not pointed at, so an absent or malformed `validator_version` still parses to False on every
+# semver comparison and no unstamped archived run is newly penalized.
+# The stamp is a RATCHET: it is only ever raised, never lowered, so validating a run with an OLDER
+# installed plugin cannot silently disarm a floor the run already armed.
+if [ "$RAW_LABEL" = "--restamp" ]; then
+  if [ "$#" -lt 2 ]; then
+    echo "ERROR: --restamp requires <RUN_DIR>" >&2
+    echo "usage: init_run.sh --restamp <RUN_DIR>" >&2
+    exit 2
+  fi
+  RESTAMP_STATE="$2/fsm-state.json"
+  if [ ! -f "$RESTAMP_STATE" ]; then
+    echo "ERROR: no fsm-state.json under: $2" >&2
+    exit 4
+  fi
+  if [ -z "$VALIDATOR_VERSION" ]; then
+    # Unresolvable version: leave the file exactly as-is. Writing "" would be a malformed stamp;
+    # leaving it absent/stale keeps the archive-safe `None ⇒ False` reading.
+    echo "SKIP: plugin version unresolvable — validator_version left untouched (archive-safe)"
+    exit 0
+  fi
+  python3 - "$RESTAMP_STATE" "$VALIDATOR_VERSION" <<'PYRESTAMP'
+import json, os, re, sys
+path, ver = sys.argv[1], sys.argv[2]
+def parse(v):
+    # Same semantics as validate_run.py's _i27_semver_ge parser (malformed/absent -> None); this is a
+    # WRITE-side ratchet guard only — the read-side predicate is untouched.
+    if not isinstance(v, str):
+        return None
+    head = re.split(r"[-+]", v.strip(), maxsplit=1)[0].split(".")[:3]
+    try:
+        nums = [int(p) for p in head]
+    except (ValueError, TypeError):
+        return None
+    return tuple(nums + [0] * (3 - len(nums)))
+with open(path) as fh:
+    st = json.load(fh)
+if not isinstance(st, dict):
+    sys.stderr.write("ERROR: fsm-state.json is not a JSON object\n")
+    sys.exit(5)
+prev = st.get("validator_version")
+pp, pn = parse(prev), parse(ver)
+if pp is not None and pn is not None and pp > pn:
+    print("SKIP: validator_version %r > plugin %r — ratchet, not lowered" % (prev, ver))
+    sys.exit(0)
+if prev == ver:
+    print("OK: validator_version already %r (%s)" % (ver, path))
+    sys.exit(0)
+st["validator_version"] = ver          # only key written; existing key order preserved
+tmp = path + ".tmp"
+with open(tmp, "w") as fh:
+    json.dump(st, fh, indent=2, ensure_ascii=False)
+    fh.write("\n")
+os.replace(tmp, path)
+print("OK: validator_version %r -> %r (%s)" % (prev, ver, path))
+PYRESTAMP
+  exit 0
+fi
+
 # Kebab-case the label: lowercase, non-alnum -> '-', squeeze, trim leading, cap length.
 # N-18: cap to 40 chars FIRST, then trim any trailing hyphen the cut may have exposed (reordered,
 # so a truncated label never ends in '-').

@@ -739,6 +739,42 @@ def sc7_tla_pragmas(ctx, rep):
 #   * U07 appended SC6 and SC7 (registered below).
 # Add checks by defining `def scN_<name>(ctx, rep):` above and appending the tuple.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# SC8 — N-I45 skew-recorder completeness (part of the I45 spec, not an extra).
+# The version-skew NOTE counts version-gated arms that this run's own stamp
+# suppressed, so it is only honest if EVERY version-gated arm has a recorder.
+# Enforced MECHANICALLY rather than by a hand-maintained list: a new
+# `_i27_semver_ge(...)` arm added later without an adjacent `_skew_record(...)`
+# breaks this dev-time check instead of silently under-counting.
+# Expected identity: count("_skew_record(") == count("_i27_semver_ge(") - 1.
+#   LHS = 1 def + one call per version-gated arm.
+#   RHS = 1 def + 1 call inside _skew_record + one call per version-gated arm.
+# Textual (not AST) on purpose: it must also catch a call added inside a string,
+# comment-adjacent block or a branch this checker never executes.
+# ---------------------------------------------------------------------------
+def sc8_skew_recorders(ctx, rep):
+    rel = "scripts/validate_run.py"
+    try:
+        text = (ctx.root / rel).read_text(encoding="utf-8")
+    except Exception as ex:
+        rep.fail("SC8", f"cannot read {rel}: {ex}")
+        return
+    n_rec = text.count("_skew_record(")
+    n_ge = text.count("_i27_semver_ge(")
+    if n_ge < 2:
+        rep.fail("SC8", f"expected >=2 '_i27_semver_ge(' occurrences in {rel} "
+                        f"(its def + at least the recorder's own call), found {n_ge}")
+        return
+    if n_rec != n_ge - 1:
+        rep.fail("SC8", f"skew-recorder drift: {n_rec} '_skew_record(' vs {n_ge} "
+                        f"'_i27_semver_ge(' occurrences (expected {n_ge - 1}) — a "
+                        "version-gated arm without a recorder makes the N-I45 "
+                        "suppressed-arm count silently under-report")
+        return
+    rep.ok(f"SC8 N-I45 skew recorders complete ({n_rec} '_skew_record(' == "
+           f"{n_ge} '_i27_semver_ge(' - 1; {n_rec - 1} version-gated arm(s) instrumented)")
+
+
 CHECKS = [
     ("SC1", sc1_registry_labels),
     ("SC2", sc2_fsm_tables),
@@ -747,6 +783,7 @@ CHECKS = [
     ("SC5", sc5_examples_validate),
     ("SC6", sc6_fixture_coverage),
     ("SC7", sc7_tla_pragmas),
+    ("SC8", sc8_skew_recorders),
     # --- U06 (DONE): SC2 + SC5 registered above (numeric order) ---
     # --- U07 (DONE): SC6 + SC7 registered above ---
 ]

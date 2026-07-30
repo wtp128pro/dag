@@ -141,7 +141,7 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I42 + I1b/I1c/I1d/I3b/I3c + I-dod
+## 4. The invariant catalog — I1..I46 + I1b/I1c/I1d/I3b/I3c + I-dod
 
 The primary table (§4 below) is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
 (`:187-211`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
@@ -433,6 +433,75 @@ not READING**: matching bytes do not prove anyone read them, and a verifier that
 the current file passes trivially. Backstop, as always: the independent adversarial verifier and the human
 at the gate.
 
+### 4.6 Verification currency (I43–I46) — a run never ends with verification open or superseded
+
+The hole this closes is the one *no* presence check sees. `I9` asks "is there a `verify.json`?" and `I10`
+asks "does every graph unit have one with a `PASS`?" — neither asks **which version of the artifact it
+adjudicates**. So an executor repair at iteration 3, under a panel verdict written at iteration 2, passed
+every shipped predicate: the verify exists, it is schema-valid, it says `PASS`, and it describes bytes that
+no longer exist. Measured on the run that motivated the class: exactly three units carried a repair that
+postdates their last panel. The doctrine (`SKILL.md` prime directive 8) is *mid-loop staleness is legal;
+staleness once the run claims to be finished is not*, and `gates.signoff_confirmed: true` **is** that claim.
+
+- **I43 — verification currency.** A hard FAIL when `verify.iteration != debrief.iteration` on an executed
+  unit, in **both** directions (a verify *behind* the debrief is superseded; a verify *ahead* of it is
+  incoherent — `LT7` bumps the counter before the next `EXECUTE` writes its debrief, so no legal transient
+  produces it, which makes that arm the one that closes "author the number instead of observing it").
+  Downgraded to an exit-neutral NOTE inside the in-flight window `phase == P6_EXECUTE_VERIFY ∧ unit status
+  ∈ {executing, verifying} ∧ ¬signoff_confirmed` — `I9`'s existing window **plus** a third conjunct.
+  Both halves are load-bearing: without the window the check would halt a *compliant* orchestrator at every
+  retry (a validator predicate acting as a de-facto live guard on `LT7`, the deadlock hazard class); without
+  the third conjunct it would be inert on the very run that motivated it.
+- **I44 — sign-off closure.** Antecedent `gates.signoff_confirmed is True`, and **no phase condition at
+  all**: a hard FAIL for each executed unit whose verification is absent, unusable, verdict-less or
+  superseded. Phase-independence is what makes it bite — the motivating run rolled `P8 → P6` back while
+  leaving the flag set, so every phase-gated formulation is inert on it. It is keyed on **artifacts, never
+  on `fsm-state` status labels** (status-keyed formulations newly RED 3 archived runs for cosmetic desync
+  and catch nothing extra). A `DISAGREE`, and a **current** `FAIL` at `retries == 2`, are *complete*
+  verification acts that exit through Phase 7 — NOTE and silence respectively, never a FAIL: complete means
+  **current**, not PASS, or every escalated unit would be unsatisfiable and runs would be pressured to
+  manufacture a pass.
+- **The recorded override.** A maintainer may still sign off with units knowingly open — that happened, and
+  the mechanism exists so it stops being invisible. A top-level `fsm-state.json.accepted_incomplete` object
+  naming `units`, a non-blank `rationale` and a `decision_ref` pointing at an existing `DECISIONS.md`
+  **downgrades** each named unit's FAIL to a greppable `N-I44 … (accepted-incomplete override)` row. It
+  never suppresses the row, never covers a unit it does not name (there is no blanket form — enumerate every
+  open unit), fails **closed** with an extra hard FAIL if malformed, and emits an over-broad NOTE if it
+  names units that are no longer open. Loud, per-unit and grep-visible rather than impossible.
+- **N-I45 — version-skew visibility.** An exit-neutral NOTE counting the version-gated arms that this run's
+  own `validator_version` stamp suppressed **while their other preconditions held**. It exists because the
+  stamp is written once at scaffold time and never refreshed, which is how *the run that authored `I41` was
+  version-gated out of being judged by it* — one digit (`1.10.1` → `1.11.0`) on identical bytes turns
+  `0 problems` into `8`. The NOTE counts **suppressed arms, an upper bound on suppressed FAILs** (an armed
+  clause may have passed) and says so in its own text; publishing the arm count as a failure count would be
+  the wrong-mechanism defect.
+- **I46 — non-converged PASS.** `converged: false` was **dead data** — read by nothing — so a verifier that
+  honestly reported "I hit the `R_max = 3` round cap, coverage may be incomplete" under an aggregated `PASS`
+  said so to no one. I46 reads it: NOTE below sign-off (a round-capped verifier is being honest, and
+  punishing an optional honesty field would just teach runs to omit it), hard FAIL under `signoff_confirmed`
+  (a verification declaring its own coverage incomplete, at claimed completion, is verification left
+  unfinished), downgradable by the same `accepted_incomplete` override.
+
+All four are **post-hoc and offline**, gate no transition and never guard `LT7` ⇒ they **PRESERVE** the
+termination proof (Claims A–D), AO-1..AO-7 and I1..I42. They are **ungated** by `validator_version`:
+measured, 156 of 156 legitimately-closed debrief/verify pairs across 18 archived runs and 8 distinct stamps
+are already clean, so arming them newly REDs **zero** archived runs — strictly stronger evidence than a
+version gate that would (again) exempt the run that ships the invariant. They read the **aggregated**
+`verify.json` only and never `verify_p<N>.json`: per-member panel files are a per-iteration audit trail that
+legitimately lags — `2026-07-18_101631`'s U01 holds `verify_p1..p9`, three rounds of three lenses across
+iterations 1–3 with the numbering **continued**, not overwritten — and a freshness check over them would
+RED-flag the best audit trail in the archive. The full class walk-through, including the five members that
+stay **residual** (stop-at-P6 / Limitation O, untagged solo verification, retire-and-delete, evidence
+freshness, unclosed `minor` defects at PASS), is
+[`state-machine.md` §5 "Verification currency"](../plugins/dag/skills/dag/references/state-machine.md).
+
+**The honest boundary (Limitation AA).** These predicates make verification completeness **legible**, never
+**true**. A repair loop that bumps *both* iterations without actually re-verifying satisfies I43 exactly —
+it detects **staleness**, never **genuineness**. I44 proves a verify is present, parseable, verdict-bearing
+and current at sign-off; it cannot prove the verification was performed, that the panel was independent, or
+that the human at the gate read anything. I46 is only as honest as the optional field it reads, and a
+verifier can omit it. The `accepted_incomplete` block is a *recorded human decision*, not a validated fact.
+
 ---
 
 ## 5. Fail-closed philosophy — absence is an attack surface
@@ -568,6 +637,17 @@ with I16, and **I/J/K** with Bounded Graph Amendments.)
 - **K — split serves its `dod_refs` (BGA).** Whether a new/split unit *genuinely serves* its cited
   `dod_refs`. I19 checks verbatim **string membership** in `definition_of_done` (decidable), not
   semantic traceability — the same shape as **E** for tags.
+
+- **AA — verification completeness is LEGIBLE, not TRUE (I43/I44/I46).** Whether a re-verification
+  actually *happened*. `I43` is an equality between two artifacts, so a loop that bumps both
+  `debrief.iteration` and `verify.iteration` without re-verifying satisfies it exactly; it detects
+  **staleness**, never **genuineness**. `I44` proves a verify is present, parseable, verdict-bearing and
+  current at sign-off — not that a panel deliberated, that it was independent (that is **A**/**D**), or
+  that the human at the gate read the checklist. `I46` is only as honest as the optional `converged` field,
+  which a verifier may simply omit. And `accepted_incomplete` is a *recorded human decision*: nothing
+  checks that its rationale is true or that the maintainer was really asked. (This entry continues the
+  canonical ledger in `state-machine.md` §5, whose letters run A–AA; the wiki list historically stopped
+  at **K**.)
 
 **Reading the seam correctly.** A green `validate_run.py` exit tells you the artifacts are
 *well-shaped and the run obeyed the rules* — schema-valid, acyclic DAG, no unverified unit, gates in
