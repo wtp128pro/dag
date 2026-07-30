@@ -65,6 +65,64 @@ else
   fail_total=$((fail_total + 1))
 fi
 
+# init_run.sh --restamp guards (U08). The fixture sweep below drives validate_run.py over run-dir
+# fixtures and can never reach a SHELL entry point, so nothing else in this harness pins --restamp:
+# the raise-only RATCHET and the never-blank write — the two properties U08's socratic pivot exists
+# to protect — could be inverted with the whole suite still green. These four smoke checks close that.
+# Test infrastructure only: NO new invariant, no predicate, no arming change (PRESERVES). Everything
+# runs in a throwaway mktemp dir; the real tree is never written.
+echo "== init_run.sh --restamp guards =="
+IR="$SCRIPTS_DIR/init_run.sh"
+RS_TMP=$(mktemp -d 2>/dev/null || mktemp -d -t dagrestamp)
+mkdir -p "$RS_TMP/run"
+RS_STATE="$RS_TMP/run/fsm-state.json"
+# The version --restamp should converge on: this plugin's own plugin.json version.
+RS_PLUGIN_VER=$(python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1])).get("version",""))
+except Exception: pass' "$SCRIPTS_DIR/../../../.claude-plugin/plugin.json" 2>/dev/null || true)
+rs_md5() { python3 -c 'import hashlib,sys
+print(hashlib.md5(open(sys.argv[1],"rb").read()).hexdigest())' "$1"; }
+rs_ver() { python3 -c 'import json,sys
+print(json.load(open(sys.argv[1])).get("validator_version"))' "$1"; }
+rs_seed() { printf '{\n  "run_dir": "rs",\n  "phase": "P1_PERSONAS",\n  "validator_version": %s\n}\n' "$1" > "$RS_STATE"; }
+rs_check() {  # <name> <got> <want>
+  if [ "$2" = "$3" ]; then
+    echo "  PASS  restamp $1"
+  else
+    echo "  FAIL  restamp $1 — got [$2], want [$3]"
+    fail_total=$((fail_total + 1))
+  fi
+}
+
+# G1 — a bogus RUN_DIR is LOUD (exit 4), never a silent no-op, so a typo'd path cannot quietly skip.
+set +e; bash "$IR" --restamp "$RS_TMP/nope" >/dev/null 2>&1; rs_rc=$?; set -e
+rs_check "missing fsm-state.json exits 4" "$rs_rc" "4"
+
+# G2 — RATCHET: a recorded stamp ABOVE the plugin version is a SKIP that leaves the file BYTE-identical.
+#      Inverting the '>' comparison in init_run.sh would lower the stamp and silently DISARM a floor.
+rs_seed '"99.0.0"'; rs_before=$(rs_md5 "$RS_STATE")
+set +e; bash "$IR" --restamp "$RS_TMP/run" >/dev/null 2>&1; rs_rc=$?; set -e
+rs_check "ratchet SKIP leaves file byte-identical" "$rs_rc|$(rs_md5 "$RS_STATE")" "0|$rs_before"
+
+# G3 — a MALFORMED stamp is REPAIRED to the current plugin version (never left blank/malformed).
+rs_seed '"v-one-eleven"'
+set +e; bash "$IR" --restamp "$RS_TMP/run" >/dev/null 2>&1; rs_rc=$?; set -e
+rs_check "malformed stamp repaired to plugin version" "$rs_rc|$(rs_ver "$RS_STATE")" "0|$RS_PLUGIN_VER"
+
+# G4 — an UNRESOLVABLE plugin version leaves fsm-state.json byte-untouched and NEVER writes "".
+#      Reproduced by running a COPY of init_run.sh from a dir whose ../../../.claude-plugin is absent
+#      (dropping the -z guard would write an empty stamp — a malformed value the archive reading relies
+#      on never being manufactured).
+mkdir -p "$RS_TMP/iso/a/b"
+cp "$IR" "$RS_TMP/iso/a/b/init_run.sh"
+rs_seed '"1.0.0"'; rs_before=$(rs_md5 "$RS_STATE")
+set +e; rs_out=$(bash "$RS_TMP/iso/a/b/init_run.sh" --restamp "$RS_TMP/run" 2>&1); rs_rc=$?; set -e
+case "$rs_out" in *"archive-safe"*) rs_saw="skip-msg" ;; *) rs_saw="$rs_out" ;; esac
+rs_check "unresolvable plugin version leaves file untouched" \
+  "$rs_rc|$rs_saw|$(rs_md5 "$RS_STATE")" "0|skip-msg|$rs_before"
+
+rm -rf "$RS_TMP"
+
 # Build the interpreter list (backend matrix). Always the system python3; plus a jsonschema-capable
 # interpreter if DAG_TEST_VENV points at one. make_validator() prefers jsonschema when importable,
 # so the two interpreters may resolve to the two distinct backends (reported per run below).

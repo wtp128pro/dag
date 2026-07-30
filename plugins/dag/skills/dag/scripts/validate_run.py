@@ -517,7 +517,10 @@ LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 # spec §3.1(1); `main()` clears it at entry to `_skew_record`'s definition site so a repeated in-process
 # main() call cannot accumulate across runs. NOTHING existing is renamed and nothing reads _SKEW except
 # the exit-neutral NOTE emitted immediately before `return _finish(rep)` — it touches neither
-# rep.problems nor rep.checked, so it can never move an exit code (:507-518 are the only sinks).
+# rep.problems nor rep.checked, so it can never move an exit code. THE TWO SINKS ARE CITED BY CONTENT,
+# never by offset (§9-R18 caught the previous form asserting `:507-518`, which is the tail of the LABELS
+# list and holds no sink at all): `grep -n 'self\.problems\.append\|self\.checked\.append' validate_run.py`
+# -> exactly 2 hits, the only mutations of either list outside `Report.__init__`.
 _SKEW = []
 
 class Report:
@@ -2705,7 +2708,11 @@ def main(argv=None):
     # its non-version precondition HELD while the semver comparison returned False; a suppressed arm is
     # therefore an UPPER BOUND on suppressed FAILs (an armed clause may well have passed) — §3.2/L16.
     # SCOPE NOTE (declared deviation from §3.1(1)'s "module-level ... recorder helper"): `_i27_semver_ge`
-    # is itself a `main()`-local closure (:2688), so a module-level recorder could not call the ONE
+    # is itself a `main()`-local closure (`grep -n '^ *def _i27_semver_ge' validate_run.py` -> exactly 1
+    # hit; the LEADING-`def` anchor is load-bearing, because the bare string ALSO matches this very
+    # comment and would report 2 —
+    # cited by CONTENT, never by offset — the `:2688` this line used to carry was already off by one
+    # against the def it named), so a module-level recorder could not call the ONE
     # canonical semver comparison without duplicating its parser — a divergence risk worse than the scope
     # difference. The ACCUMULATOR is module-level exactly as specified; only the def is nested, and the
     # signature is verbatim §3.1(1). P3 READS `validator_version` (it is P3's subject matter) but P3's
@@ -5832,8 +5839,51 @@ def main(argv=None):
     #  instrument by dropping the `[ "$n" -eq "$t" ]` conjunct, which then prints the 13 archived runs that
     #  are RED from PRE-EXISTING, unrelated invariants — never green-washed by this release, and expected
     #  version skew per references/state-machine.md §5, not defects.)
-    # A >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at
-    # scaffold and never refreshes, so it would not arm on the very run that authors the predicate.
+    #  CORRECTION, INSERTED BY U19 (the corollary above is left standing, not rewritten): the conjunct
+    #  it names is the WRONG one, so as published the confirmation recipe is ITSELF SILENT — the exact
+    #  failure the corollary exists to prevent. Dropping `[ "$n" -eq "$t" ]` leaves `[ "$n" -gt 0 ]`,
+    #  and `$n` (the I43/I44/I46 CLASS FAIL count) is 0 on all 18 of this repository's `.wip/` run dirs,
+    #  so that variant prints ZERO lines. The conjunct to key on is `$t`, the TOTAL FAIL count. Confirm
+    #  the instrument from the repo root with:
+    #    for d in .wip/*/; do o=$(python3 plugins/dag/skills/dag/scripts/validate_run.py "$d"); \
+    #      t=$(printf '%s' "$o" | grep -cE '^ +FAIL +'); \
+    #      [ "$t" -gt 0 ] && echo "RED $d ($t rows)"; done
+    #  Measured 2026-07-30 at tree aefa9c2 + this change, over all 18 `.wip/` run dirs in THIS
+    #  repository: 13 lines, all archived runs, all with n=0 class rows — 2026-07-05_111828 (4),
+    #  2026-07-05_134959 (6), 2026-07-05_143454 (25), 2026-07-05_170505 (6), 2026-07-05_175148 (1),
+    #  2026-07-06_110152 (15), 2026-07-06_134656 (51), 2026-07-06_200420 (13), 2026-07-10_133732 (21),
+    #  2026-07-11_134440 (22), 2026-07-16_014443 (16), 2026-07-16_095126 (17), 2026-07-16_163411 (1).
+    #  The `13` the corollary published is therefore right; only the conjunct naming it was wrong. Like
+    #  every figure in this banner it is a TIMESTAMPED SAMPLE over a gitignored tree — re-derive.
+    # A >=1.12.0 gate was REJECTED. THE REASON THIS COMMENT USED TO GIVE IS RETRACTED IN FULL, not
+    # re-anchored: it asserted that init_run.sh writes the stamp only at scaffold time and never
+    # refreshes it, hence a version gate could not arm on the run authoring the predicate. BOTH HALVES
+    # ARE FALSE AT THIS TREE, and the unit that wrote the sentence is the one retracting it. (a) A
+    # refresh path exists: `grep -n 'RE-STAMP mode' init_run.sh` -> exactly 1 hit, the header of
+    # `init_run.sh --restamp <RUN_DIR>`, shipped by this run's own U08. (b) It has been applied here —
+    # this run's fsm-state.json reads validator_version 1.12.0 against plugin.json 1.12.0 — so a
+    # >=1.12.0 gate WOULD arm on the authoring run. The scaffold-time stamp itself is at
+    # `grep -n 'F1(a): stamp validator_version' init_run.sh` -> exactly 1 hit; the `:161-163` an earlier
+    # revision of this line carried landed in a PLAN.md heredoc, not on the stamp. Spec §0.4-a quotes the
+    # retracted sentence verbatim and refutes it; §9-R16 names this locus.
+    #
+    # THE DECISION STANDS, on three replacement reasons (spec §0.4-a), each checkable:
+    #   (1) --restamp is MANUAL and OPT-IN, so the archive is still unarmed. Measured 2026-07-30 over the
+    #       18 run dirs under THIS repository's .wip/: a >=1.12.0 gate would arm on 1 of them (this run)
+    #       and on NONE of the 17 archived ones unless a human retroactively restamped each — including
+    #       the repair target, whose pairs are the defect class these predicates were commissioned to
+    #       find. Suppressing a predicate on every run that CONTAINS the defect it was written for is the
+    #       L4 failure mode arriving through the ARMING rather than through the clause.
+    #   (2) The ratchet only ever RAISES a stamp, so no archive can silently arm:
+    #       `grep -n 'ratchet, not lowered' init_run.sh` -> exactly 1 hit (it exits 0 rather than
+    #       lowering a recorded stamp). Gating would therefore make arming depend on a monotone,
+    #       human-invoked act — legible, but not evidence.
+    #   (3) Restamping the authoring run so that its own predicate arms is CIRCULAR: the gate would be
+    #       satisfied by an act of the run being judged. Ungated arming needs no such act, and its safety
+    #       is MEASURED — the pair census and the newly-RED sweep above — rather than asserted.
+    # Ungated is therefore not a concession but the stronger posture. What survives of the retracted
+    # claim is a real divergence, filed as spec §9-R16: MANUAL re-stamp has landed; DoD 18's AUTOMATIC
+    # re-stamp-on-phase-advance has not.
     #
     # IN-FLIGHT WINDOW — CITED, NOT HOISTED (R3). Two window sites already exist and are BYTE-UNTOUCHED.
     # CITED BY CONJUNCT, NEVER BY LINE NUMBER: every offset in this file drifts (the correct pair moved
@@ -5854,10 +5904,24 @@ def main(argv=None):
     # Hoisting them into one shared helper was DECLINED: pure insertion is a confirmed guardrail for this
     # change (Non-Goal 9), and a hoist would re-condition two shipped predicates to buy nothing. I43
     # therefore defines its OWN window — I9's two conjuncts PLUS `not SIGNED_OFF` — as a sibling, not a
-    # shared function. That third conjunct is LOAD-BEARING in both directions: without the first two, a
-    # hard FAIL at every legal RETRY (where `debrief.iteration == N` while the newest verify still attests
-    # to `N-1` BY CONSTRUCTION) would halt a compliant orchestrator — a de-facto live guard on the sole
-    # back-edge; without `not SIGNED_OFF`, the three units that motivate the predicate (all `verifying` at
+    # shared function. That third conjunct is LOAD-BEARING in both directions. Without the first two, a
+    # hard FAIL would halt a compliant orchestrator — a de-facto live guard on the sole back-edge. THE
+    # PROOF STEP THIS COMMENT USED TO GIVE FOR THAT IS WITHDRAWN (spec §1.3-a, §9-R18): it claimed the
+    # newest verify still attests to `N-1` at every legal RETRY, which substitutes the FSM COUNTER for
+    # the ARTIFACT FIELD this predicate actually reads. LT7 increments the counter on the edge OUT of
+    # RETRY and the executor writes the next debrief afterwards, inside EXECUTE, so AT RETRY the on-disk
+    # pair is (N-1, N-1) and CURRENT is TRUE — a predicate evaluated at RETRY is satisfied, not violated.
+    # THE CONCLUSION SURVIVES ON THE ARTIFACT TIMELINE INSTEAD: the transient is real but differently
+    # located, opening when EXECUTE writes debrief N and closing when the aggregated verify N is written,
+    # i.e. it spans the EXECUTE->VERIFY leg and the interior of VERIFY — exactly the interval the two
+    # copied conjuncts `status in {executing, verifying}` cover. The hazard is PARALLEL WAVES, and the
+    # load-bearing form is a PROPERTY, not a count: prime directive 7 has orchestrators validate after
+    # every debrief+verify pair, and while the unit whose pair just closed is clean at (N, N), sibling
+    # units of the same wave sitting between their own debrief-write and verify-write are at (N, N-1).
+    # This run holds MULTIPLE units at `verifying` and MULTIPLE at `executing` simultaneously, so a
+    # per-unit predicate is always evaluated while siblings are mid-loop; the argument is indifferent to
+    # which multiset it is, which is why the property and not the census is asserted here.
+    # Without `not SIGNED_OFF`, the three units that motivate the predicate (all `verifying` at
     # P6) downgrade to NOTEs that `--quiet` (mandated by SKILL.md) then eats, leaving the predicate INERT
     # on exactly the run it was written for. Rule made precise: mid-loop staleness is legal; staleness once
     # the run CLAIMS to be finished is not.
@@ -5865,9 +5929,21 @@ def main(argv=None):
     # an exception here would abort the linear pass and SILENTLY DISABLE every downstream predicate — a
     # failure mode already observed in this codebase (I35 raising TypeError on a schema-invalid integer).
     # An iteration is accepted iff `isinstance(v, int) and not isinstance(v, bool)`; the bool exclusion is
-    # currently unreachable through unit_docs (a JSON `true` is dropped at :670-673) and is kept so the
-    # guard survives a future schema relaxation. NO per-member panel verify file (the numbered audit-trail
-    # siblings of the aggregated verify.json, :687-694) is opened, statted or globbed by ANY clause below,
+    # currently unreachable through unit_docs, and the MECHANISM is the schema, not an offset (L16): both
+    # debrief.schema.json and verify.schema.json type `iteration` as `{"type": "integer", "minimum": 1}`,
+    # JSON Schema excludes booleans from `integer`, and a doc with validation errors is FAILed and never
+    # reaches the `unit_docs.setdefault(...) = inst` insertion. Verify the schema half without reading
+    # this file at all:
+    #     python3 -c "import json;print(json.load(open('plugins/dag/skills/dag/schemas/debrief.schema.json'))['properties']['iteration'])"
+    # The guard is kept so it survives a future schema relaxation. (The `:670-673` an earlier revision of
+    # this sentence carried landed on the isdir/UNIT_ARTIFACTS loop, not on the bool drop — retired, and
+    # named here rather than deleted silently, because a pointer removed without a forwarding address is
+    # how the next reader re-derives it wrong.) NO per-member panel verify file (the
+    # numbered audit-trail siblings of the aggregated verify.json, excluded from unit_docs at the loop
+    # `grep -n '^ *if f\.startswith("verify_p")' validate_run.py` locates -> exactly 1 hit; as everywhere
+    # in this block the LEADING anchor is what makes the count true, since the bare string also matches
+    # this comment; the `:687-694` an earlier revision of this clause carried landed on the errs/D21
+    # block) is opened, statted or globbed by ANY clause below,
     # and this block contains no textual reference to their filename prefix (§0.3): they are a
     # per-iteration AUDIT TRAIL BY DESIGN, deliberately kept out of unit_docs, and 27 of 133 archived
     # member files legitimately sit behind their own unit's debrief — a freshness check over them would
@@ -5883,13 +5959,47 @@ def main(argv=None):
         return _it if isinstance(_it, int) and not isinstance(_it, bool) else None
 
     def _vc_agg(_u):
-        # AGG(u): the AGGREGATED verify.json only — parsed, schema-valid and unit_id-matched (:684).
+        # AGG(u): the AGGREGATED verify.json only — parsed, schema-valid and unit_id-matched by the
+        # D21 branch: `grep -n 'D21: an artifact.s declared unit_id' validate_run.py` -> exactly 2 hits,
+        # the FIRST being the branch itself and the SECOND this citation of it. THE COUNT IS 2, NOT 1,
+        # AND IS PUBLISHED RATHER THAN ASSUMED: the `.` dodges shell quoting of the apostrophe and also
+        # matches the `.` on this very line, so this anchor SELF-MATCHES BY CONSTRUCTION — the same trap
+        # the leading-anchor forms elsewhere in this block avoid, named here with its ordinal instead —
+        # the same publish-the-ordinal precedent the dated archive-safety figure and the artifact-keying
+        # note in this file already use. THEIR HEADING STRINGS ARE DELIBERATELY NOT REPRODUCED ON THIS
+        # LINE: each publishes a `grep -n` count OF ITS OWN HEADING (-> 2 hits), so quoting either one
+        # here to credit it would silently make both published counts read 3 and false. Citing a
+        # convention by description rather than by its anchor text is what keeps that from happening —
+        # the first draft of this very line did quote them, and did exactly that.
+        # Cited by CONTENT: the `:684` this line used to carry pointed at a `no schema loaded` FAIL.
         _d = unit_docs.get(_u)
         _v = _d.get("verify") if isinstance(_d, dict) else None
         return _v if isinstance(_v, dict) else None
 
     def _vc_in_flight(_u):
-        # I9's window (:5649) + the third conjunct. The carve-out EXPIRES at claimed completion.
+        # I9's window — the SECOND of the two hits the banner's `grep -n '^ *if phase ==
+        # "P6_EXECUTE_VERIFY"'` recipe returns, cited by CONTENT because the `:5649` this line used
+        # to carry had already drifted — PLUS the third conjunct. The carve-out EXPIRES at claimed
+        # completion.
+        # LIMITATION, WINDOW COVERAGE (residual R-U06-W1, filed not fixed): the window keys on the two
+        # status labels I9 uses. fsm-state.schema.json's status enum has nine members, so a unit encoded
+        # as {status: "failed", loop_state: "RETRY"} — a legal encoding of a unit mid-correction-loop —
+        # is OUTSIDE the window and takes a hard I43-a FAIL instead of the mid-loop NOTE. Reproduce:
+        # copy scripts/tests/i43_inflight_signoff_false, set units[0] to {"unit_id": "U01", "status":
+        # "failed", "loop_state": "RETRY", "retries": 1}, change nothing else => exit 0 flips to 1.
+        # The spec's §9-R11 repair (widen WINDOW to loop_state in {EXECUTE,VERIFY,ADJUDICATE,RETRY} OR
+        # status in {briefed,executing,verifying,failed,blocked}, phase-independent, still conjoined
+        # with `not SIGNED_OFF`) is a strict WIDENING of a carve-out, so the FAIL set shrinks
+        # monotonically and it can newly RED zero runs by construction.
+        # THE FENCE, STATED CORRECTLY — an earlier revision of this comment said the widening was "out of
+        # U06's pure-insertion remit", and THAT FENCE DOES NOT EXIST: `_vc_in_flight` is U06's own
+        # insertion (it is absent from 935f8e6^), so the no-refactoring-existing-predicates non-goal does
+        # not reach it. A fence that does not exist would either block in-scope work or be discovered
+        # false and discredit this residual, so the two that DO hold are named instead: (1) the brief's
+        # "Do NOT write fixtures — a different unit authors those from the spec", and a widening whose
+        # RED->GREEN discriminator is P1-K1 cannot land unpinned; and (2) spec §9-R11 DEFERS this itself
+        # and adds that I9's and I42-3's own windows must then be decided too — "three sibling windows,
+        # widened one at a time, each with its own fixture". Filed here, taken there.
         return (phase == "P6_EXECUTE_VERIFY"
                 and _fsm_unit_status.get(_u) in ("executing", "verifying")
                 and not _vc_signed_off)
@@ -5919,6 +6029,24 @@ def main(argv=None):
         _ai_unmet = 6
     _ai_ok = _ai_present and _ai_unmet is None
     # Elements that are not `str` are IGNORED, never coerced (§2.3(2)).
+    # LIMITATION, SILENTLY-INERT OVERRIDE (residual R-U06-W3, filed not fixed — and the honest reading is
+    # that it is a SPEC residual surfaced by the implementation, not a divergence from the spec text):
+    # condition (2) above tests LIST-NESS only, and this comprehension then drops every non-`str` element.
+    # So `accepted_incomplete: {"units": [7], "rationale": "r", "decision_ref": "DECISIONS.md#x"}` with a
+    # DECISIONS.md on disk is COMPLETELY INVISIBLE in the output: it is well-formed by condition (2), so
+    # no `accepted_incomplete malformed` FAIL fires; `_ai_named` is empty, so no unit is downgraded AND the
+    # over-broad surplus set is empty, so no over-broad NOTE fires either. SAFE — every open unit keeps its
+    # own hard FAIL and nothing is suppressed — but it is exactly the accretion shape §2.3's over-broad
+    # rule exists to make visible. Reproduce: copy scripts/tests/i44_override_wellformed, set
+    # accepted_incomplete.units to `[7]`, run the validator; exit stays 1 with U01's own I44 FAIL and no
+    # row anywhere names the garbage. Naming the dropped elements in the over-broad NOTE would close it in
+    # one clause. THE FENCE, STATED CORRECTLY — an earlier revision of this comment said that clause was
+    # "out of U06's pure-insertion remit", and THAT FENCE DOES NOT EXIST: `_ai_named` and the over-broad
+    # NOTE are U06's own insertion (both are absent from 935f8e6^), so the no-refactoring-existing-
+    # predicates non-goal does not reach them. The fence that DOES hold is the SPEC: §2.3(2) says
+    # non-`str` elements are "ignored, never coerced", so this is a SPEC residual surfaced by the
+    # implementation, and an implementer must not unilaterally diverge from normative text — it is
+    # referred back rather than taken. Whatever closes it must NOT touch the ignore-never-coerce rule.
     _ai_named = sorted({_x for _x in (_ai_units or []) if isinstance(_x, str)}) if isinstance(_ai_units, list) else []
     _AI_COND = {
         1: "(1) accepted_incomplete is not a JSON object",
@@ -5931,7 +6059,14 @@ def main(argv=None):
 
     def _vc_override_note(_u, _why):
         # UNGATED by `args.quiet` (§9-R12): SKILL.md mandates `--quiet`, so a quiet-gated downgrade row
-        # would be inert in the only invocation that matters — the human ruling requires the override be
+        # would be inert in THE MANDATED ORCHESTRATOR INVOCATION. That wording is normative for code
+        # comments per §3.3/§3.4: this line previously called --quiet the sole invocation of any
+        # consequence, which OVER-STATES it and is RETRACTED — a human, a reviewer and the fixture
+        # harness all run the validator WITHOUT --quiet (run_tests.sh does). The retracted phrase is
+        # deliberately NOT re-quoted here, so that grepping it locates only loci that still ASSERT it;
+        # §9-R18 names the phrase and its loci, and one such locus survives in the I47 block below,
+        # which belongs to the unit that shipped I47 (23c9962) and is left untouched under Non-Goal 9.
+        # The un-gating itself stands on §3.3's SECOND limb — the human ruling requires the override be
         # "available but LOUD: deliberate, grep-visible, per-unit". Same principle as the un-gated N-I45
         # skew NOTE — ANCHORED BY CONTENT, not by offset, because the offset this comment originally
         # carried (`:6557-6562`) was invalidated by the very insertion that wrote it: locate it with
@@ -5946,8 +6081,14 @@ def main(argv=None):
 
     # ── I43 (P1) — verification currency. Four EXHAUSTIVE, MUTUALLY EXCLUSIVE arms over the post-guard
     # state space {SUPERSEDED, AHEAD, CURRENT} x {IN_FLIGHT, not IN_FLIGHT}. Two GUARDS first: I43 never
-    # fires on an indeterminate debrief (already a FAIL at :664/:673/:681) nor on an absent/unusable
-    # verify — that is I9's domain (:5592-5609) and, under sign-off, I44-a/-b's. Declining rather than
+    # fires on an indeterminate debrief — already a FAIL by MECHANISM, not by offset (L16): debrief.schema
+    # .json lists `iteration` in `required` and types it `integer`, so an absent or non-int iteration is
+    # reported by the per-artifact validation loop (`grep -n '^ *rep\.fail(f"units/{uid}/{rel}", e)'` ->
+    # exactly 1 hit; the LEADING anchor is load-bearing — the bare string also matches this comment) —
+    # nor on an absent/unusable verify, which is I9's domain (`grep -n
+    # "LABEL_STEM\['i9_missing'\]"` locates its four emissions) and, under sign-off, I44-a/-b's. The
+    # `:664/:673/:681` and `:5592-5609` this comment used to carry pointed at an isdir check and an I42
+    # sha256 read respectively — cite by content. Declining rather than
     # piling a second FAIL on the same fact is a normative sub-clause (§0.6), not an optimization.
     # I43 does NOT read `retries` (I4's ceiling `iteration <= retries+1` is neither widened nor narrowed —
     # this is an equality between two ARTIFACTS), does NOT read `verdict` (complete means CURRENT, not
@@ -6074,11 +6215,38 @@ def main(argv=None):
             _i44_surplus = sorted(set(_ai_named) - set(_i44_open))
             # UNGATED by `args.quiet` for the same §9-R12 reason as `_vc_override_note` above: the
             # over-broad row is the companion record of the SAME override and must survive `--quiet`.
+            #
+            # SCOPE OF THIS ROW IS I44 ONLY, AND THE WORDING SAYS SO. `_i44_open` is appended to inside
+            # the arm-a..d loop above and nowhere else, while §4.3 makes I46 a SECOND consumer of the
+            # SAME override object. A unit that is I46-armed but not I44-open therefore lands in this
+            # surplus set even though the override is actively downgrading its I46 FAIL in the same run.
+            # An earlier revision of this row called such a unit's override "stale", which was FALSE as
+            # written — reproduce it by copying scripts/tests/i46_nonconverged_pass_at_signoff, adding a
+            # well-formed `accepted_incomplete` naming its U01 plus a DECISIONS.md, and reading both rows.
+            # The row is now scoped to what it actually measures (I44 openness) and explicitly declines to
+            # call the override stale, because THIS ROW CANNOT SEE I46: the I46 loop runs after it.
+            # Residual R-U06-W2 (filed, not fixed): unioning `_i44_open` with the units the I46 loop
+            # downgrades — i.e. deferring this computation past that loop — would let the row say
+            # "stale" truthfully. THE FENCE, STATED CORRECTLY — an earlier revision of this comment said
+            # that union was "outside U06's pure-insertion remit", and THAT FENCE DOES NOT EXIST:
+            # `_i44_open`, `_i44_surplus` and this print are U06's own insertion (all absent from
+            # 935f8e6^), so the no-refactoring-existing-predicates non-goal does not reach them. The fence
+            # that DOES hold is the brief's "Do NOT write fixtures — a different unit authors those from
+            # the spec": moving the computation past the I46 loop changes this row's emission set and
+            # must land RED/GREEN-pinned, and this unit may not author that fixture.
+            # ALREADY OWNED UPSTREAM, so it is credited rather than re-filed as new: spec §9-R19 records
+            # that this un-gated over-broad row has NEVER EXECUTED UNDER TEST in either direction and
+            # assigns the fixture to P2-G4 (§2.5); §9-R10 records the I46-only-open false-surplus shape
+            # this row's wording now declines to assert.
             if _i44_surplus:
                 print(f"  NOTE  {LABEL_STEM['note_i44']} (override over-broad): "
-                      f"accepted_incomplete.units names {_i44_surplus} but those units are not currently "
-                      "open (no absent/unusable/verdict-less/superseded verification), so the override is "
-                      "stale for them — exit-neutral, and it blocks no downgrade for the units that ARE open")
+                      f"accepted_incomplete.units names {_i44_surplus} but those units are not open under "
+                      "any I44 arm (no absent/unusable/verdict-less/superseded verification), so the "
+                      "override buys them nothing HERE. This row scopes to I44 and does NOT assert the "
+                      "override is stale: I46 §4.3 shares this same override object and is evaluated "
+                      "after this row, so a unit named here may still be having an I46 FAIL downgraded — "
+                      "grep the run's own N-I44 accepted-incomplete rows before concluding it accreted. "
+                      "Exit-neutral, and it blocks no downgrade for the units that ARE open")
         if not _i44_fired:
             rep.ok(f"{LABEL_STEM['i44_signoff_closure']} (signoff_confirmed with "
                    f"{len(unit_dirs_with_debrief)} executed unit(s); all verified and current)")
@@ -6161,6 +6329,21 @@ def main(argv=None):
     # unchanged (it is already RED for 25 unrelated version-skew rows; this adds none).
     # NOT gated on `validator_version` (stdout is its only channel; init_run.sh:161-163 stamps once at
     # scaffold, so a version gate would not arm on the run authoring the predicate) and NOT gated on
+    #   [RETRACTION INSERTED BY U19 — the two lines above are RESTORED VERBATIM to their HEAD text, not
+    #    deleted; the clause they leave hanging ("and NOT gated on ...") resumes below, at the line
+    #    beginning `args.quiet`.]
+    #    RETRACTED: `init_run.sh:161-163 stamps once at scaffold, so a version gate would not arm on
+    #    the run authoring the predicate` is FALSE AT THIS TREE. `init_run.sh --restamp <RUN_DIR>`
+    #    SHIPPED IN THIS RELEASE (1.12.0, this run's own U08) and has already been applied here — this
+    #    run's fsm-state.json reads validator_version 1.12.0 against plugin.json 1.12.0 — so a >=1.12.0
+    #    gate WOULD arm on the authoring run. The scaffold-time stamp is also not at `:161-163` (that
+    #    offset is a PLAN.md heredoc). The un-gating DECISION is unaffected: it now rests on the three
+    #    replacement reasons in the I43 banner above. Full retraction, quoting the sentence verbatim
+    #    and refuting it: verify-repair-units artifacts/predicate-spec.md §0.4-a; the surviving
+    #    divergence (MANUAL re-stamp landed, DoD 18's AUTOMATIC re-stamp-on-phase-advance did not) is
+    #    §9-R16. Retracted IN PLACE rather than removed, per this run's date-in-place doctrine
+    #    (DECISIONS#61) — the same treatment `fcb8df1` gave the 0/292 adoption zero, so a reader meets
+    #    both the original claim and its refutation.
     # `args.quiet`, for the §9-R12 reason already applied to `_vc_override_note` and the N-I45 skew NOTE
     # (both by name, not by offset): SKILL.md mandates `--quiet`, so a quiet-gated advisory is inert in the only invocation that
     # matters. Un-gating is safe precisely because the row is exit-neutral => PRESERVES every guarantee;
@@ -6799,9 +6982,17 @@ def main(argv=None):
 
     # N-I45 version-skew visibility (P3 §3.1(3)) — exit-neutral by CONSTRUCTION: a bare print, touching
     # neither rep.problems nor rep.checked. DELIBERATELY NOT gated on args.quiet (§3.3): SKILL.md mandates
-    # --quiet, so a quiet-gated skew NOTE would be inert in the only invocation that matters. The closest
+    # --quiet, so a quiet-gated skew NOTE would be inert in THE MANDATED ORCHESTRATOR INVOCATION. That
+    # wording is normative and deliberate (§3.3, §3.4, §9-R18): an earlier revision of this line called
+    # --quiet the sole invocation of any consequence, which OVER-STATES it and is RETRACTED (§3.3 quotes
+    # the retracted phrase verbatim; it is not re-published here, so that a `grep` for it locates only
+    # loci that still ASSERT it) — a human, a
+    # reviewer and the fixture harness all run the validator WITHOUT --quiet (run_tests.sh does), which is
+    # why a quiet-gated N-I45 would still have passed the i45_skew_note row. The closest
     # sibling (the I39-4 "governance disarmed; unstamped" NOTE) IS quiet-gated; this deviates knowingly and
-    # the divergence is filed as residual R7/§9-R7 rather than left unexplained. Zero suppressed arms emits
+    # the divergence is filed as residual §9-R14 rather than left unexplained (an earlier revision of this
+    # line cross-referenced it to §9-R7, which covers the INSERTION SITES, so the divergence was in fact
+    # carried by no residual at all — corrected per §3.3). Zero suppressed arms emits
     # NOTHING. Wording is normative (§3.2/L16): this counts EVALUATION GATES, never failures.
     if len(_SKEW) >= 1:
         print(f"  NOTE  {LABEL_STEM['i45_version_skew']}: validator_version={_i27_ver!r} suppressed "

@@ -84,8 +84,8 @@ so most are dead weight until their phase arrives.
    this alters only WHEN the stamp is written, never how it is read, and the re-stamp path never writes
    a blank/malformed value, so an absent or malformed stamp still parses to False on every semver
    comparison (`_i27_semver_ge`, byte-untouched) and no unstamped archived run is newly penalized
-   (references/state-machine.md §5). **Never self-set a gate flag
-   to skip a human gate** — a **human-gate** flag (`personas_confirmed`, `clarification_resolved`,
+   (references/state-machine.md §5).
+   **Never self-set a gate flag to skip a human gate** — a **human-gate** flag (`personas_confirmed`, `clarification_resolved`,
    `signoff_confirmed` — the three human gates) is your attestation the human actually decided;
    `cartography_done` and `decomposition_approved` are **mechanical** phase-completion flags, not human
    attestations (U3, below).

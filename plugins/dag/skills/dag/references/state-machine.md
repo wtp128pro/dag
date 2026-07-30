@@ -906,13 +906,19 @@ attestation is invented. The same override applies, per unit and in one shape, t
 The validator is **single-truth**: it always applies the CURRENT invariant set. It never
 *downgrades or disables an earned check* by a run's recorded version, and never penalizes an
 unstamped/archived run for a key it could not have carried (archive-silent). What the recorded version
-DOES do is *arm* a small set of version-gated **new-run presence requirements** (I27-T1, I28, I39-4,
-and the socratic-guardrail I35–I40 presence arms): each fires only on a run stamped ≥ its shipping
-release and stays silent below it — the stamp gates no transition, it arms these new-run floors
+DOES do is *arm* the version-gated **new-run presence requirements** that `validate_run.py` instruments
+with `_skew_record` (deliberately not enumerated here — the N-I45 version-skew NOTE prints the live set
+of arms a run's own stamp suppressed, and `spec_check.py` SC8 fails if an `_i27_semver_ge` arm is ever
+added without its recorder, so no hand-maintained list in this file can rot): each fires only on a run
+stamped ≥ its shipping release and stays silent below it — the stamp gates no transition, it arms
+these new-run floors
 (**AF-41 documentation repair, classified PRESERVES:** naming a posture the depth-1.9.0 I27-T1 arm
 already shipped changes no guarantee — formal-classification §D). To keep that honest without
 deadlocking old runs, `init_run.sh` stamps `fsm-state.json.validator_version` (F1(a); the OPTIONAL
-schema field) with the plugin version that scaffolded the run, and this policy holds:
+schema field) with the plugin version that scaffolded the run — **refreshed to the CURRENT plugin
+version on every phase advance** (`init_run.sh --restamp`, raise-only ratchet; see the re-stamp bullet
+below), so on a live run the stamp names the version current at the run's LATEST phase advance, not
+the version that scaffolded it — and this policy holds:
 
 - **An archived run is judged against its CONTEMPORANEOUS validator.** When the current validator is
   run over a run stamped with an OLDER `validator_version` (or an *unstamped* pre-1.7.0 run), any new
@@ -922,8 +928,9 @@ schema field) with the plugin version that scaffolded the run, and this policy h
 - **The stamp gates no transition, but arms version-gated new-run presence requirements.** The stamp
   never gates an FSM transition and never penalizes an unstamped/archived run: an absent
   `validator_version` is judged exactly as before — `None`⇒False on every semver comparison, so legacy
-  runs are never penalized for lacking it (archive-silent). What it DOES arm is version-gated **new-run
-  presence requirements** (I27-T1, I28, I39-4, I35–I40): a run stamped ≥ its shipping release must carry
+  runs are never penalized for lacking it (archive-silent). What it DOES arm is the version-gated
+  **new-run presence requirements** `validate_run.py` instruments with `_skew_record` (the N-I45 NOTE
+  prints the live set; SC8 keeps the inventory complete): a run stamped ≥ its shipping release must carry
   the required artifact/key, while below-ship and unstamped runs stay silent. So the stamp both *labels*
   provenance (making future skew legible) AND *arms* those new-run floors — it does not merely label.
   **(AF-41 documentation repair, classified PRESERVES:** this corrects prose that predated I27-T1; the
@@ -948,6 +955,15 @@ schema field) with the plugin version that scaffolded the run, and this policy h
   invariant is judged by it.** Classified **PRESERVES** — this changes only *when* the stamp is
   **written**, never how it is **read**: no predicate and no arming logic is touched (`_i27_semver_ge`
   and every version gate reading it are byte-untouched), and the stamp still gates no FSM transition.
+  **What the PRESERVES ruling does NOT claim (stated here rather than left implicit):** the *read* half
+  is untouched, but the stamp's documented **semantics** move — from *"the version that scaffolded the
+  run"* to *"the version current at the run's latest phase advance"* — and **when** the stamp is written
+  selects **which** artifacts a version-gated floor is applied to. A mid-run raise therefore newly arms
+  those floors against work the run had ALREADY completed under the older bar, so a live run may have to
+  repair earlier artifacts to stay green. That is a real cost, paid knowingly. The ruling stays
+  PRESERVES rather than REVISES because no enumerated guarantee moves (Claims A–D, AO-1..7, I1..I42 and
+  archive silence are all untouched) and the effect is **monotone toward MORE checking, never fewer** —
+  it can turn a live run red, it can never turn a red run green.
   **Archive safety, explicitly:** (i) the re-stamp path only ever touches the ONE run dir it is pointed
   at — nothing under an archive is rewritten; (ii) it refuses to write a blank/malformed value (an
   unresolvable plugin version leaves the file untouched), so an absent or malformed `validator_version`
