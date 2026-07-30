@@ -2704,7 +2704,7 @@ def main(argv=None):
     # its non-version precondition HELD while the semver comparison returned False; a suppressed arm is
     # therefore an UPPER BOUND on suppressed FAILs (an armed clause may well have passed) — §3.2/L16.
     # SCOPE NOTE (declared deviation from §3.1(1)'s "module-level ... recorder helper"): `_i27_semver_ge`
-    # is itself a `main()`-local closure (:2673), so a module-level recorder could not call the ONE
+    # is itself a `main()`-local closure (:2688), so a module-level recorder could not call the ONE
     # canonical semver comparison without duplicating its parser — a divergence risk worse than the scope
     # difference. The ACCUMULATOR is module-level exactly as specified; only the def is nested, and the
     # signature is verbatim §3.1(1). P3 READS `validator_version` (it is P3's subject matter) but P3's
@@ -5690,7 +5690,7 @@ def main(argv=None):
     # scaffold and never refreshes, so it would not arm on the very run that authors the predicate.
     #
     # IN-FLIGHT WINDOW — CITED, NOT HOISTED (R3). Two window sites already exist and are BYTE-UNTOUCHED:
-    #   * `:5594` I9 missing-verification: `phase == "P6_EXECUTE_VERIFY" and _st in ("executing","verifying")`
+    #   * `:5649` I9 missing-verification: `phase == "P6_EXECUTE_VERIFY" and _st in ("executing","verifying")`
     #   * `:5555` I42-3 digest drift: the same two conjuncts, copied verbatim for the same reason.
     # Hoisting them into one shared helper was DECLINED: pure insertion is a confirmed guardrail for this
     # change (Non-Goal 9), and a hoist would re-condition two shipped predicates to buy nothing. I43
@@ -5730,7 +5730,7 @@ def main(argv=None):
         return _v if isinstance(_v, dict) else None
 
     def _vc_in_flight(_u):
-        # I9's window (:5594) + the third conjunct. The carve-out EXPIRES at claimed completion.
+        # I9's window (:5649) + the third conjunct. The carve-out EXPIRES at claimed completion.
         return (phase == "P6_EXECUTE_VERIFY"
                 and _fsm_unit_status.get(_u) in ("executing", "verifying")
                 and not _vc_signed_off)
@@ -5771,11 +5771,16 @@ def main(argv=None):
     }
 
     def _vc_override_note(_u, _why):
-        if not args.quiet:
-            print(f"  NOTE  {LABEL_STEM['note_i44']} (accepted-incomplete override) (units/{_u}): {_why} "
-                  f"— DOWNGRADED from a hard FAIL by fsm-state.json.accepted_incomplete "
-                  f"(decision_ref {_ai_ref!r}); the human accepted this unit's verification as incomplete "
-                  "at sign-off. Recorded, per-unit and grep-visible — never suppressed (I44 §2.3)")
+        # UNGATED by `args.quiet` (§9-R12): SKILL.md mandates `--quiet`, so a quiet-gated downgrade row
+        # would be inert in the only invocation that matters — the human ruling requires the override be
+        # "available but LOUD: deliberate, grep-visible, per-unit". Same principle as the un-gated N-I45
+        # (:6557-6562): un-gate a NOTE exactly when stdout is its only channel. Exit-neutral BY
+        # CONSTRUCTION (a bare print touching neither rep.problems nor rep.checked), so un-gating cannot
+        # move any exit code and no archived run's verdict changes — PRESERVES.
+        print(f"  NOTE  {LABEL_STEM['note_i44']} (accepted-incomplete override) (units/{_u}): {_why} "
+              f"— DOWNGRADED from a hard FAIL by fsm-state.json.accepted_incomplete "
+              f"(decision_ref {_ai_ref!r}); the human accepted this unit's verification as incomplete "
+              "at sign-off. Recorded, per-unit and grep-visible (I44 §2.3)")
 
     # ── I43 (P1) — verification currency. Four EXHAUSTIVE, MUTUALLY EXCLUSIVE arms over the post-guard
     # state space {SUPERSEDED, AHEAD, CURRENT} x {IN_FLIGHT, not IN_FLIGHT}. Two GUARDS first: I43 never
@@ -5891,7 +5896,9 @@ def main(argv=None):
                          "knowingly). Note a CURRENT FAIL verdict is CLOSED verification, not an arm.")
         if _ai_ok:
             _i44_surplus = sorted(set(_ai_named) - set(_i44_open))
-            if _i44_surplus and not args.quiet:
+            # UNGATED by `args.quiet` for the same §9-R12 reason as `_vc_override_note` above: the
+            # over-broad row is the companion record of the SAME override and must survive `--quiet`.
+            if _i44_surplus:
                 print(f"  NOTE  {LABEL_STEM['note_i44']} (override over-broad): "
                       f"accepted_incomplete.units names {_i44_surplus} but those units are not currently "
                       "open (no absent/unusable/verdict-less/superseded verification), so the override is "

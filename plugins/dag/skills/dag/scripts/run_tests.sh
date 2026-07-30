@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # run_tests.sh — executable, HOME-isolated fixture harness for the dag validator.
 #
+# expectations.tsv columns (TAB-separated): 1 fixture path · 2 expected exit code · 3 pinned stdout
+# substring (optional; prefix with '!' to require its ABSENCE) · 4 extra validate_run.py flags
+# (optional, e.g. `--quiet`). Columns 3-4 are backward-compatible additions: rows carrying 2-3
+# columns behave exactly as before.
+#
 # Runs validate_run.py against every scripts/tests/ fixture listed in tests/expectations.tsv,
 # on each available validator backend, and exercises schemas/manifest.schema.json against its
 # instance pair (manifest_examples, N-09). Exits non-zero if ANY fixture's exit code or pinned
@@ -82,10 +87,10 @@ for PY in $INTERPRETERS; do
     backend=""
     n_pass=0
     n_fail=0
-    while IFS="$TAB" read -r path exp sub || [ -n "$path" ]; do
+    while IFS="$TAB" read -r path exp sub flags || [ -n "$path" ]; do
       case "$path" in ''|'#'*) continue ;; esac
       set +e
-      out=$(env $FORCE_ENV "$PY" "$VR" "$TESTS_DIR/$path" </dev/null 2>&1)
+      out=$(env $FORCE_ENV "$PY" "$VR" "$TESTS_DIR/$path" ${flags:-} </dev/null 2>&1)
       rc=$?
       set -e
       if [ -z "$backend" ]; then
@@ -96,9 +101,20 @@ for PY in $INTERPRETERS; do
       reason=""
       if [ "$rc" -ne "$exp" ]; then ok=0; reason="exit $rc != expected $exp"; fi
       if [ -n "$sub" ]; then
+        case "$sub" in
+          '!'*)
+            # NEGATIVE pin (col 3 prefixed with '!'): the substring must be ABSENT. Needed so a GREEN
+            # control can prove a NOTE does NOT fire; a presence-only harness passes such rows vacuously.
+            nsub=${sub#!}
+            case "$out" in
+              *"$nsub"*) ok=0; reason="${reason:+$reason; }forbidden substring PRESENT: $nsub" ;;
+              *) : ;;
+            esac ;;
+          *)
         case "$out" in
           *"$sub"*) : ;;
           *) ok=0; reason="${reason:+$reason; }missing pinned FAIL substring: $sub" ;;
+        esac ;;
         esac
       fi
       # WP-A regression guard (B1/B3): the validator must NEVER abort with a Python traceback — a crash

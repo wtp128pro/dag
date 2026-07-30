@@ -365,6 +365,8 @@ i44_absent_verify_any_phase	1	I44 sign-off closure (units/U01)
 i44_override_partial	1	I44 sign-off closure (units/U02)
 i44_override_malformed	1	I44 sign-off closure (accepted_incomplete malformed)
 i44_override_wellformed	0	N-I44 sign-off closure (accepted-incomplete override) (units/U01)
+i44_override_quiet_visible	0	N-I44 sign-off closure (accepted-incomplete override) (units/U01)	--quiet
+i44_override_quiet_control	1	!(accepted-incomplete override)	--quiet
 i44_no_signoff_antecedent	0	RESULT: PASS
 i44_closed_current_fail	0	RESULT: PASS
 i45_skew_note	0	N-I45 version-skew visibility
