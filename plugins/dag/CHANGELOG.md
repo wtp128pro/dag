@@ -3,6 +3,70 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] — 2026-07-29
+
+**Verification currency — a run can no longer end with verification open or superseded.**
+Four new **offline post-hoc** predicates over emitted artifacts. None is a live guard on any
+transition and none guards `LT7`, so the correction-loop termination proof (Claims A–D) and
+AO-1..7 are untouched.
+
+- **`I43` verification currency** — for every unit carrying both artifacts, the aggregated
+  `verify.json.iteration` must equal `debrief.json.iteration`. Four exhaustive arms
+  (`SUPERSEDED`, `AHEAD`, in-flight `NOTE`, positive assertion). The in-flight carve-out mirrors
+  I9's window **plus** a `signoff_confirmed is not True` conjunct — load-bearing, because the
+  verbatim two-conjunct window catches **0 of 3** real defects while the third conjunct catches
+  **3 of 3**. Domain is the aggregated verify **only**: `verify_p<N>.json` are a per-iteration
+  audit trail that legitimately lags (precedent `2026-07-18_101631` U01, `verify_p1..p9` across
+  three iterations), and the implementation contains zero occurrences of `verify_p`.
+- **`I44` sign-off closure** — `gates.signoff_confirmed: true` obliges every executed unit to
+  carry a present, parseable, verdict-bearing, current verify, **at any phase**, closing the
+  stop-at-P6 escape. Artifact-keyed, never status-keyed. Ships as its own labelled predicate,
+  **not** in `REQUIRED_GATES` (SC3 derives that from `spec/fsm.json.guards[]`, whose vocabulary
+  cannot express a converse). Signing off knowingly stays **available but loud**:
+  `fsm-state.accepted_incomplete` names **every** open unit with a rationale and a `DECISIONS.md`
+  ref, downgrading each FAIL to a greppable NOTE — per-unit, no blanket form, fail-closed if
+  malformed, over-broad NOTE if stale.
+- **`N-I45` version-skew visibility** — exit-neutral NOTE counting the arms a run's own
+  `validator_version` suppressed. New **`spec_check` SC8** mechanically enforces recorder
+  completeness against the semver call sites, so a future site added without one goes red.
+- **`I46` non-converged PASS** — `converged: false` under a `PASS` was dead data, read by nothing.
+  NOTE below sign-off, FAIL at sign-off.
+
+**`validator_version` now re-stamps on phase advance** (`init_run.sh --restamp`, raise-only
+ratchet, archive-safe on absent/malformed). This closes the self-reference by which the run that
+authored I41 escaped being judged by it — measured: one digit, identical bytes,
+`264/0/PASS → 264/8/FAIL`.
+
+**Doctrine** in `SKILL.md` (new prime directive 8; Phase-6 repair-invalidates-panel with the
+continue-the-numbering corollary; Phase-8 sign-off precondition), a worked member-by-member
+section in `references/state-machine.md`, two REVISES filed in `references/formal-models.md`,
+`CLAUDE.md`, and the wiki.
+
+**Two flagged REVISES** with migration arguments: iteration equality becomes a normative verify
+artifact contract, and `signoff_confirmed` acquires an artifact-level obligation (precedent: its
+own addition to `REQUIRED_GATES` was itself a REVISES).
+
+**Evidence.** `run_tests.sh` **365 passed / 0 failed on both backends**; `spec_check.py`
+**PASS 8 / NOTE 1 / FAIL 0**; `normalize_artifacts.py --self-test` 0 failures; `validate_run.py`
+**insertion-only** (784/0 vs `main`) with the byte-identical-emissions test discharged by
+measurement — 345 pre-change fixtures captured before/after, **0 differ, 0 exit codes changed**.
+Archive scan over 18 runs: **exactly 1 REDs**, and it is the run under repair. 23 new fixtures,
+including the three an earlier dissent prescribed and never wrote
+(`panel_downgrade_major_echo`, `digest_path_only_ok`, `panel_adj_nondict`), each pinned by
+three-mutant ablation. Doctrine census corrected at five sites: **0/292**, **2179/2179**
+(was 0/156, 964/964) — conclusion unchanged, denominators corrected.
+
+**Limitation AA (honest boundary).** These predicates make verification completeness *legible*,
+never *true*. A loop that bumps both iterations without re-verifying satisfies I43 exactly; I44
+proves a verify is current, not that verification happened; I46 is only as honest as an optional
+field; `accepted_incomplete` records a human decision rather than validating it. Panel
+independence and human-gate reality remain attestations.
+
+**Residual R-I41-4** (found by *using* the shipped invariant): I41-4c and I41-4d contradict each
+other for any re-poll that makes a verdict **stricter**. 4d requires `panel[]` to hold the final
+vote; 4c then reads that final `FAIL` as "the dissenter was re-polled". Not fixed here —
+weakening a shipped invariant is out of scope.
+
 ## [1.11.0] — 2026-07-29
 
 **Cross-repo lessons intake** — 92 learnings from three independent `.dag/learnings` stores

@@ -3,6 +3,21 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.15] — 2026-07-29
+
+- **`dag` 1.11.0 → 1.12.0 — verification currency.** Four offline post-hoc predicates so a run can
+  no longer end with verification open or superseded: **`I43`** (aggregated `verify.iteration` must
+  equal `debrief.iteration`, with a carve-out that expires at sign-off), **`I44`** (sign-off obliges
+  every executed unit to carry a current verify, at any phase, with a loud per-unit
+  `accepted_incomplete` override), **`N-I45`** (exit-neutral version-skew visibility, completeness
+  enforced by new `spec_check` SC8), and **`I46`** (`converged: false` under a `PASS` is no longer
+  dead data). `validator_version` re-stamps on phase advance, closing the self-reference by which a
+  run escaped the invariant it shipped. Suite **365/0 on both backends**, `spec_check`
+  **PASS 8 / NOTE 1 / FAIL 0**, `validate_run.py` insertion-only with the byte-identical-emissions
+  test discharged by measurement (0 of 345 fixtures differ). Archive scan: 1 of 18 runs REDs, and it
+  is the run under repair. Honest boundary filed as **Limitation AA** — these predicates make
+  completeness legible, never true.
+
 ## [1.0.14] — 2026-07-29
 
 ### Changed

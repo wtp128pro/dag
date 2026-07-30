@@ -206,7 +206,7 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.11.0** — **cross-repo lessons intake**: 18 orchestrator-conduct rules distilled from
+Current version: **1.12.0** — **cross-repo lessons intake**: 18 orchestrator-conduct rules distilled from
 92 learnings across three independent `.dag/learnings` stores (BubbleBrain, music, dag) land as
 [`references/orchestrator-conduct.md`](skills/dag/references/orchestrator-conduct.md) (lazy-loaded, indexed
 by decision moment) plus ~33 net lines of `SKILL.md` hooks — a **continuation contract** and **RESUME
