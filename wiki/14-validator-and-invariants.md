@@ -399,7 +399,7 @@ those was invisible to every shipped predicate.
   echo is a deletion wearing a downgrade's label); `escalated-p7` cannot sit on a `PASS`. The presence
   floors arm only at `validator_version ≥ 1.11.0` (proper semver via `_i27_semver_ge`, not a lexicographic
   compare — the fixture `panel_dissent_version_silent` pins that, since `"1.9.0" >= "1.11.0"` is *true* on
-  a raw string compare); the shape clauses arm on adoption. Measured **0 of 292** archived verifies carry
+  a raw string compare); the shape clauses arm on adoption. Measured **0 of 292** at the 1.11.0 release — **DATED, and now expired: 301 archived verify documents today, 1 with `panel_adjudication` and 9 with member `defects[]`, so the T2 adoption arms are genuinely armed on an archived run** (`DECISIONS#51`). Historically 0 of 292 archived verifies carried
   `panel_adjudication` or member `defects` (re-measured 2026-07-29 and re-derived IDENTICALLY 2026-07-30 by the census command recorded at
   [`state-machine.md`](../plugins/dag/skills/dag/references/state-machine.md) I42 / `validate_run.py`'s I41
   header; the previously published **0 of 156** denominator was stale — the numbers moved, the

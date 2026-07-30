@@ -5195,7 +5195,7 @@ def main(argv=None):
     # I41-4d RE-USES its `_discrete_majority` rather than replacing it, and pins the previously-unspecified
     # semantic that panel[].verdict holds the FINAL vote. Trigger: T1 (presence floor; clauses I41-1/-2a)
     # arms only at validator_version >= _I41_SHIP; T2 (shape; clauses I41-2b/-3/-4/-5/-6) arms on ADOPTION
-    # (a panel_adjudication OR any member defects[]), any version — measured 0/292 archived verifies carry
+    # (a panel_adjudication OR any member defects[]), any version — DATED AND NOW EXPIRED, re-measure rather than inheriting: 0/292 at the 1.11.0 release, but 301 archived verify docs today of which 1 carries panel_adjudication and 9 carry member defects[], so the T2 arms are genuinely armed on an archived run (DECISIONS#51) -- historically 0/292 archived verifies carried
     # either key, so the T2 ADOPTION arm is unarmed on every archive. T1 stays silent on a SECOND,
     # separately measured ground: T1 arms on validator_version >= _I41_SHIP (1.11.0) and the MAXIMUM stamp
     # across the 17 archived fsm-state.json files is 1.10.1 (9 unstamped, then 1.7.0 / 1.8.0 x2 / 1.9.0 x3 /
