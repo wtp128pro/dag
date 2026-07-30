@@ -478,6 +478,13 @@ naming **every** open unit, a rationale and a `DECISIONS.md` ref downgrades each
 greppable NOTE — it never suppresses one, and it fails closed if malformed. Complete means **current**,
 not PASS: a *current* `FAIL` at `retries == 2`, and a `DISAGREE`, are finished verification acts that
 exit through Phase 7 (see [`14-validator-and-invariants.md` §4.6](14-validator-and-invariants.md)).
+Two measured caveats, so neither rule reads as more enforcement than it is. The *first* rule above is
+**discipline, not enforcement**: I43's in-flight NOTE arm is direction-blind, so repairing under a live
+verifier produces an `AHEAD` pair that is an exit-neutral NOTE — and, under the mandated `--quiet`,
+silent — rather than a FAIL; the `AHEAD` hard FAIL is an off-window guarantee only. And the `DISAGREE`
+row is itself `--quiet`-gated, so it too is invisible in the mandated invocation (visibility, not
+severity — exit-neutrality holds). A ledger label left non-terminal over a *current* verification is
+neither predicate's business: that is the advisory **`N-I47`**, which is un-gated and does print.
 
 ```mermaid
 flowchart TD

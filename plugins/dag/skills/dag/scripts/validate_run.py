@@ -5203,7 +5203,8 @@ def main(argv=None):
     # an adoption count alone says NOTHING about T1. And the zero is DATED, NOT STRUCTURAL: the in-flight
     # run excluded from the denominator is itself stamped 1.12.0 and already carries panel_adjudication
     # records, so T1 WILL arm on it the moment it archives. No clause fires on a verify with no panel[].
-    # CENSUS (re-measured 2026-07-30; the earlier 0/156 denominator was stale, the CONCLUSION is not —
+    # CENSUS (re-measured 2026-07-29, re-derived IDENTICALLY 2026-07-30; the earlier 0/156 denominator was
+    # stale, the CONCLUSION is not —
     # zero adopters then, zero adopters now). One command derives it for I41 AND I42, printing
     # `docs elements string-elements verifies-with-panel_adjudication verifies-with-member-defects`.
     # SELF-CONTAINED: the excluded run dir is named LITERALLY, so the published integers are re-derivable
@@ -5213,13 +5214,18 @@ def main(argv=None):
     #   E=[e for d in D for e in (d.get('inputs_reviewed') or [])];print(len(V),len(E),
     #   sum(isinstance(e,str) for e in E),sum('panel_adjudication' in d for d in D),
     #   sum(any(m.get('defects') for m in d.get('panel') or []) for d in D))"
-    #   # -> 292 2179 2179 0 0   at 2026-07-30T03:10:51Z, tree 23c9962
+    #   # -> 292 2179 2179 0 0   at 2026-07-30T03:10:51Z on tree 23c9962, and IDENTICALLY at
+    #   # 2026-07-30T03:15:41Z on tree 1bf2626 — the axis held across a tree change mid-repair, which is
+    #   # the point of excluding the in-flight run. The command above was extracted VERBATIM from this
+    #   # file's sibling copy in state-machine.md and executed: exit 0, output `292 2179 2179 0 0`.
     #   # RUN = 2026-07-29_183514, the then-in-flight run, excluded because it is not yet archived.
     #   # ADJACENT AXES, so a reader who measures a different number can tell WHICH axis they are on:
     #   # 295 docs / 2179 elements with the looser recursive glob '.wip/**/verify*.json' (same archived
     #   # population, +3 run-root verify.json files that carry ZERO inputs_reviewed elements — the ELEMENT
-    #   # count is axis-insensitive here, only I41's denominator moves); 321 total under .wip and 318 under
-    #   # units/ INCLUDING the in-flight run (both drift upward while a run is live). COMPOSITION of the
+    #   # count is axis-insensitive here, only I41's denominator moves). Both figures above EXCLUDE the
+    #   # in-flight run and are therefore STABLE. Any in-flight-INCLUSIVE count is NOT durable and must not
+    #   # be quoted forward: measured 346 total under .wip / 343 under units/ at 2026-07-30T03:10:51Z, up
+    #   # from 321/318 roughly forty minutes earlier — it moved DURING this very repair. COMPOSITION of the
     #   # 292: 159 unit-final `verify.json` + 133 panelist `verify_p*.json` across 159 archived unit dirs —
     #   # so this is "no DOCUMENT adopted", which entails but is stronger than "no UNIT adopted".
     # Limitation Y: an UNRECORDED dissent is invisible; only the latest verify per unit survives a retry

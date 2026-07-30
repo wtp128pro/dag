@@ -10,7 +10,7 @@ the pipeline whose verdict does not come from a model's judgment. It reads a run
 schema-validates every artifact, then checks the FSM invariants that schemas alone cannot express,
 and **exits non-zero on any violation**. It is invoked as an **explicit Bash step** the skill must
 call (Prime Directive 7), *not* a passive platform hook. What it enforces is **shape and structure**
-— the full invariant catalog **I1..I40 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates. What it cannot
+— the full invariant catalog **I1..I47 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates. What it cannot
 enforce is **truth of content**: whether a PASS is *correct*, whether evidence resolves, whether a
 lens was *genuinely* applied. The single sentence to carry away, repeated verbatim across the repo:
 **validity ≠ correctness**
@@ -61,7 +61,7 @@ deadlock lesson).
 flowchart LR
   ART["run dir artifacts<br/>(JSON extracts + markdown ledger)"] --> V["validate_run.py<br/>(explicit Bash step, Prime Directive 7)"]
   V -->|"schema layer"| S["Draft-2020-12 schema validity<br/>(jsonschema OR stdlib mini)"]
-  V -->|"invariant layer"| I["I1..I40 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates"]
+  V -->|"invariant layer"| I["I1..I47 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates"]
   S --> EX{"exit code"}
   I --> EX
   EX -->|0| OK["ok — shape + structure sound"]
@@ -141,7 +141,7 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I46 + I1b/I1c/I1d/I3b/I3c + I-dod
+## 4. The invariant catalog — I1..I47 + I1b/I1c/I1d/I3b/I3c + I-dod
 
 The primary table (§4 below) is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
 (`:187-211`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
@@ -400,7 +400,7 @@ those was invisible to every shipped predicate.
   floors arm only at `validator_version ≥ 1.11.0` (proper semver via `_i27_semver_ge`, not a lexicographic
   compare — the fixture `panel_dissent_version_silent` pins that, since `"1.9.0" >= "1.11.0"` is *true* on
   a raw string compare); the shape clauses arm on adoption. Measured **0 of 292** archived verifies carry
-  `panel_adjudication` or member `defects` (re-measured 2026-07-30 by the census command recorded at
+  `panel_adjudication` or member `defects` (re-measured 2026-07-29 and re-derived IDENTICALLY 2026-07-30 by the census command recorded at
   [`state-machine.md`](../plugins/dag/skills/dag/references/state-machine.md) I42 / `validate_run.py`'s I41
   header; the previously published **0 of 156** denominator was stale — the numbers moved, the
   zero-adopter conclusion did not), so the **T2 adoption arm is unarmed on every archive**. **T1** stays
@@ -441,7 +441,7 @@ not READING**: matching bytes do not prove anyone read them, and a verifier that
 the current file passes trivially. Backstop, as always: the independent adversarial verifier and the human
 at the gate.
 
-### 4.6 Verification currency (I43–I46) — a run never ends with verification open or superseded
+### 4.6 Verification currency (I43–I47) — a run never ends with verification open or superseded
 
 The hole this closes is the one *no* presence check sees. `I9` asks "is there a `verify.json`?" and `I10`
 asks "does every graph unit have one with a `PASS`?" — neither asks **which version of the artifact it
@@ -459,16 +459,26 @@ staleness once the run claims to be finished is not*, and `gates.signoff_confirm
   ∈ {executing, verifying} ∧ ¬signoff_confirmed` — `I9`'s existing window **plus** a third conjunct.
   Both halves are load-bearing: without the window the check would halt a *compliant* orchestrator at every
   retry (a validator predicate acting as a de-facto live guard on `LT7`, the deadlock hazard class); without
-  the third conjunct it would be inert on the very run that motivated it.
+  the third conjunct it would be inert on the very run that motivated it. **The downgrade is
+  direction-blind** — the NOTE arm tests a bare `!=`, so an *AHEAD* pair inside the window is a
+  `--quiet`-suppressed NOTE at exit 0, not a FAIL. The `AHEAD` hard FAIL is an **off-window** guarantee
+  only, and `SKILL.md`'s "never repair under a live verifier" is therefore **discipline, not enforcement**
+  (measured; unpinned residual — `state-machine.md` §5).
 - **I44 — sign-off closure.** Antecedent `gates.signoff_confirmed is True`, and **no phase condition at
   all**: a hard FAIL for each executed unit whose verification is absent, unusable, verdict-less or
   superseded. Phase-independence is what makes it bite — the motivating run rolled `P8 → P6` back while
   leaving the flag set, so every phase-gated formulation is inert on it. It is keyed on **artifacts, never
   on `fsm-state` status labels** (status-keyed formulations newly RED 3 archived runs for cosmetic desync
-  and catch nothing extra). A `DISAGREE`, and a **current** `FAIL` at `retries == 2`, are *complete*
-  verification acts that exit through Phase 7 — NOTE and silence respectively, never a FAIL: complete means
-  **current**, not PASS, or every escalated unit would be unsatisfiable and runs would be pressured to
-  manufacture a pass.
+  and catch nothing extra — the stale label a status-keyed form would fail is a *documentation* defect, and
+  it now ships separately as the advisory **`N-I47`**, below). A `DISAGREE`, and a **current** `FAIL` at
+  `retries == 2`, are *complete* verification acts that exit through Phase 7 — NOTE and silence respectively,
+  never a FAIL: complete means **current**, not PASS, or every escalated unit would be unsatisfiable and runs
+  would be pressured to manufacture a pass. **Read "NOTE" as measured, not as promised:** arm (e)'s print is
+  `--quiet`-gated, so under the invocation `SKILL.md` mandates the `DISAGREE` row does **not** appear
+  (measured: 1 row in the default invocation, **0** under `--quiet`). Exit-neutrality holds either way, so the
+  gap is **visibility, not severity** — an open residual, and an inconsistency with the un-gated
+  `_vc_override_note` / `N-I45` / `N-I47`, since a `DISAGREE` at sign-off is the one state that routes to a
+  human Phase-7 gate.
 - **The recorded override.** A maintainer may still sign off with units knowingly open — that happened, and
   the mechanism exists so it stops being invisible. A top-level `fsm-state.json.accepted_incomplete` object
   naming `units`, a non-blank `rationale` and a `decision_ref` pointing at an existing `DECISIONS.md`
@@ -489,18 +499,44 @@ staleness once the run claims to be finished is not*, and `gates.signoff_confirm
   punishing an optional honesty field would just teach runs to omit it), hard FAIL under `signoff_confirmed`
   (a verification declaring its own coverage incomplete, at claimed completion, is verification left
   unfinished), downgradable by the same `accepted_incomplete` override.
+- **N-I47 — ledger desync at sign-off** (DoD 6, shipped 1.12.0). The advisory I44 deliberately does *not*
+  carry, added because three surfaces told readers the stale label "is a separate predicate" while nothing
+  shipped it. It fires only when the verification is **complete and current** — the exact negation of I44's
+  FAIL arms and I43's, so it never double-charges — and the status is in the whitelist
+  `{pending, briefed, executing, verifying}` (`escalated`/`retired`/`blocked` are *closed* outcomes at
+  sign-off, and an unknown future enum must never arm an advisory). A bare `print` ⇒ **exit-neutral by
+  construction**, so no archived run's verdict moves, and **not** `--quiet`-gated. It names a
+  **documentation** defect only: it neither infers the correct label nor re-checks the verdict.
 
-All four are **post-hoc and offline**, gate no transition and never guard `LT7` ⇒ they **PRESERVE** the
-termination proof (Claims A–D), AO-1..AO-7 and I1..I42. They are **ungated** by `validator_version`:
-measured, 156 of 156 legitimately-closed debrief/verify pairs across 18 archived runs and 8 distinct stamps
-are already clean, so arming them newly REDs **zero** archived runs — strictly stronger evidence than a
-version gate that would (again) exempt the run that ships the invariant. They read the **aggregated**
+All five are **post-hoc and offline**, gate no transition and never guard `LT7` ⇒ they **PRESERVE** the
+termination proof (Claims A–D), AO-1..AO-7 and the I1..I42 **predicates** — two artifact-contract
+**REVISES** are filed separately, with migration arguments, in
+[`references/formal-models.md`](../plugins/dag/skills/dag/references/formal-models.md) (iteration parity
+becomes a normative verify-artifact contract; `signoff_confirmed` acquires an artifact-level obligation).
+They are **ungated** by `validator_version`, and the evidence for that is a **measurement with a named
+population**, not an absolute: measured **2026-07-30T03:22Z on tree `1bf2626`** over **this repository's
+own `.wip/` archive (18 run dirs) and nothing else**, arming them newly REDs **1 of 18 archived runs in
+this repository** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own **repair target** —
+with **8 hard FAILs** (I43 on U05/U07/U08, I44 arm d on the same three, I46 on U03/U07) and **zero false
+positives**, so 17 of 18 are unaffected. **Never publish this as "zero"** and never as a bare count: the
+honest claim is that *zero **legitimately-closed** archived runs are newly RED, and the one that is, is
+the run this pipeline exists to repair, on exactly the commissioned defect class*. Publishing `0` was a
+defect in those words — it rested an ungated arming decision on a number a checking reader would find
+false. Reproducing command, population caveat and the separate I46-field census live in
+[`state-machine.md` §5](../plugins/dag/skills/dag/references/state-machine.md); note the iteration-parity
+census measures **iteration equality only** and is therefore *silent* on I46's `converged` field, whose 2
+FAILs are an arming consequence recorded on its own evidence. A version gate at the shipping release was
+rejected because it would (again) exempt the run that ships the invariant. They read the **aggregated**
 `verify.json` only and never `verify_p<N>.json`: per-member panel files are a per-iteration audit trail that
 legitimately lags — `2026-07-18_101631`'s U01 holds `verify_p1..p9`, three rounds of three lenses across
 iterations 1–3 with the numbering **continued**, not overwritten — and a freshness check over them would
-RED-flag the best audit trail in the archive. The full class walk-through, including the five members that
-stay **residual** (stop-at-P6 / Limitation O, untagged solo verification, retire-and-delete, evidence
-freshness, unclosed `minor` defects at PASS), is
+RED-flag the best audit trail in the archive (measured: **15** of that run's member files sit strictly
+behind their own unit's debrief — U01 6, U02 6, U03 3). The full class walk-through, including the
+**seven** members that stay **residual** (stop-at-P6 / Limitation O, untagged solo verification,
+retire-and-delete, evidence freshness, unclosed `minor` defects at PASS, `DISAGREE` promotion, and
+**materialization** — where the no-op trigger is an *empty* `units/` tree, measured at **3 of 18** runs,
+and no positive assertion fires on that path) plus the two visibility residuals (AHEAD-in-flight is
+unpinned and `--quiet`-silent; the `DISAGREE`-at-sign-off NOTE is `--quiet`-gated), is
 [`state-machine.md` §5 "Verification currency"](../plugins/dag/skills/dag/references/state-machine.md).
 
 **The honest boundary (Limitation AA).** These predicates make verification completeness **legible**, never

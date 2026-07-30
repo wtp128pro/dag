@@ -770,6 +770,31 @@ run an evidence-reproducing verifier concurrent with an executor mutating what i
    `feedback.actionable_changes` (AO-6, now post-hoc-checked as **I15**). Run the validator after each
    iteration and before the loop exits.
 
+   **The AO-2 fence doctrine — what a `do_not_touch` entry does and does not forbid** (ruled once at
+   `DECISIONS#34`, because leaving it to per-unit judgment makes every retry a coin flip; two units
+   read the same fence oppositely and *both* disclosed honestly, and AO-2's text refuted neither). A
+   fenced entry forbids **re-opening or weakening** a finding; it does not forbid additive adjacency
+   or strengthening.
+   - **FORBIDDEN.** Changing a fenced **grade, verdict or conclusion**; rewriting a fenced **warrant**
+     so the finding comes to rest on different evidence; **deleting** fenced text.
+   - **PERMITTED.** **Additive adjacency** — a measurement stamp, a footprint line, a separate bullet
+     placed beside the fenced text — and **strengthening** a fenced finding **without moving its
+     grade**.
+   - **CONFLICT RULE.** Where an `actionable_changes` item and a `do_not_touch` entry collide, the
+     **actionable change wins**, for the **MINIMUM text needed** and no more, and the collision
+     **MUST be disclosed** in the next iteration's `debrief.prior_feedback`. A silent resolution is
+     the defect, not the edit.
+   - **WITHDRAWAL.** A fence may be **withdrawn on the record** when it forbids a *directed* repair —
+     in `DECISIONS.md` plus `prior_feedback` — **without editing the verifier's artifact**. The
+     verifier's `verify.json` is never rewritten to make a repair legal; the withdrawal is a new
+     record, not a redaction.
+
+   The strictest reading was **rejected**: it forbids the additive measurement stamps that make a
+   repair auditable in the first place. Note the mechanical backstop is narrower than the doctrine —
+   **I14** intersects `do_not_touch` with `blocker|major` criteria only (A2 severity scoping), so a
+   `minor` coverage-first observation on a sealed criterion is reportable as an advisory NOTE rather
+   than a FAIL, and the doctrine above is the part a human enforces.
+
    **An executor repair INVALIDATES its prior panel — re-verification is mandatory, not optional
    (`DAG-L13`).** The moment iteration *N+1* rewrites the artifact, every verdict from iteration *N*
    adjudicates bytes that no longer exist: the panel's evidence has been destroyed under it, so the
@@ -777,8 +802,19 @@ run an evidence-reproducing verifier concurrent with an executor mutating what i
    - **Never repair an artifact while its verification is in flight.** Let the verify land, then
      retry. Repairing under a live verifier destroys the evidence the verifier is citing and can
      convene a human gate (Phase 7) over a defect that is already fixed — and it manufactures the
-     I43 `AHEAD` state (a verify attesting to a *later* iteration than the debrief), which is a hard
-     FAIL because no legal `LT7` transient produces it.
+     I43 `AHEAD` state (a verify attesting to a *later* iteration than the debrief), which no legal
+     `LT7` transient produces.
+     **This rule is DISCIPLINE, not enforcement — do not expect the validator to stop you.**
+     Measured (2026-07-30, tree `1bf2626`): the AHEAD arm `P1-b` is guarded by `and not _i43_inf`, and
+     the in-flight NOTE arm `P1-d` tests a bare `!=` and is therefore **direction-blind**. So an AHEAD
+     pair *inside* the in-flight window (`P6_EXECUTE_VERIFY ∧ status ∈ {executing, verifying} ∧
+     ¬signoff_confirmed`) — which is exactly the window you are in when you repair under a live
+     verifier — emits an exit-neutral `N-I43 … (in-flight)` NOTE with `RESULT: PASS` and exit 0, and
+     under the `--quiet` this file mandates at prime directive 7 it prints **nothing at all**. The
+     hard FAIL applies **off-window only** (at sign-off, or at any other phase/status), where it does
+     close the "author the number instead of observing it" direction. No fixture pins the in-flight
+     AHEAD path; it is filed as a residual in `references/state-machine.md` §5. Comply because the
+     rule is right, not because a red validator will catch you.
    - **Re-verify from scratch, and let the numbering carry the history.** AO-7 re-panels afresh: a
      new panel of independent lenses re-examines the repaired artifact and writes a NEW aggregated
      `verify.json` at the new `iteration`. When members are persisted individually, they are written

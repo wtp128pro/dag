@@ -548,12 +548,23 @@ guarantee-touching change silently):
 
 1. **Iteration equality becomes a normative verify-artifact contract (I43).** No schema, predicate or
    document previously stated that `verify.iteration` must equal `debrief.iteration`; `iteration` was
-   a free integer on both sides. Migration argument: measured, **156 of 156** legitimately-closed
-   debrief/verify pairs across 18 archived runs and 8 distinct `validator_version` stamps already
-   satisfy it, and the only 3 violations are the repairs that motivated the class — so the contract is
-   *descriptive of every honest run on file*, which is why it ships **ungated** (a version gate at the
-   shipping release would once again exempt the run that authors the invariant, since `init_run.sh`
-   stamps once at scaffold time). No archived run is newly REDed. The nearest guarantee, I4's ceiling
+   a free integer on both sides. Migration argument, **measured with its population named**
+   (2026-07-30T03:22Z, tree `1bf2626`, over **this repository's own `.wip/` archive — 18 run dirs — and
+   nothing else**): the contract is *descriptive of every legitimately-closed run on file*, which is why
+   it ships **ungated** (a version gate at the shipping release would once again exempt the run that
+   authors the invariant, since `init_run.sh` stamps once at scaffold time). **Exactly 1 of those 18
+   archived runs is newly REDed** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own
+   **repair target**, on 8 rows (I43 ×3, I44 arm d ×3, I46 ×2) — with **zero false positives** across
+   the other 17. An earlier revision of this clause read "No archived run is newly REDed"; that was
+   **false as written**, and stating it as `0` was a defect in those words, because it rested an ungated
+   arming decision on a number a checking reader would find false. The property that *does* hold is
+   narrower and still sufficient: **zero legitimately-closed archived runs are newly RED**, and the one
+   run that is, is the run this pipeline exists to repair, on exactly the commissioned defect class.
+   Scope, stated rather than implied: another installation's archive is a different population — re-run
+   the command in `state-machine.md` §5 against it rather than assuming the figure transfers. The
+   companion parity census (168 co-present pairs at the same tree) measures **iteration equality only**
+   and is therefore silent on I46's `converged` field, so I46's 2 FAILs are recorded on their own
+   evidence rather than implied by it. The nearest guarantee, I4's ceiling
    `iteration ≤ retries+1`, is neither widened nor narrowed: I43 is an equality between two
    *artifacts*, orthogonal to a bound between an artifact and a counter.
 2. **`signoff_confirmed` acquires an artifact-level obligation (I44).** The flag previously bound only
@@ -571,9 +582,15 @@ guarantee-touching change silently):
 `RETRY` (LT7 increments `iteration` before the next `EXECUTE` writes its debrief), so a hard FAIL there
 would be a de-facto live guard on the correction loop's sole back-edge — the Claim-D deadlock. I43
 therefore carries an in-flight NOTE window (I9's two conjuncts **plus** `¬signoff_confirmed`, defined
-in its own block; I9's window at `:5594` and its I42-3 twin at `:5554` are byte-untouched), and pays
-for it with a declared residual: stop-at-P6 abandonment stays undecidable from a single run dir
-(Limitation O). I46's severity tier (NOTE below sign-off, FAIL at sign-off) is a recorded fork — the
+in its own block; **both twin window sites are byte-untouched** — locate them by conjunct, not by
+offset, via `grep -n 'phase == "P6_EXECUTE_VERIFY"' validate_run.py`, since line numbers drift: measured
+2026-07-30T03:22Z on tree `1bf2626`, I42-3's twin is at `:5633` and I9's window at `:5673`, having moved
+from `:5610`/`:5650` at tree `23c9962` eleven minutes earlier. An earlier revision cited `:5594`/`:5554`,
+neither of which ever matched), and pays for it with a declared residual: stop-at-P6 abandonment stays
+undecidable from a single run dir (Limitation O). **The AHEAD arm's guarantee is off-window only:** the
+NOTE arm is direction-blind, so an AHEAD pair inside the window is a `--quiet`-suppressed NOTE at exit 0,
+which makes "never repair under a live verifier" discipline rather than enforcement (unpinned residual —
+`state-machine.md` §5). I46's severity tier (NOTE below sign-off, FAIL at sign-off) is a recorded fork — the
 intake wording says "flags", which is severity-neutral. Honest ceiling: **Limitation AA** — these
 predicates make verification completeness *legible*, never *true*; a loop that bumps both iterations
 without re-verifying satisfies I43 exactly, and panel independence and human-gate reality stay
