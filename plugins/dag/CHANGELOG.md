@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [1.12.0] — 2026-07-29
 
 **Verification currency — a run can no longer end with verification open or superseded.**
-Four new **offline post-hoc** predicates over emitted artifacts. None is a live guard on any
+Five new **offline post-hoc** predicates over emitted artifacts. None is a live guard on any
 transition and none guards `LT7`, so the correction-loop termination proof (Claims A–D) and
 AO-1..7 are untouched.
 
@@ -17,7 +17,10 @@ AO-1..7 are untouched.
   verbatim two-conjunct window catches **0 of 3** real defects while the third conjunct catches
   **3 of 3**. Domain is the aggregated verify **only**: `verify_p<N>.json` are a per-iteration
   audit trail that legitimately lags (precedent `2026-07-18_101631` U01, `verify_p1..p9` across
-  three iterations), and the implementation contains zero occurrences of `verify_p`.
+  three iterations). The durable claim about the implementation is the **code-line** one: over the
+  I41/I42 region delimited by content anchors, `verify_p` occurs **0** times outside comments and
+  **7** times including them — a comment-inclusive count is not zero and rises every time anyone
+  documents the exclusion, this line included.
 - **`I44` sign-off closure** — `gates.signoff_confirmed: true` obliges every executed unit to
   carry a present, parseable, verdict-bearing, current verify, **at any phase**, closing the
   stop-at-P6 escape. Artifact-keyed, never status-keyed. Ships as its own labelled predicate,
@@ -31,6 +34,12 @@ AO-1..7 are untouched.
   completeness against the semver call sites, so a future site added without one goes red.
 - **`I46` non-converged PASS** — `converged: false` under a `PASS` was dead data, read by nothing.
   NOTE below sign-off, FAIL at sign-off.
+- **`N-I47` ledger desync at sign-off** (DoD 6) — an exit-neutral advisory NOTE, and nothing more,
+  for a unit whose verification is complete and current while its `fsm-state.units[].status` is
+  still non-terminal at sign-off. Four conjuncts, with the status test a **whitelist**
+  (`pending`/`briefed`/`executing`/`verifying`) rather than `not in {passed, failed}`, so a closed
+  outcome — `escalated`, `retired`, `blocked` — never arms an advisory. It names a **documentation**
+  defect only: it neither infers the correct label nor re-checks the verdict.
 
 **`validator_version` now re-stamps on phase advance** (`init_run.sh --restamp`, raise-only
 ratchet, archive-safe on absent/malformed). This closes the self-reference by which the run that
@@ -46,11 +55,16 @@ section in `references/state-machine.md`, two REVISES filed in `references/forma
 artifact contract, and `signoff_confirmed` acquires an artifact-level obligation (precedent: its
 own addition to `REQUIRED_GATES` was itself a REVISES).
 
-**Evidence.** `run_tests.sh` **365 passed / 0 failed on both backends**; `spec_check.py`
-**PASS 8 / NOTE 1 / FAIL 0**; `normalize_artifacts.py --self-test` 0 failures; `validate_run.py`
-**insertion-only** (784/0 vs `main`) with the byte-identical-emissions test discharged by
-measurement — 345 pre-change fixtures captured before/after, **0 differ, 0 exit codes changed**.
-Archive scan over 18 runs: **exactly 1 REDs**, and it is the run under repair. 23 new fixtures,
+**Evidence, re-measured at the tip of the branch rather than at the release commit.** `run_tests.sh`
+**389 passed / 0 failed on both backends**; `spec_check.py` **PASS 8 / NOTE 1 / FAIL 0**;
+`normalize_artifacts.py --self-test` 0 failures; `validate_run.py` **insertion-only** (1033/0 vs
+`main`) with the byte-identical-emissions test discharged by measurement — 345 pre-change fixtures
+captured before/after, **0 differ, 0 exit codes changed**. Archive scan over this repository's 18
+`.wip/` dirs (**17 archived + 1 in-flight**): **historically 1 archived run newly RED**, and it was
+the run under repair; **currently 0**, because the maintainer-waived re-verification discharged all
+8 rows — the property strengthens *a fortiori*, and the figure is a timestamped sample over a
+gitignored tree, so re-measure rather than inherit it. **+47 expectation rows** (342 → 389) across
+**+33 fixture directories** (343 → 376),
 including the three an earlier dissent prescribed and never wrote
 (`panel_downgrade_major_echo`, `digest_path_only_ok`, `panel_adj_nondict`), each pinned by
 three-mutant ablation. Doctrine census corrected at **six** sites: **0/292**, **2179/2179**
