@@ -15,7 +15,11 @@ PROVES two separable things:
 It also pins the zero-adoption emission rule of §4.2: with no `converged` anywhere, P4 emits
 **nothing** — not even its positive assertion (the I19/I20 zero-adoption precedent).
 
-Pinned substring is `RESULT: PASS`.
+EXPECTED (two rows, iteration 2). With zero adoption P4 emits **nothing at all**, so no positive
+substring exists to pin and the `RESULT: PASS` row is kept as a liveness assertion. The real
+assertion is the second row, a must-NOT-contain pin on `I46 non-converged PASS` — no `I46` row of any
+severity, §4.4 P4-G2's wording verbatim, and the direct mechanical form of point 3 above. The
+negative substring omits the `N-` prefix so it forbids the NOTE row too.
 
 DOES NOT COVER: `converged` present as `0`, `""` or `null` — §4.1 says none of these arm P4, and no
 fixture ships them (they are schema-invalid as booleans, so they would be dropped upstream anyway,

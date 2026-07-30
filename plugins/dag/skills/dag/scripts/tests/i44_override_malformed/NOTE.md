@@ -12,9 +12,15 @@ PROVES the fail-closed posture, in both halves:
 It also pins §0.5: a malformed override must never CRASH, and a crash inside the new block would
 silently disable every downstream predicate (R6).
 
-EXPECTED: exit 1 AND a FAIL row labelled `I44 sign-off closure (accepted_incomplete malformed)`.
-The pinned substring is the malformed-override label because that is the arm unique to this fixture;
-the surviving per-unit FAIL is asserted by reading the row (`expectations.tsv` pins one substring).
+EXPECTED (two rows, iteration 2): exit 1 AND a FAIL row labelled `I44 sign-off closure
+(accepted_incomplete malformed)` — the arm unique to this fixture — **and** exit 1 with
+`I44 sign-off closure (units/U01)`, which is the NO-DOWNGRADE half. §2.5 P2-R4 requires all three
+assertions ("exit 1, AND a FAIL row … naming condition (3), AND U05 still carries its own
+`I44 sign-off closure (units/U05)` FAIL (no downgrade)"); iteration 1 pinned only the first, so the
+fail-closed property held but was unasserted. Measured, both rows are present here:
+`FAIL  I44 sign-off closure (accepted_incomplete malformed): … unmet condition (3) …` and
+`FAIL  I44 sign-off closure (units/U01): ABSENT verification … (arm a; …)`. (The spec's U05/U07 unit
+ids are realised as U01/U02 — the shape, not the ids, is the requirement; recorded as a deviation.)
 
 DOES NOT COVER: conditions (1),(2),(4),(5),(6) failing — each needs its own witness and only (3) is
 shipped; whether the detail names the condition NUMBER (the stem pin cannot check the number);

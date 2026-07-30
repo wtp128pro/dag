@@ -10,8 +10,14 @@ the pair isolates the antecedent from every artifact condition. An implementatio
 Per §2.1(i), P2 must not read `_fsm_unit_status` for any DECISION — only to interpolate it into a
 FAIL's detail — because status-keyed formulations newly RED 3 archived runs for cosmetic desync.
 
-Pinned substring is `RESULT: PASS` (an absence assertion is not expressible in `expectations.tsv`),
-which additionally proves the pass reached its verdict rather than aborting inside a new block.
+EXPECTED (two rows, iteration 2). This substrate emits **no row of P2's own** at any severity — not
+even §2.4's positive assertion, because the antecedent gates the whole predicate — so there is no
+positive substring to pin here, and the `RESULT: PASS` row is retained as a *liveness* assertion (the
+pass reached its verdict rather than aborting inside a new block, §0.5 R6). The real assertion is the
+second row, a must-NOT-contain pin on `I44 sign-off closure`: no `I44` row of **any** severity, which
+is exactly §2.5 P2-G2's wording and which the presence-only harness could not express before
+`run_tests.sh:104-113` landed. The negative substring omits the `N-` prefix deliberately, so it forbids
+the NOTE rows as well as the FAILs.
 I9's own in-flight NOTE at `:5596` may still emit — its absence is deliberately NOT asserted.
 
 DOES NOT COVER: `signoff_confirmed` present-and-`false` (identity vs presence — the I43 twin

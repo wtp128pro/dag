@@ -13,7 +13,14 @@ per fixture directory, so the witness is shipped as two byte-identical directori
 `i44_superseded_at_signoff` pins `I44 sign-off closure (units/U01)`. Asserting on exit 1 alone would
 let a missing P2-d hide behind P1 (and vice versa) — the L11 dropped-sub-clause shape.
 
-EXPECTED: exit 1 AND a FAIL row labelled `I43 verification currency (units/U01)`.
+EXPECTED (two rows, iteration 2): exit 1 AND a FAIL row labelled `I43 verification currency
+(units/U01)`, **and** exit 1 with the detail substring `the verification is SUPERSEDED`. The second
+row is the P1-a half of the direction discriminator §1.1 mandates ("the direction — `superseded` for
+P1-a, `ahead of the debrief` for P1-b"); its twin lives on `i43_ahead_of_debrief`. Together they stop
+an implementation that merged the two arms into one "iterations differ" FAIL from passing both dirs.
+Note the pinned phrase is P1's own wording: P2's arm-d detail says "SUPERSEDED verification (the
+verify does not adjudicate this debrief)", a different string, so the row cannot be satisfied by I44's
+co-emitted row.
 
 DOES NOT COVER: the `AHEAD` direction (see `i43_ahead_of_debrief`); the off-window-WITHOUT-sign-off
 sub-case (this fixture is signed off, so P2 co-fires — an implementation that only ever fires under

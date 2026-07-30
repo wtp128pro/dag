@@ -1676,6 +1676,7 @@
         "i43_inflight_before_signoff",
         "i43_inflight_signoff_expired",
         "i43_inflight_signoff_false",
+        "i43_panel_trail_overfire",
         "i43_superseded_at_signoff"
       ],
       "provenance": [
@@ -1699,13 +1700,16 @@
       "fixtures": [
         "i44_absent_verify_any_phase",
         "i44_closed_current_fail",
+        "i44_disagree_at_signoff",
         "i44_no_signoff_antecedent",
         "i44_override_malformed",
         "i44_override_partial",
         "i44_override_quiet_control",
         "i44_override_quiet_visible",
         "i44_override_wellformed",
-        "i44_superseded_at_signoff"
+        "i44_superseded_at_signoff",
+        "i44_unusable_verify",
+        "i44_verdictless_verify"
       ],
       "provenance": [
         "verify-repair-units",
@@ -1725,8 +1729,10 @@
         "N-I45 version-skew visibility"
       ],
       "fixtures": [
+        "i45_g2prime_no_struct",
         "i45_no_skew_overfire",
-        "i45_skew_note"
+        "i45_skew_note",
+        "i45_stamp_raised"
       ],
       "provenance": [
         "verify-repair-units",

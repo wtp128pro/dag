@@ -399,8 +399,16 @@ those was invisible to every shipped predicate.
   echo is a deletion wearing a downgrade's label); `escalated-p7` cannot sit on a `PASS`. The presence
   floors arm only at `validator_version ≥ 1.11.0` (proper semver via `_i27_semver_ge`, not a lexicographic
   compare — the fixture `panel_dissent_version_silent` pins that, since `"1.9.0" >= "1.11.0"` is *true* on
-  a raw string compare); the shape clauses arm on adoption. Measured **0 of 156** archived verifies carry
-  `panel_adjudication` or member `defects`, so archives are silent in both arms.
+  a raw string compare); the shape clauses arm on adoption. Measured **0 of 292** archived verifies carry
+  `panel_adjudication` or member `defects` (re-measured 2026-07-30 by the census command recorded at
+  [`state-machine.md`](../plugins/dag/skills/dag/references/state-machine.md) I42 / `validate_run.py`'s I41
+  header; the previously published **0 of 156** denominator was stale — the numbers moved, the
+  zero-adopter conclusion did not), so the **T2 adoption arm is unarmed on every archive**. **T1** stays
+  silent on a second, separately measured ground: T1 arms on `validator_version ≥ 1.11.0` and the maximum
+  stamp across the 17 archived `fsm-state.json` files is **1.10.1** (9 unstamped, then 1.7.0/1.8.0×2/1.9.0×3/1.10.0/1.10.1),
+  so no archive reaches the floor. Both arms are therefore silent, but on **two** facts, not one — and the
+  zero is **dated, not structural**: the in-flight run excluded from the denominator is itself stamped
+  **1.12.0** and already carries `panel_adjudication` records, so **T1 will arm on it the moment it archives**.
 - **I42 — evidence digest integrity.** An `inputs_reviewed[]` element may stay a bare path string **or**
   become `{path, sha256?, bytes?}`. When a digest is present the validator **re-hashes** the
   run-dir-relative file and FAILs on drift — except inside exactly the I9 transient window

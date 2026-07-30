@@ -53,8 +53,23 @@ measurement — 345 pre-change fixtures captured before/after, **0 differ, 0 exi
 Archive scan over 18 runs: **exactly 1 REDs**, and it is the run under repair. 23 new fixtures,
 including the three an earlier dissent prescribed and never wrote
 (`panel_downgrade_major_echo`, `digest_path_only_ok`, `panel_adj_nondict`), each pinned by
-three-mutant ablation. Doctrine census corrected at five sites: **0/292**, **2179/2179**
-(was 0/156, 964/964) — conclusion unchanged, denominators corrected.
+three-mutant ablation. Doctrine census corrected at **six** sites: **0/292**, **2179/2179**
+(was 0/156, 964/964) — conclusion unchanged, denominators corrected. The sixth site is
+`wiki/14-validator-and-invariants.md`, missed on the first pass because the coverage grep was scoped to
+`plugins/` while `wiki/` sits at the repo root; the census command is now published self-contained (the
+excluded run dir is named literally instead of left as a free variable `RUN`), and the "silent in both
+arms" claim now carries its second ground explicitly — T1 arms on `validator_version ≥ 1.11.0` and the
+maximum archived stamp is **1.10.1**, while the in-flight run is stamped **1.12.0**, so the zero is dated,
+not structural.
+
+**Erratum to the [1.11.0] entry (DIVERGENCE 8).** That entry's four-candidate enumeration read
+"`DISAGREE`-without-`defects` fails I41-2", which is imprecise: `verify.schema.json` requires only
+`[severity, criterion]` on a `defects` item, so I41-2(c) is satisfied by a non-blank `summary` **or** a
+`defects` entry with a non-blank `minimal_repro` — a `DISAGREE` member *with* a `defects` entry that
+carries neither still fails. **The predicate was always correct**; only the aside was wrong. Corrected in
+substance at `references/formal-models.md:475` in 1.12.0, and corrected in place in the 1.11.0 body,
+which was authored on this same unreleased branch (`main` carries no 1.11.0 entry and is still 1.10.1), so
+no released header was relabelled and no shipped history was rewritten.
 
 **Limitation AA (honest boundary).** These predicates make verification completeness *legible*,
 never *true*. A loop that bumps both iterations without re-verifying satisfies I43 exactly; I44
@@ -176,7 +191,9 @@ without a re-run).
   obligation closes the route AO-3's own text *mandates* for a critique that cannot name a criterion
   (`self-learning-loops.md:299-302`, `:601-604`), and then **no compliant artifact exists**:
   `FAIL`-without-criterion is schema-invalid, `FAIL`-with-a-fabricated-criterion is the hallucinated
-  nitpick AO-3 forbids, `DISAGREE`-without-`defects` fails I41-2, and `DISAGREE`-with-a-criterion is the
+  nitpick AO-3 forbids, `DISAGREE` with neither a `summary` nor a `minimal_repro`-bearing `defects` entry
+  fails I41-2(c) (the schema requires only `[severity, criterion]` on a `defects` item, so *having*
+  `defects` is not enough), and `DISAGREE`-with-a-criterion is the
   thing the panelist could not produce. That is the **A2 pathology verbatim**
   (`self-learning-loops.md:584-591`), which this repo filed as a REVISES rather than a tightening.
   Resolved the A2 way — **narrow the predicate, preserve its purpose**: `_I41_CRITERION_BOUND = ("FAIL",)`

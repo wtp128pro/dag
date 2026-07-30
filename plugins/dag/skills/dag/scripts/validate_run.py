@@ -5196,15 +5196,32 @@ def main(argv=None):
     # semantic that panel[].verdict holds the FINAL vote. Trigger: T1 (presence floor; clauses I41-1/-2a)
     # arms only at validator_version >= _I41_SHIP; T2 (shape; clauses I41-2b/-3/-4/-5/-6) arms on ADOPTION
     # (a panel_adjudication OR any member defects[]), any version — measured 0/292 archived verifies carry
-    # either key, so archives are silent in BOTH arms. No clause fires on a verify with no panel[].
-    # CENSUS (re-measured 2026-07-29; the earlier 0/156 denominator was stale, the CONCLUSION is not —
+    # either key, so the T2 ADOPTION arm is unarmed on every archive. T1 stays silent on a SECOND,
+    # separately measured ground: T1 arms on validator_version >= _I41_SHIP (1.11.0) and the MAXIMUM stamp
+    # across the 17 archived fsm-state.json files is 1.10.1 (9 unstamped, then 1.7.0 / 1.8.0 x2 / 1.9.0 x3 /
+    # 1.10.0 / 1.10.1), so no archive reaches the floor. Both arms are silent, but on TWO facts, not one —
+    # an adoption count alone says NOTHING about T1. And the zero is DATED, NOT STRUCTURAL: the in-flight
+    # run excluded from the denominator is itself stamped 1.12.0 and already carries panel_adjudication
+    # records, so T1 WILL arm on it the moment it archives. No clause fires on a verify with no panel[].
+    # CENSUS (re-measured 2026-07-30; the earlier 0/156 denominator was stale, the CONCLUSION is not —
     # zero adopters then, zero adopters now). One command derives it for I41 AND I42, printing
-    # `docs elements string-elements verifies-with-panel_adjudication verifies-with-member-defects`:
-    #   python3 -c "import json,glob;V=[p for p in sorted(glob.glob('.wip/*/units/*/verify*.json')) if
-    #   RUN not in p];D=[json.load(open(p)) for p in V];E=[e for d in D for e in
-    #   (d.get('inputs_reviewed') or [])];print(len(V),len(E),sum(isinstance(e,str) for e in E),
-    #   sum('panel_adjudication' in d for d in D),sum(any(m.get('defects') for m in d.get('panel') or [])
-    #   for d in D))"     # -> 292 2179 2179 0 0   (RUN = the in-flight run dir, not yet archived)
+    # `docs elements string-elements verifies-with-panel_adjudication verifies-with-member-defects`.
+    # SELF-CONTAINED: the excluded run dir is named LITERALLY, so the published integers are re-derivable
+    # from the published mechanism with no external knowledge (a free variable `RUN` would raise NameError):
+    #   python3 -c "import json,glob;RUN='2026-07-29_183514';V=[p for p in
+    #   sorted(glob.glob('.wip/*/units/*/verify*.json')) if RUN not in p];D=[json.load(open(p)) for p in V];
+    #   E=[e for d in D for e in (d.get('inputs_reviewed') or [])];print(len(V),len(E),
+    #   sum(isinstance(e,str) for e in E),sum('panel_adjudication' in d for d in D),
+    #   sum(any(m.get('defects') for m in d.get('panel') or []) for d in D))"
+    #   # -> 292 2179 2179 0 0   at 2026-07-30T03:10:51Z, tree 23c9962
+    #   # RUN = 2026-07-29_183514, the then-in-flight run, excluded because it is not yet archived.
+    #   # ADJACENT AXES, so a reader who measures a different number can tell WHICH axis they are on:
+    #   # 295 docs / 2179 elements with the looser recursive glob '.wip/**/verify*.json' (same archived
+    #   # population, +3 run-root verify.json files that carry ZERO inputs_reviewed elements — the ELEMENT
+    #   # count is axis-insensitive here, only I41's denominator moves); 321 total under .wip and 318 under
+    #   # units/ INCLUDING the in-flight run (both drift upward while a run is live). COMPOSITION of the
+    #   # 292: 159 unit-final `verify.json` + 133 panelist `verify_p*.json` across 159 archived unit dirs —
+    #   # so this is "no DOCUMENT adopted", which entails but is stronger than "no UNIT adopted".
     # Limitation Y: an UNRECORDED dissent is invisible; only the latest verify per unit survives a retry
     # (Limitation F/L1); tested_defect / rationale genuineness stay attestation (validity != correctness);
     # (iv) a dissenter that rewrites its FINAL vote to PASS and drops its defects arms ZERO clauses.
