@@ -5509,9 +5509,12 @@ def main(argv=None):
     # (inputs_reviewed items become string|object via oneOf), so no previously-valid artifact becomes
     # invalid — this is NOT the I25/GV-29 contract-revision class; the closest neighbour is I22's
     # adoption-closure, whose pattern I42-1b copies. T2 adoption only (armed when ANY inputs_reviewed
-    # element on ANY verdict-bearing verify is an object); measured 2179/2179 archived inputs_reviewed
-    # elements across 292 archived verify documents are strings, so archives are silent with no version
-    # gate needed. (Re-measured 2026-07-29 by the CENSUS command at the I41 header above, which prints
+    # element on ANY verdict-bearing AGGREGATED `units/<uid>/verify.json` is an object -- panelist
+    # `verify_p<N>.json` files are out of domain by the same decision I43 records); measured 2179/2179
+    # archived inputs_reviewed elements across 292 archived verify documents are strings, so archives are
+    # silent with no version gate needed. THAT ZERO IS DATED, NOT STRUCTURAL: nothing prevents an object
+    # element from being archived, and this repository's own in-flight run already carries them, so the
+    # arm arms the moment such a run archives. Re-measure rather than inheriting the zero. (Re-measured 2026-07-29 by the CENSUS command at the I41 header above, which prints
     # `292 2179 2179 0 0`; the previously published 964/964-across-156 denominators were stale. Both
     # numbers MOVED; the safety conclusion did NOT — every element is still a string, so the adoption
     # arm is still unarmed on every archive.) _I42_SHIP gates the CLOSURE arm (I42-1b) alone,
@@ -5561,8 +5564,29 @@ def main(argv=None):
     _i42_digested = 0
     if _i42_armed:
         for uid, _ix, _el in _i42_rows:
-            # I42-1b — adoption closure: once armed, EVERY element of EVERY verdict-bearing verify's
-            # inputs_reviewed must be an object (partial adoption is the laundering surface). FAIL at
+            # I42-1b — adoption closure: once armed, EVERY element of EVERY verdict-bearing AGGREGATED
+            # `units/<uid>/verify.json` must be an object (partial adoption is the laundering surface).
+            # THE WORD "AGGREGATED" IS THE DOMAIN, NOT A FLOURISH: panelist `verify_p<N>.json` files are
+            # OUT OF DOMAIN, and the mechanism is the collection loop above, which opens the LITERAL
+            # filename "verify.json" and nothing else -- NO CODE LINE in the whole I41/I42 region names
+            # `verify_p`. That narrower claim is the one the mechanism argument needs and the one that is
+            # TRUE; a comment-INCLUSIVE count is NOT zero and RISES every time anyone documents the
+            # exclusion, this paragraph included, which is exactly how an earlier revision's false "occurs
+            # ZERO times" was born (it was already wrong when measured: the 292-document composition
+            # comment above was inside the region at the time). So no comment-inclusive figure is published
+            # here. Re-derive both over a region delimited by CONTENT anchors, never by offset -- each
+            # anchor below matches exactly once, so `grep -c` on either pattern returns 1:
+            #     A="/^ *# ---- I41 panel dissent accounting/" ; B="/^ *# I9 MISSING VERIFICATION/"
+            #     awk "$A,$B" validate_run.py | grep verify_p | grep -vc '^[[:space:]]*#'   # -> 0  (CODE)
+            #     awk "$A,$B" validate_run.py | grep -c verify_p                # -> >0, and rising
+            # (It is NOT the D-04/IMP-20 unit_docs carve-out: I41/I42 read RAW and
+            # never consult unit_docs at all, as the collection comment says in terms. Anyone documenting
+            # this exclusion should cite the filename literal, not unit_docs.) This matches I43's domain
+            # decision deliberately -- per-member panel files are a per-iteration audit trail that
+            # legitimately lags -- so it is a DOCUMENTED SCOPE, not an oversight. Live witness at the time
+            # of writing: 3 panelist files in this repository's in-flight run
+            # (units/U01/verify_p5.json, units/U02/verify_p4.json, units/U02/verify_p7.json) carry the
+            # MIXED string/object shape and emit ZERO I42 rows of any severity, exactly as scoped. FAIL at
             # >=_I42_SHIP; below it an exit-neutral NOTE, so a pre-ship experiment is not punished.
             if not isinstance(_el, dict):
                 if _i42_t1:
@@ -5709,15 +5733,37 @@ def main(argv=None):
     # `gates.signoff_confirmed` an artifact-level obligation at ANY phase. Both carry migration arguments
     # in the unit's spec (§5.4/§5.5); neither edits a schema, so no archived artifact becomes invalid.
     # UNGATED by `validator_version` (§0.4): measured 156/156 legitimately-closed archived debrief/verify
-    # pairs across 8 distinct stamps (None -> 1.10.1) already satisfy currency.
+    # pairs across 5 distinct stamps (None -> 1.10.1) already satisfy currency.
+    # NAME THE AXIS, because two different 156s have been published in this repository and only one is
+    # this one. THIS 156 IS A PAIR CENSUS, NOT A DOCUMENT COUNT: over the 17 ARCHIVED run dirs under this
+    # repository's `.wip/` (18 dirs carry fsm-state.json; the 18th is the in-flight run, excluded), there
+    # are 159 co-present debrief.json/verify.json PAIRS, of which 156 are iteration-matched and exactly 3
+    # are not — and those 3 are the repair target's U05/U07/U08, i.e. the commissioned defect class itself.
+    # So "156/156 legitimately-closed" = 159 archived pairs MINUS the 3 known defects, all of the remainder
+    # complying. It is NOT the retired "156 archived verify DOCUMENTS" denominator that I41/I42 once
+    # published and withdrew (that axis counts documents, is now 292, and its census command lives at the
+    # I41 header) — a reader who measures 292, or 159, or 173, is on a different axis, not looking at a
+    # regression. STAMP AXIS, likewise named: 5 distinct `validator_version` values across the 14 archived
+    # dirs that hold >=1 pair; 6 across all 17 archived dirs; 6 across the 15 pair-carrying dirs including
+    # the in-flight run; 7 across all 18 dirs. An earlier revision of this comment published "8 distinct
+    # stamps", which is reproducible under NONE of those four readings — it was wrong, not mis-scoped. The
+    # four-row census command is published in references/state-machine.md §5 ("The stamp census").
     # ARCHIVE-SAFETY FIGURE — MEASURED, AND IT IS NOT ZERO. An earlier revision of this comment claimed
     # ungated arming "newly REDs ZERO archived runs"; re-measured against the SHIPPED code over all 18 run
-    # dirs under THIS REPOSITORY's `.wip/`, the true figure is 1 OF 18 NEWLY RED IN THIS REPOSITORY:
+    # dirs under THIS REPOSITORY's `.wip/` — of which 17 are ARCHIVED and the 18th is the in-flight repair
+    # run itself, which I43's `not SIGNED_OFF` conjunct carves out BY CONSTRUCTION, so counting it in a
+    # false-positive tally would count the one member that structurally cannot supply that evidence — the
+    # true figure is 1 OF THE 17 ARCHIVED RUNS NEWLY RED IN THIS REPOSITORY:
     # `2026-07-29_090706_cross-repo-lessons-intake` — this branch's own REPAIR TARGET — carrying 8 rows
     # (I43 on U05/U07/U08, I44 on U05/U07/U08, I46 on U03/U07), and ZERO FALSE POSITIVES: no other run in
-    # the population emits any I43/I44/I46 row at all.
+    # the population emits any I43/I44/I46 FAIL row at all. THE WORD "FAIL" IS LOAD-BEARING: the class is
+    # NOT silent elsewhere. `Report.ok` positive assertions fire on every iteration-matched pair, so 15 of
+    # the 18 dirs emit 6-18 class PASS rows in the DEFAULT (non-quiet) invocation; the only three dirs that
+    # emit nothing at all are the empty-`units/` runs (see the materialization residual in
+    # references/state-machine.md §5). "No other run emits a row" would be FALSE AS WRITTEN.
     # "Newly RED" means every FAIL row on the run is an I43/I44/I46 row, i.e. the run was GREEN
-    # before these three predicates existed. 17 of 18 are unaffected. SCOPE CAVEAT, stated rather than
+    # before these three predicates existed. The other 16 archived runs are unaffected, as is the
+    # in-flight 18th dir. SCOPE CAVEAT, stated rather than
     # implied: the population is this repository's own `.wip/` archive and nothing else. Another
     # installation's archive is a different population and may yield a different figure — re-run the
     # command below against it rather than assuming this number transfers. The honest claim is therefore: ZERO
@@ -5734,9 +5780,22 @@ def main(argv=None):
     # A >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at
     # scaffold and never refreshes, so it would not arm on the very run that authors the predicate.
     #
-    # IN-FLIGHT WINDOW — CITED, NOT HOISTED (R3). Two window sites already exist and are BYTE-UNTOUCHED:
-    #   * `:5649` I9 missing-verification: `phase == "P6_EXECUTE_VERIFY" and _st in ("executing","verifying")`
-    #   * `:5555` I42-3 digest drift: the same two conjuncts, copied verbatim for the same reason.
+    # IN-FLIGHT WINDOW — CITED, NOT HOISTED (R3). Two window sites already exist and are BYTE-UNTOUCHED.
+    # CITED BY CONJUNCT, NEVER BY LINE NUMBER: every offset in this file drifts (the correct pair moved
+    # twice in eleven minutes during this very repair, and an earlier revision of THIS comment cited
+    # `:5649`/`:5555`, neither of which matched). Locate both, and only both, with one command:
+    #     grep -n '^ *if phase == "P6_EXECUTE_VERIFY"' validate_run.py     # -> exactly 2 hits
+    # The leading-`if` anchor is what makes it exact: the bare conjunct string ALSO matches this comment
+    # (the recipe line above and both bullets below quote it) and I43's own `return (phase == ...` window,
+    # so the bare form OVER-MATCHES and is not a locator. NO COUNT OF THE BARE FORM IS PUBLISHED HERE, on
+    # purpose: this comment's own text is part of what that form would count, so the number moves whenever
+    # the comment is edited -- it was exactly 4 at tree 35f44a0 and moved the moment the comment explaining
+    # why was written. If you need today's figure, `grep -c` it; do not inherit one from prose. The two
+    # hits, in file order, are:
+    #   * I42-3 digest drift (the FIRST hit): `phase == "P6_EXECUTE_VERIFY" and (_own42 is None ...` —
+    #     the same two conjuncts, copied verbatim for the same reason, keyed on the PATH OWNER's status.
+    #   * I9 missing-verification (the SECOND hit): `phase == "P6_EXECUTE_VERIFY" and _st in
+    #     ("executing", "verifying")`.
     # Hoisting them into one shared helper was DECLINED: pure insertion is a confirmed guardrail for this
     # change (Non-Goal 9), and a hoist would re-condition two shipped predicates to buy nothing. I43
     # therefore defines its OWN window — I9's two conjuncts PLUS `not SIGNED_OFF` — as a sibling, not a
@@ -5819,7 +5878,10 @@ def main(argv=None):
         # UNGATED by `args.quiet` (§9-R12): SKILL.md mandates `--quiet`, so a quiet-gated downgrade row
         # would be inert in the only invocation that matters — the human ruling requires the override be
         # "available but LOUD: deliberate, grep-visible, per-unit". Same principle as the un-gated N-I45
-        # (:6557-6562): un-gate a NOTE exactly when stdout is its only channel. Exit-neutral BY
+        # skew NOTE — ANCHORED BY CONTENT, not by offset, because the offset this comment originally
+        # carried (`:6557-6562`) was invalidated by the very insertion that wrote it: locate it with
+        # `grep -n "i45_version_skew'\]}: validator_version=" validate_run.py` (exactly 1 hit, the print
+        # itself). Un-gate a NOTE exactly when stdout is its only channel. Exit-neutral BY
         # CONSTRUCTION (a bare print touching neither rep.problems nor rep.checked), so un-gating cannot
         # move any exit code and no archived run's verdict changes — PRESERVES.
         print(f"  NOTE  {LABEL_STEM['note_i44']} (accepted-incomplete override) (units/{_u}): {_why} "
@@ -5872,19 +5934,25 @@ def main(argv=None):
             rep.ok(f"{LABEL_STEM['i43_currency']} (units/{uid}: iteration {_i43_vyi} verified)")
 
     # ── I44 (P2) — sign-off closure. The CONVERSE direction of gate ordering: from a true gate flag to a
-    # required artifact state. It is DELIBERATELY NOT in REQUIRED_GATES (:6211-6224): that table is
+    # required artifact state. It is DELIBERATELY NOT in REQUIRED_GATES (locate the table with
+    # `grep -n '^ *REQUIRED_GATES = {'` -> exactly 1 hit; the leading-anchor form is what excludes this
+    # citation of it — cited by content, since every offset in this file drifts): that table is
     # one-directional (phase => gates) and spec_check.py SC3 DERIVES it from spec/fsm.json.guards[], whose
     # entire vocabulary is `required_from_phase` — a lower bound on gates given a phase. "Given gate G
     # true, artifacts A must exist" is INEXPRESSIBLE there, so adding I44 would either break SC3 or
     # silently redefine what REQUIRED_GATES means. I44 therefore ships as its own labelled predicate,
-    # following the `gpersonas_failclosed` archetype (:6198-6201) exactly.
+    # following the `gpersonas_failclosed` archetype exactly (`grep -n "LABEL_STEM\['gpersonas_failclosed'\]"`
+    # -> the rep.fail site; by content, not by offset).
     # KEYED ON ARTIFACTS, NEVER ON fsm-state STATUS LABELS: `_fsm_unit_status` is read below ONLY to
     # interpolate into detail text, never for a decision. Measured: a status-keyed formulation newly REDs
     # 3 archived runs for cosmetic desync (e.g. 2026-07-05_143454's U09, labelled `executing` at DONE with
     # a complete, iteration-matched debrief+verify) while the artifact-keyed one newly REDs NO RUN FOR
     # COSMETIC DESYNC and still catches all 3 real defects. Do not read that as "newly REDs zero runs" — an
-    # earlier revision of this comment did, and it was false: I44 newly REDs 1 of 18 archived runs IN THIS
-    # REPOSITORY, the repair target, on 3 REAL defects (corrected figure + command at :5687).
+    # earlier revision of this comment did, and it was false: I44 newly REDs 1 archived run IN THIS
+    # REPOSITORY -- i.e. 1 of the 17 ARCHIVED runs; the 18th `.wip/` dir is the in-flight repair run, which
+    # the in-flight window carves out -- the repair target, on 3 REAL defects (corrected figure + command
+    # in the block headed `ARCHIVE-SAFETY FIGURE` above; `grep -n 'ARCHIVE-SAFETY FIGURE'` -> 2 hits, the
+    # heading itself and this citation of it, the heading being the FIRST).
     # A stale label is a documentation defect and belongs to a separate NOTE — now shipped as N-I47 below.
     # NO PHASE CONDITION AND NO CARVE-OUT: the antecedent SIGNED_OFF is the exact negation of I43's
     # carve-out conjunct, so a carve-out here would be self-cancelling — and the motivating run rolled
@@ -5997,13 +6065,16 @@ def main(argv=None):
                "none is a non-converged PASS)")
 
     # ── I47 (DoD 6) — LEDGER DESYNC AT SIGN-OFF. The advisory NOTE that I44 deliberately does NOT carry.
-    # I44 is keyed on ARTIFACTS, never on `fsm-state` status labels (:5836-5840), because a status-keyed
+    # I44 is keyed on ARTIFACTS, never on `fsm-state` status labels (`grep -n 'KEYED ON ARTIFACTS'` -> 2
+    # hits, the I44 comment block stating it and this citation of it, that block being the FIRST; cited by
+    # content because offsets drift), because a status-keyed
     # formulation would newly RED archived runs for COSMETIC desync; that comment, references/
     # state-machine.md:605 and the unit spec §2.1(i) all promise the stale label "is a SEPARATE predicate".
     # Until this insertion that predicate was DESCRIBED IN THREE PLACES AND SHIPPED IN NONE — a fifth
     # documented-but-absent predicate. It ships here as an exit-neutral NOTE and NOTHING else: a bare
     # `print` touching neither `rep.problems` nor `rep.checked`, so it can move no exit code and can newly
-    # RED no archived run BY CONSTRUCTION (the N-I45 :6559 / `_vc_override_note` :5773 archetype).
+    # RED no archived run BY CONSTRUCTION (the N-I45 skew-NOTE / `_vc_override_note` archetype; both are
+    # anchored by NAME here rather than by offset, since both moved during the change that wrote them).
     # ANTECEDENT — four conjuncts, all four required:
     #   (1) `gates.signoff_confirmed` is True by IDENTITY (`_vc_signed_off`), never truthiness;
     #   (2) the unit is EXECUTED — `unit_dirs_with_debrief`, exactly I44's domain, so a never-executed
@@ -6020,7 +6091,8 @@ def main(argv=None):
     # `escalated` (closed by the Phase-7 human gate — I44 arm e's doctrine), `retired` (a cancelled unit)
     # and `blocked` (a recorded non-completion, I10's domain) are CLOSED outcomes at sign-off, not stale
     # in-flight labels, and an unknown/future enum member must never arm an advisory. MEASURED, not tuned
-    # to go green: over all 18 archived runs the whitelist and the broader `not in {passed,failed}` form
+    # to go green: over all 18 of this repository's `.wip/` run dirs (17 archived + the in-flight repair
+    # run) the whitelist and the broader `not in {passed,failed}` form
     # select the SAME two units (2026-07-05_143454 U09 `executing` at DONE, and 2026-07-29_090706 U09
     # `verifying`), so the choice buys no silence — it is made on doctrine.
     # THE WITNESS this predicate exists for: 2026-07-05_143454_implement-dag-loop-proposals U09, labelled
@@ -6029,8 +6101,8 @@ def main(argv=None):
     # unchanged (it is already RED for 25 unrelated version-skew rows; this adds none).
     # NOT gated on `validator_version` (stdout is its only channel; init_run.sh:161-163 stamps once at
     # scaffold, so a version gate would not arm on the run authoring the predicate) and NOT gated on
-    # `args.quiet`, for the §9-R12 reason already applied to `_vc_override_note` (:5774) and N-I45
-    # (:6559): SKILL.md mandates `--quiet`, so a quiet-gated advisory is inert in the only invocation that
+    # `args.quiet`, for the §9-R12 reason already applied to `_vc_override_note` and the N-I45 skew NOTE
+    # (both by name, not by offset): SKILL.md mandates `--quiet`, so a quiet-gated advisory is inert in the only invocation that
     # matters. Un-gating is safe precisely because the row is exit-neutral => PRESERVES every guarantee;
     # offline/post-hoc, adds no state, edge or gate flag, and NEVER guards LT7.
     # CRASH DISCIPLINE (§0.5): every read is `.get`-only and isinstance-guarded — an exception here would

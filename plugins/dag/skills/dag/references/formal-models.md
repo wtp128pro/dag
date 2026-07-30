@@ -550,19 +550,24 @@ guarantee-touching change silently):
    document previously stated that `verify.iteration` must equal `debrief.iteration`; `iteration` was
    a free integer on both sides. Migration argument, **measured with its population named**
    (2026-07-30T03:22Z, tree `1bf2626`, over **this repository's own `.wip/` archive — 18 run dirs — and
-   nothing else**): the contract is *descriptive of every legitimately-closed run on file*, which is why
+   nothing else**, of which **17 are archived and the 18th is this repair run itself, still in flight** —
+   and the live run is precisely the one member I43's `not SIGNED_OFF` conjunct carves out, so counting
+   it inside a false-positive tally would count a member that structurally cannot supply that evidence):
+   the contract is *descriptive of every legitimately-closed run on file*, which is why
    it ships **ungated** (a version gate at the shipping release would once again exempt the run that
-   authors the invariant, since `init_run.sh` stamps once at scaffold time). **Exactly 1 of those 18
+   authors the invariant, since `init_run.sh` stamps once at scaffold time). **Exactly 1 of those 17
    archived runs is newly REDed** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own
    **repair target**, on 8 rows (I43 ×3, I44 arm d ×3, I46 ×2) — with **zero false positives** across
-   the other 17. An earlier revision of this clause read "No archived run is newly REDed"; that was
+   the other 16 (nor on the in-flight 18th). An earlier revision of this clause read "No archived run is newly REDed"; that was
    **false as written**, and stating it as `0` was a defect in those words, because it rested an ungated
    arming decision on a number a checking reader would find false. The property that *does* hold is
    narrower and still sufficient: **zero legitimately-closed archived runs are newly RED**, and the one
    run that is, is the run this pipeline exists to repair, on exactly the commissioned defect class.
    Scope, stated rather than implied: another installation's archive is a different population — re-run
    the command in `state-machine.md` §5 against it rather than assuming the figure transfers. The
-   companion parity census (168 co-present pairs at the same tree) measures **iteration equality only**
+   companion parity census (the ARCHIVED sub-figure — **159** co-present pairs over the 17 archived runs,
+   **156** iteration-matched, the **3** mismatches being exactly the rows armed above; an earlier revision
+   quoted **168** archive-wide and in-flight-inclusive, which reads **173** today) measures **iteration equality only**
    and is therefore silent on I46's `converged` field, so I46's 2 FAILs are recorded on their own
    evidence rather than implied by it. The nearest guarantee, I4's ceiling
    `iteration ≤ retries+1`, is neither widened nor narrowed: I43 is an equality between two
@@ -594,7 +599,15 @@ which makes "never repair under a live verifier" discipline rather than enforcem
 intake wording says "flags", which is severity-neutral. Honest ceiling: **Limitation AA** — these
 predicates make verification completeness *legible*, never *true*; a loop that bumps both iterations
 without re-verifying satisfies I43 exactly, and panel independence and human-gate reality stay
-attestations (`state-machine.md` §5).
+attestations (`state-machine.md` §5). **Second ceiling on the same predicate: Limitation AB** — because
+I43's field is the `iteration` *number*, a same-iteration edit to an already-verified debrief is invisible
+to it **by construction**; it detects staleness of *numbers*, not of *bytes*. This release's own run is the
+worked example: `units/U05/debrief.json` was repaired **47 minutes after** U05's aggregated `verify.json`
+closed `PASS`, both sides still at `iteration: 1`, and the currency test stays green over bytes no verifier
+read. A `sha256` recorded before/after each edited file would make it decidable; that is a **possibility,
+not something shipped** — no predicate computes it. Neither AA nor AB is a REVISES: each is a statement
+about the **reach** of a predicate whose four arms are individually correct on their own field, so no
+guarantee moves and `formal/` is unaffected (`state-machine.md` §5).
 
 ---
 

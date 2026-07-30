@@ -515,10 +515,16 @@ termination proof (Claims A–D), AO-1..AO-7 and the I1..I42 **predicates** — 
 becomes a normative verify-artifact contract; `signoff_confirmed` acquires an artifact-level obligation).
 They are **ungated** by `validator_version`, and the evidence for that is a **measurement with a named
 population**, not an absolute: measured **2026-07-30T03:22Z on tree `1bf2626`** over **this repository's
-own `.wip/` archive (18 run dirs) and nothing else**, arming them newly REDs **1 of 18 archived runs in
+own `.wip/` archive (18 run dirs) and nothing else** — of which **17 are archived and the 18th is this
+repair run itself**, still in flight, so "18 archived runs" over-counts the archive by exactly one, and
+the member it over-counts is the live run that I43's `not SIGNED_OFF` conjunct deliberately carves out
+(counting it in a false-positive tally counts a member that structurally cannot supply that evidence).
+Scoped to the 17: arming them newly REDs **1 of the 17 archived runs in
 this repository** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own **repair target** —
 with **8 hard FAILs** (I43 on U05/U07/U08, I44 arm d on the same three, I46 on U03/U07) and **zero false
-positives**, so 17 of 18 are unaffected. **Never publish this as "zero"** and never as a bare count: the
+positives**, so the other **16 archived runs are unaffected**. That universal is about **FAIL** rows and
+only FAIL rows: the class is far from silent elsewhere — **15 of the 18 dirs emit 6–18 class PASS rows**
+via `Report.ok` in the default (non-`--quiet`) invocation. **Never publish this as "zero"** and never as a bare count: the
 honest claim is that *zero **legitimately-closed** archived runs are newly RED, and the one that is, is
 the run this pipeline exists to repair, on exactly the commissioned defect class*. Publishing `0` was a
 defect in those words — it rested an ungated arming decision on a number a checking reader would find
@@ -534,9 +540,26 @@ RED-flag the best audit trail in the archive (measured: **15** of that run's mem
 behind their own unit's debrief — U01 6, U02 6, U03 3). The full class walk-through, including the
 **seven** members that stay **residual** (stop-at-P6 / Limitation O, untagged solo verification,
 retire-and-delete, evidence freshness, unclosed `minor` defects at PASS, `DISAGREE` promotion, and
-**materialization** — where the no-op trigger is an *empty* `units/` tree, measured at **3 of 18** runs,
-and no positive assertion fires on that path) plus the two visibility residuals (AHEAD-in-flight is
-unpinned and `--quiet`-silent; the `DISAGREE`-at-sign-off NOTE is `--quiet`-gated), is
+**materialization** — where the no-op trigger is an *empty* `units/` tree, measured at **3 of this
+repository's 18 `.wip/` run dirs**, all three of them archived, and no positive assertion fires on that
+path) plus the **three** visibility residuals — the class holds exactly three `--quiet`-gated NOTE arms,
+not two, and each is locatable by content rather than by offset (`awk '/args\.quiet/'` over the currency
+block returns all three): **(1) `N-I43` in-flight**, so an AHEAD pair inside the window is unpinned and
+`--quiet`-silent; **(2) `N-I44` unresolved `DISAGREE` at sign-off**; and **(3) `N-I46` below sign-off**,
+the one an earlier revision of this page omitted when it said "the two visibility residuals". By
+contrast **three of the class's five NOTE arms survive `--quiet`** deliberately (§9-R12, since
+`SKILL.md` mandates `--quiet`): `N-I44`'s `accepted-incomplete override` and `override over-broad`
+rows, `N-I45`, and `N-I47`. **That three is scoped to this class and is NOT a total** — the validator
+emits further un-gated advisory NOTE families outside the class (`G3 promotion (advisory)` and
+`contradiction (03/P5)` survive `--quiet` on every one of this repository's `.wip/` run dirs
+measured), and structurally the gate is the minority: `grep -c 'if not args.quiet' validate_run.py` →
+**9** guards against **34** non-comment `print(… NOTE …)` sites at this writing, so **25 are
+un-gated** and any closed count of `--quiet` survivors will rot the next time a NOTE is added. An
+earlier revision of this page published exactly that closed count, and it was false on the very run
+that wrote it. Re-derive instead of trusting a number —
+`validate_run.py <RUN_DIR> --quiet | grep NOTE | sed -E 's/^ *NOTE +//' | awk '{print $1,$2}' | sort | uniq -c`,
+with the same pipeline minus `--quiet` as the control (what disappears was gated). The walk-through
+itself is
 [`state-machine.md` §5 "Verification currency"](../plugins/dag/skills/dag/references/state-machine.md).
 
 **The honest boundary (Limitation AA).** These predicates make verification completeness **legible**, never
@@ -545,6 +568,21 @@ it detects **staleness**, never **genuineness**. I44 proves a verify is present,
 and current at sign-off; it cannot prove the verification was performed, that the panel was independent, or
 that the human at the gate read anything. I46 is only as honest as the optional field it reads, and a
 verifier can omit it. The `accepted_incomplete` block is a *recorded human decision*, not a validated fact.
+
+**A second boundary, on the same predicate (Limitation AB).** I43 compares `verify.iteration` to
+`debrief.iteration`, so it detects a staleness **of numbers, not of bytes**: an edit to an
+already-verified debrief that leaves `iteration` **unchanged** is **invisible to it by construction**.
+The run that shipped these predicates produced the instance in its own artifacts — `units/U05/debrief.json`
+was repaired at **21:42:07**, **47 minutes after** U05's aggregated `verify.json` closed `PASS` at
+**20:55:06**, both sides still reading `iteration: 1`. The currency test passes (the validator prints
+`PASS  I43 verification currency (units/U05: iteration 1 verified)`) while that `PASS` vouches for bytes
+no verifier read. This is not a defect in I43's four arms, each correct on its own field; it is the
+**field's own reach**. Recording a `sha256` before and after each edited file — the digest machinery I42
+already has — **would** make such a rewrite decidable, and is stated here as a **possibility, not as
+something shipped**: no predicate computes it, no schema requires it, and nothing in this release detects
+the case above. Where **AA** names the loop that bumps *both* iterations without re-verifying, **AB**
+names the edit that bumps **neither**; both satisfy I43 exactly. The Phase-6 rule that an executor repair
+invalidates its prior panel governs this case as **discipline**, never as enforcement.
 
 ---
 

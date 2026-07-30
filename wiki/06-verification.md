@@ -542,6 +542,16 @@ This page would violate its own subject if it overstated the guarantee. Three li
   independence and the reality of the human gate stay attestations, as they do everywhere else on this
   page, and `accepted_incomplete` records a human's decision rather than validating it.
 
+- **Same-iteration edits are invisible to I43 (Limitation AB).** I43's field is the `iteration` number on
+  each side, so it detects staleness **of numbers, not of bytes**: editing an already-verified
+  `debrief.json` *without* changing `iteration` passes the currency test by construction. The run that
+  shipped these predicates produced the instance — `units/U05/debrief.json` repaired **47 minutes after**
+  U05's aggregated `verify.json` closed `PASS`, both still reading `iteration: 1`, so the validator emits a
+  positive currency assertion over bytes no verifier read. A `sha256` recorded before and after each edited
+  file would make that decidable; it is named here as a **possibility, not as something shipped** — no
+  predicate computes it today. **AA** covers the loop that bumps *both* iterations; **AB** covers the edit
+  that bumps **neither**.
+
 - **Self-attestation (Limitation A).** `executor_reasoning_seen: false` is *machine-checked (in
   scope)* as a **field value** — the schema rejects any other value. But that the verifier *truly*
   never saw the executor's reasoning is a **self-attestation**, *asserted (consistent)*, not a

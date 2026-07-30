@@ -132,8 +132,29 @@ so most are dead weight until their phase arrives.
    each artifact is written and before every gate/loop transition, run
    `bash "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.sh" <RUN_DIR> --quiet`
    (→ `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.py" <RUN_DIR> --quiet`).
-   `--quiet` prints only failures + the RESULT summary — the exit code (the hard-stop signal) is
-   identical, so this saves per-check stdout with no loss of enforcement.
+   `--quiet` suppresses the per-check positive assertions, printing failures + the RESULT summary
+   **plus the deliberately un-gated advisory NOTEs** — the exit code (the hard-stop signal) is
+   identical, so this saves per-check stdout with no loss of enforcement. **Within the I43–I47
+   verification-currency class, three of the five NOTE arms survive `--quiet` on purpose**, because
+   `--quiet` is the only invocation this file mandates, so a quiet-gated advisory would be inert
+   everywhere that matters: `N-I44`'s `accepted-incomplete override` / `override over-broad` rows,
+   `N-I45` version-skew visibility, and `N-I47` ledger desync. Each is a bare `print` touching
+   neither problem sink, so it is exit-neutral by construction and cannot change a verdict. The
+   class's **other two** arms — `N-I43` in-flight and `N-I46` below sign-off — **are** `--quiet`-gated
+   and therefore silent here; that is a recorded visibility residual, not a guarantee.
+   **That "three" scopes ONE class. It is not a total, and no total is published here on purpose:**
+   the validator emits further un-gated advisory NOTE families *outside* the currency class — on this
+   repository's own `.wip/` run dirs, `G3 promotion (advisory)` and `contradiction (03/P5)` survive
+   `--quiet` on every dir measured, and neither is a currency arm. The shape is structural, not
+   incidental: of the validator's non-comment `print(… NOTE …)` sites, only the ones behind an
+   `if not args.quiet` guard are gated, and that guard is the minority
+   (`grep -c 'if not args.quiet' validate_run.py` → 9 guards against 34 such print sites at this
+   writing, i.e. 25 un-gated), so **any closed count of `--quiet` survivors rots the next time a NOTE
+   is added.** So do not trust a family count — **re-derive it for the dir in front of you**, the way
+   every other figure in this class is published:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.py" <RUN_DIR> --quiet | grep NOTE | sed -E 's/^ *NOTE +//' | awk '{print $1,$2}' | sort | uniq -c`
+   Re-run that same pipeline **without** `--quiet` as the control: what disappears was gated, what
+   remains was not. **Do not read a quiet run's silence as the absence of a NOTE.**
    `${CLAUDE_PLUGIN_ROOT}` is set by Claude Code to this plugin's install dir, so the call is
    CWD-independent (a bare `scripts/…` path is not — it resolves against the caller's CWD). The
    same anchoring applies to every `references/`, `schemas/`, and `templates/` path in this file:
@@ -171,7 +192,11 @@ so most are dead weight until their phase arrives.
    means **current**, never PASS: a unit holding a *current* `FAIL` at `retries == 2` is closed
    verification and exits via `ESCALATE` → Phase 7. **Honesty boundary (Limitation AA):** these
    predicates make verification completeness *legible*, never *true* — a loop that bumps both
-   iterations without re-verifying satisfies I43 exactly (references/state-machine.md §5).
+   iterations without re-verifying satisfies I43 exactly (references/state-machine.md §5). **And
+   Limitation AB:** I43's field is the `iteration` *number*, so a same-iteration edit to an
+   **already-verified** debrief is invisible to it by construction — it detects staleness of numbers,
+   not of bytes. That case is governed by the Phase-6 rule below as **discipline**, never by a
+   predicate; a `sha256` before/after per edited file would make it decidable but **is not shipped**.
 
 ---
 

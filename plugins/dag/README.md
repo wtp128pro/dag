@@ -206,7 +206,27 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.12.0** — **cross-repo lessons intake**: 18 orchestrator-conduct rules distilled from
+Current version: **1.12.0** — **verification currency**: a run can no longer end with verification open
+or superseded. Five new **offline post-hoc** predicates over emitted artifacts, none a live guard on any
+transition: **I43** (an executed unit's *aggregated* `verify.json` must adjudicate the iteration its
+debrief claims — `verify.iteration == debrief.iteration`, over four exhaustive arms, with an in-flight
+carve-out that **expires at sign-off**), **I44** (`gates.signoff_confirmed: true` obliges every executed
+unit to carry a present, parseable, verdict-bearing, **current** verify **at any phase**, closing the
+stop-at-P6 escape — signing off knowingly stays *available but loud* via a per-unit
+`fsm-state.accepted_incomplete` naming every open unit with a rationale and a `DECISIONS.md` ref),
+**N-I45** (an exit-neutral NOTE counting the arms a run's own `validator_version` suppressed, with new
+`spec_check` **SC8** mechanically enforcing recorder completeness), **I46** (`converged: false` under a
+`PASS` was dead data read by nothing — NOTE below sign-off, FAIL at it) and **N-I47** (an exit-neutral
+advisory for a `fsm-state.units[].status` label left non-terminal over a complete, current verify).
+`validator_version` now **re-stamps on phase advance** (`init_run.sh --restamp`, raise-only ratchet,
+archive-safe), closing the self-reference by which the run that authored an invariant escaped being
+judged by it. **TWO FLAGGED REVISES** of the verify **artifact contract** (see
+`references/formal-models.md`): iteration parity becomes normative, and `signoff_confirmed` acquires an
+artifact-level obligation — each with a migration argument, and no schema is edited, so no archived
+artifact becomes invalid. Nothing guards `LT7`, so the correction-loop **termination proof is
+PRESERVED** and `formal/` is byte-untouched. Honest ceiling filed as **Limitation AA**: these
+predicates make verification completeness *legible*, never *true* — they detect **staleness**, never
+**genuineness**. **1.11.0** — **cross-repo lessons intake**: 18 orchestrator-conduct rules distilled from
 92 learnings across three independent `.dag/learnings` stores (BubbleBrain, music, dag) land as
 [`references/orchestrator-conduct.md`](skills/dag/references/orchestrator-conduct.md) (lazy-loaded, indexed
 by decision moment) plus ~33 net lines of `SKILL.md` hooks — a **continuation contract** and **RESUME
