@@ -1,0 +1,29 @@
+{
+  "run_dir": "tests/panel_major_on_nonpass_ok",
+  "phase": "P6_EXECUTE_VERIFY",
+  "updated_at": "2026-07-03T09:30:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true
+  },
+  "loop": {
+    "unit_id": "U01",
+    "state": "ADJUDICATE",
+    "retries": 1,
+    "iteration": 2,
+    "last_verdict": "FAIL"
+  },
+  "units": [
+    {
+      "unit_id": "U01",
+      "status": "failed"
+    },
+    {
+      "unit_id": "U02",
+      "status": "executing"
+    }
+  ],
+  "validator_version": "1.11.0"
+}

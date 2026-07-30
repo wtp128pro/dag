@@ -598,6 +598,32 @@ Each is stated so it is either mechanically checkable or a hard structural rule.
   per-iteration verify history to reconstruct). So I14 checks *presence/plumbing*, not full
   authoritative AO-2 enforcement; the independent verifier remains the semantic backstop. (02/P6
   auto-seeds `do_not_touch` from the passed criteria to close the completeness hole — templates/verify.md.)
+  **FENCE DOCTRINE — the scope of a `do_not_touch` entry, ruled once (`DECISIONS#34`).** AO-2's own
+  text is silent on how far a fence reaches, and that silence was measured to be load-bearing: two
+  units read the same fence oppositely — one as "against weakening" (and edited), one as "no rewrite
+  at all" (and declined) — and *both* disclosed honestly, so the ambiguity belonged to the
+  orchestrator, not to either executor. It is now resolved. A fence forbids **re-opening or
+  weakening**; it does not forbid additive adjacency or strengthening.
+  - **(a) FORBIDDEN** — changing a fenced **grade, verdict or conclusion**; rewriting a fenced
+    **warrant** so the finding rests on different evidence; **deleting** fenced text.
+  - **(b) PERMITTED** — **additive adjacency** (a measurement stamp, a footprint line, a separate
+    bullet alongside the fenced text) and **strengthening** a fenced finding **without moving its
+    grade**.
+  - **(c) CONFLICT RULE** — where an `actionable_changes` item and a fence collide, the **actionable
+    change wins for the MINIMUM text needed**, and the collision **MUST be disclosed** in the retry's
+    `debrief.prior_feedback`. Resolving a collision silently is the defect; resolving it on the record
+    is compliance.
+  - **(d) WITHDRAWAL** — a fence may be **withdrawn on the record** when it forbids a *directed*
+    repair, via `DECISIONS.md` + `prior_feedback` and **without editing the verifier's artifact**. The
+    `verify.json` is never rewritten to make a repair legal: a withdrawal is a new record, never a
+    redaction, so the audit trail still shows what was fenced and why it was released.
+
+  The strictest reading was **rejected** — it forbids the additive measurement stamps that make a
+  repair auditable — and so was per-unit judgment, which is what made the next retry a coin flip.
+  **Doctrine is wider than the mechanism:** I14 sees only the `blocker|major` intersection (A2 above),
+  so (a)'s *warrant-rewrite* and *deletion* limbs and all of (c)/(d) are **discipline enforced by the
+  human and the independent verifier**, never by a predicate. Consistent with L1: I14 checks
+  presence/plumbing, not semantic AO-2.
 - **AO-3 No vague FAIL.** Every `FAIL` defect cites a specific unmet acceptance criterion
   from the brief (§3 conditional rule). A FAIL citing no criterion is schema-invalid ⇒ the
   verifier must use `DISAGREE`. (Critics hallucinate nitpicks —

@@ -45,6 +45,21 @@ making changes to the pipeline's formal machinery.
   predicates over emitted artifacts, with violations routed to `ESCALATE`. A *live* guard on the
   correction loop's sole back-edge `LT7 (RETRY→EXECUTE)` can leave `RETRY` with no enabled
   out-edge → deadlock, breaking Claim D of the termination proof.
+- **Verification is currency: never end a run with verification open or superseded.** A unit is
+  verified only while its aggregated `verify.json` adjudicates the debrief on disk *now*
+  (`verify.iteration == debrief.iteration`). An executor repair **invalidates** its prior panel, so
+  a retry must re-verify; persist new panel members as `verify_p<N+1>…`, **continuing** the numbering
+  across iterations rather than overwriting an earlier iteration's members (precedent: run
+  `2026-07-18_101631`'s U01 holds `verify_p1..p9` — three rounds across iterations 1–3 — and no
+  predicate reads `verify_p*`, precisely because those files are a per-iteration audit trail that
+  legitimately lags). Mid-loop staleness is legal; staleness once `gates.signoff_confirmed: true`
+  claims the run is finished is not (`I43`/`I44`/`I46`). Signing off with units knowingly open stays
+  **available but loud**: record `fsm-state.json.accepted_incomplete` naming **every** open unit plus
+  a rationale and a `DECISIONS.md` ref, which downgrades each named FAIL to a greppable `N-I44` NOTE
+  — never suppresses it, never covers a unit it does not name, and fails closed if malformed.
+  Honesty boundary (**Limitation AA**): these predicates make completeness *legible*, never *true* —
+  a loop that bumps both iterations without re-verifying satisfies `I43` exactly, and panel
+  independence and human-gate reality stay attestations. Do not let a doc claim otherwise.
 
 ## Dogfooding — validate self-runs with the REPO's validator, not the installed plugin
 When a dag run is executed **inside this repo** (its run dir lands under `.wip/`), validate it with the
@@ -56,6 +71,17 @@ failed it 7×). Archived `.wip/` runs are judged against their contemporaneous v
 findings on older/unstamped runs are **expected version-skew, not defects** (see
 `references/state-machine.md` §5 "Version-skew policy"; `fsm-state.json.validator_version` records which
 validator scaffolded each run).
+
+## Editing `plugins/dag/skills/dag/schemas/*.json` — re-run the normalizer's self-test
+`scripts/normalize_artifacts.py` hand-mirrors both artifact schemas (enums, closed-key sets,
+`required` lists, scalar types) and **deletes** under `--write`, so **any** edit to
+`debrief.schema.json` / `verify.schema.json` must be followed by
+`python3 plugins/dag/skills/dag/scripts/normalize_artifacts.py --self-test` (exit 0) in the same
+change. Nothing invokes it automatically and no validator depends on it. Precedent: the 1.11.0
+`panel_adjudication` (I41) addition landed eleven minutes after the normalizer and left the mirror
+rotten — `--self-test` went red (T7b/T7f) *and* the script began advising orchestrators that
+`panel_adjudication` was "outside verify.schema.json" and should be folded into `audit_notes`,
+which would have destroyed an object I41-1 requires.
 
 ## Versioning / releases — keep every mirror in sync
 The plugin version is mirrored in **six** places; a bump must update all of them together

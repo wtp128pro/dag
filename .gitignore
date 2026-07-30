@@ -8,3 +8,7 @@ __pycache__/
 
 # TLC model-checker scratch metadir (N-04; regenerated on every TLC run, never committed)
 plugins/dag/skills/dag/formal/states/
+
+# Scratch/ablation artifacts must never enter the shipped plugin tree
+plugins/dag/skills/dag/scripts/_vp1_*
+plugins/dag/skills/dag/scripts/*_ablate_*

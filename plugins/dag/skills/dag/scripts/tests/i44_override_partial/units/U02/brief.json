@@ -1,0 +1,27 @@
+{
+  "unit_id": "U02",
+  "title": "Design",
+  "wave": 2,
+  "depends_on": [
+    "U01"
+  ],
+  "persona": "Architect",
+  "budget_tokens": 32000,
+  "acceptance_criteria": [
+    "traceable to requirements"
+  ],
+  "context_pointers": [
+    "units/U01/debrief.json"
+  ],
+  "outputs": [
+    "units/U02/debrief.json"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "design",
+    "core"
+  ],
+  "learnings_applied": [
+    "L1"
+  ]
+}

@@ -1567,6 +1567,227 @@
         "references/state-machine.md#4",
         "socratic-guardrail-plan spec/governance.md"
       ]
+    },
+    {
+      "id": "I41",
+      "tier": "mechanical",
+      "title": "Panel dissent accounting & adjudication — a mechanical majority may not launder a member's own blocker/major (DAG-L11(c) / R15 kernel). I41-1 dissent on an aggregate PASS requires a panel_adjudication record (T1, version-gated >=1.11.0); I41-2 a dissenting vote must be substantiated (version floor + adoption closure); I41-3 no unexplained member blocker/major on a PASS (a disposition, deliberately NOT a flat ban); I41-4a-e adjudication enum+rationale, refs resolve, THE DISSENTER MAY NOT BE RE-POLLED, post-re-poll majority recomputed with I16's own rule, the re-poll rides the EXISTING verify_rounds<=3; I41-5 a downgrade must echo as a top-level minor (coverage-first); I41-6 escalated-p7 is incompatible with a PASS. REVISES the AO-5 doctrine (a bounded intra-node re-poll becomes a sanctioned pre-escalation path) and the I16 verify ARTIFACT CONTRACT (PASS + dissent + no adjudication was valid, becomes invalid) — both with migration arguments; I16's own predicate is byte-untouched. Offline post-hoc, adds no FSM state/edge/gate, NEVER guards LT7 => PRESERVES the termination proof. Limitation Y.",
+      "validator_label_prefixes": [
+        "I41 panel dissent",
+        "N-I41"
+      ],
+      "fixtures": [
+        "panel_dissent_unadjudicated",
+        "panel_dissent_version_silent",
+        "panel_dissent_bare",
+        "panel_dissent_closure",
+        "panel_major_unexplained",
+        "panel_adj_badresolution",
+        "panel_adj_no_rationale",
+        "panel_adj_dangling_ref",
+        "panel_repoll_dissenter",
+        "panel_repoll_tested",
+        "panel_repoll_majority_desync",
+        "panel_repoll_majority_raw",
+        "panel_repoll_rounds",
+        "panel_downgrade_unechoed",
+        "panel_escalate_on_pass",
+        "panel_withdrawn_note",
+        "panel_dissent_ok",
+        "panel_upheld_on_pass",
+        "panel_disposition_blank_rationale",
+        "panel_disposition_wrong_lens",
+        "panel_disposition_wrong_index",
+        "panel_blocker_unexplained",
+        "panel_dissent_blank_criterion",
+        "panel_dissent_refs_dangling",
+        "panel_repoll_final_dissent",
+        "panel_repoll_rounds_one",
+        "panel_dissent_nonpass_ok",
+        "panel_major_on_nonpass_ok",
+        "panel_unanimous_ok",
+        "panel_withdrawn_flipped",
+        "panel_withdrawn_after_repoll",
+        "panel_dissent_disagree_bare",
+        "panel_dissent_disagree_ok",
+        "panel_dissent_disagree_repro_ok",
+        "panel_downgrade_major_echo",
+        "panel_adj_nondict"
+      ],
+      "provenance": [
+        "cross-repo-lessons-intake",
+        "U05",
+        "U07"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "references/formal-models.md",
+        "cross-repo-lessons-intake artifacts/invariant-spec.md §2"
+      ]
+    },
+    {
+      "id": "I42",
+      "tier": "mechanical",
+      "title": "Evidence digest integrity (R18 / BB-L46) — a verifier's inputs_reviewed may carry content DIGESTS, not just paths. I42-1a every evidence object carries a non-blank path; I42-1b adoption closure over every verdict-bearing AGGREGATED units/<uid>/verify.json (mixed string/object in an armed run FAILs at >=1.11.0, NOTE below it); 'aggregated' IS the domain -- panelist verify_p<N>.json files are OUT OF DOMAIN by the same decision I43 records, and the mechanism is that the collection loop opens the LITERAL filename verify.json -- NO CODE LINE in the I41/I42 region names `verify_p` (that narrower claim is the true one; a COMMENT-INCLUSIVE count is not zero and rises every time the exclusion is documented, so none is published -- an earlier revision's unqualified 'occurs ZERO times' was already false when measured. Re-derive over content anchors, not offsets: A='/^ *# ---- I41 panel dissent accounting/', B='/^ *# I9 MISSING VERIFICATION/', each matching exactly once; awk \"$A,$B\" validate_run.py | grep verify_p | grep -vc '^[[:space:]]*#' -> 0); it is NOT the D-04/IMP-20 unit_docs carve-out, since I41/I42 read RAW and never consult unit_docs; I42-2 a present sha256 must be 64 lowercase hex, fail-CLOSED; I42-3 recomputed digest must match, EXCEPT the I9 status-aware transient (P6 + executing/verifying => NOTE), hard FAIL everywhere else and ALWAYS at P8/DONE; I42-4 a dangling run-relative path FAILs; I42-5 out-of-run paths are an exit-neutral NOTE, never a FAIL (not decidable from emitted artifacts). Schema delta is a union WIDENING, so no previously-valid artifact becomes invalid — NOT the I25/GV-29 contract-revision class. Offline post-hoc, T2 adoption-armed (0/292 archived verifies adopt; all 2179 archived inputs_reviewed elements are strings — re-measured 2026-07-29 and re-derived IDENTICALLY 2026-07-30 by the self-contained census command recorded at state-machine.md I42 / validate_run.py I41 header, which prints '292 2179 2179 0 0'; the previously published 0/156 and 964 figures were stale denominators, so the NUMBERS moved while the safety conclusion did NOT: zero adopters and zero object elements then and now; THAT ZERO IS DATED, NOT STRUCTURAL: nothing prevents an object element from being archived and this repository's own in-flight run already carries them, so the arm arms the moment such a run archives -- re-measure rather than inheriting the zero), NEVER guards LT7 => PRESERVES the termination proof, AO-1..7 and I1..I41. Limitation Z: I42 detects DRIFT, not READING.",
+      "validator_label_prefixes": [
+        "I42 evidence digest",
+        "N-I42"
+      ],
+      "fixtures": [
+        "digest_ok",
+        "digest_shape_mixed",
+        "digest_blank_path",
+        "digest_malformed",
+        "digest_mismatch",
+        "digest_mismatch_p6_note",
+        "digest_dangling",
+        "digest_outofrun_note",
+        "digest_outofrun_abs_note",
+        "digest_shape_mixed_below",
+        "digest_mismatch_offphase",
+        "digest_mismatch_p6_terminal",
+        "digest_mismatch_crossunit_note",
+        "digest_mismatch_crossunit_fail",
+        "digest_mismatch_root_note",
+        "digest_path_only_ok"
+      ],
+      "provenance": [
+        "cross-repo-lessons-intake",
+        "U05",
+        "U07"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "references/formal-models.md",
+        "cross-repo-lessons-intake artifacts/invariant-spec.md §3"
+      ]
+    },
+    {
+      "id": "I43",
+      "title": "Verification currency \u2014 an executed unit's AGGREGATED verify.json must adjudicate the iteration its debrief claims. Four exhaustive, mutually exclusive arms over {SUPERSEDED, AHEAD, CURRENT} x {IN_FLIGHT, not IN_FLIGHT} behind two guards (an indeterminate debrief, and an absent/unusable verify, are DECLINED to I9's domain \u2014 no double-charging): I43-a verify.iteration < debrief.iteration off-window is a hard FAIL (SUPERSEDED, the measured defect class); I43-b verify.iteration > debrief.iteration off-window is a hard FAIL (AHEAD \u2014 no legal LT7 transient puts the verify ahead, since LT7 increments `iteration` BEFORE the next EXECUTE writes its debrief, so it is either a rollback under a live verification or an AUTHORED iteration); I43-d a mismatch INSIDE the in-flight window is an exit-neutral NOTE; I43-ok equality emits a positive assertion so a silently-skipped predicate is distinguishable from a clean one (closes the silent-skip domain). IN_FLIGHT(u) := I9's window (phase == P6_EXECUTE_VERIFY and fsm status in executing/verifying) PLUS a third conjunct `gates.signoff_confirmed is not True`. BOTH existing window sites are CITED and BYTE-UNTOUCHED, never hoisted (pure insertion is a confirmed guardrail for this change) \u2014 and they are cited BY CONTENT, never by offset, because every offset in that file drifts: `grep -n '^ *if phase == \"P6_EXECUTE_VERIFY\"' validate_run.py` returns exactly 2 hits, the FIRST being I42-3's digest-drift window and the SECOND I9's missing-verification window. An earlier revision of this title published `validate_run.py:5594` and `(I9 :5594, I42-3 :5555)`; NEITHER offset resolved to the site it named, which is why the numbers are deleted rather than refreshed. The third conjunct is LOAD-BEARING: without the first two the predicate acts as a de-facto live guard on the sole back-edge -- THE PROOF STEP PREVIOUSLY PUBLISHED HERE IS WITHDRAWN (predicate-spec.md §1.3-a, §9-R18). It read `hard-FAILs every legal RETRY, where debrief==N and verify==N-1 BY CONSTRUCTION`, which substitutes the FSM COUNTER for the ARTIFACT FIELD this predicate actually reads: LT7 increments the counter on the edge OUT of RETRY and the executor writes the next debrief afterwards, inside EXECUTE, so AT RETRY the on-disk pair is (N-1, N-1) and CURRENT is TRUE. The conclusion survives on the ARTIFACT TIMELINE: the non-CURRENT transient opens when EXECUTE writes debrief N and closes when the aggregated verify N is written, spanning the EXECUTE->VERIFY leg and the interior of VERIFY -- exactly the interval the two copied conjuncts cover -- and the hazard is PARALLEL WAVES, since a validation triggered by one unit's pair closing also inspects same-wave siblings sitting at (N, N-1). Stated as a PROPERTY, not a census, because the census moves between readings; without it the three motivating units (all `verifying` at P6) downgrade to NOTEs that the SKILL.md-mandated --quiet then eats, leaving the predicate INERT on the very run that motivates it. Reads the AGGREGATED verify only \u2014 per-member panel verify files are a per-iteration audit trail by design and are normatively out of domain. Never reads `retries` (I4's ceiling iteration <= retries+1 is neither widened nor narrowed: this is an equality between two ARTIFACTS) and never reads `verdict` (complete means CURRENT, not PASS \u2014 a current FAIL at retries==2 exits via ESCALATE). UNGATED by validator_version: measured 159/159 archived debrief/verify pairs across 5 stamps (None -> 1.10.1) comply -- EVERY archived pair, none excepted. AXIS NAMED, because several different counts have been published here: this is a PAIR census (159 co-present debrief/verify pairs over the 17 archived run dirs, 159 iteration-matched, 0 not), NOT the retired '156 archived verify DOCUMENTS' denominator that I41/I42 withdrew (that axis counts DOCUMENTS; it read 292 when that cell was written and reads 301 today, having gained the 9 waived re-verification panel files named below -- the same mutable tree sampled twice). THE THREE EXCEPTIONS ARE HISTORICAL, NOT PRESENT, and naming what closed them is the point: an earlier revision of this title published '156 iteration-matched, the 3 exceptions being exactly the repair target's U05/U07/U08'. That was TRUE WHEN WRITTEN and is FALSE NOW -- under a maintainer waiver (this branch's run ledger, DECISIONS#44 extended by #46) that target's U05 iteration 2, U07 iteration 3 and U08 iteration 2 were each re-verified by a panel of three on 2026-07-30, and all three became iteration-current, so those 3 exceptions are DISCHARGED -- not reclassified, not waived. DIRECTION, because a moved number reads as a retreat: this makes the ungated-arming case STRONGER. The ground for arming ungated is that legitimately-closed archived pairs already comply; they did (156 of 156) and now EVERY archived pair does (159 of 159). Only the ex-defect subset moved -- no complying pair became non-complying and the arming decision is unchanged. THE FIGURE IS A PROPERTY OF A MUTABLE, GITIGNORED DIRECTORY AND WILL MOVE AGAIN: `.wip/` is gitignored (.gitignore:7) and carries NO version identity, so this is a TIMESTAMPED SAMPLE, never a property of a commit -- re-derive, do not inherit. The cheap durable remedy, which mtime-plus-file-count is NOT (a change DETECTOR, not an identity), is a digest: `tar cf - .wip/<run-dir> | shasum -a 256` (that digests the archive STREAM, so metadata as well as bytes; the content-only variant is `shasum -a 256 $(find <dir> -type f | sort) | shasum -a 256`). Had one been taken when the 156/3 figure was published its pre-image would still be checkable; none was, so that figure is now unverifiable in principle. Re-derive this census from the repo root, printing `PAIRS MATCHED MISMATCHED`: `python3 -c \"import json,glob,os;IN='2026-07-29_183514';P=[d for d in glob.glob('.wip/*/units/*') if IN not in d and os.path.exists(d+'/debrief.json') and os.path.exists(d+'/verify.json')];it=lambda p:json.load(open(p)).get('iteration');m=sum(it(d+'/debrief.json')==it(d+'/verify.json') and it(d+'/verify.json') is not None for d in P);print(len(P),m,len(P)-m)\"` -> `159 159 0`, executed 2026-07-30 at tree 0db7b03. Stamp axis: 5 distinct validator_version values across the 14 archived dirs holding >=1 pair, 6 across all 17 archived dirs, 6 across the 15 pair-carrying dirs including the in-flight run, 7 across all 18 dirs; the previously published '8 distinct stamps' is reproducible under NONE of those readings. ARCHIVE-SAFETY FIGURE, MEASURED AND NOT ZERO: an earlier revision of this title claimed ungated arming newly REDs ZERO archived runs; re-measured against the SHIPPED code over all 18 run dirs under THIS REPOSITORY's .wip/ -- of which 17 are ARCHIVED and the 18th is the in-flight repair run itself, which I43's `not SIGNED_OFF` conjunct carves out BY CONSTRUCTION, so counting it in a false-positive tally would count the one member that structurally cannot supply that evidence -- the figure is DATED and HISTORICAL, AND THE TWO ZEROS IN THIS PASSAGE ARE NOT THE SAME CLAIM, which is why the earlier form is kept rather than overwritten. HISTORICALLY (2026-07-29): the figure was 1 OF THE 17 ARCHIVED RUNS NEWLY RED IN THIS REPOSITORY. CURRENTLY (2026-07-30, tree 0db7b03): ZERO archived runs are newly RED and NO run in the population emits a class FAIL row of ANY severity, because under a maintainer waiver (DECISIONS#44 extended by #46) the repair target's U05 i2 / U07 i3 / U08 i2 were each re-verified by a panel of three, discharging all 8 rows; that run now validates at 282 checks / 0 problems / PASS. DIRECTION: this STRENGTHENS the property A FORTIORI -- what was lost is the ILLUSTRATIVE INSTANCE, never the property, and the instance was consumed by REPAIRING it; the arming decision is unchanged. It is NOT a return to the retracted wording: arriving at zero BY MEASUREMENT HAVING REPAIRED THE EXCEPTION is a receipt, whereas the retracted 'newly REDs ZERO archived runs' was a guess asserted before measuring, so never publish a bare zero here -- publish it with its population, its date and its command. MUTABILITY: `.wip/` is gitignored and carries NO version identity, so every figure here is a TIMESTAMPED SAMPLE that has already moved once and will move again; per DECISIONS#50 `tar cf - .wip/<run-dir> | shasum -a 256` is the cheap anchor that would make it permanently checkable, which mtime-plus-file-count is not. The historical instance was 2026-07-29_090706_cross-repo-lessons-intake, the branch's own REPAIR TARGET, carrying 8 rows (I43 on U05/U07/U08, I44 on U05/U07/U08, I46 on U03/U07), with ZERO FALSE POSITIVES, since no other run in the population emitted any I43/I44/I46 FAIL row at all (the word FAIL is load-bearing: the class is NOT silent elsewhere -- 15 of the 18 dirs emit 7-18 class PASS rows (range re-measured 2026-07-30) via Report.ok in the default non-quiet invocation, and only the 3 empty-units runs emit nothing at all). NEWLY RED means every FAIL row on the run is an I43/I44/I46 row, so the run was GREEN before these predicates. The other 16 archived runs are unaffected, as is the in-flight 18th dir. SCOPE CAVEAT, stated rather than implied: the population is this repository's own .wip/ archive and nothing else; another installation's archive is a different population and may yield a different figure, so re-run the command below against it rather than assuming this number transfers. The honest claim is that ZERO LEGITIMATELY-CLOSED archived runs are newly RED while the one that is, is the run this pipeline exists to repair, on exactly the commissioned defect class — a strong property, but a weaker and different one than `0`, and stating `0` was a defect in those words because it rested an ungated arming decision on a number a checking reader would find false. Reproduce from the repo root: `for d in .wip/*/; do o=$(python3 plugins/dag/skills/dag/scripts/validate_run.py \"$d\"); n=$(printf '%s' \"$o\" | grep -cE '^ +FAIL +(I43|I44|I46) '); t=$(printf '%s' \"$o\" | grep -cE '^ +FAIL +'); [ \"$n\" -gt 0 ] && [ \"$n\" -eq \"$t\" ] && echo \"NEWLY RED $d ($n rows)\"; done`. The arming decision is unchanged; only the number is. A >=1.12.0 gate was REJECTED, and THE REASON PREVIOUSLY PUBLISHED HERE IS RETRACTED IN FULL rather than re-anchored: this title used to assert that init_run.sh writes the stamp only at scaffold time and never refreshes it, hence a gate could not arm on the authoring run. BOTH HALVES ARE FALSE AT THIS TREE, and the unit that wrote the sentence is the one retracting it -- a refresh path exists (`grep -n 'RE-STAMP mode' init_run.sh` -> exactly 1 hit, the header of `init_run.sh --restamp <RUN_DIR>`, shipped by this run's own U08) and it has been applied here, so this run's fsm-state.json reads validator_version 1.12.0 against plugin.json 1.12.0 and a >=1.12.0 gate WOULD arm on the authoring run. The scaffold-time stamp is at `grep -n 'F1(a): stamp validator_version' init_run.sh` -> exactly 1 hit; the previously published `:161-163` landed in a PLAN.md heredoc, not on the stamp. THE DECISION STANDS on three replacement reasons (predicate-spec.md §0.4-a), each checkable: (1) --restamp is MANUAL and OPT-IN, so the archive is still unarmed -- measured 2026-07-30 over the 18 run dirs under THIS repository's .wip/, a >=1.12.0 gate would arm on 1 of them (this run) and on NONE of the 17 archived ones absent a human retroactively restamping each, INCLUDING the repair target whose pairs are the very defect class these predicates were commissioned to find -- the L4 failure mode arriving through the ARMING rather than through the clause; (2) the ratchet only ever RAISES a stamp (`grep -n 'ratchet, not lowered' init_run.sh` -> exactly 1 hit; it exits 0 rather than lowering a recorded stamp), so gating would make arming depend on a monotone, human-invoked act -- legible, but not evidence; (3) restamping the authoring run so that its own predicate arms is CIRCULAR, since the gate would then be satisfied by an act of the run being judged, whereas ungated arming needs no such act and its safety is MEASURED (the pair census and the newly-RED sweep above) rather than asserted. Ungated is therefore the stronger posture, not a concession. What survives of the retracted claim is a real divergence, filed as §9-R16: MANUAL re-stamp has landed; DoD 18's AUTOMATIC re-stamp-on-phase-advance has not. REVISES the verify ARTIFACT CONTRACT (iteration parity was previously unstated by every schema, predicate and doc, so a previously-legal combination becomes illegal) with a five-part migration argument; no schema is edited, so no archived artifact becomes invalid. Offline post-hoc, adds no state/edge/gate, NEVER guards LT7 => PRESERVES the termination proof Claims A-D and AO-1..7. Limitation AA: detects STALENESS, never GENUINENESS \u2014 a loop that bumps both iterations without re-verifying satisfies I43 exactly. Limitation AB: the field is the iteration NUMBER, so a same-iteration edit to an ALREADY-VERIFIED debrief is invisible BY CONSTRUCTION (staleness of numbers, not of bytes); worked example in the run that shipped this predicate -- units/U05/debrief.json repaired 47 minutes after U05's aggregated verify.json closed PASS, both still at iteration 1, so the currency test stays green over bytes no verifier read. A sha256 before/after per edited file would make it decidable and is NOT shipped.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I43 verification currency",
+        "N-I43 verification currency"
+      ],
+      "fixtures": [
+        "i43_ahead_of_debrief",
+        "i43_current_positive",
+        "i43_inflight_before_signoff",
+        "i43_inflight_signoff_expired",
+        "i43_inflight_signoff_false",
+        "i43_panel_trail_overfire",
+        "i43_superseded_at_signoff"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §1"
+      ]
+    },
+    {
+      "id": "I44",
+      "title": "Sign-off closure \u2014 gates.signoff_confirmed=true obliges every EXECUTED unit to carry a closed verification, at ANY phase. Five arms, ARTIFACT-KEYED and evaluated in order: I44-a absent verify.json; I44-b unusable verify (not JSON / not schema-valid / unit_id mismatch); I44-c verify carrying no verdict; I44-d superseded verify; I44-e an unresolved DISAGREE, which is an exit-neutral NOTE and never a FAIL (a DISAGREE is a COMPLETE verification act declaring irresolvability, closed by LT6 -> ESCALATE -> the Phase-7 human gate; failing it would conflate `verification incomplete` with `escalation unresolved` and create an incentive against voting DISAGREE, attacking AO-5 from the incentive side). A CURRENT FAIL verdict is deliberately NOT an arm: it is CLOSED verification exiting via ESCALATE, and demanding PASS would be unsatisfiable for every escalated unit. NO phase condition and NO in-flight carve-out \u2014 the antecedent is the exact negation of I43's carve-out conjunct, so a carve-out would be self-cancelling, and the motivating run rolled P8 -> P6 back while LEAVING signoff_confirmed true, so any phase-gated formulation is inert on it. Keyed on ARTIFACTS, never on fsm-state status labels (those are interpolated into detail text only): measured, a status-keyed formulation newly REDs 3 archived runs for cosmetic desync while the artifact-keyed one newly REDs NO RUN FOR COSMETIC DESYNC and still catches all 3 real defects — which must NOT be read as `newly REDs zero runs`, the false absolute an earlier revision of this title carried: the figure is DATED -- HISTORICALLY (2026-07-29) I44 newly REDded 1 of the 17 ARCHIVED runs IN THIS REPOSITORY, and CURRENTLY (2026-07-30, tree 0db7b03) it newly REDs NONE of them, the 3 arm-d rows having been discharged by the maintainer-waived re-verification of DECISIONS#44/#46; that zero is reached BY MEASUREMENT AFTER REPAIR and is therefore NOT the retracted unmeasured absolute. The historical instance was 1 of the 17 ARCHIVED runs IN THIS REPOSITORY (the 18th .wip/ dir is the in-flight repair run), the repair target, on 3 REAL defects (corrected figure and reproducing command in the I43 entry and in validate_run.py's own I43/I44/I46 banner, which `grep -n 'ARCHIVE-SAFETY FIGURE' validate_run.py` locates; the previously published `validate_run.py:5687` had already drifted). The stale label a status-keyed formulation would fail is a DOCUMENTATION defect and is now shipped as the separate advisory I47. DELIBERATELY NOT IN REQUIRED_GATES: that table is one-directional (phase => gates) and spec_check.py SC3 derives it from spec/fsm.json.guards[], whose entire vocabulary (`required_from_phase`) cannot express `given gate G true, artifacts A must exist`, so I44 ships as its own labelled predicate following the gpersonas_failclosed converse archetype, located BY CONTENT rather than by offset: `grep -n \"LABEL_STEM['gpersonas_failclosed']\" validate_run.py` (the previously published `validate_run.py:6198` had already drifted). The recorded human override fsm-state.json.accepted_incomplete {units[], rationale, decision_ref} converts a hard FAIL into a per-unit exit-neutral NOTE iff ALL SIX conditions hold (object; units is a list containing u as an exact str, non-str elements ignored never coerced; non-blank rationale; non-blank decision_ref; decision_ref names DECISIONS.md; DECISIONS.md exists under the run dir) \u2014 it makes a knowing sign-off LOUD, per-unit and grep-visible instead of invisible, and never suppresses an emission. FAIL-CLOSED: an override present but malformed downgrades NOTHING and adds one hard FAIL naming THE FIRST unmet condition by number. Coverage is PER UNIT (no blanket `all open units` form), and a well-formed override naming units that are not open emits an exit-neutral over-broad NOTE so a stale override cannot accrete silently. UNGATED by validator_version. REVISES the gate contract (signoff_confirmed acquires an artifact-level obligation) on the D-06/BRK-13 precedent, with a migration argument. Offline post-hoc, NEVER guards LT7 => PRESERVES the termination proof; I10 and gate ordering are byte-untouched.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I44 sign-off closure",
+        "N-I44 sign-off closure"
+      ],
+      "fixtures": [
+        "i44_absent_verify_any_phase",
+        "i44_closed_current_fail",
+        "i44_disagree_at_signoff",
+        "i44_no_signoff_antecedent",
+        "i44_override_malformed",
+        "i44_override_partial",
+        "i44_override_quiet_control",
+        "i44_override_quiet_visible",
+        "i44_override_wellformed",
+        "i44_superseded_at_signoff",
+        "i44_unusable_verify",
+        "i44_verdictless_verify"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §2"
+      ]
+    },
+    {
+      "id": "I45",
+      "title": "Version-skew visibility \u2014 an exit-neutral NOTE publishing a SHADOW COUNT of version-gated arms that THIS run's own validator_version stamp suppressed while the arm's non-version precondition HELD. Mechanism: a module-level accumulator plus a `_skew_record(arm_id, precondition_held, ship, stamp)` recorder called adjacent to EVERY existing _i27_semver_ge(...) call site, appending iff `precondition_held and not _i27_semver_ge(stamp, ship)`; the recorder is a main()-local def because _i27_semver_ge is itself a main()-local closure and duplicating its parser would risk divergence. Emitted as a bare print immediately before `return _finish(rep)`, touching neither rep.problems nor rep.checked, so it is exit-neutral BY CONSTRUCTION and can never newly RED an archive; zero suppressed arms emits nothing. NOT gated on --quiet (a deliberate, filed deviation from the quiet-gated I39-4 `governance disarmed` sibling: SKILL.md mandates --quiet, so a quiet-gated skew NOTE would be inert in the only invocation that matters). Fires LOUDLY on unstamped archives, where _i27_semver_ge(None, ship) is False for every arm \u2014 intended: it is state-machine.md \u00a75's `what would need to change to re-validate this run today` made legible. HONESTY CONSTRAINT (L16 \u2014 a right number with a wrong mechanism is a defect): the count is of EVALUATION GATES, an UPPER BOUND on suppressed FAILs since an armed clause may well have passed; the upper-bound sentence in the emission is normative text, and the measured `stamp 1.10.1 -> 0 problems / 1.11.0 -> 8 problems` figure may NOT be restated as this predicate's output. P3 READS validator_version because the stamp is its subject matter, but its own emission is not gated on the stamp being >= anything \u2014 calling it version-gated is a category error. Completeness is enforced MECHANICALLY, not by hand-listing: spec_check.py SC8 asserts count(`_skew_record(`) == count(`_i27_semver_ge(`) - 1 in validate_run.py, so a future version-gated arm added without a recorder breaks the dev-time build instead of silently under-counting. Offline post-hoc, no FSM state/edge/gate, NEVER guards LT7 => PRESERVES everything.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "N-I45 version-skew visibility"
+      ],
+      "fixtures": [
+        "i45_g2prime_no_struct",
+        "i45_no_skew_overfire",
+        "i45_skew_note",
+        "i45_stamp_raised"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §3"
+      ]
+    },
+    {
+      "id": "I46",
+      "title": "Non-converged PASS \u2014 a verify whose own aggregated document records verdict=PASS together with `converged: false` is verification that declares its OWN coverage incomplete. ADOPTION-ARMED BY IDENTITY: `v.get(\"converged\") is False`, never falsiness, so an ABSENT `converged` (an optional key in verify.schema.json) never arms the predicate and neither does 0, \"\" or null; a run that never wrote the field emits NOTHING AT ALL (the I19/I20 zero-adoption emission precedent), which is what keeps I46 archive-silent. TWO-TIER SEVERITY by human ruling: an exit-neutral NOTE below sign-off, because `converged: false` is a LEGAL mid-run state \u2014 an unconditional FAIL would criminalize an honest report and PUNISH ADOPTION of an optional honesty field, creating an incentive to omit the field entirely \u2014 and a hard FAIL under a claimed sign-off, where a unit whose own verification declares its coverage incomplete IS verification left unfinished. I43, I44 and I46 therefore share ONE doctrine (legal mid-loop, illegal at claimed completion) rather than three ad-hoc severities. The I44 accepted_incomplete override applies per unit, unchanged \u2014 one override shape, not two. `verify_rounds` is printed when present but is never a CONDITION: requiring the round cap would narrow the predicate on unmeasured grounds. A non-converged FAIL is NOT armed \u2014 it is a coherent escalation input. Reads the AGGREGATED verify only; a panel member's own `converged` is per-member audit data. UNGATED by validator_version. Offline post-hoc, adds no state/edge/gate, NEVER guards LT7 => PRESERVES the termination proof, AO-1..7 and I1..I44; I41's panel_adjudication is untouched and no schema is edited.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I46 non-converged PASS",
+        "N-I46 non-converged PASS"
+      ],
+      "fixtures": [
+        "i46_converged_true_positive",
+        "i46_no_converged_key",
+        "i46_nonconverged_fail_verdict",
+        "i46_nonconverged_midloop_note",
+        "i46_nonconverged_pass_at_signoff"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U01",
+        "U06"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §4"
+      ]
+    },
+    {
+      "id": "I47",
+      "title": "Ledger desync at sign-off (DoD 6) — an EXIT-NEUTRAL ADVISORY NOTE, and nothing else, for a unit whose `fsm-state.units[].status` label is NON-TERMINAL while gates.signoff_confirmed=true even though the unit's verification is COMPLETE AND CURRENT. This is the predicate I44 deliberately does not carry: I44 is keyed on ARTIFACTS, never on status labels, because a status-keyed formulation newly REDs archived runs for COSMETIC desync — and validate_run.py:5836-5840, references/state-machine.md:605 and the unit spec §2.1(i) all told readers the stale label `is a separate predicate` while NOTHING SHIPPED IT (a fifth documented-but-absent predicate, closed here). ANTECEDENT, four conjuncts: (1) gates.signoff_confirmed is True by IDENTITY, never truthiness; (2) the unit is EXECUTED — domain is unit_dirs_with_debrief, exactly I44's, so a never-executed materialized unit stays I10's business; (3) the verification is COMPLETE AND CURRENT — verify.json present on disk, parseable/usable (JSON, schema-valid, unit_id-matched), verdict-bearing, and iteration-matched to the debrief with both iterations determinate ints, which is the exact NEGATION of I44's FAIL arms a-d and of I43-a/-b, so the row never double-charges a fact another predicate already FAILs (the same declining discipline I43 applies to I9); a DISAGREE verdict is NOT excluded, since by I44 arm e's own doctrine a DISAGREE is a COMPLETE verification act and the two rows record different facts (an unresolved escalation vs a stale label); (4) the status is NON-TERMINAL, defined as a WHITELIST of the four IN-PROGRESS labels {pending, briefed, executing, verifying} rather than `not in {passed, failed}` — escalated (closed by the Phase-7 human gate), retired (a cancelled unit) and blocked (a recorded non-completion, I10's domain) are CLOSED outcomes at sign-off, and an unknown/future enum member must never arm an advisory. The whitelist is doctrine, not tuning: measured over all 18 of this repository's .wip/ run dirs (17 archived + the in-flight repair run) it selects the SAME two units as the broader form (2026-07-05_143454 U09 `executing` at DONE, 2026-07-29_090706 U09 `verifying`), so it buys no silence. SEVERITY IS ADVISORY BY CONSTRUCTION: a bare print touching neither rep.problems nor rep.checked (the N-I45 / _vc_override_note archetype), so it can move no exit code and can newly RED no archived run — in particular the witness run 2026-07-05_143454_implement-dag-loop-proposals, whose U09 is this NOTE's exact target, keeps its verdict. NOT gated on validator_version (stdout is its only channel, and init_run.sh:161-163 stamps once at scaffold so a version gate would not arm on the run authoring the predicate; that parenthetical is RETRACTED and is left standing rather than deleted, per this run's date-in-place doctrine (DECISIONS#61): `init_run.sh --restamp <RUN_DIR>` SHIPPED IN THIS RELEASE (1.12.0, this run's own U08) and has already raised this run's fsm-state.json to validator_version 1.12.0, so a >=1.12.0 gate WOULD arm on the authoring run. The un-gating DECISION stands, on the three replacement reasons carried in I43's registry entry and banner. Full retraction: verify-repair-units artifacts/predicate-spec.md §0.4-a; surviving divergence (manual re-stamp landed, automatic re-stamp-on-phase-advance did not) §9-R16) and NOT gated on --quiet, for the §9-R12 reason already applied to the accepted_incomplete override NOTE and to N-I45: SKILL.md mandates --quiet, so a quiet-gated advisory is inert in the only invocation that matters. Limitation: it names a DOCUMENTATION defect only — it neither infers the correct label nor verifies the verdict, and a ledger that lies in the other direction (a terminal label with no verdict to back it) is I2's G4, untouched. Offline post-hoc, adds no state/edge/gate flag, NEVER guards LT7 => PRESERVES the termination proof Claims A-D, AO-1..7 and I1..I46; no schema is edited and no existing predicate's arming, severity or scope changes.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "N-I47 ledger desync at sign-off"
+      ],
+      "fixtures": [
+        "i47_ledger_desync_control",
+        "i47_ledger_desync_note"
+      ],
+      "provenance": [
+        "verify-repair-units",
+        "U17"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "verify-repair-units artifacts/predicate-spec.md §2.1"
+      ]
     }
   ]
 }

@@ -1,0 +1,19 @@
+{
+  "id": "L13",
+  "trigger": "The orchestrator violated BB-L46 twice: it repaired cartography, clarifications and brief files after wave-1 debriefs were written, and it ran U06 (rewriting SKILL.md 956 to 989 lines) while U01 sat at the retry cap in VERIFY. All three U01 panelists independently caught the mtime ordering and exonerated the unit.",
+  "lesson": "Repairing an artifact while its verification is in flight destroys the verifier's evidence and can convene a human gate over a defect already fixed.",
+  "how_to_apply": "Repairing an artifact while its verification is in flight destroys the verifier's evidence and can convene a human gate over a defect already fixed. The ORCHESTRATOR is the likeliest violator, because it holds the whole graph and repairs feel cheap. Before any orchestrator-side edit, check whether a verifier is reading that file, or a file whose line numbers it cites; if so, wait. Findings that no longer reproduce are version skew, never a defect, and must be exonerated explicitly by mtime ordering.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_090706_cross-repo-lessons-intake: 9 units, 6 retry iterations, 33 independent lens-verdicts across panels of 3 at depth tier full. Shipped as PR #34 (commits 0fd8dbe, f7c3d92).",
+  "since_wave": 6,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

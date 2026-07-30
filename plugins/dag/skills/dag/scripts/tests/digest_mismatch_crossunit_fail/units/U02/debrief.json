@@ -1,0 +1,35 @@
+{
+  "unit_id": "U02",
+  "persona": "Architect",
+  "iteration": 1,
+  "result": "Design scored against requirements; every requirement maps to a design element.",
+  "evidence_table": [
+    {
+      "claim": "Each requirement maps to >=1 design element",
+      "type": "design-judgment",
+      "evidence": "traceability table in the debrief result",
+      "reproducible": true
+    }
+  ],
+  "socratic": {
+    "premise": "The scored design is traceable to every stated requirement.",
+    "counter": "Sought a requirement with no mapped design element; none found - the premise HOLDS.",
+    "pivot": "If any requirement lacked a mapped element, the traceability claim would flip.",
+    "confidence": "high"
+  },
+  "acceptance_self_check": [
+    {
+      "criterion": "traceable to requirements",
+      "met": true,
+      "evidence_ref": "traceability table"
+    }
+  ],
+  "assumptions": [],
+  "residual_risks": [],
+  "confidence": "high",
+  "footprint": {
+    "tokens_consumed": 12000,
+    "within_budget": true
+  },
+  "handoff_notes": []
+}

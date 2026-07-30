@@ -1,0 +1,19 @@
+{
+  "id": "L12",
+  "trigger": "U03 and U08 panels each returned a 2-1 majority carrying the dissenting lens's major defect. I16 hard-fails an aggregate verdict differing from the discrete panel majority; I6 forbids a major on a PASS; DISAGREE is reserved for a NO-majority split. No rule covered the collision, so no compliant artifact existed.",
+  "lesson": "A panel majority of PASS carrying one lens's major defect satisfies neither I16 nor I6, and DISAGREE is unavailable.",
+  "how_to_apply": "A panel majority of PASS carrying one lens's major defect satisfies neither I16 nor I6, and DISAGREE is unavailable. The sanctioned resolution is a NARROW RE-POLL: re-ask only the lenses that never TESTED the dissenting finding, and only about that finding. If they already examined it and declined, re-polling is vote-shopping and must not be done - adjudicate severity on the informed majority and preserve the dissent verbatim in the panel block and audit_notes. Grading a unit not chargeable is NOT the same as dismissing the defect; carry it as a release-level blocker.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_090706_cross-repo-lessons-intake: 9 units, 6 retry iterations, 33 independent lens-verdicts across panels of 3 at depth tier full. Shipped as PR #34 (commits 0fd8dbe, f7c3d92).",
+  "since_wave": 6,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

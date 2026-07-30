@@ -470,6 +470,10 @@ action or variable.
 | **GV-25** — I19 `add_units` autonomy narrowed to human-confirmed DoD items | **REVISES** (strengthening) | — | **Models untouched — I19 autonomy is a validator predicate; the model's `Amend` is origin-agnostic (autonomous-vs-gated abstracted); a human wait adds no TLA action.** Migration: strict narrowing (`autonomous ⇔ verbatim-member ∧ human_confirmed(x)`) — every previously-gated case stays gated, **no guarantee weakens**; no new state/edge (P4/P6 tables unchanged). |
 | **GV-31** — `SKILL.md` P4 conditional touchpoint | **REVISES** (doctrine) / three-gates **PRESERVES** | — | **Models untouched — P4 is a linear `Complete(P4)` phase; a node-internal conditional `AskUserQuestion` adds no action / variable / edge (the PR1 "no new TLA action" precedent); `GateOrdering` unaffected, no gate bypassed.** Migration: revises only the `SKILL.md` P4 "never opens a new prompt here" doctrine (enumeration-level); the three-human-gates `REQUIRED_GATES` set is immutable (no P4→P2 edge exists); conditional (most runs have no P4 DoD gap); the fuel question stays forbidden at P4. |
 | **AF-41** — "the stamp gates nothing" §5 doc-drift | **PRESERVES** (documentation repair) | — | **Models untouched — documentation.** No guarantee changes: the imprecise sentence was **already** contradicted by the already-shipped I27-T1 presence arm (depth-1.9.0), independent of this landing; correcting the prose to match shipped behavior revises no guarantee. (Authoritatively PRESERVES — not double-classified from the "GV-31 / AF-41" §5 shorthand.) |
+| **AO-5 bounded intra-node re-poll** (I41, 1.11.0) | **REVISES** (doctrine, narrow) / termination **PRESERVES** | — | **Models untouched — AO-5 is `self-learning-loops.md` prose doctrine, not a TLA+/Alloy property.** AO-5 reads: an objective-irresolvable executor↔verifier split is `DISAGREE → ESCALATE`, "never an unbounded retry… The loop never tries to 'win' a judgment call by re-running." I41 sanctions a **bounded intra-node re-poll** *before* escalation, which AO-5's prose did not contemplate. **Migration argument:** (i) the re-poll is capped by the **EXISTING** `verify_rounds ≤ 3` bound (I16-(c), byte-untouched) — no new counter, no new fuel, no new edge, finiteness unchanged; (ii) **I41-4c FORBIDS re-polling the dissenter** (or any lens that had already tested the finding), so the specific behavior AO-5 prohibits — re-running to win — is now a hard FAIL where it was previously unconstrained; (iii) the escalation arm stays mandatory whenever the re-poll fails to produce a majority (I41-4d recompute + I16); (iv) AO-5's own subject, the *executor↔verifier* split at the AGGREGATE level, is untouched — I41 governs *intra-panel* dissent, which AO-5 never addressed. Net effect, stated exactly: I41 narrows only the cases in which a dissent SURVIVES in `panel[]`'s final vote. The earlier close — *"cases previously resolvable by silence now require either a recorded, rule-bound re-poll or an escalation"* — was **false as written and is withdrawn**: because 4d-i pins `panel[].verdict` to the FINAL vote and 4c makes a self-withdrawal merely *expressible*, a dissenter that rewrites its final vote to `PASS` and drops its `defects` arms **zero** clauses (state-machine.md §5 Limitation Y(v)). |
+| **I16 verify ARTIFACT CONTRACT** (I41, 1.11.0) | **REVISES** (artifact contract; I25/GV-29 class) / I16 predicate **PRESERVES (byte-untouched)** | — | **Models untouched — the verify artifact contract is a schema/validator-layer contract, not a temporal property.** I16's majority test, lens-trio test, persona-independence test and `verify_rounds` bound are **unchanged**, and I41-4d *re-uses* `_discrete_majority` rather than replacing it. **But** a `verify.json` recording `PASS` with a dissenting `panel[]` member and no `panel_adjudication` was previously **VALID** and becomes **INVALID**. Filed as a contract revision, not smuggled in as a PRESERVES. **Migration argument:** (i) **version-gated** — the presence floors (I41-1/-2a) arm only at `validator_version ≥ 1.11.0` via `_i27_semver_ge`; an absent/older stamp parses to `None`/lower ⇒ `False`. Measured: the only archived dissent-on-PASS verifies live in a run stamped `1.9.0`, so **no archive newly flags** (fixture `panel_dissent_version_silent` pins the semver-vs-lexicographic distinction, since `"1.9.0" >= "1.11.0"` is TRUE on a raw string compare). (ii) **New runs only**; archived offenders read as state-machine.md §5 version-skew and are never backfilled or edited. (iii) `templates/verify.md` scaffolds the block, so compliance is the default path. (iv) Every schema delta is **OPTIONAL** — no archived verify becomes schema-invalid. (v) The revision is **strictly narrowing**: no previously-FAILING artifact becomes legal. It also pins a previously-unspecified semantic — `panel[].verdict` holds the **FINAL** vote, `panel_adjudication.repoll[].pre_verdict` preserves the original. |
+| **AO-3's `DISAGREE` route** (I41, 1.11.0) | **SPLIT: the `FAIL` arm PRESERVES (strengthens); the `DISAGREE` arm REVISES** (doctrine; A2 no-compliant-path class) | — | **Models untouched — like AO-5, AO-3 is `self-learning-loops.md` PROSE DOCTRINE, not a TLA+/Alloy property, so `formal/` stays byte-untouched and no model needs re-running.** *`FAIL` arm — PRESERVES:* I41-2(a)/(b) extends "a FAIL names a criterion" to panel members, which previously escaped AO-3 entirely; strictly additive. *`DISAGREE` arm — REVISES:* the pre-release predicate scoped the criterion obligation by `_I41_DISSENT = ("FAIL", "DISAGREE")`, so it bound a `DISAGREE`-voting member to cite a criterion — and AO-3's own text makes `DISAGREE` the **mandated** route for a critique that cannot name one (`self-learning-loops.md:299-302` "A `FAIL` that cannot meet this bar is not a valid `FAIL` — the verifier must emit `DISAGREE`. This is invariant **AO-3**"; `:601-604`). All four candidate artifacts were then illegal: `FAIL`-without-criterion is schema-invalid (`verify.schema.json` `allOf[1]`), `FAIL`-with-a-fabricated-criterion is the hallucinated nitpick AO-3 exists to forbid, `DISAGREE`-without-a-`minimal_repro`-bearing `defects` entry **and** without a `summary` fails I41-2(c) — a `defects` entry ALONE does **not** satisfy (c), because `verify.schema.json` requires only `['severity','criterion']` on a member `defects` item and leaves `minimal_repro` OPTIONAL (this is DIVERGENCE 8: the spec §2.4 aside "satisfies (c) trivially via `defects`" is false; the predicate, which tests `summary` OR a non-blank `minimal_repro`, is correct and shipped) — and `DISAGREE`-with-a-criterion-citing-defect is the thing the panelist could not produce. **No compliant artifact existed** — the A2 pathology verbatim (`self-learning-loops.md:584-591`, which this repo filed as "A2 (REVISES I14/AO-2)", not as a tightening). Removing the only compliant route an existing invariant MANDATES revises that invariant. **Resolution + migration argument:** (i) resolved the A2 way — **NARROW the predicate, preserve the purpose**: `_I41_CRITERION_BOUND = ("FAIL",)` carries (a)/(b), and new arm **I41-2(c)** substantiates a `DISAGREE` member by a non-blank `summary` or a `defects[]` entry with a non-blank `minimal_repro`, never a criterion, so a bare `{lens, verdict}` row is still unauditable and still FAILs; (ii) the obligation bought **nothing mechanically** — I41-2 only ever checked that the criterion string was non-blank, never (as top-level AO-3 does) that it appears among the brief's acceptance criteria, so the revision cost a shipped AO invariant and returned zero enforcement; (iii) `_I41_DISSENT` is left byte-untouched, so I41-1 (adjudication required), I41-4c (the dissenter may not be re-polled) and N-I41 keep treating a `DISAGREE` member as a full dissent — **only the criterion obligation moves**; (iv) **directionality, stated honestly:** unlike the I16 row this correction is legality-**WIDENING**, not strictly narrowing — an artifact the pre-release predicate FAILed becomes legal. The widened set is measured **EMPTY**: no archived run is stamped ≥ 1.11.0, and **0** of the `panel_*`/`digest_*` fixture dirs and **0** of the archived verifies carrying a `panel[]` record a `DISAGREE` member, so the arm never fired on any artifact in either tree and the vacated obligation is replaced by (c) rather than dropped; (v) `templates/verify.md` states the criterion-less member's route, so compliance is the default path; (vi) the registry (state-machine.md §4) is corrected in the SAME change, so the filing and the documentation cannot drift about how many REVISES I41 carries. Fixtures: `panel_dissent_disagree_bare` (1) / `panel_dissent_disagree_ok` (**0** — the regression test: exit 1 before the narrowing, 0 after) / `panel_dissent_disagree_repro_ok` (0). |
+| **I42 evidence digest integrity** (1.11.0) | **PRESERVES** (all of it) | — | **Models untouched.** I42 is an offline post-hoc read + re-hash of files already on disk: it writes no `retries`/`fuel`, adds no state, edge, gate or back-edge, appears on no `L*` action and **never guards `LT7`**, so Claims A–D, `GateOrdering`, `Termination` and `Quiesce` hold verbatim and `formal/` is byte-untouched. AO-1..AO-7 are untouched — I42 has no retry, panel or verdict semantics; it reads a path list, and a digest records *what* was read, never *whose reasoning* (AO-7 in particular). I1..I41: the schema change is a union **WIDENING** (`inputs_reviewed.items` = string | object), so **no previously-valid artifact becomes invalid** — deliberately **NOT** the I25/GV-29 contract-revision class; the closest neighbour is I22's adoption-closure, whose pattern I42-1b copies. I42-3's transient window keys its status conjunct on the unit owning the **digested path** (never the unit owning the verify), with the phase conjunct alone deciding for a run-root path no unit owns: also **PRESERVES** — it narrows one NOTE window and widens another, both strictly inside I42's own adoption arm, the schema is untouched and no archive is armed. |
 
 > **AF-40 (I8 clean-exit relaxation) — DECLINED, not shipped.** The considered relaxation of I8
 > (`i8_open`) to a quieter clean-exit disposition was **declined**: I8 is kept LOUD and its predicate is
@@ -497,6 +501,134 @@ pinned counts stand). It **NARROWS** Limitation X — the coordinated-rewrite co
 files to three — but does **NOT "Close"** it (git history remains the only mutation witness, unread).
 Fixtures: `gov_baseline_mirror_ok` (present+matching ⇒ PASS) / `gov_baseline_mirror_mismatch`
 (present+mismatched ⇒ FAIL) / absent ⇒ silent (every other fixture).
+
+**1.11.0 addendum — I41 (panel dissent accounting) + I42 (evidence digest integrity).** Both are OFFLINE
+post-hoc predicates of the same class as every I35–I40 clause above: they read emitted artifacts
+(`units/<uid>/verify.json` RAW, plus a re-hash of run-dir-relative files for I42), emit only `rep.fail` /
+`rep.ok` / `print("  NOTE …")`, write no `retries` and no `fuel`, add no FSM state, edge, back-edge or gate
+flag, appear on **no** `L*` action, and **never guard `LT7`** (the correction loop's sole back-edge — a
+live guard there leaves `RETRY` with no enabled out-edge and deadlocks, breaking Property 2 Claim D). So
+`GateOrdering`, `Termination` and `Quiesce` **hold verbatim**, `formal/` stays **byte-untouched**, and the
+pinned counts (853/408/36; 2,923/1,608/156; Alloy 8/8) stand **without** a `run_formal.sh` re-run.
+
+**The classification is NOT "zero REVISES."** I41 carries **three**, all in the table above with
+migration arguments: the **AO-5 doctrine** (a bounded intra-node re-poll becomes a sanctioned
+pre-escalation path), the **I16 verify artifact contract** (a `PASS` + dissent + no `panel_adjudication`
+document was valid and becomes invalid), and **AO-3's `DISAGREE` route** (the criterion obligation, as first
+written, closed the route AO-3 itself mandates for a criterion-less critique, leaving no compliant
+artifact; narrowed to `FAIL` members with I41-2(c) taking over, and the legality-widening direction of that
+correction disclosed). AO-3 is therefore **SPLIT** — its `FAIL` arm PRESERVES (strengthens), its `DISAGREE`
+arm REVISES — and is no longer listed among I41's PRESERVED AO invariants. Calling I41 wholly PRESERVES because "it is offline and gates no transition" would be
+true **only of the termination proof** — the self-misfiling that `DAG-L4` predicts for exactly this kind of
+unit. I42, by contrast, genuinely carries **zero** REVISES: its schema delta is a union widening.
+
+**Corner composition re-derived against SOURCE (DAG-L8), not against headlines.** `verify_rounds == 3`
+(I16-(c) `R_MAX`, at `validate_run.py`): **no further re-poll is legal** — the legal moves are `withdrawn`
+(+ the `N-I41` NOTE) or recording the honest FAIL majority; I41 adds **no** round budget. `retries == 2`
+(I4 `maximum:2`; AO-1 monotone counter): FAIL→RETRY is unavailable and the sanctioned move is ESCALATE —
+I41 neither creates that situation nor blocks any edge, and the orchestrator retains every out-edge
+including `LT7`. `fuel_remaining == 0` (I18): **no interaction whatsoever** — I41/I42 mandate no amendment
+record, no `units_added` and no fuel spend, so their outcome is identical at `fuel == 0` and `fuel > 0`
+(contrast I40-2, which had to delegate to I18). A downgraded major echoed as a `minor` on a sealed
+criterion: **NOTE at most, never a FAIL** — I14/AO-2 intersects `do_not_touch` with `blocker|major` only
+(A2 severity scoping, `self-learning-loops.md` §5; fixture `i14_minor_on_sealed`), and I6 permits `minor`
+on a PASS, so I41-5's mandated echo cannot trip either. A retry that rewrites `debrief.json` under a
+not-yet-rewritten verify: I42-3 downgrades to a NOTE in **exactly** the I9 transient window
+(`phase == P6_EXECUTE_VERIFY` ∧ unit `executing`/`verifying`) and is a hard FAIL everywhere else, always at
+P8/DONE — the pair `digest_mismatch` / `digest_mismatch_p6_note` pins both arms; **neither alone does.**
+
+## Verification currency (I43/I44/I46 + N-I45) — REVISES classification (TLA+/Alloy untouched)
+
+`formal/` is **byte-identical**: four offline post-hoc predicates over emitted artifacts add no TLA
+action, no variable and no edge, write no `retries`/`fuel`, and **never guard `LT7`** ⇒
+`GateOrdering` / `Termination` (Claims A–D) / `Quiesce` hold verbatim, and AO-1..AO-7 and I1..I42 are
+unrelaxed. `N-I45` is a bare `print` touching neither problem sink, so it is exit-neutral by
+construction. **Two REVISES are filed rather than smuggled** (CLAUDE.md: never make a
+guarantee-touching change silently):
+
+1. **Iteration equality becomes a normative verify-artifact contract (I43).** No schema, predicate or
+   document previously stated that `verify.iteration` must equal `debrief.iteration`; `iteration` was
+   a free integer on both sides. Migration argument, **measured with its population named**
+   (2026-07-30T03:22Z, tree `1bf2626`, over **this repository's own `.wip/` archive — 18 run dirs — and
+   nothing else**, of which **17 are archived and the 18th is this repair run itself, still in flight** —
+   and the live run is precisely the one member I43's `not SIGNED_OFF` conjunct carves out, so counting
+   it inside a false-positive tally would count a member that structurally cannot supply that evidence):
+   the contract is *descriptive of every legitimately-closed run on file*, which is why
+   it ships **ungated** (a version gate at the shipping release would once again exempt the run that
+   authors the invariant, since `init_run.sh` stamps once at scaffold time). **RETRACTED BY INSERTION (U20; DECISIONS#61 — appended, never deleted).** Retracted is exactly the clause just above — "a version gate at the shipping release would once again exempt the run that authors the invariant, since `init_run.sh` stamps once at scaffold time" — and **only** that clause: the **decision** it was offered in support of, that this contract ships **ungated**, is untouched and stands on the replacement reasons. It is FALSE at this tree. What shipped in this release (1.12.0, this run's own U08) is the **flag** `init_run.sh --restamp <RUN_DIR>` **together with the orchestrator protocol in `SKILL.md` that invokes it**; an **automatic** re-stamp on phase advance (DoD 18) is **UNBUILT**. `--restamp` has already raised this run's own `fsm-state.json` to `validator_version` 1.12.0 against plugin `1.12.0`, so a gate at the shipping release **would** arm on the run that authors the invariant. Full retraction, quoting the sentence verbatim and refuting it: `verify-repair-units` `artifacts/predicate-spec.md` **§0.4-a**; the surviving divergence (MANUAL re-stamp landed, DoD 18's AUTOMATIC re-stamp-on-phase-advance did not) is **§9-R16**. **The illustrative instance
+   has since been consumed by repairing it, so the figure below is DATED — and the two zeros in this
+   paragraph are NOT the same claim, which is why the historical form is kept rather than overwritten.**
+   *Historically*, measured 2026-07-30T03:22Z at tree `1bf2626`: **exactly 1 of those 17 archived runs
+   was newly REDed** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own **repair
+   target**, on 8 rows (I43 ×3, I44 arm d ×3, I46 ×2) — with **zero false positives** across the other
+   16 (nor on the in-flight 18th). *Currently*, measured 2026-07-30 at tree `0db7b03`: under the
+   maintainer waiver (this branch's run ledger, DECISIONS#44 extended by #46) that target's U05
+   iteration 2, U07 iteration 3 and U08 iteration 2 were each re-verified by a panel of three,
+   discharging **every one of those 8 rows**, so **no run in the population emits a class FAIL row of
+   any severity** and the target itself now validates at **282 checks / 0 problems / RESULT: PASS**.
+   **That strengthens the safety property *a fortiori*:** the claim was "only one archived run newly
+   REDs, and it is the one we exist to repair"; what is lost is the *illustrative instance*, never the
+   property, and the instance was consumed by fixing it. **It is emphatically NOT a return to the
+   retracted wording.** An earlier revision of this clause read "No archived run is newly REDed"; that was
+   **false as written**, and stating it as `0` was a defect in those words, because it rested an ungated
+   arming decision on a number a checking reader would find false. Arriving at zero *by measurement,
+   having repaired the exception* is a different claim from asserting zero *before measuring* — the
+   first is a receipt, the second was a guess — and a reader must be able to see which one this is.
+   The property that *does* hold, and held all along, is
+   narrower and still sufficient: **zero legitimately-closed archived runs are newly RED**, which is now
+   simply the whole story, because the one run that was not legitimately closed has since been closed.
+   Scope, stated rather than implied: another installation's archive is a different population — re-run
+   the command in `state-machine.md` §5 against it rather than assuming the figure transfers. **And
+   every figure in this paragraph is a property of a MUTABLE, GITIGNORED directory** — `.wip/` carries
+   no version identity, so each is a timestamped sample and not a property of a commit; per the run
+   ledger's DECISIONS#50 the cheap anchor that would make any of them permanently checkable is
+   `tar cf - .wip/<run-dir> | shasum -a 256`, which mtime-plus-file-count (a change *detector*, not an
+   identity) is not. The
+   companion parity census (the ARCHIVED sub-figure — **159** co-present pairs over the 17 archived runs,
+   of which **159** are iteration-matched and **0** are not; *historically* **156** matched, the **3**
+   mismatches being exactly the rows armed above, discharged by the same waiver; an earlier revision
+   quoted **168** archive-wide and in-flight-inclusive, and any in-flight-inclusive count is
+   **not durable and must not be quoted forward**) measures **iteration equality only**
+   and is therefore silent on I46's `converged` field, so I46's 2 historical FAILs were recorded on their own
+   evidence rather than implied by it. The nearest guarantee, I4's ceiling
+   `iteration ≤ retries+1`, is neither widened nor narrowed: I43 is an equality between two
+   *artifacts*, orthogonal to a bound between an artifact and a counter.
+2. **`signoff_confirmed` acquires an artifact-level obligation (I44).** The flag previously bound only
+   the *phase* direction (`REQUIRED_GATES`: phase ⇒ gates). I44 adds the converse — *given the flag,
+   these artifacts must exist and be current* — which is inexpressible in `spec/fsm.json`'s
+   `required_from_phase` vocabulary, so I44 ships as its own labelled predicate rather than as a
+   `REQUIRED_GATES` row (adding it there would break or silently redefine SC3). The archetype already
+   exists: `gpersonas_failclosed` reasons from a true gate flag to a required artifact. Migration
+   argument: the obligation is discharged by every archived signed-off run; the escape it closes is a
+   sign-off recorded ahead of closure, and a maintainer may still take that exit **on the record**
+   through `accepted_incomplete` (per-unit, rationale + `DECISIONS.md` ref, downgrade-not-suppress,
+   fail-closed when malformed).
+
+**PRESERVES, with the deadlock note stated.** `¬CURRENT` holds by construction at every compliant
+`RETRY` (LT7 increments `iteration` before the next `EXECUTE` writes its debrief), so a hard FAIL there
+would be a de-facto live guard on the correction loop's sole back-edge — the Claim-D deadlock. I43
+therefore carries an in-flight NOTE window (I9's two conjuncts **plus** `¬signoff_confirmed`, defined
+in its own block; **both twin window sites are byte-untouched** — locate them by conjunct, not by
+offset, via `grep -n 'phase == "P6_EXECUTE_VERIFY"' validate_run.py`, since line numbers drift: measured
+2026-07-30T03:22Z on tree `1bf2626`, I42-3's twin is at `:5633` and I9's window at `:5673`, having moved
+from `:5610`/`:5650` at tree `23c9962` eleven minutes earlier. An earlier revision cited `:5594`/`:5554`,
+neither of which ever matched), and pays for it with a declared residual: stop-at-P6 abandonment stays
+undecidable from a single run dir (Limitation O). **The AHEAD arm's guarantee is off-window only:** the
+NOTE arm is direction-blind, so an AHEAD pair inside the window is a `--quiet`-suppressed NOTE at exit 0,
+which makes "never repair under a live verifier" discipline rather than enforcement (unpinned residual —
+`state-machine.md` §5). I46's severity tier (NOTE below sign-off, FAIL at sign-off) is a recorded fork — the
+intake wording says "flags", which is severity-neutral. Honest ceiling: **Limitation AA** — these
+predicates make verification completeness *legible*, never *true*; a loop that bumps both iterations
+without re-verifying satisfies I43 exactly, and panel independence and human-gate reality stay
+attestations (`state-machine.md` §5). **Second ceiling on the same predicate: Limitation AB** — because
+I43's field is the `iteration` *number*, a same-iteration edit to an already-verified debrief is invisible
+to it **by construction**; it detects staleness of *numbers*, not of *bytes*. This release's own run is the
+worked example: `units/U05/debrief.json` was repaired **47 minutes after** U05's aggregated `verify.json`
+closed `PASS`, both sides still at `iteration: 1`, and the currency test stays green over bytes no verifier
+read. A `sha256` recorded before/after each edited file would make it decidable; that is a **possibility,
+not something shipped** — no predicate computes it. Neither AA nor AB is a REVISES: each is a statement
+about the **reach** of a predicate whose four arms are individually correct on their own field, so no
+guarantee moves and `formal/` is unaffected (`state-machine.md` §5).
 
 ---
 

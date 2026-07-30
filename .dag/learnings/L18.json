@@ -1,0 +1,19 @@
+{
+  "id": "L18",
+  "trigger": "FOUR units in the same wave overran their brief budgets and both reported it honestly: U04 consumed ~48,000 tokens against a 31,000 ceiling (one Read of a 25.4k-token subject debrief consumed most of the budget before adjudication began, forcing most world-facing measurements to be adjudicated on the artifact rather than re-measured, confidence dropped to medium), U05 ~21,500 against 18,000, U02 ~47,000 against 31,000, and U03 ~41,000 against 31,000 (that overrun bought a genuine freshness execution that found the run's only live defect). Both were audit units whose SUBJECT is a monolithic prior artifact.",
+  "lesson": "An audit/adjudication unit's budget must be sized for the SUBJECT ARTIFACT IT MUST READ, not for its own reasoning. When the subject is a single monolithic debrief or log, the read alone can consume the whole ceiling, and what gets sacrificed is precisely the independent re-measurement that made the unit worth commissioning - the unit degrades silently from verification into paraphrase.",
+  "how_to_apply": "At decomposition, measure the subject artifact's size BEFORE setting est_footprint_tokens, and budget read + reasoning separately. If the subject exceeds roughly a third of the ceiling, either split the audit by criterion group (each child reading only its slice) or designate a extraction unit that emits a compressed fact pack the auditors cite by reference. A unit reporting within_budget:false on a READ rather than on its reasoning is an atomization defect in the graph, not executor sloppiness - re-atomize rather than waving it through, and never accept 'adjudicated on the artifact' as equivalent to 'independently re-measured'.",
+  "scope": {
+    "applies_to": [
+      "all"
+    ],
+    "excludes": [],
+    "expiry": "project"
+  },
+  "evidence": "dag run 2026-07-29_183514_verify-repair-units wave 1: FOUR of four completed audit units overran — U04 48000/31000 (confidence medium, artifact-adjudicated), U02 47000/31000, U03 41000/31000, U05 21500/18000. All four self-reported truthfully under F2. Note the asymmetry: U03's overrun purchased the freshness sweep that found the only live defect, so the remedy is better budgeting, never a tighter cap.",
+  "since_wave": 2,
+  "promotable": true,
+  "origin": {
+    "store": "project"
+  }
+}

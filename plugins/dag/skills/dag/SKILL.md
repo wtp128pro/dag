@@ -71,8 +71,21 @@ so most are dead weight until their phase arrives.
    gate flag true (`clarification_resolved` after P2, `cartography_done` after P3,
    `decomposition_approved` after P4, `signoff_confirmed` after P8 — `personas_confirmed` after P1),
    and bump `updated_at`. The validator's REQUIRED_GATES and its WP5 artifact→phase-floor check will
-   FAIL a run whose ledger under-reports the phase or omits a gate flag. **Never self-set a gate flag
-   to skip a human gate** — a **human-gate** flag (`personas_confirmed`, `clarification_resolved`,
+   FAIL a run whose ledger under-reports the phase or omits a gate flag.
+   **Re-stamp `validator_version` on every phase advance (U08).** In the SAME edit, run
+   `bash "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/init_run.sh" --restamp <RUN_DIR>` — it refreshes
+   `fsm-state.json.validator_version` in place to the CURRENT plugin version (ratchet: only ever
+   raised, never lowered) and touches no other key. `init_run.sh` writes the stamp at scaffold time
+   too, but a scaffold-only stamp goes stale the moment the run ships an invariant: the run that
+   AUTHORED I41 carried its pre-release stamp for its whole life and was version-gated out of being
+   judged by its own invariant — flipping one digit of that stamp on otherwise identical bytes turned
+   `264 checks / 0 problems / PASS` into `264 checks / 8 problems / FAIL`. Re-stamping closes that
+   self-reference: **a run that ships an invariant is judged by it.** Archive safety is unchanged —
+   this alters only WHEN the stamp is written, never how it is read, and the re-stamp path never writes
+   a blank/malformed value, so an absent or malformed stamp still parses to False on every semver
+   comparison (`_i27_semver_ge`, byte-untouched) and no unstamped archived run is newly penalized
+   (references/state-machine.md §5).
+   **Never self-set a gate flag to skip a human gate** — a **human-gate** flag (`personas_confirmed`, `clarification_resolved`,
    `signoff_confirmed` — the three human gates) is your attestation the human actually decided;
    `cartography_done` and `decomposition_approved` are **mechanical** phase-completion flags, not human
    attestations (U3, below).
@@ -94,6 +107,21 @@ so most are dead weight until their phase arrives.
    human attestations — no human touchpoint sits at cartography or decomposition.) **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
    unavailable, substitute a plain numbered question in your reply for the gate, and track unit state in
    `PROGRESS.md` instead of the task tools — the gates and the ledger are what matter, not the tool.
+   **Continuation contract (U01).** Exactly two conditions license a stop: a human gate and a
+   non-interactive halt-at-gate (both above) — each leaves a question open and addressed to the human,
+   so it is self-legible. A non-zero validator exit is **not** one of them: directive 7 bars
+   *advancing* (phase / gate) and is discharged by fix-and-re-run in the SAME turn, so a turn that dies
+   on a red validator is an unlicensed stop like any other. Ending a turn anywhere else — mid-phase,
+   between waves, after a dispatch, "to check in" — is a **defect**, not a courtesy: no gate is open,
+   so nothing is waiting on the human and no event is scheduled to resume the run. A boundary you did
+   not choose (an interrupt, a truncation) is **excused** — not licensed, not a defect — but owes the
+   same banner best-effort; a background dispatch IS your choice (Phase 6 dispatches a wave in the
+   foreground), so it is a discretionary stop, not an excused one.
+   **Resume banner (U01).** Prose cannot hold a turn open, so this rule does not pretend to — it makes
+   stopping *legible* instead. Whenever a turn ends unlicensed — excused or defect, a red validator
+   included — its LAST output is `RESUME: <exact next action> — <resume point: phase / wave / pending
+   unit ids> — <what triggers it>`. The banner does not prevent the stop; the durable guarantee is
+   still the run dir (`## Failure & resumption`), which survives turns that end with no banner at all.
 6. **Learn within the run.** Capture generalizable lessons in LEARNINGS.md and inject
    them into later briefs. Cap retries; never loop forever.
 7. **Validate mechanically at every step.** Most artifacts are written as free-form prose
@@ -104,8 +132,37 @@ so most are dead weight until their phase arrives.
    each artifact is written and before every gate/loop transition, run
    `bash "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.sh" <RUN_DIR> --quiet`
    (→ `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.py" <RUN_DIR> --quiet`).
-   `--quiet` prints only failures + the RESULT summary — the exit code (the hard-stop signal) is
-   identical, so this saves per-check stdout with no loss of enforcement.
+   `--quiet` suppresses the per-check positive assertions, printing failures + the RESULT summary
+   **plus the deliberately un-gated advisory NOTEs** — the exit code (the hard-stop signal) is
+   identical, so this saves per-check stdout with no loss of enforcement. **Within the I43–I47
+   verification-currency class the gate is per print ROW, not per invariant, so name the rows —
+   there is no arm total to publish.** These SURVIVE `--quiet` on purpose, because `--quiet` is the
+   only invocation this file mandates and so a quiet-gated advisory would be inert everywhere that
+   matters: `N-I44`'s `accepted-incomplete override` / `override over-broad` rows,
+   `N-I45` version-skew visibility, and `N-I47` ledger desync. Each is a bare `print` touching
+   neither problem sink, so it is exit-neutral by construction and cannot change a verdict. These
+   **are** `--quiet`-gated and therefore silent here: `N-I43` in-flight, `N-I44`'s
+   `unresolved DISAGREE at sign-off` row, and `N-I46` below sign-off — a recorded visibility
+   residual, not a guarantee. **`N-I44` appears in BOTH lists**, which is why the class does not
+   partition by invariant and why neither list is offered as a fraction of one. Re-derive both lists by
+   content rather than trusting this enumeration —
+   `grep -nE "note_i4[3-7]|i45_version_skew" validate_run.py | grep 'print('` enumerates every print
+   site in the class, and a site is gated **iff** an `if not args.quiet` guard **encloses** it (an *enclosing-block* test, not a preceding-line one: the file's first such guard sits thousands of lines above the first class site, so `precedes` would classify all seven as gated, and a nearest-guard reading mis-classifies N-I44's `override over-broad` survivor 21 lines below the guard that encloses the unresolved-`DISAGREE` row)
+   (`grep -n 'if not args.quiet' validate_run.py`) — which stays correct as arms are added, whereas any
+   count of them would not.
+   **Those two lists scope ONE class. Neither is a total, and no total is published here on purpose:**
+   the validator emits further un-gated advisory NOTE families *outside* the currency class — on this
+   repository's own `.wip/` run dirs, `G3 promotion (advisory)` and `contradiction (03/P5)` survive
+   `--quiet` on every dir measured, and neither is a currency arm. The shape is structural, not
+   incidental: of the validator's non-comment `print(… NOTE …)` sites, only the ones behind an
+   `if not args.quiet` guard are gated, and that guard is the minority
+   (`grep -c 'if not args.quiet' validate_run.py` → 9 guards against 34 such print sites at this
+   writing, i.e. 25 un-gated), so **any closed count of `--quiet` survivors rots the next time a NOTE
+   is added.** So do not trust a family count — **re-derive it for the dir in front of you**, the way
+   every other figure in this class is published:
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/validate_run.py" <RUN_DIR> --quiet | grep NOTE | sed -E 's/^ *NOTE +//' | awk '{print $1,$2}' | sort | uniq -c`
+   Re-run that same pipeline **without** `--quiet` as the control: what disappears was gated, what
+   remains was not. **Do not read a quiet run's silence as the absence of a NOTE.**
    `${CLAUDE_PLUGIN_ROOT}` is set by Claude Code to this plugin's install dir, so the call is
    CWD-independent (a bare `scripts/…` path is not — it resolves against the caller's CWD). The
    same anchoring applies to every `references/`, `schemas/`, and `templates/` path in this file:
@@ -123,6 +180,31 @@ so most are dead weight until their phase arrives.
    (The validator cooperates: **I9 is status-aware (B10)** — a debrief with no verify emits a NOTE,
    not a FAIL, when `phase == P6_EXECUTE_VERIFY` and the unit's `fsm-state.units[]` status is
    `executing`/`verifying`; everywhere else, and always at P8/DONE, it stays a hard FAIL.)
+   **Normalize the pair BEFORE you validate it (`BB-L26`, `DAG-L2`, `MU-L32`).** Quoting the exact shape in a brief is necessary, not sufficient — subagents still drift on key names, container types and enum casing, every wave. Run
+   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/normalize_artifacts.py" <RUN_DIR> --write` on each landed pair first: shape-only, offline, idempotent, and it gates nothing.
+
+8. **Verification is currency, not a checkbox — a run NEVER ends with verification open or
+   superseded.** A unit is *verified* only while its `verify.json` adjudicates the debrief that is
+   on disk **now**: `verify.iteration == debrief.iteration`. Any other state is one of three things,
+   and only the first is legal — a mid-loop transient (the debrief of iteration *N* under the verify
+   of *N−1*, which is what every compliant `RETRY` looks like), a **superseded** verification
+   (the executor repaired the artifact and the old verdict now adjudicates bytes that no longer
+   exist), or an **absent** one. *Mid-loop staleness is legal; staleness once the run claims to be
+   finished is not,* and `gates.signoff_confirmed: true` IS that claim. Mechanical counterparts,
+   post-hoc and offline (they gate no transition and never guard `LT7`): **I43 verification
+   currency** FAILs an iteration mismatch outside the in-flight window, **I44 sign-off closure**
+   FAILs an absent / unusable / verdict-less / superseded verification on any executed unit once
+   `signoff_confirmed` is true — *at any phase*, including a run rolled back to P6 with the flag
+   still set — and **I46 non-converged PASS** FAILs a `PASS` whose own `converged: false` declares
+   its coverage incomplete under that same claim (an exit-neutral NOTE below sign-off). Complete
+   means **current**, never PASS: a unit holding a *current* `FAIL` at `retries == 2` is closed
+   verification and exits via `ESCALATE` → Phase 7. **Honesty boundary (Limitation AA):** these
+   predicates make verification completeness *legible*, never *true* — a loop that bumps both
+   iterations without re-verifying satisfies I43 exactly (references/state-machine.md §5). **And
+   Limitation AB:** I43's field is the `iteration` *number*, so a same-iteration edit to an
+   **already-verified** debrief is invisible to it by construction — it detects staleness of numbers,
+   not of bytes. That case is governed by the Phase-6 rule below as **discipline**, never by a
+   predicate; a `sha256` before/after per edited file would make it decidable but **is not shipped**.
 
 ---
 
@@ -380,9 +462,11 @@ the gates that already exist). The series has three round kinds:
 - **negative-scope round (R-FORBID)** — the unconditional forbid round that solicits Non-Goals at
   EVERY P2 (a fixed ritual for this one surface — see the DP-39 REVISES note in step 4).
 - **DoD/Non-Goals confirmation round (R-CONFIRM)** — item-by-item confirmation of the final
-  `definition_of_done` / `non_goals` lists (each item presented, ≤4 per `AskUserQuestion` page; a
-  bulk "confirm all" page is the happy path). An item the human just authored in R-FORBID is
-  auto-settled and never re-presented.
+  `definition_of_done` / `non_goals` lists (each item presented, ≤4 per `AskUserQuestion` page — plan
+  `pages ≥ ceil(n/4)` pages from the start, n = the DISTINCT items you present in this round; a bulk
+  "confirm all" page is not the happy path, and above 4 items it hard-FAILs I36's DP-29 anti-stuffing
+  bound — grep `validate_run.py` for the `(stuffing)` / `(pages)` FAIL labels, :4104-4117 today). An
+  item the human just authored in R-FORBID is auto-settled and never re-presented.
 
 **Anti-drift.** A round's page queue is FROZEN at round open — questions/items discovered
 mid-round are recorded and DEFERRED to the NEXT round, never appended live, so scope cannot
@@ -409,6 +493,7 @@ any I27 NOTEs — so the sweep's review surface is the gate the human is already
 unprompted file read. Trigger clarifying questions on a *detected ambiguity
 signal*, not as a fixed ritual (references/socratic-protocol.md). Run the validator before
 opening the gate; a non-zero exit (including a missing/empty `I-dod`) is a hard stop.
+**No count in a gate message without its counting rule (`BB-L44`):** every tally or exhaustive-sounding number here carries the command/predicate that produced it, so the human can falsify it instead of trusting it.
 
 ---
 
@@ -418,6 +503,7 @@ Map the terrain the task lives in — **contextually, not mechanically.** A file
 is not cartography. Capture *meaning and relationships*: what exists, what matters here
 and why, how the pieces relate, where the risks/unknowns/authorities are, and what
 resources or sources are ground-truth. (methodology.md §Cartography.)
+**Read once, here:** [references/orchestrator-conduct.md](references/orchestrator-conduct.md) — cross-repo orchestrator conduct binding Phases 3→8, indexed by decision moment; **§1 binds now**.
 
 **Source sweep (first cartography product — runs BEFORE the cartography-informed clarification
 round, which reads it).** Enumerate the task's source landscape into `RUN_DIR/SOURCES.md` +
@@ -467,7 +553,8 @@ file listing.
    shard locator), not by pulling it into context. The tightest test of atomicity: *can an
    independent verifier reach PASS/FAIL from this unit's brief + artifacts alone, within 32K, without
    running the rest of the task?* If not — too big, or its evidence isn't reproducible — **split it**
-   (smaller units need less model IQ per unit and verify better; PR2).
+   (smaller units need less model IQ per unit and verify better; PR2). Budget by **evidence-production
+   obligation, not reading load** (`BB-L32`): a unit that must MEASURE something *and* WRITE a deliverable from it is two units.
 2. For each unit record: `id`, title, goal, **inputs** (which prior debriefs/artifacts),
    outputs, **acceptance criteria** — each of which **MUST trace to a Definition-of-Done
    item** (a unit whose criteria map to no DoD item is either scope creep or a DoD gap — fix
@@ -496,6 +583,7 @@ file listing.
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
    atomization, any unit whose footprint would exceed budget (→ re-atomize), **that every
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
+   Coverage is **clause-granular, not item-granular**: every CLAUSE of a multi-clause DoD item needs its own covering unit (`MU-L9`).
 5. Write `GRAPH.md` (template) **and its authoritative `graph.json` sidecar** — the moment `GRAPH.md`
    exists the validator REQUIRES a schema-valid `graph.json` and treats it as the authoritative DAG
    (I3 fail-closed; U7 — the sidecar instruction, previously only in `templates/graph.md`), so write
@@ -558,7 +646,8 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
 - the **persona** to adopt and its mandate;
 - the minimal **context**: pointers (file paths) to the specific prior debriefs,
   cartography sections, decisions, and relevant LEARNINGS — quote only the few
-  load-bearing facts inline;
+  load-bearing facts inline; a pointer into a file too large to read whole MUST carry a line range or
+  section anchor (`DAG-L5`), and an unmeasured mechanism ships as an assumption to falsify, never as one of the brief's premises (`BB-L40`);
 - the **retrieval obligations**: `required_sources[]` (register S-ids with INLINE locators —
   the executor never opens `sources.json`) and `claims_owed[]`, derived by YOU the orchestrator
   — never the executor — from the unit's acceptance criteria + the SOURCES register per the
@@ -588,6 +677,11 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
 
 Process waves in topological order. Units in the same wave run in parallel (one Agent
 call per unit, ideally in a single message). For **each unit**:
+
+*(Wave-level, before you dispatch — then the per-unit steps below.)* Dispatch in the **FOREGROUND**
+(`run_in_background: false`) whenever you need the wave's results before continuing — for a dag wave,
+always; a background dispatch ends your turn there (U01). **Same-wave units own DISJOINT files; never
+run an evidence-reproducing verifier concurrent with an executor mutating what it reads; dispatch no repair while that unit's verification is in flight** (`MU-L25`, `MU-L40`; orchestrator-conduct.md §4).
 
 1. **Execute.** Spawn the executor subagent (Agent tool). Prompt, tightly:
    > *Adopt persona `<X>`. Read `RUN_DIR/units/<id>/brief.md` and only the files it
@@ -691,7 +785,7 @@ call per unit, ideally in a single message). For **each unit**:
    | Guard | → | Action |
    |-------|---|--------|
    | `verdict == PASS` | **DONE** | Mark the unit done (`TaskUpdate`); append any *generalizable* lesson to `LEARNINGS.md` (see Ledger discipline → LEARNINGS entry schema); propagate handoff notes into downstream briefs; update `PROGRESS.md`. |
-   | `verdict == FAIL ∧ retries < 2` | **RETRY** | `retries += 1`; embed the prior `feedback` (verbatim) in the next executor brief; re-execute, then re-verify. Log the iteration in `PROGRESS.md`. |
+   | `verdict == FAIL ∧ retries < 2` | **RETRY** | `retries += 1`; embed the prior `feedback` (verbatim) in the next executor brief; re-execute, then re-verify (**the repair INVALIDATES the prior panel** — see below). Log the iteration in `PROGRESS.md`. |
    | `verdict == FAIL ∧ retries == 2` | **ESCALATE** | Retry budget exhausted → treat as a material disagreement → **Phase 7**. |
    | `verdict == DISAGREE` | **ESCALATE** | Objective-irresolvable executor↔verifier split → **Phase 7**. |
 
@@ -708,6 +802,61 @@ call per unit, ideally in a single message). For **each unit**:
    self-review (AO-3/AO-4); each retry must cite ≥1 change responsive to the prior
    `feedback.actionable_changes` (AO-6, now post-hoc-checked as **I15**). Run the validator after each
    iteration and before the loop exits.
+
+   **The AO-2 fence doctrine — what a `do_not_touch` entry does and does not forbid** (ruled once at
+   `DECISIONS#34`, because leaving it to per-unit judgment makes every retry a coin flip; two units
+   read the same fence oppositely and *both* disclosed honestly, and AO-2's text refuted neither). A
+   fenced entry forbids **re-opening or weakening** a finding; it does not forbid additive adjacency
+   or strengthening.
+   - **FORBIDDEN.** Changing a fenced **grade, verdict or conclusion**; rewriting a fenced **warrant**
+     so the finding comes to rest on different evidence; **deleting** fenced text.
+   - **PERMITTED.** **Additive adjacency** — a measurement stamp, a footprint line, a separate bullet
+     placed beside the fenced text — and **strengthening** a fenced finding **without moving its
+     grade**.
+   - **CONFLICT RULE.** Where an `actionable_changes` item and a `do_not_touch` entry collide, the
+     **actionable change wins**, for the **MINIMUM text needed** and no more, and the collision
+     **MUST be disclosed** in the next iteration's `debrief.prior_feedback`. A silent resolution is
+     the defect, not the edit.
+   - **WITHDRAWAL.** A fence may be **withdrawn on the record** when it forbids a *directed* repair —
+     in `DECISIONS.md` plus `prior_feedback` — **without editing the verifier's artifact**. The
+     verifier's `verify.json` is never rewritten to make a repair legal; the withdrawal is a new
+     record, not a redaction.
+
+   The strictest reading was **rejected**: it forbids the additive measurement stamps that make a
+   repair auditable in the first place. Note the mechanical backstop is narrower than the doctrine —
+   **I14** intersects `do_not_touch` with `blocker|major` criteria only (A2 severity scoping), so a
+   `minor` coverage-first observation on a sealed criterion is reportable as an advisory NOTE rather
+   than a FAIL, and the doctrine above is the part a human enforces.
+
+   **An executor repair INVALIDATES its prior panel — re-verification is mandatory, not optional
+   (`DAG-L13`).** The moment iteration *N+1* rewrites the artifact, every verdict from iteration *N*
+   adjudicates bytes that no longer exist: the panel's evidence has been destroyed under it, so the
+   old `verify.json` is **superseded**, not merely older. Two consequences bind you:
+   - **Never repair an artifact while its verification is in flight.** Let the verify land, then
+     retry. Repairing under a live verifier destroys the evidence the verifier is citing and can
+     convene a human gate (Phase 7) over a defect that is already fixed — and it manufactures the
+     I43 `AHEAD` state (a verify attesting to a *later* iteration than the debrief), which no legal
+     `LT7` transient produces.
+     **This rule is DISCIPLINE, not enforcement — do not expect the validator to stop you.**
+     Measured (2026-07-30, tree `1bf2626`): the AHEAD arm `P1-b` is guarded by `and not _i43_inf`, and
+     the in-flight NOTE arm `P1-d` tests a bare `!=` and is therefore **direction-blind**. So an AHEAD
+     pair *inside* the in-flight window (`P6_EXECUTE_VERIFY ∧ status ∈ {executing, verifying} ∧
+     ¬signoff_confirmed`) — which is exactly the window you are in when you repair under a live
+     verifier — emits an exit-neutral `N-I43 … (in-flight)` NOTE with `RESULT: PASS` and exit 0, and
+     under the `--quiet` this file mandates at prime directive 7 it prints **nothing at all**. The
+     hard FAIL applies **off-window only** (at sign-off, or at any other phase/status), where it does
+     close the "author the number instead of observing it" direction. No fixture pins the in-flight
+     AHEAD path; it is filed as a residual in `references/state-machine.md` §5. Comply because the
+     rule is right, not because a red validator will catch you.
+   - **Re-verify from scratch, and let the numbering carry the history.** AO-7 re-panels afresh: a
+     new panel of independent lenses re-examines the repaired artifact and writes a NEW aggregated
+     `verify.json` at the new `iteration`. When members are persisted individually, they are written
+     as `verify_p<N+1>…` **continuing the numbering across iterations** — never overwriting an
+     earlier iteration's member files. Measured precedent: run `2026-07-18_101631`'s U01 holds
+     `verify_p1..p9`, three rounds of three lenses across iterations 1–3, with the aggregated
+     `verify.json` current. Those per-member files legitimately lag the debrief and are an audit
+     **trail by design**, which is why no currency predicate reads `verify_p*` — I43/I44/I46 judge
+     the aggregated `verify.json` only.
 
 6. **In-run learning discipline (prose steps — not validator-gated).** The adjudicator also runs three
    learning-loop steps around the table above. **None gates the FSM** (they add no edge to the §1.3
@@ -862,6 +1011,46 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    for `DONE`, so a run at phase `DONE` without the flag is INVALID (non-zero exit) — do not flip the
    flag or advance to `DONE` until the human has actually accepted (the flag is your attestation that
    they did).
+   **A unit that did not RUN leaves its DoD items UNDISCHARGED (`BB-L34`).** Name each such item, and
+   the skipped/blocked/unrun unit that owed it, in this message — a mostly-green run is not whole-task confirmation.
+
+   **Precondition — verification closure (prime directive 8 / I44).** You may not set
+   `signoff_confirmed` while ANY executed unit's verification is **absent**, **unusable** (not JSON,
+   not schema-valid, `unit_id` mismatched), **verdict-less**, or **superseded**
+   (`verify.iteration != debrief.iteration`). Close the loop first: land the missing verify, or
+   re-verify the repaired artifact. This precondition is phase-independent — rolling the recorded
+   phase back to P6 while leaving the flag set does not evade it, because I44's antecedent is the
+   flag, not the phase. A `DISAGREE` parked at sign-off is *complete* verification (it declares
+   irresolvability and exits via Phase 7), so it is an exit-neutral NOTE, not a FAIL; the same is
+   true of a **current** `FAIL`.
+
+   **The recorded override — sign off knowingly, but never invisibly.** The maintainer may still
+   decline further verification and sign off anyway; that choice stays available and becomes
+   **loud, per-unit and grep-visible**. Declare it as an `accepted_incomplete` object at the top
+   level of `fsm-state.json`:
+
+   ```json
+   "accepted_incomplete": {
+     "units": ["U05", "U07", "U08"],
+     "rationale": "why sign-off proceeded with these units open (non-blank prose)",
+     "decision_ref": "DECISIONS.md#accepted-incomplete-2026-07-29",
+     "accepted_at": "2026-07-29", "accepted_by": "maintainer"
+   }
+   ```
+
+   `units`, `rationale` and `decision_ref` are required; `decision_ref` must name `DECISIONS.md`
+   and that file must exist in the run dir (`accepted_at`/`accepted_by` are for the human reader and
+   are never read by the predicate, so no attestation is invented). Effect and limits:
+   - It **downgrades**, never suppresses: each named unit's hard FAIL becomes an exit-neutral
+     `N-I44 sign-off closure (accepted-incomplete override)` row. The row is always emitted.
+   - **Coverage is per unit and there is no blanket form.** An override that omits an open unit
+     downgrades only the units it names; the omitted unit stays a hard FAIL. "All open units" is
+     inexpressible on purpose — the block must enumerate EVERY unit you are knowingly leaving open.
+   - **Malformed ⇒ fail-closed.** If the key is present but any requirement is unmet, nothing is
+     downgraded and one extra hard FAIL fires naming the unmet condition. A stale override that
+     names units which are no longer open emits an exit-neutral over-broad NOTE.
+   - Write the matching `DECISIONS.md` row (what was offered, what was declined, why) in the same
+     edit. The override is a *record of a human decision*, not a validator flag you may flip.
 4. **Promote durable LEARNINGS → persist (03/P2 write end).** Close the promotion loop that the
    Phase-0.5 intake re-reads: for every run-local entry marked `promotable: true` with a non-expired
    `scope.expiry`, write a schema-valid file into the project store `.dag/learnings/<id>.json` (upsert
@@ -872,6 +1061,8 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    advisory only: it surfaces each `promotable` entry as a NON-gating `NOTE  G3 promotion (advisory)`
    line, flagging it as eligible for HUMAN promotion to a user-local `~/.claude/dag/principles.md` (or
    project `CLAUDE.md` / a skill) — never auto-written, never gated.
+   **Promotion is write AND land (`BB-L33`).** An uncommitted store write is local to THIS tree: after
+   writing, run `git status --porcelain .dag/learnings/` and report every untracked/modified entry as **UNLANDED** at sign-off — written is not promoted until it is committed.
 
 ---
 

@@ -297,3 +297,133 @@ gov_scope_change_no_confirm_record	1	I40 anchor (scope_change no confirmation
 gov_autonomous_unconfirmed_ref	1	I40 anchor (autonomous unconfirmed
 gov_revise_fuel_cost	1	I18 fuel bound
 amend_fuel0_revise_unwritable	1	I18 fuel bound
+# --- I41 panel dissent accounting & adjudication (cross-repo-lessons 1.11.0; U05 spec §6) ---
+panel_dissent_unadjudicated	1	I41 panel dissent (unadjudicated
+panel_dissent_version_silent	0	
+panel_dissent_bare	1	bare dissent
+panel_dissent_closure	1	bare dissent
+panel_major_unexplained	1	unexplained major
+panel_adj_badresolution	1	I41 panel dissent (bad resolution
+panel_adj_no_rationale	1	I41 panel dissent (no rationale
+panel_adj_dangling_ref	1	I41-4b
+panel_repoll_dissenter	1	repoll of dissenter
+panel_repoll_tested	1	repoll of dissenter
+panel_repoll_majority_desync	1	I41-4d
+panel_repoll_majority_raw	1	I41-4d
+panel_repoll_rounds	1	I41-4e
+panel_downgrade_unechoed	1	downgrade unechoed
+panel_escalate_on_pass	1	escalate on PASS
+panel_withdrawn_note	0	N-I41 (dissent withdrawn
+panel_dissent_ok	0	
+panel_upheld_on_pass	1	unexplained major
+panel_disposition_blank_rationale	1	unexplained major
+panel_dissent_refs_dangling	1	dangling ref
+panel_repoll_final_dissent	1	repoll of dissenter
+panel_dissent_nonpass_ok	0	
+panel_major_on_nonpass_ok	0	
+panel_withdrawn_flipped	0	
+panel_blocker_unexplained	1	unexplained major
+panel_disposition_wrong_lens	1	unexplained major
+panel_disposition_wrong_index	1	unexplained major
+panel_dissent_blank_criterion	1	bare dissent
+panel_repoll_rounds_one	1	I41-4e
+panel_withdrawn_after_repoll	0	
+panel_unanimous_ok	0	
+panel_dissent_disagree_bare	1	bare disagree
+panel_dissent_disagree_ok	0	
+panel_dissent_disagree_repro_ok	0	
+# --- I42 evidence digest integrity (cross-repo-lessons 1.11.0; U05 spec §6) ---
+digest_ok	0	2 digested input(s) across 1 verify file(s); integrity OK
+digest_shape_mixed	1	I42 evidence digest (mixed shape
+digest_blank_path	1	I42 evidence digest (no path
+digest_malformed	1	I42 evidence digest (malformed digest
+digest_mismatch	1	digest mismatch
+digest_mismatch_p6_note	0	N-I42 (digest drift mid-loop
+digest_dangling	1	I42 evidence digest (dangling evidence
+digest_outofrun_note	0	N-I42 (undigestable evidence
+digest_outofrun_abs_note	0	N-I42 (undigestable evidence
+digest_shape_mixed_below	0	N-I42 (partial adoption
+digest_mismatch_offphase	1	digest mismatch
+digest_mismatch_p6_terminal	1	digest mismatch
+digest_mismatch_crossunit_note	0	N-I42 (digest drift
+digest_mismatch_crossunit_fail	1	digest mismatch
+digest_mismatch_root_note	0	N-I42 (digest drift
+panel_downgrade_major_echo	1	I41 panel dissent (downgrade unechoed
+digest_path_only_ok	0	0 digested input(s) across 1 verify file(s); integrity OK
+panel_adj_nondict	1	I41 panel dissent (unadjudicated
+# --- U07 fixtures for the four verification-currency predicates (I43/I44/N-I45/I46; predicate-spec.md) ---
+# GREEN absence controls now use the '!'-prefixed must-NOT-contain pin (run_tests.sh:104-113).
+# Exactly TWO rows remain on 'RESULT: PASS' (i44_no_signoff_antecedent, i46_no_converged_key): those
+# two substrates emit no row of their own predicate at ALL, so 'RESULT: PASS' is kept as a liveness
+# assertion (the pass rendered a clean verdict, so a crash cannot satisfy it) and their real
+# assertion is the '!' must-NOT-contain row in the iteration-2 block below. See each NOTE.md.
+i43_current_positive	0	I43 verification currency (units/U01: iteration 2 verified)
+i43_superseded_at_signoff	1	I43 verification currency (units/U01)
+i43_ahead_of_debrief	1	I43 verification currency (units/U01)
+i43_inflight_before_signoff	0	N-I43 verification currency (in-flight) (units/U01)
+i43_inflight_signoff_expired	1	I43 verification currency (units/U01)
+i43_inflight_signoff_false	0	N-I43 verification currency (in-flight)
+i44_superseded_at_signoff	1	I44 sign-off closure (units/U01)
+i44_absent_verify_any_phase	1	I44 sign-off closure (units/U01)
+i44_override_partial	1	I44 sign-off closure (units/U02)
+i44_override_malformed	1	I44 sign-off closure (accepted_incomplete malformed)
+i44_override_wellformed	0	N-I44 sign-off closure (accepted-incomplete override) (units/U01)
+i44_override_quiet_visible	0	N-I44 sign-off closure (accepted-incomplete override) (units/U01)	--quiet
+i44_override_quiet_control	1	!(accepted-incomplete override)	--quiet
+i44_no_signoff_antecedent	0	RESULT: PASS
+i44_closed_current_fail	0	I44 sign-off closure (signoff_confirmed with 1 executed unit(s); all verified and current)
+i45_skew_note	0	N-I45 version-skew visibility
+i45_no_skew_overfire	0	suppressed 6 version-gated arm(s) whose other preconditions HELD: ['I27-T1', 'I35-I40-T1', 'I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1']
+i46_nonconverged_pass_at_signoff	1	I46 non-converged PASS (units/U01)
+i46_nonconverged_midloop_note	0	N-I46 non-converged PASS (units/U01)
+i46_converged_true_positive	0	I46 non-converged PASS (1 verify doc(s) declare converged
+i46_no_converged_key	0	RESULT: PASS
+i46_nonconverged_fail_verdict	0	I46 non-converged PASS (1 verify doc(s) declare converged
+i47_ledger_desync_note	0	N-I47 ledger desync at sign-off (units/U01)
+i47_ledger_desync_note	0	N-I47 ledger desync at sign-off (units/U01)	--quiet
+i47_ledger_desync_control	0	!N-I47 ledger desync at sign-off
+i46_no_converged_key	0	!N-I47 ledger desync at sign-off
+# --- U07 iteration 2 (repairs 5 majors + 4 minors from verify_p1/verify_p3). Pure addition: the six new
+# --- dirs below plus extra assertion rows on existing dirs. Multiple rows MAY share a col-1 path — each
+# --- row is an independent validator invocation, so a second row is how a dir asserts a SECOND substring
+# --- (preferred over byte-cloning a dir, which carries the drift hazard iteration 1 filed as a residual).
+# §0.3 + §1.6 P1-G1 IN FULL: the verify_p1/p2/p3 panel audit trail at iterations 1/2/3 under an
+# aggregated verify at iteration 3. An implementation that globs verify_p* and takes the MIN reads
+# iteration 1, classifies SUPERSEDED and exits 1 — turning BOTH rows red. Demonstrated by mutation.
+i43_panel_trail_overfire	0	I43 verification currency (units/U01: iteration 3 verified)
+i43_panel_trail_overfire	0	!FAIL  I43 verification currency
+# §1.6 P1-R3 / §1.1: the P1-a vs P1-b DIRECTION conjunct. Without these two the arms are merged-safe:
+# both dirs pin the same label stem, so one 'iterations differ' FAIL satisfies both.
+i43_ahead_of_debrief	1	the verification is AHEAD OF THE DEBRIEF
+i43_superseded_at_signoff	1	the verification is SUPERSEDED
+# §1.6 P1-G2 variant 1 (signoff ABSENT): the carve-out must be a NOTE, never a silent `continue`.
+i43_inflight_before_signoff	0	!FAIL  I43 verification currency
+# §2.2 P2-b — UNUSABLE verification (unit_id mismatch => AGG(u) is None). Pins the arm's own detail so
+# the row cannot be satisfied by the D21 schema-layer FAIL that co-emits.
+i44_unusable_verify	1	I44 sign-off closure (units/U01)
+i44_unusable_verify	1	UNUSABLE verification (not JSON / not schema-valid / unit_id mismatch)
+# §2.2 P2-c — UNREACHABLE, witnessed rather than assumed: `verdict` is REQUIRED by verify.schema.json,
+# so a verdict-less verify is schema-invalid, AGG(u) is None and arm b SHADOWS arm c. The `(arm b;` pin
+# asserts exactly that shadowing; if a future schema relaxation made `verdict` optional this row goes
+# red, which is the signal that P2-c has become reachable and needs its own witness.
+i44_verdictless_verify	1	I44 sign-off closure (units/U01)
+i44_verdictless_verify	1	(arm b;
+# §2.2 P2-e — unresolved DISAGREE at sign-off is a NOTE, never a FAIL (AO-5).
+i44_disagree_at_signoff	0	N-I44 sign-off closure (unresolved DISAGREE at sign-off) (units/U01)
+i44_disagree_at_signoff	0	!FAIL  I44 sign-off closure
+# §2.5 P2-R4's THIRD assertion: a malformed override downgrades NOTHING — U01 keeps its own arm-a FAIL.
+i44_override_malformed	1	I44 sign-off closure (units/U01)
+# §2.5 P2-G2 antecedent control: NO I44 row of ANY severity when signoff_confirmed is absent.
+i44_no_signoff_antecedent	0	!I44 sign-off closure
+# §2.5 P2-G1 over-fire control: a CURRENT FAIL is CLOSED verification — no I44 FAIL row.
+i44_closed_current_fail	0	!FAIL  I44 sign-off closure
+# §3.5 P3-G2' — count COMPOSITION, one file, no structural artifact: exactly 4 arms, asserted as the
+# arm-id LIST so an off-by-two cannot satisfy it. Measured on both backends.
+i45_g2prime_no_struct	0	suppressed 4 version-gated arm(s) whose other preconditions HELD: ['I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1']
+# §3.5 P3-G1 — N-I45's first FUNCTIONING over-fire control: same bytes + validator_version 99.0.0 =>
+# no N-I45 line at all. Refutes iteration 1's 'cannot be expressed as a GREEN row' claim by construction.
+i45_stamp_raised	0	!N-I45 version-skew visibility
+# §4.4 P4-G2 adoption boundary: NO I46 row of ANY severity when `converged` is absent.
+i46_no_converged_key	0	!I46 non-converged PASS
+# §4.4 P4-G3 verdict boundary: no PER-UNIT I46 row (the adoption-scoped rep.ok row still emits).
+i46_nonconverged_fail_verdict	0	!I46 non-converged PASS (units/U01)

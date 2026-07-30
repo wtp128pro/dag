@@ -16,7 +16,25 @@
       "const": false,
       "description": "Independence invariant: the verifier saw brief+debrief+artifacts only, never the executor's chain-of-thought. MUST be false (maker!=checker). Self-attestation, not a platform guarantee (see state-machine Limitation A)."
     },
-    "inputs_reviewed": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "inputs_reviewed": {
+      "type": "array",
+      "description": "OPTIONAL. What the verifier actually read. WIDENED (I42 / R18 / BB-L46, 1.11.0): an element may stay a bare path string, or become an evidence object carrying `path` (+ optional `sha256` content digest and `bytes`). A union WIDENING, not a contract revision — every previously-valid document stays valid and no key becomes required. validate_run.py I42 re-hashes run-dir-relative paths and FAILs on drift; out-of-run paths are an exit-neutral NOTE (not decidable from emitted artifacts). A digest proves the bytes match now, NOT that the verifier read them (Limitation Z).",
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "bytes": { "type": "integer", "minimum": 0 }
+            }
+          }
+        ]
+      }
+    },
     "audit_notes": {
       "type": "string",
       "description": "Optional free-form record of the verifier's adversarial work (per-criterion independent check, evidence audit, hallucination sweep, budget check) that formerly lived in verify.md prose. Not required — the load-bearing outputs are verdict/feedback/defects/premise_check."
@@ -37,7 +55,73 @@
           },
           "verdict": { "type": "string", "enum": ["PASS", "FAIL", "DISAGREE"] },
           "verifier_persona": { "type": "string", "minLength": 1 },
-          "summary": { "type": "string" }
+          "summary": { "type": "string" },
+          "defects": {
+            "type": "array",
+            "description": "OPTIONAL (I41, 1.11.0). This MEMBER's own findings, recorded at their HONEST severity — item shape identical to the top-level defects.items. Under I16 a 2-1 panel FORCES the majority verdict and I6 permits only `minor` on a PASS, so without this locus a dissenting lens' major had nowhere to live but prose. Recording it here is NOT an I6 violation: I6 is scoped to the TOP-LEVEL defects[] (covered by one layer only). validate_run.py I41-2/I41-3 require a dissenting member to carry one, and require a member blocker/major on a PASS to be named by a panel_adjudication disposition.",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["severity", "criterion"],
+              "properties": {
+                "severity": { "type": "string", "enum": ["blocker", "major", "minor"] },
+                "criterion": { "type": "string", "minLength": 1 },
+                "minimal_repro": { "type": "string" },
+                "fix_direction": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "panel_adjudication": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "OPTIONAL (I41, 1.11.0). How a panel-level dissent was disposed of. Required by validate_run.py I41-1 on a run stamped >=1.11.0 whose verdict is PASS with >=1 dissenting panel member — the I16 artifact-contract REVISES (see references/formal-models.md). Adding a key here NEVER makes an archived verify invalid: nothing in this object is `required` at the document level. I41-4c forbids re-polling the lens that dissented (or any lens that had already tested the disputed finding) — re-running the dissenter until it flips is the AO-5 prohibition; a bounded re-poll of UNTESTED lenses rides the existing verify_rounds<=3 bound (I16-(c)), which I41 does not touch.",
+      "properties": {
+        "resolution": { "type": "string", "enum": ["repoll", "withdrawn", "escalated-p7"] },
+        "rationale": { "type": "string", "minLength": 1 },
+        "transcript_ref": { "type": "string", "minLength": 1 },
+        "dissent_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["lens", "defect_index"],
+            "properties": {
+              "lens": { "type": "string", "enum": ["correctness", "reproduce", "guardrail"] },
+              "defect_index": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "dispositions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["lens", "defect_index", "disposition"],
+            "properties": {
+              "lens": { "type": "string", "enum": ["correctness", "reproduce", "guardrail"] },
+              "defect_index": { "type": "integer", "minimum": 0 },
+              "disposition": { "type": "string", "enum": ["downgraded-minor", "withdrawn", "overruled-by-repoll", "upheld"] },
+              "rationale": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "repoll": {
+          "type": "array",
+          "description": "One row per lens re-polled. `tested_defect` records whether that lens had tested the disputed finding BEFORE the re-poll; true is illegal (I41-4c). panel[] holds the FINAL vote, so panel[lens].verdict must equal post_verdict (I41-4d).",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["lens", "pre_verdict", "post_verdict"],
+            "properties": {
+              "lens": { "type": "string", "enum": ["correctness", "reproduce", "guardrail"] },
+              "pre_verdict": { "type": "string", "enum": ["PASS", "FAIL", "DISAGREE"] },
+              "post_verdict": { "type": "string", "enum": ["PASS", "FAIL", "DISAGREE"] },
+              "tested_defect": { "type": "boolean" }
+            }
+          }
         }
       }
     },

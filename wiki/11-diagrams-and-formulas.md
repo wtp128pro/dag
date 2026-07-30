@@ -327,8 +327,9 @@ reasoning — those are the semantic residuals (`state-machine.md` §5 Limitatio
 `formal-models.md` §Residual A–E). This page mirrors the source proof-status verbatim and stops
 there.
 
-**Unchanged through plugin 1.10.1 / catalog 1.0.13.** The socratic-guardrail invariants **I35–I40**
-(1.10.0) and **I39-7** (1.10.1) are **node-internal / offline post-hoc** checks over emitted artifacts
+**Unchanged through plugin 1.11.0 / catalog 1.0.14.** The socratic-guardrail invariants **I35–I40**
+(1.10.0), **I39-7** (1.10.1) and the cross-repo-lessons invariants **I41**/**I42** (1.11.0) are
+**node-internal / offline post-hoc** checks over emitted artifacts
 (a new optional `dialogues.json` transcript, `item_confirmations`, and the `revise_anchors` amendment
 kind): each writes no `retries`/`fuel`, gates no transition, and **never guards LT7**, so they add
 **no FSM state, no edge, and no new back-edge** — every diagram and formula above is **unchanged**. The

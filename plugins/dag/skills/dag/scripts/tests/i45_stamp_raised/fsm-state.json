@@ -1,0 +1,7 @@
+{
+  "run_dir": "tests/i45_stamp_raised",
+  "phase": "P0_BOOTSTRAP",
+  "validator_version": "99.0.0",
+  "updated_at": "2026-07-29T22:00:00-0400",
+  "gates": {}
+}

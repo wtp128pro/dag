@@ -460,6 +460,32 @@ mirror without relaxing any guarantee (see [07-accuracy.md](07-accuracy.md)).
 
 Verification isn't a single station at the end — the same discipline recurs at three scopes.
 
+**A repair invalidates its panel — verification is currency, not a checkbox.** The moment iteration
+*N+1* rewrites the artifact, every verdict from iteration *N* adjudicates bytes that no longer exist:
+the old `verify.json` is **superseded**, not merely older. Two rules follow, and the validator now
+carries both. *First,* never repair an artifact while its verification is in flight — let the verify
+land, then retry; repairing under a live verifier destroys the evidence it is citing and can convene a
+human gate over a defect that is already fixed. *Second,* re-verify from scratch (AO-7 re-panels
+afresh) and let the numbering carry the history: per-member files are written `verify_p<N+1>…`,
+**continuing** the count across iterations rather than overwriting an earlier iteration's members — run
+`2026-07-18_101631`'s U01 holds `verify_p1..p9`, three rounds of three lenses across iterations 1–3.
+Mechanically: **I43** FAILs `verify.iteration != debrief.iteration` outside the mid-loop in-flight
+window (in both directions), **I44** FAILs any absent / unusable / verdict-less / superseded
+verification once `gates.signoff_confirmed` is true *at any phase*, and **I46** FAILs a `PASS` whose own
+`converged: false` declares incomplete coverage under that same claim. A maintainer may still sign off
+with units knowingly open, but only on the record: an `accepted_incomplete` block in `fsm-state.json`
+naming **every** open unit, a rationale and a `DECISIONS.md` ref downgrades each named FAIL to a
+greppable NOTE — it never suppresses one, and it fails closed if malformed. Complete means **current**,
+not PASS: a *current* `FAIL` at `retries == 2`, and a `DISAGREE`, are finished verification acts that
+exit through Phase 7 (see [`14-validator-and-invariants.md` §4.6](14-validator-and-invariants.md)).
+Two measured caveats, so neither rule reads as more enforcement than it is. The *first* rule above is
+**discipline, not enforcement**: I43's in-flight NOTE arm is direction-blind, so repairing under a live
+verifier produces an `AHEAD` pair that is an exit-neutral NOTE — and, under the mandated `--quiet`,
+silent — rather than a FAIL; the `AHEAD` hard FAIL is an off-window guarantee only. And the `DISAGREE`
+row is itself `--quiet`-gated, so it too is invisible in the mandated invocation (visibility, not
+severity — exit-neutrality holds). A ledger label left non-terminal over a *current* verification is
+neither predicate's business: that is the advisory **`N-I47`**, which is un-gated and does print.
+
 ```mermaid
 flowchart TD
     E["Phase 6: unit executed
@@ -507,7 +533,24 @@ Trace of authority for this section: verdict semantics and loop caps →
 
 ## 11. Honest limits
 
-This page would violate its own subject if it overstated the guarantee. Two limits, stated plainly:
+This page would violate its own subject if it overstated the guarantee. Three limits, stated plainly:
+
+- **Completeness is legible, not true (Limitation AA).** The currency predicates of §10 prove that a
+  `verify.json` is *present, parseable, verdict-bearing and current* — never that the verification was
+  **performed**. A repair loop that bumps both `debrief.iteration` and `verify.iteration` without
+  re-verifying satisfies **I43** exactly; it detects **staleness**, never **genuineness**. Panel
+  independence and the reality of the human gate stay attestations, as they do everywhere else on this
+  page, and `accepted_incomplete` records a human's decision rather than validating it.
+
+- **Same-iteration edits are invisible to I43 (Limitation AB).** I43's field is the `iteration` number on
+  each side, so it detects staleness **of numbers, not of bytes**: editing an already-verified
+  `debrief.json` *without* changing `iteration` passes the currency test by construction. The run that
+  shipped these predicates produced the instance — `units/U05/debrief.json` repaired **47 minutes after**
+  U05's aggregated `verify.json` closed `PASS`, both still reading `iteration: 1`, so the validator emits a
+  positive currency assertion over bytes no verifier read. A `sha256` recorded before and after each edited
+  file would make that decidable; it is named here as a **possibility, not as something shipped** — no
+  predicate computes it today. **AA** covers the loop that bumps *both* iterations; **AB** covers the edit
+  that bumps **neither**.
 
 - **Self-attestation (Limitation A).** `executor_reasoning_seen: false` is *machine-checked (in
   scope)* as a **field value** — the schema rejects any other value. But that the verifier *truly*
