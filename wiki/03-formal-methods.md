@@ -423,10 +423,17 @@ don't model — I5–I7, I9, **I11–I16**, **I-dod**, the persona-identity reco
 (**I17**/**I19**/**I3b**/**I3c**) — so the runtime catalog now spans **I1–I40** (plus
 **I1b**/**I1c**/**I1d**/**I3b**/**I3c** and **I-dod**). The newest additions — the guardrail checks
 **I20–I25** (1.8.0), the depth & retrieval checks **I26–I34** (1.9.0), and the socratic-guardrail
-checks **I35–I40** + **I39-7** (1.10.0 / 1.10.1), and the cross-repo-lessons checks **I41**/**I42**
-(1.11.0) — are all this same post-hoc, offline class: each
+checks **I35–I40** + **I39-7** (1.10.0 / 1.10.1), the cross-repo-lessons checks **I41**/**I42**
+(1.11.0), and the verification-currency checks **I43**/**I44**/**I46** + the exit-neutral `N-I45`
+skew NOTE — are all this same post-hoc, offline class: each
 gates **no** transition and never guards LT7, so each **preserves** the termination proof
-(`references/formal-models.md` §"Socratic-guardrail 1.10.0"). Three of these — I14, I15, I16 — are the post-hoc,
+(`references/formal-models.md` §"Socratic-guardrail 1.10.0"). The verification-currency block is the
+sharpest illustration of *why* that discipline is not optional: `¬CURRENT` holds **by construction**
+at every compliant `RETRY` (LT7 increments the counter before the next `EXECUTE` writes its debrief),
+so a hard FAIL there would halt a conforming orchestrator on its sole back-edge — the exact deadlock
+that breaks Claim D. I43 therefore carries an in-flight NOTE window instead, and pays for it with a
+declared residual: stop-at-P6 abandonment stays undecidable from one run dir (Limitation O). It also
+files its own honest ceiling — completeness is **legible, not true** (Limitation AA). Three of these — I14, I15, I16 — are the post-hoc,
 *offline* checks added since the earlier releases; each gates **no** transition (and never
 guards the sole back-edge LT7), so each **preserves** the termination proof
 (`references/state-machine.md` §4 lines 203–205):

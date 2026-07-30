@@ -537,6 +537,48 @@ not-yet-rewritten verify: I42-3 downgrades to a NOTE in **exactly** the I9 trans
 (`phase == P6_EXECUTE_VERIFY` ∧ unit `executing`/`verifying`) and is a hard FAIL everywhere else, always at
 P8/DONE — the pair `digest_mismatch` / `digest_mismatch_p6_note` pins both arms; **neither alone does.**
 
+## Verification currency (I43/I44/I46 + N-I45) — REVISES classification (TLA+/Alloy untouched)
+
+`formal/` is **byte-identical**: four offline post-hoc predicates over emitted artifacts add no TLA
+action, no variable and no edge, write no `retries`/`fuel`, and **never guard `LT7`** ⇒
+`GateOrdering` / `Termination` (Claims A–D) / `Quiesce` hold verbatim, and AO-1..AO-7 and I1..I42 are
+unrelaxed. `N-I45` is a bare `print` touching neither problem sink, so it is exit-neutral by
+construction. **Two REVISES are filed rather than smuggled** (CLAUDE.md: never make a
+guarantee-touching change silently):
+
+1. **Iteration equality becomes a normative verify-artifact contract (I43).** No schema, predicate or
+   document previously stated that `verify.iteration` must equal `debrief.iteration`; `iteration` was
+   a free integer on both sides. Migration argument: measured, **156 of 156** legitimately-closed
+   debrief/verify pairs across 18 archived runs and 8 distinct `validator_version` stamps already
+   satisfy it, and the only 3 violations are the repairs that motivated the class — so the contract is
+   *descriptive of every honest run on file*, which is why it ships **ungated** (a version gate at the
+   shipping release would once again exempt the run that authors the invariant, since `init_run.sh`
+   stamps once at scaffold time). No archived run is newly REDed. The nearest guarantee, I4's ceiling
+   `iteration ≤ retries+1`, is neither widened nor narrowed: I43 is an equality between two
+   *artifacts*, orthogonal to a bound between an artifact and a counter.
+2. **`signoff_confirmed` acquires an artifact-level obligation (I44).** The flag previously bound only
+   the *phase* direction (`REQUIRED_GATES`: phase ⇒ gates). I44 adds the converse — *given the flag,
+   these artifacts must exist and be current* — which is inexpressible in `spec/fsm.json`'s
+   `required_from_phase` vocabulary, so I44 ships as its own labelled predicate rather than as a
+   `REQUIRED_GATES` row (adding it there would break or silently redefine SC3). The archetype already
+   exists: `gpersonas_failclosed` reasons from a true gate flag to a required artifact. Migration
+   argument: the obligation is discharged by every archived signed-off run; the escape it closes is a
+   sign-off recorded ahead of closure, and a maintainer may still take that exit **on the record**
+   through `accepted_incomplete` (per-unit, rationale + `DECISIONS.md` ref, downgrade-not-suppress,
+   fail-closed when malformed).
+
+**PRESERVES, with the deadlock note stated.** `¬CURRENT` holds by construction at every compliant
+`RETRY` (LT7 increments `iteration` before the next `EXECUTE` writes its debrief), so a hard FAIL there
+would be a de-facto live guard on the correction loop's sole back-edge — the Claim-D deadlock. I43
+therefore carries an in-flight NOTE window (I9's two conjuncts **plus** `¬signoff_confirmed`, defined
+in its own block; I9's window at `:5594` and its I42-3 twin at `:5554` are byte-untouched), and pays
+for it with a declared residual: stop-at-P6 abandonment stays undecidable from a single run dir
+(Limitation O). I46's severity tier (NOTE below sign-off, FAIL at sign-off) is a recorded fork — the
+intake wording says "flags", which is severity-neutral. Honest ceiling: **Limitation AA** — these
+predicates make verification completeness *legible*, never *true*; a loop that bumps both iterations
+without re-verifying satisfies I43 exactly, and panel independence and human-gate reality stay
+attestations (`state-machine.md` §5).
+
 ---
 
 ## Consistency with the runtime validator (two levels, same invariants)
