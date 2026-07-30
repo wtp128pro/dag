@@ -135,14 +135,22 @@ so most are dead weight until their phase arrives.
    `--quiet` suppresses the per-check positive assertions, printing failures + the RESULT summary
    **plus the deliberately un-gated advisory NOTEs** — the exit code (the hard-stop signal) is
    identical, so this saves per-check stdout with no loss of enforcement. **Within the I43–I47
-   verification-currency class, three of the five NOTE arms survive `--quiet` on purpose**, because
-   `--quiet` is the only invocation this file mandates, so a quiet-gated advisory would be inert
-   everywhere that matters: `N-I44`'s `accepted-incomplete override` / `override over-broad` rows,
+   verification-currency class the gate is per print ROW, not per invariant, so name the rows —
+   there is no arm total to publish.** These SURVIVE `--quiet` on purpose, because `--quiet` is the
+   only invocation this file mandates and so a quiet-gated advisory would be inert everywhere that
+   matters: `N-I44`'s `accepted-incomplete override` / `override over-broad` rows,
    `N-I45` version-skew visibility, and `N-I47` ledger desync. Each is a bare `print` touching
-   neither problem sink, so it is exit-neutral by construction and cannot change a verdict. The
-   class's **other two** arms — `N-I43` in-flight and `N-I46` below sign-off — **are** `--quiet`-gated
-   and therefore silent here; that is a recorded visibility residual, not a guarantee.
-   **That "three" scopes ONE class. It is not a total, and no total is published here on purpose:**
+   neither problem sink, so it is exit-neutral by construction and cannot change a verdict. These
+   **are** `--quiet`-gated and therefore silent here: `N-I43` in-flight, `N-I44`'s
+   `unresolved DISAGREE at sign-off` row, and `N-I46` below sign-off — a recorded visibility
+   residual, not a guarantee. **`N-I44` appears in BOTH lists**, which is why the class does not
+   partition by invariant and why neither list is offered as a fraction of one. Re-derive both lists by
+   content rather than trusting this enumeration —
+   `grep -nE "note_i4[3-7]|i45_version_skew" validate_run.py | grep 'print('` enumerates every print
+   site in the class, and a site is gated **iff** an `if not args.quiet` guard precedes it
+   (`grep -n 'if not args.quiet' validate_run.py`) — which stays correct as arms are added, whereas any
+   count of them would not.
+   **Those two lists scope ONE class. Neither is a total, and no total is published here on purpose:**
    the validator emits further un-gated advisory NOTE families *outside* the currency class — on this
    repository's own `.wip/` run dirs, `G3 promotion (advisory)` and `contradiction (03/P5)` survive
    `--quiet` on every dir measured, and neither is a currency arm. The shape is structural, not

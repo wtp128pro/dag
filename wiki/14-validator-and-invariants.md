@@ -547,9 +547,12 @@ not two, and each is locatable by content rather than by offset (`awk '/args\.qu
 block returns all three): **(1) `N-I43` in-flight**, so an AHEAD pair inside the window is unpinned and
 `--quiet`-silent; **(2) `N-I44` unresolved `DISAGREE` at sign-off**; and **(3) `N-I46` below sign-off**,
 the one an earlier revision of this page omitted when it said "the two visibility residuals". By
-contrast **three of the class's five NOTE arms survive `--quiet`** deliberately (§9-R12, since
+contrast these rows **survive `--quiet`** deliberately (§9-R12, since
 `SKILL.md` mandates `--quiet`): `N-I44`'s `accepted-incomplete override` and `override over-broad`
-rows, `N-I45`, and `N-I47`. **That three is scoped to this class and is NOT a total** — the validator
+rows, `N-I45`, and `N-I47` — so **`N-I44` has rows on BOTH sides of the gate**, the class does not
+partition by invariant, and **no arm total is published here or in `SKILL.md`**: the gate is per print
+ROW, and a fraction over an overlapping partition rots the moment a row moves. **The gated/surviving
+split is scoped to this class and is NOT a total** — the validator
 emits further un-gated advisory NOTE families outside the class (`G3 promotion (advisory)` and
 `contradiction (03/P5)` survive `--quiet` on every one of this repository's `.wip/` run dirs
 measured), and structurally the gate is the minority: `grep -c 'if not args.quiet' validate_run.py` →
