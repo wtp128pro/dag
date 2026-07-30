@@ -5686,8 +5686,29 @@ def main(argv=None):
     # `gates.signoff_confirmed` an artifact-level obligation at ANY phase. Both carry migration arguments
     # in the unit's spec (§5.4/§5.5); neither edits a schema, so no archived artifact becomes invalid.
     # UNGATED by `validator_version` (§0.4): measured 156/156 legitimately-closed archived debrief/verify
-    # pairs across 8 distinct stamps (None -> 1.10.1) already satisfy currency, so ungated arming newly
-    # REDs ZERO archived runs. A >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at
+    # pairs across 8 distinct stamps (None -> 1.10.1) already satisfy currency.
+    # ARCHIVE-SAFETY FIGURE — MEASURED, AND IT IS NOT ZERO. An earlier revision of this comment claimed
+    # ungated arming "newly REDs ZERO archived runs"; re-measured against the SHIPPED code over all 18 run
+    # dirs under THIS REPOSITORY's `.wip/`, the true figure is 1 OF 18 NEWLY RED IN THIS REPOSITORY:
+    # `2026-07-29_090706_cross-repo-lessons-intake` — this branch's own REPAIR TARGET — carrying 8 rows
+    # (I43 on U05/U07/U08, I44 on U05/U07/U08, I46 on U03/U07), and ZERO FALSE POSITIVES: no other run in
+    # the population emits any I43/I44/I46 row at all.
+    # "Newly RED" means every FAIL row on the run is an I43/I44/I46 row, i.e. the run was GREEN
+    # before these three predicates existed. 17 of 18 are unaffected. SCOPE CAVEAT, stated rather than
+    # implied: the population is this repository's own `.wip/` archive and nothing else. Another
+    # installation's archive is a different population and may yield a different figure — re-run the
+    # command below against it rather than assuming this number transfers. The honest claim is therefore: ZERO
+    # LEGITIMATELY-CLOSED archived runs are newly RED, and the only newly-RED run is the one this pipeline
+    # exists to repair, on exactly the defect class the predicate was commissioned to name. That is still a
+    # strong archive-safety property but a WEAKER one than "0", and stating "0" was a defect in those words:
+    # it rested an ungated arming decision on a number a reader who checked it would find false. The arming
+    # decision itself is unchanged; only the number is. Re-derive from the repo root with:
+    #   for d in .wip/*/; do o=$(python3 plugins/dag/skills/dag/scripts/validate_run.py "$d"); \
+    #     n=$(printf '%s' "$o" | grep -cE '^ +FAIL +(I43|I44|I46) '); \
+    #     t=$(printf '%s' "$o" | grep -cE '^ +FAIL +'); \
+    #     [ "$n" -gt 0 ] && [ "$n" -eq "$t" ] && echo "NEWLY RED $d ($n rows)"; done
+    # (Measured 2026-07-29 at tree f575911 + this change: one line, `.wip/2026-07-29_090706_...` 8 rows.)
+    # A >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at
     # scaffold and never refreshes, so it would not arm on the very run that authors the predicate.
     #
     # IN-FLIGHT WINDOW — CITED, NOT HOISTED (R3). Two window sites already exist and are BYTE-UNTOUCHED:
@@ -5837,8 +5858,11 @@ def main(argv=None):
     # KEYED ON ARTIFACTS, NEVER ON fsm-state STATUS LABELS: `_fsm_unit_status` is read below ONLY to
     # interpolate into detail text, never for a decision. Measured: a status-keyed formulation newly REDs
     # 3 archived runs for cosmetic desync (e.g. 2026-07-05_143454's U09, labelled `executing` at DONE with
-    # a complete, iteration-matched debrief+verify) while the artifact-keyed one newly REDs ZERO and still
-    # catches all 3 real defects. A stale label is a documentation defect and belongs to a separate NOTE.
+    # a complete, iteration-matched debrief+verify) while the artifact-keyed one newly REDs NO RUN FOR
+    # COSMETIC DESYNC and still catches all 3 real defects. Do not read that as "newly REDs zero runs" — an
+    # earlier revision of this comment did, and it was false: I44 newly REDs 1 of 18 archived runs IN THIS
+    # REPOSITORY, the repair target, on 3 REAL defects (corrected figure + command at :5687).
+    # A stale label is a documentation defect and belongs to a separate NOTE — now shipped as N-I47 below.
     # NO PHASE CONDITION AND NO CARVE-OUT: the antecedent SIGNED_OFF is the exact negation of I43's
     # carve-out conjunct, so a carve-out here would be self-cancelling — and the motivating run rolled
     # P8 -> P6 back while LEAVING `signoff_confirmed: true`, so any phase-gated formulation is inert on it.
@@ -5948,6 +5972,68 @@ def main(argv=None):
     if _i46_declared and not _i46_fired:
         rep.ok(f"{LABEL_STEM['i46_nonconverged_pass']} ({_i46_declared} verify doc(s) declare converged; "
                "none is a non-converged PASS)")
+
+    # ── I47 (DoD 6) — LEDGER DESYNC AT SIGN-OFF. The advisory NOTE that I44 deliberately does NOT carry.
+    # I44 is keyed on ARTIFACTS, never on `fsm-state` status labels (:5836-5840), because a status-keyed
+    # formulation would newly RED archived runs for COSMETIC desync; that comment, references/
+    # state-machine.md:605 and the unit spec §2.1(i) all promise the stale label "is a SEPARATE predicate".
+    # Until this insertion that predicate was DESCRIBED IN THREE PLACES AND SHIPPED IN NONE — a fifth
+    # documented-but-absent predicate. It ships here as an exit-neutral NOTE and NOTHING else: a bare
+    # `print` touching neither `rep.problems` nor `rep.checked`, so it can move no exit code and can newly
+    # RED no archived run BY CONSTRUCTION (the N-I45 :6559 / `_vc_override_note` :5773 archetype).
+    # ANTECEDENT — four conjuncts, all four required:
+    #   (1) `gates.signoff_confirmed` is True by IDENTITY (`_vc_signed_off`), never truthiness;
+    #   (2) the unit is EXECUTED — `unit_dirs_with_debrief`, exactly I44's domain, so a never-executed
+    #       materialized unit stays out of scope (that is I10's, at P8/DONE);
+    #   (3) its verification is COMPLETE AND CURRENT: verify.json PRESENT on disk, PARSEABLE/usable
+    #       (`_vc_agg`: JSON, schema-valid, unit_id-matched), VERDICT-BEARING, and iteration-matched to the
+    #       debrief with both iterations determinate ints. That is the exact NEGATION of I44's FAIL arms
+    #       a-d and of I43-a/-b, so this NOTE never double-charges a fact another predicate already fails
+    #       (§0.6, the same declining discipline I43 applies to I9). A DISAGREE verdict is NOT excluded: by
+    #       I44 arm e's own doctrine a DISAGREE is a COMPLETE verification act, and its N-I44 row records
+    #       an unresolved escalation while this row records a stale LABEL — two different facts;
+    #   (4) the ledger's own `fsm-state.units[].status` is NON-TERMINAL.
+    # NON-TERMINAL IS A WHITELIST of the four IN-PROGRESS labels, deliberately not `not in {passed,failed}`:
+    # `escalated` (closed by the Phase-7 human gate — I44 arm e's doctrine), `retired` (a cancelled unit)
+    # and `blocked` (a recorded non-completion, I10's domain) are CLOSED outcomes at sign-off, not stale
+    # in-flight labels, and an unknown/future enum member must never arm an advisory. MEASURED, not tuned
+    # to go green: over all 18 archived runs the whitelist and the broader `not in {passed,failed}` form
+    # select the SAME two units (2026-07-05_143454 U09 `executing` at DONE, and 2026-07-29_090706 U09
+    # `verifying`), so the choice buys no silence — it is made on doctrine.
+    # THE WITNESS this predicate exists for: 2026-07-05_143454_implement-dag-loop-proposals U09, labelled
+    # `executing` at phase DONE over a complete, iteration-matched PASS verify. It is a documentation
+    # defect, never a verification defect, so the row is advisory and that archived run's verdict is
+    # unchanged (it is already RED for 25 unrelated version-skew rows; this adds none).
+    # NOT gated on `validator_version` (stdout is its only channel; init_run.sh:161-163 stamps once at
+    # scaffold, so a version gate would not arm on the run authoring the predicate) and NOT gated on
+    # `args.quiet`, for the §9-R12 reason already applied to `_vc_override_note` (:5774) and N-I45
+    # (:6559): SKILL.md mandates `--quiet`, so a quiet-gated advisory is inert in the only invocation that
+    # matters. Un-gating is safe precisely because the row is exit-neutral => PRESERVES every guarantee;
+    # offline/post-hoc, adds no state, edge or gate flag, and NEVER guards LT7.
+    # CRASH DISCIPLINE (§0.5): every read is `.get`-only and isinstance-guarded — an exception here would
+    # abort the linear pass and silently disable every downstream predicate.
+    _I47_IN_PROGRESS = ("pending", "briefed", "executing", "verifying")
+    if _vc_signed_off:
+        for uid in sorted(unit_dirs_with_debrief):
+            _i47_st = _fsm_unit_status.get(uid)
+            if not (isinstance(_i47_st, str) and _i47_st in _I47_IN_PROGRESS):
+                continue                       # terminal/closed outcome, unlabelled, or a non-str — silent
+            if not os.path.exists(os.path.join(units_dir, uid, "verify.json")):
+                continue                       # DECLINED to I44-a (absent verification)
+            _i47_agg = _vc_agg(uid)
+            if not isinstance(_i47_agg, dict) or "verdict" not in _i47_agg:
+                continue                       # DECLINED to I44-b/-c (unusable / verdict-less)
+            _i47_dbi = _vc_doc_iter(uid, "debrief")
+            _i47_vyi = _vc_doc_iter(uid, "verify")
+            if _i47_dbi is None or _i47_vyi is None or _i47_dbi != _i47_vyi:
+                continue                       # DECLINED to I43-a/-b and I44-d (not CURRENT)
+            print(f"  NOTE  {LABEL_STEM['note_i47']} (units/{uid}): fsm-state.units[] status "
+                  f"{_i47_st!r} is NON-TERMINAL while gates.signoff_confirmed=true (phase {phase}), yet "
+                  f"the unit's verification is COMPLETE AND CURRENT (verdict "
+                  f"{_i47_agg.get('verdict')!r} at iteration {_i47_vyi}, matching the debrief) — the "
+                  "LEDGER LABEL IS STALE: a documentation defect, not a verification defect, so I44 "
+                  "correctly does not fail it. Refresh the status label to the outcome the verify "
+                  "records (advisory, exit-neutral)")
 
     # G-brief offline presence (BRK-03; T8/G-brief offline counterpart). A missing
     # units/<U>/brief.json silently DISABLES I5 (budget) / I6-FAIL criterion binding / I11 brief-tag
