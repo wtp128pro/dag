@@ -508,6 +508,7 @@ LABELS = [
     {"key": "i45_version_skew", "stem": "N-I45 version-skew visibility", "invariant": "I45", "emitted_via": "print"},
     {"key": "i46_nonconverged_pass", "stem": "I46 non-converged PASS", "invariant": "I46"},
     {"key": "note_i46", "stem": "N-I46 non-converged PASS", "invariant": "I46", "emitted_via": "print"},
+    {"key": "note_i47", "stem": "N-I47 ledger desync at sign-off", "invariant": "I47", "emitted_via": "print"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
