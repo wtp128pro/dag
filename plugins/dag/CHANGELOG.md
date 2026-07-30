@@ -41,10 +41,14 @@ AO-1..7 are untouched.
   outcome — `escalated`, `retired`, `blocked` — never arms an advisory. It names a **documentation**
   defect only: it neither infers the correct label nor re-checks the verdict.
 
-**`validator_version` now re-stamps on phase advance** (`init_run.sh --restamp`, raise-only
-ratchet, archive-safe on absent/malformed). This closes the self-reference by which the run that
-authored I41 escaped being judged by it — measured: one digit, identical bytes,
-`264/0/PASS → 264/8/FAIL`.
+**`validator_version` can now be re-stamped on phase advance** — via the new
+**`init_run.sh --restamp <RUN_DIR>`** flag, a raise-only ratchet, archive-safe on an absent or
+malformed stamp, and pinned by four guards in `run_tests.sh`. This closes the self-reference by
+which the run that authored I41 escaped being judged by it — measured: one digit, identical bytes,
+`264/0/PASS → 264/8/FAIL`. **Stated precisely, because an earlier draft of this line over-claimed:**
+what shipped is the **mechanism plus the orchestrator protocol that calls it**, not an *automatic*
+re-stamp. Nothing in the validator invokes `--restamp`; the phase-advance step in `SKILL.md` does.
+An automatic re-stamp-on-phase-advance is **unbuilt**, not impossible.
 
 **Doctrine** in `SKILL.md` (new prime directive 8; Phase-6 repair-invalidates-panel with the
 continue-the-numbering corollary; Phase-8 sign-off precondition), a worked member-by-member

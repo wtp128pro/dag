@@ -13,8 +13,9 @@ Individual plugins also maintain their own changelogs.
   enforced by new `spec_check` SC8), **`I46`** (`converged: false` under a `PASS` is no longer
   dead data), and **`N-I47`** (an exit-neutral advisory NOTE when a unit's verification is complete
   and current but its ledger status is still non-terminal at sign-off). `validator_version`
-  re-stamps on phase advance, closing the self-reference by which a run escaped the invariant it
-  shipped. Suite **389/0 on both backends**, `spec_check` **PASS 8 / NOTE 1 / FAIL 0**,
+  can be re-stamped on phase advance via the new `init_run.sh --restamp` flag, closing the
+  self-reference by which a run escaped the invariant it shipped — the mechanism plus the
+  orchestrator protocol that calls it, **not** an automatic re-stamp, which is unbuilt. Suite **389/0 on both backends**, `spec_check` **PASS 8 / NOTE 1 / FAIL 0**,
   `validate_run.py` insertion-only with the byte-identical-emissions test discharged by measurement
   (0 of 345 fixtures differ). Archive scan over this repository's 18 `.wip/` dirs (17 archived + 1
   in-flight): historically 1 archived run newly RED — the run under repair — and **currently 0**,
