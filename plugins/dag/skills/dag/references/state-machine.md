@@ -567,9 +567,24 @@ SIGNED_OFF` conjunct, the in-flight window). Counting it inside a false-positive
 that structurally *cannot* supply that evidence, which is why the archive figure below is scoped to
 the **17**:
 
-> **1 of the 17 archived runs in this repository is newly RED** — `2026-07-29_090706_cross-repo-lessons-intake`,
+> **DATED FIGURE — superseded by this branch's own repair; read the current measurement below it.** As
+> measured before the maintainer-waived re-verification, **1 of the 17 archived runs in this repository was
+> newly RED** — `2026-07-29_090706_cross-repo-lessons-intake`,
 > the branch's own **repair target** — carrying **8 hard FAILs**: `I43` on U05/U07/U08 (debrief 2/3/2
-> vs verify 1/2/1), `I44` arm d (SUPERSEDED) on the same three, and `I46` on U03/U07. **Zero false
+> vs verify 1/2/1), `I44` arm d (SUPERSEDED) on the same three, and `I46` on U03/U07.
+>
+> **CURRENT, measured 2026-07-30 over the same population: ZERO archived runs are newly RED, and no run
+> in the population emits a class FAIL row of any severity.** That repair target now closes at
+> `checks passed: 282 · problems: 0 · RESULT: PASS` with all nine of its units iteration-current, because
+> this branch re-verified its U05 i2 / U07 i3 / U08 i2 under an explicit maintainer waiver (run ledger
+> `DECISIONS#44`, extended `#46`). **The safety property therefore STRENGTHENS *a fortiori*** — zero is
+> stronger than one — and what was lost is only the *illustrative instance*, which was consumed by being
+> repaired. This is **not** a return to the retracted absolute: an earlier revision asserted "newly REDs
+> ZERO archived runs" **before measuring**, and that retraction stands. This zero is reached *by*
+> measurement, *after* discharging the exception. Both figures are kept, in order, because they are not
+> the same claim. The figure is a property of a mutable gitignored directory and will move again;
+> `tar cf - <dir> | shasum -a 256` is the cheap anchor that would make any such figure permanently
+> checkable, which mtime-plus-file-count is not (`DECISIONS#50`). **Zero false
 > positives:** no other run in the population emits an I43/I44/I46 **FAIL** row at all, so the other
 > **16 archived runs are unaffected** (as is the 18th dir, this live run, which the in-flight window
 > carves out by construction). *Newly RED* means every FAIL row on that run is an I43/I44/I46 row — it
@@ -639,9 +654,13 @@ retracted rather than re-scoped: it was not a mis-labelled axis, it was wrong.
 
 **The iteration-parity census, kept narrow — and quoted as the ARCHIVED sub-figure only.** Separately
 measured at the same tree over the **17 archived runs**: **159** co-present
-`debrief.json`/`verify.json` pairs, of which **156 are iteration-matched** and the **3** mismatches are
-exactly the rows armed above (the repair target's U05/U07/U08). Those figures are stable because every
-run in them is closed. An earlier revision published **168 co-present pairs across those 18 runs** — an
+`debrief.json`/`verify.json` pairs. **Historically** (before this branch's waived re-verification) **156
+were iteration-matched** and the **3** mismatches were exactly the rows armed above — the repair target's
+U05/U07/U08. **Currently, measured 2026-07-30: 159 of 159 are iteration-matched, 0 mismatched**, because
+those three were re-verified with panels of three under the maintainer waiver. The earlier claim that
+"those figures are stable because every run in them is closed" was FALSE: a run that repairs a defect
+class invalidates its own published measurements of that class, so the honest artifact publishes the
+decay law and a digest anchor rather than a sample (`DECISIONS#51`). An earlier revision published **168 co-present pairs across those 18 runs** — an
 **archive-wide, in-flight-inclusive** total, and therefore the very thing the `verify_p*` paragraph
 below forbids: it measures **173** today, having moved as this live run's own panels landed. That
 census measures

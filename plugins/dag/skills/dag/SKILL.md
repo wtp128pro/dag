@@ -147,7 +147,7 @@ so most are dead weight until their phase arrives.
    partition by invariant and why neither list is offered as a fraction of one. Re-derive both lists by
    content rather than trusting this enumeration —
    `grep -nE "note_i4[3-7]|i45_version_skew" validate_run.py | grep 'print('` enumerates every print
-   site in the class, and a site is gated **iff** an `if not args.quiet` guard precedes it
+   site in the class, and a site is gated **iff** an `if not args.quiet` guard **encloses** it (an *enclosing-block* test, not a preceding-line one: the file's first such guard sits thousands of lines above the first class site, so `precedes` would classify all seven as gated, and a nearest-guard reading mis-classifies N-I44's `override over-broad` survivor 21 lines below the guard that encloses the unresolved-`DISAGREE` row)
    (`grep -n 'if not args.quiet' validate_run.py`) — which stays correct as arms are added, whereas any
    count of them would not.
    **Those two lists scope ONE class. Neither is a total, and no total is published here on purpose:**
