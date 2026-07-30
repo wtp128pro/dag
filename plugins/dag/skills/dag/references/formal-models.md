@@ -555,20 +555,41 @@ guarantee-touching change silently):
    it inside a false-positive tally would count a member that structurally cannot supply that evidence):
    the contract is *descriptive of every legitimately-closed run on file*, which is why
    it ships **ungated** (a version gate at the shipping release would once again exempt the run that
-   authors the invariant, since `init_run.sh` stamps once at scaffold time). **Exactly 1 of those 17
-   archived runs is newly REDed** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own
-   **repair target**, on 8 rows (I43 ×3, I44 arm d ×3, I46 ×2) — with **zero false positives** across
-   the other 16 (nor on the in-flight 18th). An earlier revision of this clause read "No archived run is newly REDed"; that was
+   authors the invariant, since `init_run.sh` stamps once at scaffold time). **The illustrative instance
+   has since been consumed by repairing it, so the figure below is DATED — and the two zeros in this
+   paragraph are NOT the same claim, which is why the historical form is kept rather than overwritten.**
+   *Historically*, measured 2026-07-30T03:22Z at tree `1bf2626`: **exactly 1 of those 17 archived runs
+   was newly REDed** — `2026-07-29_090706_cross-repo-lessons-intake`, the branch's own **repair
+   target**, on 8 rows (I43 ×3, I44 arm d ×3, I46 ×2) — with **zero false positives** across the other
+   16 (nor on the in-flight 18th). *Currently*, measured 2026-07-30 at tree `0db7b03`: under the
+   maintainer waiver (this branch's run ledger, DECISIONS#44 extended by #46) that target's U05
+   iteration 2, U07 iteration 3 and U08 iteration 2 were each re-verified by a panel of three,
+   discharging **every one of those 8 rows**, so **no run in the population emits a class FAIL row of
+   any severity** and the target itself now validates at **282 checks / 0 problems / RESULT: PASS**.
+   **That strengthens the safety property *a fortiori*:** the claim was "only one archived run newly
+   REDs, and it is the one we exist to repair"; what is lost is the *illustrative instance*, never the
+   property, and the instance was consumed by fixing it. **It is emphatically NOT a return to the
+   retracted wording.** An earlier revision of this clause read "No archived run is newly REDed"; that was
    **false as written**, and stating it as `0` was a defect in those words, because it rested an ungated
-   arming decision on a number a checking reader would find false. The property that *does* hold is
-   narrower and still sufficient: **zero legitimately-closed archived runs are newly RED**, and the one
-   run that is, is the run this pipeline exists to repair, on exactly the commissioned defect class.
+   arming decision on a number a checking reader would find false. Arriving at zero *by measurement,
+   having repaired the exception* is a different claim from asserting zero *before measuring* — the
+   first is a receipt, the second was a guess — and a reader must be able to see which one this is.
+   The property that *does* hold, and held all along, is
+   narrower and still sufficient: **zero legitimately-closed archived runs are newly RED**, which is now
+   simply the whole story, because the one run that was not legitimately closed has since been closed.
    Scope, stated rather than implied: another installation's archive is a different population — re-run
-   the command in `state-machine.md` §5 against it rather than assuming the figure transfers. The
+   the command in `state-machine.md` §5 against it rather than assuming the figure transfers. **And
+   every figure in this paragraph is a property of a MUTABLE, GITIGNORED directory** — `.wip/` carries
+   no version identity, so each is a timestamped sample and not a property of a commit; per the run
+   ledger's DECISIONS#50 the cheap anchor that would make any of them permanently checkable is
+   `tar cf - .wip/<run-dir> | shasum -a 256`, which mtime-plus-file-count (a change *detector*, not an
+   identity) is not. The
    companion parity census (the ARCHIVED sub-figure — **159** co-present pairs over the 17 archived runs,
-   **156** iteration-matched, the **3** mismatches being exactly the rows armed above; an earlier revision
-   quoted **168** archive-wide and in-flight-inclusive, which reads **173** today) measures **iteration equality only**
-   and is therefore silent on I46's `converged` field, so I46's 2 FAILs are recorded on their own
+   of which **159** are iteration-matched and **0** are not; *historically* **156** matched, the **3**
+   mismatches being exactly the rows armed above, discharged by the same waiver; an earlier revision
+   quoted **168** archive-wide and in-flight-inclusive, and any in-flight-inclusive count is
+   **not durable and must not be quoted forward**) measures **iteration equality only**
+   and is therefore silent on I46's `converged` field, so I46's 2 historical FAILs were recorded on their own
    evidence rather than implied by it. The nearest guarantee, I4's ceiling
    `iteration ≤ retries+1`, is neither widened nor narrowed: I43 is an equality between two
    *artifacts*, orthogonal to a bound between an artifact and a counter.

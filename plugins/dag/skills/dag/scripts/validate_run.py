@@ -5732,51 +5732,106 @@ def main(argv=None):
     # normative verify-artifact contract that no schema/predicate/doc previously stated; (2) I44 gives
     # `gates.signoff_confirmed` an artifact-level obligation at ANY phase. Both carry migration arguments
     # in the unit's spec (§5.4/§5.5); neither edits a schema, so no archived artifact becomes invalid.
-    # UNGATED by `validator_version` (§0.4): measured 156/156 legitimately-closed archived debrief/verify
-    # pairs across 5 distinct stamps (None -> 1.10.1) already satisfy currency.
-    # NAME THE AXIS, because two different 156s have been published in this repository and only one is
-    # this one. THIS 156 IS A PAIR CENSUS, NOT A DOCUMENT COUNT: over the 17 ARCHIVED run dirs under this
+    # UNGATED by `validator_version` (§0.4): measured 159/159 archived debrief/verify pairs across 5
+    # distinct stamps (None -> 1.10.1) satisfy currency — EVERY archived pair complies, none excepted.
+    # NAME THE AXIS, because several different counts have been published in this repository and only one
+    # is this one. THIS IS A PAIR CENSUS, NOT A DOCUMENT COUNT: over the 17 ARCHIVED run dirs under this
     # repository's `.wip/` (18 dirs carry fsm-state.json; the 18th is the in-flight run, excluded), there
-    # are 159 co-present debrief.json/verify.json PAIRS, of which 156 are iteration-matched and exactly 3
-    # are not — and those 3 are the repair target's U05/U07/U08, i.e. the commissioned defect class itself.
-    # So "156/156 legitimately-closed" = 159 archived pairs MINUS the 3 known defects, all of the remainder
-    # complying. It is NOT the retired "156 archived verify DOCUMENTS" denominator that I41/I42 once
-    # published and withdrew (that axis counts documents, is now 292, and its census command lives at the
-    # I41 header) — a reader who measures 292, or 159, or 173, is on a different axis, not looking at a
-    # regression. STAMP AXIS, likewise named: 5 distinct `validator_version` values across the 14 archived
+    # are 159 co-present debrief.json/verify.json PAIRS, of which 159 are iteration-matched and 0 are not.
+    # THE THREE EXCEPTIONS ARE HISTORICAL, NOT PRESENT — and naming what closed them is the point. An
+    # earlier revision of this comment published "156 iteration-matched and exactly 3 are not — and those 3
+    # are the repair target's U05/U07/U08". That was TRUE WHEN WRITTEN and is FALSE NOW. Under a maintainer
+    # waiver (this branch's run ledger, DECISIONS#44 extended by #46) the repair target's U05 iteration 2,
+    # U07 iteration 3 and U08 iteration 2 were each re-verified by a panel of three on 2026-07-30; all
+    # three became iteration-current, so those 3 exceptions are DISCHARGED, not reclassified or waived.
+    # DIRECTION, because it is easy to misread a moved number as a retreat: this makes the ungated-arming
+    # case STRONGER. The ground for shipping I43 ungated is that legitimately-closed archived pairs already
+    # comply; they did (156 of 156), and now EVERY archived pair does (159 of 159). Only the ex-defect
+    # subset moved — no complying pair became non-complying, and the arming decision is unchanged.
+    # THE FIGURE IS A PROPERTY OF A MUTABLE, GITIGNORED DIRECTORY AND WILL MOVE AGAIN. `.wip/` is
+    # gitignored (`.gitignore:7`), carries NO version identity, and is written to by every run — so this is
+    # a TIMESTAMPED SAMPLE, never a property of a commit. Re-derive; do not inherit. And the cheap durable
+    # remedy, which mtime-plus-file-count is NOT (that is a change DETECTOR, not an identity), is a digest:
+    #     tar cf - .wip/<run-dir> | shasum -a 256     # one command, witnesses the pre-image permanently
+    # (that digests the archive STREAM, so it covers metadata as well as bytes; the content-only variant is
+    # `shasum -a 256 $(find <dir> -type f | sort) | shasum -a 256`. Either is strictly stronger than
+    # mtime-plus-file-count.) Had such a digest been taken when the 156/3 figure was published, the
+    # pre-image would still be checkable; it was not, so that figure is now unverifiable in principle.
+    # RE-DERIVE THIS CENSUS from the repo root (prints `PAIRS MATCHED MISMATCHED`):
+    #   python3 -c "import json,glob,os;IN='2026-07-29_183514';P=[d for d in glob.glob('.wip/*/units/*') \
+    #     if IN not in d and os.path.exists(d+'/debrief.json') and os.path.exists(d+'/verify.json')]; \
+    #     it=lambda p:json.load(open(p)).get('iteration'); \
+    #     m=sum(it(d+'/debrief.json')==it(d+'/verify.json') and it(d+'/verify.json') is not None \
+    #     for d in P);print(len(P),m,len(P)-m)"
+    # -> `159 159 0`, executed 2026-07-30 at tree 0db7b03 + this change.
+    # It is NOT the retired "156 archived verify DOCUMENTS" denominator that I41/I42 once published and
+    # withdrew (that axis counts DOCUMENTS and its census command lives at the I41 header; it read 292 when
+    # that cell was written and reads 301 today, having gained the 9 waived re-verification panel files
+    # described above — the SAME mutable tree, sampled twice) — a reader who measures 301, or 292, or 159,
+    # or 173, is on a DIFFERENT AXIS, not looking at a regression.
+    # STAMP AXIS, likewise named: 5 distinct `validator_version` values across the 14 archived
     # dirs that hold >=1 pair; 6 across all 17 archived dirs; 6 across the 15 pair-carrying dirs including
     # the in-flight run; 7 across all 18 dirs. An earlier revision of this comment published "8 distinct
     # stamps", which is reproducible under NONE of those four readings — it was wrong, not mis-scoped. The
     # four-row census command is published in references/state-machine.md §5 ("The stamp census").
-    # ARCHIVE-SAFETY FIGURE — MEASURED, AND IT IS NOT ZERO. An earlier revision of this comment claimed
-    # ungated arming "newly REDs ZERO archived runs"; re-measured against the SHIPPED code over all 18 run
-    # dirs under THIS REPOSITORY's `.wip/` — of which 17 are ARCHIVED and the 18th is the in-flight repair
-    # run itself, which I43's `not SIGNED_OFF` conjunct carves out BY CONSTRUCTION, so counting it in a
-    # false-positive tally would count the one member that structurally cannot supply that evidence — the
-    # true figure is 1 OF THE 17 ARCHIVED RUNS NEWLY RED IN THIS REPOSITORY:
-    # `2026-07-29_090706_cross-repo-lessons-intake` — this branch's own REPAIR TARGET — carrying 8 rows
-    # (I43 on U05/U07/U08, I44 on U05/U07/U08, I46 on U03/U07), and ZERO FALSE POSITIVES: no other run in
-    # the population emits any I43/I44/I46 FAIL row at all. THE WORD "FAIL" IS LOAD-BEARING: the class is
-    # NOT silent elsewhere. `Report.ok` positive assertions fire on every iteration-matched pair, so 15 of
-    # the 18 dirs emit 6-18 class PASS rows in the DEFAULT (non-quiet) invocation; the only three dirs that
-    # emit nothing at all are the empty-`units/` runs (see the materialization residual in
-    # references/state-machine.md §5). "No other run emits a row" would be FALSE AS WRITTEN.
+    # ARCHIVE-SAFETY FIGURE — DATED. READ THE HISTORICAL AND CURRENT FORMS IN ORDER, BECAUSE THE TWO
+    # ZEROS BELOW ARE NOT THE SAME CLAIM, and that is exactly why the historical form is kept rather than
+    # overwritten. Population first, for both: all 18 run dirs under THIS REPOSITORY's `.wip/` — of which
+    # 17 are ARCHIVED and the 18th is the in-flight repair run itself, which I43's `not SIGNED_OFF`
+    # conjunct carves out BY CONSTRUCTION, so counting it in a false-positive tally would count the one
+    # member that structurally cannot supply that evidence.
+    # HISTORICAL (measured 2026-07-29 against the SHIPPED code): 1 OF THE 17 ARCHIVED RUNS WAS NEWLY RED
+    # IN THIS REPOSITORY — `2026-07-29_090706_cross-repo-lessons-intake`, this branch's own REPAIR TARGET,
+    # carrying 8 rows (I43 on U05/U07/U08, I44 on U05/U07/U08, I46 on U03/U07) — with ZERO FALSE
+    # POSITIVES: no other run in the population emitted any I43/I44/I46 FAIL row at all.
+    # CURRENT (measured 2026-07-30 at tree 0db7b03 + this change): ZERO archived runs are newly RED, and
+    # NO run in the population emits a class FAIL row of ANY severity. Under a maintainer waiver (this
+    # branch's run ledger, DECISIONS#44 extended by #46) the repair target's U05 iteration 2, U07
+    # iteration 3 and U08 iteration 2 were each re-verified by a panel of three, which discharged all 8
+    # rows; that run now validates at 282 checks / 0 problems / RESULT: PASS.
+    # DIRECTION — THE POINT MOST EASILY MISREAD: this STRENGTHENS the property A FORTIORI. The claim was
+    # "only one archived run newly REDs, and it is the one we exist to repair"; the measured position is
+    # "zero archived runs are newly RED". What was lost is the ILLUSTRATIVE INSTANCE, never the property,
+    # and the instance was consumed by REPAIRING it. The arming decision is unchanged.
+    # AND IT IS NOT A RETURN TO THE RETRACTED WORDING. An earlier revision of this comment claimed ungated
+    # arming "newly REDs ZERO archived runs". That was FALSE WHEN WRITTEN, and stating "0" was a defect IN
+    # THOSE WORDS: it rested an ungated arming decision on a number a reader who checked it would find
+    # false. Arriving at zero BY MEASUREMENT, HAVING REPAIRED THE EXCEPTION, is a different claim from
+    # asserting zero BEFORE MEASURING — the first is a receipt, the second was a guess — and a reader must
+    # be able to tell which one this is. Hence: never publish a bare "zero" here; publish it with its
+    # population, its date and the command.
+    # THE WORD "FAIL" IS LOAD-BEARING: the class is NOT silent elsewhere, and that is what distinguishes
+    # this zero from an inert predicate. `Report.ok` positive assertions fire on every iteration-matched
+    # pair, so 15 of the 18 dirs emit 7-18 class PASS rows in the DEFAULT (non-quiet) invocation and 18 of
+    # 18 emit at least one class NOTE; the only three dirs that emit nothing at all are the
+    # empty-`units/` runs (see the materialization residual in references/state-machine.md §5). "No other
+    # run emits a row" would be FALSE AS WRITTEN.
     # "Newly RED" means every FAIL row on the run is an I43/I44/I46 row, i.e. the run was GREEN
-    # before these three predicates existed. The other 16 archived runs are unaffected, as is the
-    # in-flight 18th dir. SCOPE CAVEAT, stated rather than
+    # before these three predicates existed. SCOPE CAVEAT, stated rather than
     # implied: the population is this repository's own `.wip/` archive and nothing else. Another
     # installation's archive is a different population and may yield a different figure — re-run the
-    # command below against it rather than assuming this number transfers. The honest claim is therefore: ZERO
-    # LEGITIMATELY-CLOSED archived runs are newly RED, and the only newly-RED run is the one this pipeline
-    # exists to repair, on exactly the defect class the predicate was commissioned to name. That is still a
-    # strong archive-safety property but a WEAKER one than "0", and stating "0" was a defect in those words:
-    # it rested an ungated arming decision on a number a reader who checked it would find false. The arming
-    # decision itself is unchanged; only the number is. Re-derive from the repo root with:
+    # command below against it rather than assuming this number transfers.
+    # THE NARROWER PROPERTY, WHICH HELD ALL ALONG AND IS NOW THE WHOLE STORY: ZERO LEGITIMATELY-CLOSED
+    # archived runs are newly RED. That clause was true when the figure was 1, because the one exception
+    # was not legitimately closed; it is true now because that run has since been closed.
+    # MUTABILITY, load-bearing for both forms: `.wip/` is gitignored (`.gitignore:7`) and carries NO
+    # version identity, so every figure here is a TIMESTAMPED SAMPLE, not a property of a commit — it has
+    # already moved once and will move again. Re-derive; do not inherit. Per DECISIONS#50 the cheap anchor
+    # that would make any such figure permanently checkable is `tar cf - .wip/<run-dir> | shasum -a 256`,
+    # which mtime-plus-file-count (a change DETECTOR, not an identity) is not.
+    # Re-derive from the repo root with:
     #   for d in .wip/*/; do o=$(python3 plugins/dag/skills/dag/scripts/validate_run.py "$d"); \
     #     n=$(printf '%s' "$o" | grep -cE '^ +FAIL +(I43|I44|I46) '); \
     #     t=$(printf '%s' "$o" | grep -cE '^ +FAIL +'); \
     #     [ "$n" -gt 0 ] && [ "$n" -eq "$t" ] && echo "NEWLY RED $d ($n rows)"; done
-    # (Measured 2026-07-29 at tree f575911 + this change: one line, `.wip/2026-07-29_090706_...` 8 rows.)
+    # (Measured 2026-07-29 at tree f575911 + that change: ONE line, `.wip/2026-07-29_090706_...` 8 rows.
+    #  Re-measured 2026-07-30 at tree 0db7b03 + this change: NO OUTPUT — the loop prints nothing, because
+    #  the waiver-driven re-verification above discharged the only member. An empty result here is the
+    #  CURRENT expected result; if you get a line, a run has regressed or a new run has archived dirty.
+    #  Corollary worth stating because a silent loop is indistinguishable from a broken one: confirm the
+    #  instrument by dropping the `[ "$n" -eq "$t" ]` conjunct, which then prints the 13 archived runs that
+    #  are RED from PRE-EXISTING, unrelated invariants — never green-washed by this release, and expected
+    #  version skew per references/state-machine.md §5, not defects.)
     # A >=1.12.0 gate was REJECTED because init_run.sh:161-163 stamps once at
     # scaffold and never refreshes, so it would not arm on the very run that authors the predicate.
     #
@@ -5947,12 +6002,17 @@ def main(argv=None):
     # interpolate into detail text, never for a decision. Measured: a status-keyed formulation newly REDs
     # 3 archived runs for cosmetic desync (e.g. 2026-07-05_143454's U09, labelled `executing` at DONE with
     # a complete, iteration-matched debrief+verify) while the artifact-keyed one newly REDs NO RUN FOR
-    # COSMETIC DESYNC and still catches all 3 real defects. Do not read that as "newly REDs zero runs" — an
-    # earlier revision of this comment did, and it was false: I44 newly REDs 1 archived run IN THIS
-    # REPOSITORY -- i.e. 1 of the 17 ARCHIVED runs; the 18th `.wip/` dir is the in-flight repair run, which
-    # the in-flight window carves out -- the repair target, on 3 REAL defects (corrected figure + command
-    # in the block headed `ARCHIVE-SAFETY FIGURE` above; `grep -n 'ARCHIVE-SAFETY FIGURE'` -> 2 hits, the
-    # heading itself and this citation of it, the heading being the FIRST).
+    # COSMETIC DESYNC and still catches all 3 real defects. THE FIGURE HERE IS DATED, AND THE ORDER OF
+    # THESE TWO SENTENCES IS THE CLAIM. Do not read this as the false absolute "newly REDs zero runs" — an
+    # earlier revision of this comment did assert that, and it was false when written. HISTORICALLY
+    # (2026-07-29): I44 newly REDded 1 archived run IN THIS REPOSITORY -- i.e. 1 of the 17 ARCHIVED runs;
+    # the 18th `.wip/` dir is the in-flight repair run, which the in-flight window carves out -- the repair
+    # target, on 3 REAL defects (arm d on U05/U07/U08). CURRENTLY (2026-07-30, tree 0db7b03): those 3 were
+    # discharged by the maintainer-waived re-verification (DECISIONS#44/#46), so I44 newly REDs NO archived
+    # run -- reached BY MEASUREMENT AFTER REPAIR, which is a receipt, and NOT the same claim as the
+    # unmeasured "zero" that was retracted. Full population, dates, direction and command in the block
+    # headed `ARCHIVE-SAFETY FIGURE` above; `grep -n 'ARCHIVE-SAFETY FIGURE'` -> 2 hits, the heading itself
+    # and this citation of it, the heading being the FIRST.
     # A stale label is a documentation defect and belongs to a separate NOTE — now shipped as N-I47 below.
     # NO PHASE CONDITION AND NO CARVE-OUT: the antecedent SIGNED_OFF is the exact negation of I43's
     # carve-out conjunct, so a carve-out here would be self-cancelling — and the motivating run rolled
