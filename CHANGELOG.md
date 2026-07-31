@@ -3,6 +3,25 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.16] — 2026-07-31
+
+- **`dag` 1.12.0 → 1.12.1 — doctrine retractions.** Five surfaces that still asserted
+  `init_run.sh` stamps `validator_version` once at scaffold time and never refreshes it now carry an
+  inserted retraction: `references/state-machine.md` (the shipped payload, which contradicted the
+  `validator_version` description shipped in `schemas/fsm-state.schema.json` by the same release),
+  both loci in `wiki/14-validator-and-invariants.md` (previously containing no retraction at all),
+  `wiki/15-artifacts-and-schemas.md`, and `CLAUDE.md`. Each states that `init_run.sh --restamp` shipped
+  in 1.12.0 as a **flag plus the orchestrator protocol that calls it**, and that an **automatic**
+  re-stamp on phase advance is **unbuilt**, not impossible.
+- **Retract by insertion.** Every false sentence is left standing verbatim with the retraction
+  appended, quoting the retracted clause **verbatim** rather than indicating it with a demonstrative —
+  zero lines removed at any of the five loci.
+- **`CLAUDE.md`'s merge procedure corrected in place**: `delete_branch_on_merge` is **disabled** on
+  this repository, so a merge requires an explicit `--delete-branch` and may need
+  `git remote prune origin` for a stale remote-tracking ref.
+- Documentation only — no predicate logic, arming, severity, scope or schema changes, so every
+  formal guarantee is **PRESERVED**.
+
 ## [1.0.15] — 2026-07-29
 
 - **`dag` 1.11.0 → 1.12.0 — verification currency.** Five offline post-hoc predicates so a run can

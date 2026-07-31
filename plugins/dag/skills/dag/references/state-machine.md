@@ -617,6 +617,26 @@ assuming this number transfers. A version gate at the shipping release was **rej
 would not arm on the run that authors the predicate. The arming decision is unchanged; only the
 number is.
 
+**RETRACTED BY INSERTION (U02; appended, never deleted — the sentence above stands verbatim).**
+Retracted is exactly the clause "`init_run.sh` stamps `validator_version` once at scaffold time and
+never refreshes it, so the gate would not arm on the run that authors the predicate", and **only**
+that clause: it is FALSE at this tree. What shipped in release **1.12.0** is the **flag**
+`init_run.sh --restamp <RUN_DIR>` **plus the orchestrator protocol in `SKILL.md` that invokes it**;
+an **automatic** re-stamp on phase advance is **UNBUILT** — nothing in the validator invokes the
+flag, so re-stamping is an opt-in protocol step, not a mechanized one. Re-derive rather than trusting
+this line: `grep -n restamp plugins/dag/skills/dag/scripts/init_run.sh` (dispatch at `:65`),
+`grep -n restamp plugins/dag/skills/dag/SKILL.md` (the calling protocol, `:76`),
+`python3 -c "import json;print(json.load(open('plugins/dag/.claude-plugin/plugin.json'))['version'])"`
+→ `1.12.0`, and `grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → `0`; the
+mechanism is stated at length in the `[1.12.0]` entry of `plugins/dag/CHANGELOG.md` (anchored by version rather than by line, because that file is append-only and any line range there rots at the next release). Because `--restamp` raises a live
+run's stamp to the current plugin version, a `>=1.12.0` gate **would** arm on the run that authors a
+predicate. **What is NOT retracted, named so that no demonstrative can over-scope onto it:** the
+surviving half of the same sentence — that a version gate at the shipping release was **rejected** —
+records a decision, which this insertion neither confirms nor disturbs; only the reason given for it
+is withdrawn. The next sentence, "The arming decision is unchanged; only the number is.", is TRUE, is
+**not** retracted, and the census figures in this section are untouched — none of them was ever
+version-gated.
+
 **The stamp census, PUBLISHED rather than merely deleted.** An earlier revision of this section
 published "**8** distinct `validator_version` stamps" in this archive. That figure is **unreproducible
 under every reading we could construct**, so it was deleted — but a deleted number leaves the next

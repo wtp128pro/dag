@@ -3,6 +3,32 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1] — 2026-07-31
+
+**Doctrine retractions — five surfaces that still asserted the stamp is never refreshed.**
+Documentation only. No predicate logic, arming, severity, scope or schema changes; no invariant
+is added, revised or removed, so every guarantee is **PRESERVED** verbatim.
+
+- **Retract by insertion, never by deletion.** Each false sentence is left standing verbatim and a
+  retraction is inserted after it, quoting the retracted clause **verbatim** rather than pointing at
+  it with a demonstrative, and explicitly exonerating any true neighbouring clause.
+- **`references/state-machine.md`** (the shipped payload) — the "a version gate at the shipping
+  release was **rejected** because `init_run.sh` stamps `validator_version` once at scaffold time and
+  never refreshes it" sentence now carries a retraction. It contradicted the `validator_version`
+  description shipped in `schemas/fsm-state.schema.json` by the same release.
+- **`wiki/14-validator-and-invariants.md`** — two retractions (the file previously contained none);
+  **`wiki/15-artifacts-and-schemas.md`** and **`CLAUDE.md`** — one each, the latter in a *completion*
+  register because that clause is incomplete rather than false.
+- **What each retraction states:** `init_run.sh --restamp <RUN_DIR>` shipped in **1.12.0** as a
+  **flag plus the orchestrator protocol that calls it**; an **automatic** re-stamp on phase advance
+  is **unbuilt**, not impossible. Nothing in the validator invokes `--restamp`.
+- **`CLAUDE.md` merge procedure corrected in place** — `delete_branch_on_merge` is **disabled**
+  (measured), so a merge needs an explicit `--delete-branch` and may need `git remote prune origin`.
+- Three cross-run learnings persisted to the project store (`L19`–`L21`).
+
+Zero lines removed at any of the five loci; the sole deletion in the release is the false
+merge-procedure sentence, corrected in place.
+
 ## [1.12.0] — 2026-07-29
 
 **Verification currency — a run can no longer end with verification open or superseded.**
