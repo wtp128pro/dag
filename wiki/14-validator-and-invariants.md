@@ -493,6 +493,17 @@ staleness once the run claims to be finished is not*, and `gates.signoff_confirm
   `0 problems` into `8`. The NOTE counts **suppressed arms, an upper bound on suppressed FAILs** (an armed
   clause may have passed) and says so in its own text; publishing the arm count as a failure count would be
   the wrong-mechanism defect.
+  **RETRACTED (by insertion — no line above is removed).** Retracted is exactly the clause "the stamp is
+  written once at scaffold time and never refreshed", and **only** that clause: its sibling — that this is
+  *how the run that authored `I41` was version-gated out of being judged by it* — is TRUE, is **not**
+  retracted, and remains the reason this NOTE exists. What shipped in release **1.12.0** is the flag
+  `init_run.sh --restamp <RUN_DIR>` **plus the orchestrator protocol in `SKILL.md` that calls it**; the
+  **automatic** re-stamp-on-phase-advance form is **UNBUILT**, so a stamp is refreshed when an orchestrator
+  runs the flag and never by the validator itself
+  (`grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → **0**). Measure the rest:
+  `grep -n restamp plugins/dag/skills/dag/scripts/init_run.sh` (dispatch at `:65`) and
+  `grep -n restamp plugins/dag/skills/dag/SKILL.md` (`:76`); the precise account of what did and did not
+  ship is [`CHANGELOG.md`](../plugins/dag/CHANGELOG.md) lines 48-51.
 - **I46 — non-converged PASS.** `converged: false` was **dead data** — read by nothing — so a verifier that
   honestly reported "I hit the `R_max = 3` round cap, coverage may be incomplete" under an aggregated `PASS`
   said so to no one. I46 reads it: NOTE below sign-off (a round-capped verifier is being honest, and
@@ -564,6 +575,20 @@ that wrote it. Re-derive instead of trusting a number —
 with the same pipeline minus `--quiet` as the control (what disappears was gated). The walk-through
 itself is
 [`state-machine.md` §5 "Verification currency"](../plugins/dag/skills/dag/references/state-machine.md).
+**RETRACTED — the rejected-version-gate rationale (by insertion; no line above is removed).** Retracted is
+exactly the clause "A version gate at the shipping release was rejected because it would (again) exempt the
+run that ships the invariant." — quoted across the line wrap it sits on — and **only** that clause. Its
+neighbour, that these arms are **ungated** by `validator_version`, is TRUE, is **not** retracted, and the
+un-gating still stands on its other stated grounds (exit-neutral rows over a named population). What shipped
+in release **1.12.0** is the flag `init_run.sh --restamp <RUN_DIR>` **plus the orchestrator protocol in
+`SKILL.md` that calls it**; the **automatic** re-stamp-on-phase-advance form is **UNBUILT**. So a run that
+re-stamps before sign-off *would* be armed by a `>= 1.12.0` gate: the exemption that clause treats as
+structural is now contingent on whether the orchestrator ran the flag, which is a weaker thing than the
+clause claims. Measure it: `grep -n restamp plugins/dag/skills/dag/scripts/init_run.sh` (dispatch at `:65`),
+`grep -n restamp plugins/dag/skills/dag/SKILL.md` (`:76`), and
+`grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → **0**, i.e. nothing in the validator
+invokes it; the precise account of what did and did not ship is
+[`CHANGELOG.md`](../plugins/dag/CHANGELOG.md) lines 48-51.
 
 **The honest boundary (Limitation AA).** These predicates make verification completeness **legible**, never
 **true**. A repair loop that bumps *both* iterations without actually re-verifying satisfies I43 exactly —

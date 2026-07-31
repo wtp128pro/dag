@@ -18,8 +18,10 @@ Every change to this repo lands through a pull request. The maintainer only ever
 - **When told to merge, do all of this in one go:** merge the PR → sync `main`
   (`git checkout main && git pull --ff-only`) → delete the merged branch → verify the merge commit
   is on `main`, the change is present, and the branch (remote **and** local) is gone.
-  (`delete_branch_on_merge` is enabled, so the remote branch auto-deletes — still confirm, and
-  remove the local branch.)
+  (`delete_branch_on_merge` is **disabled** on this repo — measured:
+  `gh api repos/wtp128pro/dag --jq .delete_branch_on_merge` → `false` — so **nothing auto-deletes**:
+  merge with an explicit `--delete-branch`, then remove the local branch yourself, and if a stale
+  remote-tracking ref survives, clear it with `git remote prune origin`.)
 - **Never bypass branch protection.** Do not use `--admin` or any bypass to force a merge; if a
   base-branch policy blocks the merge, surface it rather than working around it. (Ruleset gotcha:
   never add the `update` "restrict updates" rule with an empty bypass list — it silently blocks
@@ -71,6 +73,18 @@ failed it 7×). Archived `.wip/` runs are judged against their contemporaneous v
 findings on older/unstamped runs are **expected version-skew, not defects** (see
 `references/state-machine.md` §5 "Version-skew policy"; `fsm-state.json.validator_version` records which
 validator scaffolded each run).
+
+**Retracted in part — incomplete at this tree, not false.** The clause "`fsm-state.json.validator_version`
+records which validator scaffolded each run" still holds for any run on which `--restamp` was never
+invoked, but it no longer covers every case: the field records the validator that **scaffolded** the run
+**or** the one that **last re-stamped** it. `init_run.sh --restamp <RUN_DIR>` shipped in **1.12.0** as a
+**flag plus the orchestrator protocol that calls it** (the phase-advance step in `SKILL.md`); the
+**automatic** re-stamp-on-phase-advance form is **unbuilt** (precedent: the 1.12.0 entry in
+`plugins/dag/CHANGELOG.md`, which states it in exactly those terms). So re-stamping is opt-in and
+unenforced — measured: nothing in the validator executes `init_run.sh`
+(`grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → `0`), so no predicate checks
+whether a run re-stamped. Read an unrefreshed stamp as the scaffolding validator; read
+a refreshed one as the most recent `--restamp`, never as evidence the run was re-validated.
 
 ## Editing `plugins/dag/skills/dag/schemas/*.json` — re-run the normalizer's self-test
 `scripts/normalize_artifacts.py` hand-mirrors both artifact schemas (enums, closed-key sets,
