@@ -1,0 +1,19 @@
+{
+ "id": "L21",
+ "trigger": "A repair was applied to a debrief's `result` and `handoff_notes` and published as NEW evidence rows, while the PRE-EXISTING evidence_table rows kept the stale values — and two `changes_made` entries then asserted the fix had landed 'in the evidence_table row' and 'in all three places'. Cost U01 two extra iterations and a Phase-7 escalation.",
+ "lesson": "When an artifact carries both prose and a machine-readable extract of the same facts, a repair naturally lands in the prose and is published as a NEW extract row rather than amending the stale one — leaving two contradictory values with no supersession marker. The self-report is the compounding defect: a false claim about repair state is what stops the next reader re-checking, and two verifiers here reported skipping the check precisely because `changes_made` said it was done.",
+ "how_to_apply": "When a report says a value was corrected in N places, enumerate the OLD value BY VALUE across EVERY field of the artifact and check the report's arithmetic against that enumeration — never let a `changes_made` entry stand in for the check. A token-scoped probe under-counts where a value-scoped one finds more (here `init_run.sh:56` returned 3, `:56\\b` returned 12). Apply the same-syntactic-unit rule to your OWN artifact: a correction living in another section does not retract a stale assertion in situ.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "dag run 2026-07-30_194028_close-restamp-residuals: 7 units, 4 waves, 3 escalation-free retries plus one P7 escalation, 33 independent lens-verdicts across panels of 3 at depth tier standard. Shipped as PR #35 (commit 4ee439a), 4 files / 63 insertions / 2 deletions.",
+ "since_wave": 4,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

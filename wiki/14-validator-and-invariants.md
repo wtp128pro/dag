@@ -503,7 +503,7 @@ staleness once the run claims to be finished is not*, and `gates.signoff_confirm
   (`grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → **0**). Measure the rest:
   `grep -n restamp plugins/dag/skills/dag/scripts/init_run.sh` (dispatch at `:65`) and
   `grep -n restamp plugins/dag/skills/dag/SKILL.md` (`:76`); the precise account of what did and did not
-  ship is [`CHANGELOG.md`](../plugins/dag/CHANGELOG.md) lines 48-51.
+  ship is the `[1.12.0]` entry of [`CHANGELOG.md`](../plugins/dag/CHANGELOG.md), anchored by version rather than by line because that file is append-only.
 - **I46 — non-converged PASS.** `converged: false` was **dead data** — read by nothing — so a verifier that
   honestly reported "I hit the `R_max = 3` round cap, coverage may be incomplete" under an aggregated `PASS`
   said so to no one. I46 reads it: NOTE below sign-off (a round-capped verifier is being honest, and
@@ -588,7 +588,7 @@ clause claims. Measure it: `grep -n restamp plugins/dag/skills/dag/scripts/init_
 `grep -n restamp plugins/dag/skills/dag/SKILL.md` (`:76`), and
 `grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → **0**, i.e. nothing in the validator
 invokes it; the precise account of what did and did not ship is
-[`CHANGELOG.md`](../plugins/dag/CHANGELOG.md) lines 48-51.
+the `[1.12.0]` entry of [`CHANGELOG.md`](../plugins/dag/CHANGELOG.md), anchored by version rather than by line because that file is append-only.
 
 **The honest boundary (Limitation AA).** These predicates make verification completeness **legible**, never
 **true**. A repair loop that bumps *both* iterations without actually re-verifying satisfies I43 exactly —

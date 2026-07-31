@@ -206,7 +206,11 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.12.0** — **verification currency**: a run can no longer end with verification open
+Current version: **1.12.1** — **doctrine retractions**: five surfaces that still asserted the
+`validator_version` stamp is never refreshed now carry an inserted retraction (`init_run.sh --restamp`
+shipped in 1.12.0 as a flag plus the orchestrator protocol that calls it; the *automatic* form remains
+**unbuilt**). Documentation only — no predicate, schema or invariant changes. Previously, **1.12.0** —
+**verification currency**: a run can no longer end with verification open
 or superseded. Five new **offline post-hoc** predicates over emitted artifacts, none a live guard on any
 transition: **I43** (an executed unit's *aggregated* `verify.json` must adjudicate the iteration its
 debrief claims — `verify.iteration == debrief.iteration`, over four exhaustive arms, with an in-flight

@@ -1,0 +1,19 @@
+{
+ "id": "L19",
+ "trigger": "Three separate panels in one run returned a discrete-majority PASS carrying a dissenting lens's major defect (U01 iteration 1, U01 iteration 2, U07 iteration 2) — the L12 collision, which satisfies neither I16 nor I6 while DISAGREE is unavailable because a strict majority exists.",
+ "lesson": "L12's collision is not a rare corner: it recurred three times in a single run, and in ALL THREE the narrow re-poll flipped the untested lenses to FAIL rather than confirming the majority. A majority PASS over a dissent's major is therefore weak evidence of correctness — it usually means the other lenses never tested that axis, not that they weighed and rejected it.",
+ "how_to_apply": "Before treating a 2-1 PASS as settled, ASK each non-dissenting lens in writing whether it TESTED the disputed finding. If it did not, the narrow re-poll is legal under I41-4c and is usually decisive; if it did examine and decline, re-polling is vote-shopping and must not be done. Re-poll ONLY the untested lenses and ONLY about that finding, never the dissenter. Expect flips, and expect the re-polled lens to correct the dissent's framing while upholding its substance — that happened here and materially improved the repair brief.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "dag run 2026-07-30_194028_close-restamp-residuals: 7 units, 4 waves, 3 escalation-free retries plus one P7 escalation, 33 independent lens-verdicts across panels of 3 at depth tier standard. Shipped as PR #35 (commit 4ee439a), 4 files / 63 insertions / 2 deletions.",
+ "since_wave": 4,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

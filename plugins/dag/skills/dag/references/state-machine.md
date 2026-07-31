@@ -628,7 +628,7 @@ this line: `grep -n restamp plugins/dag/skills/dag/scripts/init_run.sh` (dispatc
 `grep -n restamp plugins/dag/skills/dag/SKILL.md` (the calling protocol, `:76`),
 `python3 -c "import json;print(json.load(open('plugins/dag/.claude-plugin/plugin.json'))['version'])"`
 → `1.12.0`, and `grep -c subprocess plugins/dag/skills/dag/scripts/validate_run.py` → `0`; the
-mechanism is stated at length in `plugins/dag/CHANGELOG.md:48-51`. Because `--restamp` raises a live
+mechanism is stated at length in the `[1.12.0]` entry of `plugins/dag/CHANGELOG.md` (anchored by version rather than by line, because that file is append-only and any line range there rots at the next release). Because `--restamp` raises a live
 run's stamp to the current plugin version, a `>=1.12.0` gate **would** arm on the run that authors a
 predicate. **What is NOT retracted, named so that no demonstrative can over-scope onto it:** the
 surviving half of the same sentence — that a version gate at the shipping release was **rejected** —

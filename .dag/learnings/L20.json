@@ -1,0 +1,19 @@
+{
+ "id": "L20",
+ "trigger": "A verifier's retrieval_coverage.owed_check row_refs were validated against the iteration-2 debrief, then stopped resolving when iteration 3 overwrote debrief.json IN PLACE. Panel members verify_p<N> are preserved per iteration by convention; the debriefs they adjudicate are not.",
+ "lesson": "The run directory preserves a per-iteration audit trail on the VERIFY side and none on the DEBRIEF side, so any verify artifact whose evidence cites debrief row INDICES becomes unresolvable the moment the next iteration lands. The asymmetry is invisible until a validator predicate dereferences those indices.",
+ "how_to_apply": "Snapshot the debrief per iteration the way panel members already are (debrief_i<N>.json) before a retry overwrites it. When a verify's row_refs go stale, do NOT re-point them at the new debrief — aiming an iteration-N verify at a debrief it never read fabricates coverage rather than repairing it; both affected lenses here identified that themselves and correctly declined. Record the supersession with mtime ordering instead, and prefer citing evidence by verbatim claim text over index.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "dag run 2026-07-30_194028_close-restamp-residuals: 7 units, 4 waves, 3 escalation-free retries plus one P7 escalation, 33 independent lens-verdicts across panels of 3 at depth tier standard. Shipped as PR #35 (commit 4ee439a), 4 files / 63 insertions / 2 deletions.",
+ "since_wave": 4,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}
