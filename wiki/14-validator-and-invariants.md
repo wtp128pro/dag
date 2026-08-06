@@ -9,7 +9,7 @@ locator this revision *touched* is a line number **plus a quoted anchor**, e.g.
 grep-resolved to the cited line at writing time. The anchor is the ground truth and the number is a
 convenience: when the file shifts, the number rots and the anchor still finds the code, so a reader
 can detect drift without trusting the number. Every *other* locator on this page is a bare
-`path:line` citation written against the **1.11.0** tree (the tree is now **1.12.1**), left
+`path:line` citation written against the **1.11.0** tree (the tree is now **1.13.0**), left
 untouched on purpose — those numbers are known, counted, corpus-wide pre-existing drift whose repair
 is separately sized work, and a silent partial repair would make the remainder harder to find.
 **Treat a bare number as unverified**; the wiki's rule that an unresolved locator is a defect applies
@@ -643,13 +643,15 @@ frozen entry can be dropped, re-worded after the fact, answered at a weaker tier
 implies, or marked green by a counterfactual that was never run. I48 makes each of those failures a
 report row.
 
-**It arms on ZERO runs today, and that is deliberate.** The gate is the run's own
+**It armed on ZERO runs when it was written, and arms from `1.13.0` onward.** The gate is the run's own
 `fsm-state.json.validator_version` reaching `1.13.0`
 (`plugins/dag/skills/dag/scripts/validate_run.py:6436`, anchor *"release shipping I48; validator_version >= this arms T1"*), compared with the same proper-semver
-helper `I41` uses. The current release stamp is **1.12.1** — the gate sits *above* it on purpose
-(`plugins/dag/skills/dag/scripts/validate_run.py:6432`, anchor *"is deliberately ABOVE 1.12.1 — the current release stamp"*), so the arm fires on **no archived run
-and on no run scaffolded by a validator that predates the contract**, including the run that
-authored it. The suppression is not silent: the block registers the gate with the same
+helper `I41` uses. The release stamp was **1.12.1** when the gate was written and the gate was set
+*above* it on purpose (`plugins/dag/skills/dag/scripts/validate_run.py:6432`, anchor *"is deliberately ABOVE 1.12.1 — the current release stamp"* — that
+comment is now **historical**: **1.13.0** shipped the contract and the stamp has caught up to the
+gate). So the arm fires on **no archived run and on no run scaffolded by a validator that predates
+the contract**, including the run that authored it — and **does** fire on any run scaffolded or
+`--restamp`ed at `1.13.0` or above. The suppression is not silent: the block registers the gate with the same
 `_skew_record` companion every other version-gated arm uses, so **N-I45** counts `I48-T1` among the
 arms this run's stamp suppressed while their other preconditions held — which is exactly how the
 already-shipped fixtures observe it (`i45_no_skew_overfire` and `i45_g2prime_no_struct` in
@@ -942,8 +944,9 @@ with I16, and **I/J/K** with Bounded Graph Amendments.)
   the observations that matter — the list is authored by the same orchestrator that authored the
   requirement, so a one-line forbidden list discharges exactly as green as a ten-line one. **Never
   read "fully discharged" as "adequately checked."** And the one every reader of this page should
-  carry: **the predicate arms on no run at this release** (§4.7), so the whole entry is a statement
-  about a future the catalog has declared, not about work the archive has been judged against. Full
+  carry: **the predicate armed on no run at the release that authored it and arms from `1.13.0`
+  onward** (§4.7), so the whole entry is a statement about runs stamped `1.13.0` or above, not about
+  work the archive has been judged against. Full
   statement with its five sub-boundaries:
   `plugins/dag/skills/dag/references/state-machine.md:545`, anchor *"Case-set coverage is made LEGIBLE, never ADEQUATE"*.
 

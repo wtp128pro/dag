@@ -14,9 +14,10 @@ absent. Because the only difference between the two runs is the one mutation, a 
 RED then GREEN pins ITS clause and not something incidental; the mutation diff is printed with
 `--diff <id>` so the "exactly one thing changed" claim is checkable, not asserted.
 
-Every fixture's base run stamps `validator_version: 1.13.0` — the I48 arm (`_I48_SHIP`) sits
-ABOVE the 1.12.1 release stamp, so an unstamped or archived run does not arm and no existing
-fixture's verdict can move.
+Every fixture's base run stamps `validator_version: 1.13.0` — the I48 arm (`_I48_SHIP`) was set
+ABOVE the 1.12.1 stamp current when these fixtures were written, and 1.13.0 shipped the contract, so
+the gate now sits AT the release stamp. An unstamped or archived run still does not arm and no
+existing fixture's verdict can move.
 
 USAGE
   python3 i48_clause_matrix.py --clauses     # enumerate enforced clauses from SOURCE

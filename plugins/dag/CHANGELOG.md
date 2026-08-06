@@ -40,8 +40,13 @@ statement saying what would have made the row go red.
 - **A widening published as one.** Both observation-list loci are guarded against the
   iterate-over-`.get()` crash class: a non-array `required_observations` / `forbidden_observations`
   now yields a naming row and a real `RESULT:` line from **both** origins instead of an uncaught
-  `TypeError`. Previously the falsy container values (`0`, `False`, `''`, `{}`, `0.0`) produced a
-  misdiagnosing row whenever `non_vacuity[]` named the lost observations.
+  `TypeError`. **Where the "previously" lives:** within *this* release. At 1.12.1 neither locus
+  existed (`git show f547aef:plugins/dag/skills/dag/schemas/brief.schema.json | grep -c case_set` ->
+  `0`), so this is **not** a change from 1.12.1; the two loci first shipped *on this branch* a
+  `list(x or [])` form that misdiagnosed the falsy container values (`0`, `False`, `''`, `{}`,
+  `0.0`) whenever `non_vacuity[]` named the lost observations, and the shipped form reports the
+  malformed field by name instead.
+- **The crash class is NOT closed by this release — the gross.** The same change **ADDED four** sites of that class and **CLOSED two**; **two survive**, at `validate_run.py:6698` and `:6705`, inside the very block this release arms — and the first is a **live abort**: a `1.13.0`-stamped run whose `brief.acceptance_criteria` is not an array now exits 1 with **no** `RESULT:` line, where 1.12.1 reported `RESULT: FAIL`. Census over the class, measured against this run's BASE commit and not against HEAD (`scripts/tests/i48_crash_class.py --census --file <copy>`): `f547aef` **190** -> `4fb475d` **194** -> `c9e5571` **192** -> HEAD **192**. Published as the **gross**, not the net `+2`. Open, recorded as `.dag/learnings/L27` and `L29`; the repair is a separate change.
 - **Test harness.** `scripts/tests/i48_clause_matrix.py` (per-clause matrix and behaviour arms) and
   `scripts/tests/i48_crash_class.py` (whole-file census, survivors, provenance) ship and are invoked
   by `run_tests.sh`; three counterfactual run-dir fixtures (`i48_counterfactual_fires`,
@@ -58,7 +63,11 @@ statement saying what would have made the row go red.
   legibility** — a check that cannot go red, or cannot go green without a forbidden move, becomes
   *stateable* in the artifact. Whether a case set is complete or adequate stays unaddressed, and
   cross-unit blindness stays open (`Limitation AC` boundary (iv), `.dag/learnings/L29.json`).
-- Nine cross-run learnings persisted to the project store (`L22`–`L30`).
+- Nine cross-run learnings persisted to the project store (`L22`–`L30`). **Eight** of them
+  (`L22`–`L28`, `L30`) were carried over verbatim from the authoring run's ledger, each validated
+  against `learnings.schema.json` **before** write into a slot verified free against
+  `git show HEAD:`. The ninth, `L29`, was authored earlier in the same run directly into the
+  store; it was **verified present by sha256, not written or pre-validated here**.
 
 ## [1.12.1] — 2026-07-31
 

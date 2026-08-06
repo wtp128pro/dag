@@ -249,8 +249,10 @@ the frozen keys on an orchestrator row, the `vacuity_finding` ⇔ `vacuous` bico
 evidence-tier floor, the locator-form FAILs, per-observation totality, and the routing rule of §6.1
 (`plugins/dag/skills/dag/references/state-machine.md:236`, anchor *"I48 case-set contract"*). It adds no
 state, no edge, no gate flag, and never guards `LT7` — so Claims A–D and AO-1..7 are **PRESERVED**. It is
-**version-gated above the current release stamp**, which means it arms on *zero* archived runs; the
-suppressed arm is shadow-counted rather than silently skipped.
+**version-gated at `validator_version >= 1.13.0`** — the stamp this release ships — which means it
+arms on *zero* archived runs (each stamped below the gate) while arming on any run scaffolded or
+`--restamp`ed at `1.13.0` or above; where the gate does suppress it, the suppressed arm is
+shadow-counted rather than silently skipped.
 
 ---
 

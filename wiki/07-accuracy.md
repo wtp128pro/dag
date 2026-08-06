@@ -257,7 +257,7 @@ verbatim from [`state-machine.md` §5](../plugins/dag/skills/dag/references/stat
 | **I33** | **RL-3** premise extraction — a design-judgment row carries `extracted_premises` (or an explicit none-reason) (post-hoc offline) |
 | **I34** | **CO-1** per-entry owed coverage — every entry of a non-empty `claims_owed` is covered per-entry; one row cannot discharge two subjects (post-hoc offline) |
 | **I-dod** | Definition-of-Done + Non-Goals present once any post-clarification structural artifact exists (fail-closed even if `clarifications.json` absent) |
-| **I48** | **Case-set contract** — brief-side `case_set` shape/totality, debrief-side `case_set_discharge` rows, verify-side `case_set_audit`; the evidence floor is a total function of `check_form` (`{command: executable, locator: located}`), so an `asserted` tier is **always** a shortfall. **Version-gated at 1.13.0** and therefore not armed at today's 1.12.1 stamp (post-hoc offline) |
+| **I48** | **Case-set contract** — brief-side `case_set` shape/totality, debrief-side `case_set_discharge` rows, verify-side `case_set_audit`; the evidence floor is a total function of `check_form` (`{command: executable, locator: located}`), so an `asserted` tier is **always** a shortfall. **Version-gated at 1.13.0** — the stamp this release ships — so it is armed for runs stamped 1.13.0 or above and inert on every archived run below it (post-hoc offline) |
 | (attestation) | The `premise_check` attestation: `counter_reran_independently==true`, PASS rejected if `is_load_bearing==false`; gate-ordering of `phase` vs `gates` |
 
 *(The 1.8.0 guardrail/clarification family **I20–I25** — per-unit DoD/non-goal binding,

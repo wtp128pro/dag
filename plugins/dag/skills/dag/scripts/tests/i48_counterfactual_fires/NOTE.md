@@ -17,8 +17,11 @@ version gate and to nothing else.
 
 ## Why `_suppressed` and `_green` are BOTH needed
 
-`_I48_SHIP = "1.13.0"` sits deliberately **above** this repo's real `1.12.1` release stamp
-(`validate_run.py`, the VERSION GATE comment), so the arm fires on **zero** archived runs. That is
+`_I48_SHIP = "1.13.0"` was set deliberately **above** the `1.12.1` stamp this repo carried when
+this fixture was written (`validate_run.py`, the VERSION GATE comment); **1.13.0 shipped the
+contract**, so the stamp has caught up to the gate. The arm still fires on **zero** archived runs —
+every one of them is stamped below `1.13.0` — but it **is** armed for any run scaffolded or
+`--restamp`ed at `1.13.0` or above. That is
 the archive-safety mechanism — and it is also the trap: **a suppressed arm produces exactly the same
 `RESULT: PASS` as a correct run.** Four measurement attempts in the authoring run were voided by
 reading a 1.12.1 green as evidence.

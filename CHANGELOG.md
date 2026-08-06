@@ -24,7 +24,12 @@ Individual plugins also maintain their own changelogs.
 - **No detection benefit is claimed and none was measured** — the archive shows no measured gain of
   that kind. The claim is consistency and legibility. Completeness or adequacy of a case set, and
   cross-unit blindness, stay open (`Limitation AC` boundary (iv)).
-- Nine cross-run learnings persisted to the project store (`.dag/learnings/L22`–`L30`).
+- **The iterate-over-`.get()` crash class is NOT closed by this release.** The same change **ADDED four** sites of that class and **CLOSED two**; **two survive**, at `validate_run.py:6698` and `:6705`, inside the very block this release arms — and the first is a **live abort**: a `1.13.0`-stamped run whose `brief.acceptance_criteria` is not an array now exits 1 with **no** `RESULT:` line, where 1.12.1 reported `RESULT: FAIL`. Census over the class, measured against this run's BASE commit and not against HEAD (`scripts/tests/i48_crash_class.py --census --file <copy>`): `f547aef` **190** -> `4fb475d` **194** -> `c9e5571` **192** -> HEAD **192**. Published as the **gross**, not the net `+2`. Open, recorded as `.dag/learnings/L27` and `L29`; the repair is a separate change.
+- Nine cross-run learnings persisted to the project store (`.dag/learnings/L22`–`L30`). **Eight**
+  (`L22`–`L28`, `L30`) were carried over verbatim from the authoring run's ledger, each validated
+  against `learnings.schema.json` before write into a slot verified free against `git show HEAD:`;
+  the ninth, `L29`, was authored earlier in the same run directly into the store and was verified
+  present by sha256 rather than written or pre-validated here.
 
 ## [1.0.16] — 2026-07-31
 
