@@ -17,9 +17,22 @@ Four predicates over units/U29/debrief.json:
 """
 import json, re, sys, os
 
-DEF = ("/Users/mborodia/Developer/dag/.wip/2026-08-02_235310_independent-test-authorship/"
-       "units/U29/debrief.json")
-path = sys.argv[1] if len(sys.argv) > 1 else DEF
+# PORTABILITY (U17/C5). This instrument used to DEFAULT to an absolute path inside one
+# particular checkout, under the gitignored working-run tree. That default was worse than
+# unhelpful: run from a clone it read the ORIGINAL repository and reported on a file the
+# clone did not contain, so it could return a green that said nothing about the tree it
+# was invoked in. There is no correct default here — the subject is a run artifact, the
+# working-run tree is gitignored, and no clone contains one. So the path is REQUIRED, and
+# its absence is UNMEASURED (rc 2), never a pass. The other u29_* fixtures need a repo
+# root and derive it from __file__; this one needs no root at all, only its argument.
+if len(sys.argv) < 2:
+    print("RESULT: UNMEASURED (no debrief path given)")
+    print("  usage: u29_baseline_check.py <path-to-units/U29/debrief.json>")
+    sys.exit(2)
+path = sys.argv[1]
+if not os.path.exists(path):
+    print("RESULT: UNMEASURED (no such debrief: %s)" % path)
+    sys.exit(2)
 blob = open(path).read()
 
 P = [

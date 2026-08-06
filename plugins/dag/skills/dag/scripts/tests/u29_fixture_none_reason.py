@@ -21,7 +21,11 @@ brief.schema.json and is NOT version-gated.
 """
 import json, sys, copy, subprocess, os
 
-REPO = "/Users/mborodia/Developer/dag"
+# PORTABILITY (U17/C5): root derived from __file__, never hard-coded. A hard-coded REPO
+# made this fixture read the ORIGINAL repository from inside a clone: deleting the clone's
+# schemas/ still returned rc 0, because the clone was never touched at all.
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    *([os.pardir] * 6)))
 SCHEMAS = os.path.join(REPO, "plugins/dag/skills/dag/schemas")
 assert os.path.isdir(SCHEMAS), SCHEMAS
 BRIEF_SCHEMA = os.path.join(SCHEMAS, "brief.schema.json")
@@ -34,8 +38,8 @@ GREEN_REASON = ("Searched this brief's acceptance_criteria[] and the clarificati
 from jsonschema import Draft202012Validator
 
 schema = json.load(open(BRIEF_SCHEMA))
-base = json.load(open("/Users/mborodia/Developer/dag/plugins/dag/skills/dag/scripts/"
-                      "tests/good/units/U01/brief.json"))
+base = json.load(open(os.path.join(REPO, "plugins/dag/skills/dag/scripts",
+                                   "tests/good/units/U01/brief.json")))
 base["case_set"] = []
 
 def arm(name, reason):

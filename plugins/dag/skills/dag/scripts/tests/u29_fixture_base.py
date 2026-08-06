@@ -3,7 +3,10 @@
 and a case_set_discharge, built from tests/good (which is register-EMPTY)."""
 import json, os, shutil, copy
 
-REPO = "/Users/mborodia/Developer/dag"
+# PORTABILITY (U17/C5): root derived from __file__, never hard-coded. This file sits at
+# <REPO>/plugins/dag/skills/dag/scripts/tests/, i.e. six levels below the repo root.
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    *([os.pardir] * 6)))
 GOOD = os.path.join(REPO, "plugins/dag/skills/dag/scripts/tests/good")
 SCHEMAS = os.path.join(REPO, "plugins/dag/skills/dag/schemas")
 assert os.path.isdir(SCHEMAS), SCHEMAS
