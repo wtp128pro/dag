@@ -3,6 +3,63 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] — 2026-08-06
+
+**The frozen case-set contract (`I48`).** A brief may now freeze a `case_set[]` — named checks, each
+with the observations it must be able to make and the observations it forbids — and a debrief must
+discharge every one of them back, row for row, with an `outcome`, its `evidence`, and a `non_vacuity`
+statement saying what would have made the row go red.
+
+- **Guarantee classification.** The correction-loop termination proof and **AO-1..7** are
+  **PRESERVED**: `I48` is an *offline, post-hoc* predicate over emitted artifacts and adds no live
+  guard to any transition — in particular none to `LT7 (RETRY→EXECUTE)`, the correction loop's sole
+  back-edge, so Claim D is untouched. **I1..I47** are **PRESERVED** verbatim; none is rewritten,
+  re-armed or re-scoped. The invariant *set* is **REVISED** by the addition of `I48`.
+  **Migration argument for that revision:** `I48` is gated on
+  `fsm-state.validator_version >= 1.13.0`, deliberately above the `1.12.1` release stamp, so it arms
+  on **zero** archived runs and on no run scaffolded by a validator predating the contract; the
+  suppressed arm is counted by the exit-neutral `N-I45` skew NOTE through the
+  `_skew_record('I48-T1', ...)` companion that `spec_check`'s **SC8** requires. A run that predates
+  the contract therefore keeps exactly the verdict it had.
+- **Eight clauses.** `I48-1` absence of `case_set[]` on a gated run with no non-blank
+  `case_set_none_reason` is a hard FAIL, not an advisory NOTE; `I48-2` §3.3 totality in both
+  directions plus the duplicate rule; `I48-3` the forbidden second copy of all **ten** brief-owned
+  keys on an `origin: "orchestrator"` row; `I48-4` the `vacuity_finding` ⇔ `outcome == "vacuous"`
+  biconditional, both arms; `I48-5` `tier_shortfall` against the floor derived from the governing
+  entry's `check_form` (`{command: executable, locator: located}`); `I48-6` the locator FAILs — the
+  `executable` cap and the `path:line` shape; `I48-7` per-observation totality, scoped to discharged
+  rows and cross-artifact, plus the command-form not-run FAIL; `I48-8` routing of adequacy findings
+  into the existing `verify.defects[]`, including the FAIL for a defect filed under a case id rather
+  than a verbatim acceptance criterion.
+- **Schemas.** `brief.schema.json` gains `case_set[]` and its explicit-none content bar;
+  `debrief.schema.json` gains `case_set_discharge[]`; `verify.schema.json` gains the adequacy-finding
+  route. All three additions are **optional** at the schema layer, so an artifact written against
+  1.12.x stays schema-valid — the obligation arrives only with the version gate.
+  `scripts/normalize_artifacts.py` mirrors both artifact schemas by hand and was updated in the same
+  change; `--self-test` exits 0.
+- **A widening published as one.** Both observation-list loci are guarded against the
+  iterate-over-`.get()` crash class: a non-array `required_observations` / `forbidden_observations`
+  now yields a naming row and a real `RESULT:` line from **both** origins instead of an uncaught
+  `TypeError`. Previously the falsy container values (`0`, `False`, `''`, `{}`, `0.0`) produced a
+  misdiagnosing row whenever `non_vacuity[]` named the lost observations.
+- **Test harness.** `scripts/tests/i48_clause_matrix.py` (per-clause matrix and behaviour arms) and
+  `scripts/tests/i48_crash_class.py` (whole-file census, survivors, provenance) ship and are invoked
+  by `run_tests.sh`; three counterfactual run-dir fixtures (`i48_counterfactual_fires`,
+  `..._green`, `..._suppressed`) and their `expectations.tsv` rows ship with them. `U29`'s four
+  standalone fixtures (`u29_fixture_none_reason.py`, `u29_fixture_tuple.py`, `u29_fixture_base.py`,
+  `u29_baseline_check.py`) ship under `scripts/tests/` and are **not** wired into
+  `expectations.tsv` — adding a row there is the move that changes what `run_tests.sh` executes, and
+  no pipeline behaviour change was in scope.
+- **Doctrine.** `SKILL.md`, `references/state-machine.md` (including `Limitation AC`, which records
+  what the contract does *not* close), `references/orchestrator-conduct.md`, the three artifact
+  templates and the wiki pages carry the contract. `CLAUDE.md` gains the case-set authoring section.
+- **What is not claimed.** No improvement in finding defects is claimed here, and none was measured:
+  the archive shows no measured gain of that kind. The defensible claim is **consistency and
+  legibility** — a check that cannot go red, or cannot go green without a forbidden move, becomes
+  *stateable* in the artifact. Whether a case set is complete or adequate stays unaddressed, and
+  cross-unit blindness stays open (`Limitation AC` boundary (iv), `.dag/learnings/L29.json`).
+- Nine cross-run learnings persisted to the project store (`L22`–`L30`).
+
 ## [1.12.1] — 2026-07-31
 
 **Doctrine retractions — five surfaces that still asserted the stamp is never refreshed.**

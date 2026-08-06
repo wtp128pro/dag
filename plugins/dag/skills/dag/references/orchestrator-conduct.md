@@ -459,8 +459,8 @@ them instead of re-deriving them:
 ---
 
 **Provenance of the "checked against" column.** Every `file:line` above was re-opened at this
-iteration and confirmed to contain the text its anchor phrase quotes; the 16 `SKILL.md` locators were
-re-derived from their anchor phrases against a `SKILL.md` of **989 lines** (`wc -l`, run twice with
+iteration and confirmed to contain the text its anchor phrase quotes; the 17 `SKILL.md` locators were
+re-derived from their anchor phrases against a `SKILL.md` of **1201 lines** (`wc -l`, run twice with
 an identical result to confirm the file was not mid-edit). The four **ABSENT** verdicts rest on a
 search rather than on a weaker sentence.
 

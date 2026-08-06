@@ -1,0 +1,19 @@
+{
+ "id": "L24",
+ "trigger": "Measured across three waves by the units themselves: TEN of THIRTEEN case_set checks authored by the orchestrator were VACUOUS — U26 3/3, U25 4/4, U27 2/2, and U24 1 of 4 (it discharged the other three). *** COUNT CORRECTED IN SITU: this entry originally read \"TEN of ten ... U24 1/1\", which was FALSE — it counted U24's single vacuous check as its whole frozen set and silently dropped the three it discharged. Caught by U27's guardrail lens, re-measured from the four debriefs: 13 frozen, 10 vacuous. The lesson is unchanged and if anything better supported — a 77% vacuity rate across four units is the finding, and inflating it to 100% was the same asserted-not-measured defect the entry is about. *** — each recorded `vacuous` with a counterfactual that came back green. The failure survived an explicit correction: after DECISIONS#D22 committed the orchestrator to falsifying every check before freezing it, the very next check (U25's C4) was DEMONSTRATED falsifiable against one mutant and was still vacuous against another — a silent-skip guard removes the AST pattern the probe looks for, so the probe goes green without the property holding.",
+ "lesson": "An orchestrator deriving a check from a criterion writes something that DESCRIBES the property, and description is not detection. The recurring shape is a command whose exit status is constant — a pipeline ending in `head`/`tail`, a bare `sed -n`, a `grep -c` whose count is read by a human rather than by the shell — so the check reports and never fails. Demonstrating falsifiability against ONE mutant does not establish it: the mutant must be the one the check exists to catch, and a proxy check (an AST probe standing in for a behaviour) can be defeated by a repair that changes the proxy without changing the behaviour.",
+ "how_to_apply": "Derive the check from the FAILURE, not from the property: write the input that makes the criterion false FIRST, then write the command that goes non-zero on it, then confirm it goes zero on the real input. Reject at derivation any command-form check whose exit status cannot vary — pipelines ending in `head`/`tail`, bare `sed -n`, and any `print-then-eyeball` form. Where a check is a PROXY for a behaviour, falsify it against the repair that would defeat the proxy (a silent skip), not merely against the defect. And prefer a locator-form check honestly capped at `located` over a command-form check that cannot fail — the contract admits it, and a truthful `not-run` beats a green that means nothing.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "units/U26/debrief.json (C1-C3 vacuous, confirmed by two lenses which strengthened it: `wc -l` exits 0 even on an EMPTY file); units/U24/debrief.json (C1's `| head -40`); units/U25/debrief.json (C1/C3 `| tail`/`| head`, C2's `grep -c` returning 0 with two recorders present, C4's AST proxy green against a silent-skip mutant); units/U27/debrief.json (C1 head-pipeline, C2 bare `sed -n` — the two forms SKILL.md:681-683 now names invalid); DECISIONS.md#D22 (the standing correction that did not hold).",
+ "since_wave": 6,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

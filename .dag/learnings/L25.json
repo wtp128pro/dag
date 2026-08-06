@@ -1,0 +1,19 @@
+{
+ "id": "L25",
+ "trigger": "Wave 6, measured by U13 and confirmed by the orchestrator reading its own source. Two of U13's four frozen case_set checks came back `violated` and NEITHER was vacuous — both CAN fail and both DID. They were UNSATISFIABLE: narrower than the convention they policed, so the only paths to green were moves their own forbidden_observations barred. C1 (tools/anchor_check.py) tests `start not in hits` at line 93 and DISCARDS the range end captured at line 79, so a ranged citation whose anchor sits on the SECOND line of its span scores STALE even when correct; the only way to green was shifting `SKILL.md:584-585` to `585-586`, which is C1's own forbidden observation 'a locator re-stamped to a number the anchor phrase does not actually occupy'. C2 asserted parsed == raw over a parser DISCLOSED to under-parse, so the only way to green was deleting a locator, which C2 itself forbids. U13 declined both and reported `violated` rather than buying a green — the correct conduct, and the reason this was caught.",
+ "lesson": "An orchestrator-derived check has a THIRD failure mode beyond L24's vacuity, and it is the mirror image: not a check that CANNOT fail, but one that cannot PASS. An UNSATISFIABLE check is narrower than the convention it polices, so a correct artifact scores red and the only routes to green are exactly the ones the check forbids. It is more dangerous than a vacuous check because it inverts the incentive: vacuity merely fails to detect, whereas unsatisfiability actively PAYS the executor to damage a correct artifact, and a compliant executor's reward for refusing is a red row against its own unit. Both modes share one root — the check was derived from the orchestrator's MENTAL MODEL of the convention rather than from the convention as practised in the artifact.",
+ "how_to_apply": "Falsify every command-form check in BOTH directions before freezing it. L24 already requires the failure direction: construct the input that makes the criterion false and confirm the check goes non-zero. This entry adds the PASS direction: run the check against the artifact AS IT ALREADY EXISTS, or against a hand-built correct instance, and confirm it can reach zero WITHOUT any move the check's own forbidden_observations bar. If the only green requires a forbidden move, the check is unsatisfiable — fix the check, not the artifact. Where a check is derived from a citation or formatting convention, read the convention off the ARTIFACT (its own documented form plus untouched precedent), never off the orchestrator's summary of it. And when an executor reports `violated` while declining a forbidden move, treat that as evidence about the CHECK before treating it as evidence about the work.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "Orchestrator, from source, independent of the executor's claim: `grep -n 'start not in hits' tools/anchor_check.py` -> line 93; the range end is captured at line 79 (`m.group(2)`) and never used. U13, measured: 3 of the 5 residual C1 rows fail ONLY on the first-line test (doc:155 and doc:174 at `SKILL.md:584-585` where the anchor resolves at 585; doc:293 at `227-228` where it resolves at 228); the other 2 are the parser artefacts the instrument's own docstring predicts. C2: `parsed 15 raw 19`, unreachable without deletion. U13's replacement instrument `units/U13/anchor_span_check.py` tests span CONTAINMENT and returns rc 0 on the same file (`raw 19 | anchored+checked 17 | resolving inside cited span: 17 | stale: 0`), falsified three ways (true -> 0, off-by-one -> 1, empty -> 2). CONTRAST establishing this is a NEW mode, not L24 again: both checks are genuinely falsifiable — C1 returned rc 1 on the stale tree and rc 0 on a repaired synthetic during pre-freeze falsification — so neither is vacuous.",
+ "since_wave": 7,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

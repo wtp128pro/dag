@@ -1,0 +1,19 @@
+{
+ "id": "L26",
+ "trigger": "Wave 6, measured across four units. Of 15 orchestrator-frozen case_set checks, 8 came back vacuous or violated (53%). The diagnosis U11 wrote is the general one: 'each command-form check was live on the direction its command inspects and dead on the direction it does not.' U11's C2 is live on locator RESOLUTION (two mutants red) and green on its own forbidden observation, a bare locator ADDED on a touched line, because the exit status quantifies only over locators the parser parsed and a bare one is never parsed. U11's C3 is live on the added-bare-locator arm and green when a pre-existing untouched locator is SILENTLY REPAIRED - the act its forbidden_observations[0] names - because it reads only ADDED lines and cannot see the leave-alone direction at all. U18's C1 asks that BOTH registration sites outside validate_run.py be shown to carry the entry, but its command runs only spec_check, which opens references/state-machine.md at exactly one site (line 416) consumed by SC2's transition check, never for the I48 row.",
+ "lesson": "A criterion with two directions needs two checks. The recurring orchestrator failure is not that a check is weak but that ONE check is frozen against a TWO-DIRECTIONAL obligation - do X and do not do Y - whereupon it is genuinely live on the direction its command inspects and structurally blind on the other, while its forbidden_observations list quietly asserts coverage of both. This is NOT a new rule: brief.schema.json's COVERAGE RULE (SPEC 2.1.1, normative) already says the check MUST be able to observe EVERY item of required_observations AND of forbidden_observations, and that an entry whose single check cannot reach all of them MUST be SPLIT. The schema also states plainly that the rule 'is discipline - no offline predicate evaluates it.' So the finding is not a gap in the contract; it is the orchestrator repeatedly violating a normative rule the contract already carries, in the one place the contract cannot enforce it.",
+ "how_to_apply": "At derivation, read each entry's forbidden_observations back against its check ONE AT A TIME and ask: can THIS command observe THIS item? Any item the command cannot reach means the entry MUST be split, per the coverage rule already in the schema. The reliable smell is a forbidden observation about an act of OMISSION or of LEAVING SOMETHING ALONE paired with a command that inspects only what CHANGED - a diff-scoped check cannot see the leave-alone direction, ever. Where a criterion names two registries, two directions, or an act plus its complement, budget two entries before writing either. And prefer splitting to strengthening: a second honest narrow check beats one check whose observation list overstates its reach.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "Orchestrator tally over the four wave-6 debriefs on disk, by origin=='orchestrator' rows: U11 4 frozen / 3 defective (C2, C3, C4 vacuous); U13 4/2 (C1, C2 violated-unsatisfiable, L25); U18 4/2 (C2, C4 vacuous) plus C1 coverage-violating but recorded discharged; U28 3/1 (C3 vacuous). 15 frozen, 8 defective = 53%. Coverage-rule text verified verbatim from plugins/dag/skills/dag/schemas/brief.schema.json properties.case_set.items.properties.check.description. U18's C1 blindness verified by the orchestrator: grep -n 'state-machine' spec_check.py returns exactly one line (416), and the nearest preceding SC marker is SC2's fsm back_edge assertion, so no spec_check arm reads the I48 row.",
+ "since_wave": 7,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "id": "L30",
+ "trigger": "Wave 8. The orchestrator found U32's AC3 vacuous - it named `git status --porcelain .wip/` as its verification while .gitignore:7 excludes /.wip/, proved it with a probe line an archived PLAN.md, and REPLACED the criterion with a content-addressed sha256 manifest captured BEFORE and re-compared AFTER, explicitly adding 'and a deliberate mutation is shown to make the manifest go RED, so the new check is not vacuous either'. It then froze a case_set command that HASHES EVERYTHING INTO A DICT AND DISCARDS IT: one invocation, no second capture, no comparison, `sys.exit(2 if not m else 0)`. U32 measured it - run at a replica root before and after mutating an archived file it printed `files hashed: 1` / rc 0 BOTH TIMES, byte-identical - and recorded C3 vacuous. Reproduced by the orchestrator on a scratch copy: identical output and rc 0 across a real mutation. The repaired criterion was right; the command implementing it was the same disease one layer down.",
+ "lesson": "A REPAIR INHERITS THE FAILURE MODE IT REPAIRS unless the repair is itself falsified. Fixing a vacuous check is not one action but two - restate the criterion, AND author a command that can express it - and the second is where the disease recurs, because the author is now confident. The specific and checkable form: a criterion demanding a BEFORE/AFTER comparison needs a command with TWO INVOCATIONS AND A COMPARISON BETWEEN THEM. One invocation cannot express a temporal property however good its hashing is; capturing state is not comparing state. The same shape generalises to any criterion whose property is a RELATION rather than a value - before/after, this-vs-base, mine-vs-theirs.",
+ "how_to_apply": "When you repair a vacuous check, falsify the REPLACEMENT against the same mutant that defeated the original, before freezing it - if the original was defeated by 'the thing changed and the check did not notice', run the replacement across that exact change. Structurally: read the frozen command and count the invocations of the thing being measured; a relation needs at least two, plus an operator between them. And do not let the CRITERION's correctness vouch for the COMMAND - this criterion demanded a mutation proof in its own text and the command still could not perform one, so the text of a criterion is not evidence about the check that discharges it.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "Orchestrator, reproducing U32's finding on a scratch tree: the frozen C3 command run before and after appending a line to a file under .wip/ prints 'files hashed: 1' and exits 0 BOTH times. Static reading of the same string: no second capture (no BEFORE/AFTER token) and no comparison operator. U32's independent measurement at a replica root: byte-identical output across the mutation; its green counterfactual is 'files hashed: 0' -> rc 2 at an empty root, so the command is not a constant - but its one red arm ('the archive is empty') is ORTHOGONAL to its trigger. Contrast, and this is what makes the finding actionable: U32's own CX1 capture/compare manifest returns rc 1 on CHANGED, ADDED and REMOVED, rc 2 on an empty root, and was proven to run on byte-identical content to the in-repo slice (cmp rc 0) so red and green share one instrument.",
+ "since_wave": 9,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

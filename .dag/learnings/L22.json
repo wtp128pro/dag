@@ -1,0 +1,19 @@
+{
+ "id": "L22",
+ "trigger": "Two independent wave-1 units shipped a check that could not fail. U01's worked example measured stdout '[] 0' rc 0 against a verbatim instance of its own forbidden outcome; U02's archive-integrity check passed a UTC instant to a local-time parser, placing the mark ~3h in the future so both passes returned 0 unconditionally - the same vacuity that unit had just demolished in the check it replaced. A THIRD instance was found inside the verifier's own suggested fix, where find prints a parse error to stderr and the piped wc -l returns 0 with pipeline exit status 0, surviving set -e and set -o pipefail.",
+ "lesson": "A check that returns the expected answer is not evidence until it has been shown it CAN return a different one. Vacuity survives review because a passing check and an inert check are indistinguishable from their output alone - and it survives CORRECTION passes especially well, because the correction frame focuses attention on the value rather than on the instrument.",
+ "how_to_apply": "Publish every check with a POSITIVE CONTROL: the same command against an input known to make it fire, with that output shown beside the real one. A zero beside a control that yields non-zero is evidence; a zero alone is a claim. Applies to greps, counts, find expressions, fixtures and worked examples alike. When ADOPTING a fix suggested by a verifier, run it under its own control before publishing - the suggestion is unmeasured.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "units/U01/verify_p2.json (measured green on the forbidden outcome); units/U02/verify.json iteration 2 (future-dated mark, both passes unconditionally 0) and iteration 3 (the third trap, 19 stderr lines with stdout 0 and pipeline status 0); DECISIONS.md#D14.",
+ "since_wave": 2,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

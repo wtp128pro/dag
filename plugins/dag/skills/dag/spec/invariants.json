@@ -1796,10 +1796,16 @@
       "validator_label_prefixes": [
         "I48 case-set contract"
       ],
+      "fixtures": [
+        "i48_counterfactual_fires",
+        "i48_counterfactual_suppressed",
+        "i48_counterfactual_green"
+      ],
       "provenance": [
         "independent-test-authorship",
         "U24",
-        "U25"
+        "U25",
+        "U10"
       ],
       "docs": [
         "references/state-machine.md#4",

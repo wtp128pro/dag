@@ -427,3 +427,10 @@ i45_stamp_raised	0	!N-I45 version-skew visibility
 i46_no_converged_key	0	!I46 non-converged PASS
 # §4.4 P4-G3 verdict boundary: no PER-UNIT I46 row (the adoption-scoped rep.ok row still emits).
 i46_nonconverged_fail_verdict	0	!I46 non-converged PASS (units/U01)
+# I48 counterfactual family (U10): the predicate is shown to FIRE, and the two silences are told
+# apart. _fires and _suppressed carry BYTE-IDENTICAL units/ artifacts; only the stamp differs, so
+# the FAIL->PASS move is attributable to the version gate alone. _green's NEGATIVE N-I45 pin is
+# load-bearing: it is the only thing that stops an armed green decaying into a suppressed green.
+i48_counterfactual_fires	1	I48 case-set contract (units/U01 C2): non_vacuity observation_ref multiset
+i48_counterfactual_suppressed	0	suppressed 1 version-gated arm(s) whose other preconditions HELD: ['I48-T1']
+i48_counterfactual_green	0	!N-I45 version-skew visibility

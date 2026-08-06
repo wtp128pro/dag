@@ -63,6 +63,88 @@ making changes to the pipeline's formal machinery.
   a loop that bumps both iterations without re-verifying satisfies `I43` exactly, and panel
   independence and human-gate reality stay attestations. Do not let a doc claim otherwise.
 
+## Authoring a check that can fail — and can pass (`case_set[]` discipline)
+From run `2026-08-02_235310_independent-test-authorship`, which froze a `case_set[]` on every unit and
+then measured its own checks. **Every figure below ships with the command that produced it; re-measure
+before citing it rather than inheriting it.** Read `<RUN>` as that run's directory.
+
+- **A check that cannot go RED is the default outcome, not the edge case.** At admission the rate was
+  **10 of 13 orchestrator-frozen checks vacuous — 77%** (measured over the first four units to carry a
+  case set: `python3 -c "import json,collections;c=collections.Counter(x['outcome'] for u in
+  ['U24','U25','U26','U27'] for x in json.load(open('<RUN>/units/%s/debrief.json'%u))
+  ['case_set_discharge'] if x.get('origin')=='orchestrator');print(c)"` → `{'vacuous': 10,
+  'discharged': 3}`). The recurring shape is a command whose **exit status is constant** — a pipeline
+  ending in `head`/`tail`, a bare `sed -n`, a `grep -c` whose count is read by a human rather than by
+  the shell. Derive the check from the **failure**: write the input that makes the criterion false
+  first, then the command that goes non-zero on it, then confirm it reaches zero on the real input.
+  Where the check is a **proxy**, falsify it against the repair that would defeat the proxy, not merely
+  against the defect. A locator-form check honestly capped at `located` beats a command-form check that
+  cannot fail.
+- **A check that cannot go GREEN is worse: it pays the executor to damage a correct artifact.** Seen at
+  **three layers** in one run. *Check layer* — four orchestrator rows have come back `violated`, all
+  because the only route to green was a move the check's own `forbidden_observations` barred (`python3
+  -c "import json,glob;[print(p.split('/')[-2],x['id']) for p in
+  glob.glob('<RUN>/units/*/debrief.json') for x in (json.load(open(p)).get('case_set_discharge') or [])
+  if x['outcome']=='violated' and x.get('origin')=='orchestrator']"` → **as of 2026-08-06 11:50 EDT at
+  worktree `6be1073`**, rc 0, printing four rows in glob order: `U15 C2`, `U13 C1`, `U13 C2`, `U18 C4`
+  — three when this section was first drafted, four once `units/U15/debrief.json` landed at 11:40:29,
+  which is exactly why a figure over a growing glob ships with its as-of). **The `.get(…) or []` guard
+  is load-bearing, not style.** Nine of the 22 debriefs in that glob carry no `case_set_discharge` key
+  at all (`U01`–`U06`, `U19`, `U22`, `U23`), so the bare `[…]` subscript raises `KeyError` at rc 1 on
+  the first of them: a published command that had never run, next to output it could not have produced.
+  Iterating a `for`-clause straight over a subscript is the crash class `.dag/learnings/L29.json`
+  documents, and a probe that greps each bullet for a command **token** cannot see it — assert the
+  command's **exit status and output**, never its presence.
+  *Criterion layer* — a criterion narrower than the convention it polices. *Budget layer* — a cap the
+  unit cannot meet however well it works: U20's mandatory reads cost **~129% of its cap before a line
+  was written** (79,642 B ÷ 2.46 B/tok ≈ 32,400 tok against a 32,000 cap, plus ~8,950). So falsify
+  every command-form check in **both** directions, and cost the reads the **criteria mandate** — not
+  the files the unit happens to touch — while the unit is still unexecuted, where it costs no fuel.
+  When an executor reports `violated` while declining a forbidden move, treat that first as evidence
+  about the **check**.
+- **One check frozen against a two-directional obligation is a coverage violation the schema already
+  forbids and no predicate enforces.** `brief.schema.json`'s COVERAGE RULE requires that a check be
+  able to observe **every** declared required/forbidden observation and that an entry which cannot be
+  **SPLIT** — and says in the same breath that it is discipline only. Measured: `/usr/bin/grep -c
+  "COVERAGE RULE" plugins/dag/skills/dag/schemas/brief.schema.json` → `1`; the same grep over
+  `plugins/dag/skills/dag/scripts/validate_run.py` → `0`. The reliable smell is a forbidden observation
+  about **omission** or about **leaving something alone** paired with a **diff-scoped** command, which
+  can never see the leave-alone direction. Prefer splitting to strengthening.
+- **Control against the run's BASE commit, never HEAD, and assert the two sides are not identical.**
+  Once a run commits its own work, *"it is broken at HEAD too"* stops distinguishing pre-existing from
+  self-inflicted; here that control compared a file **with itself** and returned 2 == 2 by
+  construction. Re-measured for this entry: `for c in f547aef 4fb475d c9e5571 HEAD; do git show
+  $c:plugins/dag/skills/dag/scripts/validate_run.py > /private/tmp/vr_$c.py; python3
+  plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file /private/tmp/vr_$c.py; done`
+  → **190 / 194 / 192 / 192**, with `git rev-parse 4fb475d^` → `f547aef` confirming the base is the
+  direct parent. Before publishing a control, prove the sides can differ (`sha256`/`cmp`) and treat an
+  empty diff as an **invalid** control, not a passing one. Publish the **gross** — this run *added
+  four, closed two, shipped two* — never the net `+2`, which answers "did it get worse" and hides
+  "what did we do". Treat an **inherited** provenance claim (*"pre-existing"*, in a brief or a prior
+  debrief) as unmeasured.
+- **The standing rate — re-measured here, and dated.** **As of 2026-08-06, worktree at `6be1073`, and
+  EXCLUDING this record's own unit (U31, whose debrief was not yet on disk): 40 orchestrator-frozen
+  case rows across 11 debriefs — 16 discharged / 21 vacuous / 3 violated = 60% not discharged.**
+  Measured with `python3 -c "import json,glob,collections;c=collections.Counter(x['outcome'] for p in
+  glob.glob('<RUN>/units/*/debrief.json') for x in (json.load(open(p)).get('case_set_discharge') or [])
+  if x.get('origin')=='orchestrator');print(c,sum(c.values()))"`. **This number is computed by globbing
+  a corpus every new unit adds to, so it is dated the instant it is written** — the identical query one
+  wave earlier returned **32 rows, 59% not discharged** (the figure frozen into `Limitation AC`
+  boundary (iii) in `references/state-machine.md`, already stale on arrival). Any figure of this shape
+  ships with its **as-of** and its **exclusion of self**, or it is not a measurement. Every one of
+  these was caught by a unit or a verification lens, never by the orchestrator that froze the check.
+  **State the buckets, because the outcome enum is open-ended.** The denominator is every
+  orchestrator-origin row whatever its `outcome`, and *not discharged* means every value that is not
+  `discharged` — at the as-of that was `vacuous` + `violated`, but the same query run at 11:50 the same
+  morning returns a **fourth** value, `infeasible` (`U15 C4`), which the one-liner counts in the total
+  and which a two-bucket reading would silently drop. A percentage over an enum you did not enumerate
+  is not well defined for whoever re-runs it.
+- **What none of this closes.** A discharged case set is evidence about **declared** observations
+  inside **one** unit — never that the case set is complete or adequate, never that a
+  red-under-mutation result says anything about correctness, and never that cross-unit/integration
+  blindness is closed. That class stays open and is recorded as `.dag/learnings/L29.json`, alongside
+  `Limitation AC` boundary (iv) in `plugins/dag/skills/dag/references/state-machine.md`.
+
 ## Dogfooding — validate self-runs with the REPO's validator, not the installed plugin
 When a dag run is executed **inside this repo** (its run dir lands under `.wip/`), validate it with the
 repo's own checker — `bash plugins/dag/skills/dag/scripts/validate_run.sh <RUN_DIR>` — **never** the

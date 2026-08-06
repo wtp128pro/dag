@@ -3,6 +3,29 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.17] — 2026-08-06
+
+- **`dag` 1.12.1 → 1.13.0 — the frozen case-set contract.** A brief may freeze a `case_set[]` of
+  named checks, each carrying the observations it must be able to make and the observations it
+  forbids, and a debrief must discharge every one back with an `outcome`, its `evidence` and a
+  `non_vacuity` statement. Enforced by the new **`I48`**, an offline post-hoc predicate in eight
+  clauses over emitted artifacts.
+- **Guarantee classification.** The termination proof, **AO-1..7** and **I1..I47** are **PRESERVED**
+  — `I48` adds no live guard to any transition, and none to the correction loop's sole back-edge.
+  The invariant set is **REVISED** by the addition. **Migration:** `I48` is version-gated on
+  `validator_version >= 1.13.0`, above the 1.12.1 release stamp, so it arms on zero archived runs;
+  the suppressed arm is counted by the exit-neutral `N-I45` skew NOTE. This is why the plugin bump is
+  a **minor** and not a patch: below 1.13.0 the predicate is inert.
+- **Schema additions are optional** (`brief.case_set[]`, `debrief.case_set_discharge[]`, the
+  `verify.defects[]` adequacy route), so artifacts written against 1.12.x remain schema-valid.
+- **Ships with its harness**: `i48_clause_matrix.py`, `i48_crash_class.py`, three counterfactual
+  run-dir fixtures wired into `expectations.tsv`, and `U29`'s four standalone fixtures under
+  `scripts/tests/`, deliberately left out of `expectations.tsv` so no pipeline behaviour changes.
+- **No detection benefit is claimed and none was measured** — the archive shows no measured gain of
+  that kind. The claim is consistency and legibility. Completeness or adequacy of a case set, and
+  cross-unit blindness, stay open (`Limitation AC` boundary (iv)).
+- Nine cross-run learnings persisted to the project store (`.dag/learnings/L22`–`L30`).
+
 ## [1.0.16] — 2026-07-31
 
 - **`dag` 1.12.0 → 1.12.1 — doctrine retractions.** Five surfaces that still asserted
