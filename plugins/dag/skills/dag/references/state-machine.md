@@ -542,6 +542,75 @@ doctrines, each with a migration argument (formal-classification.md).
   is a *recorded human decision*, not a validator-proved fact: nothing checks that the rationale is
   true or that the maintainer was actually asked. Backstop: the independent verifier; the panel; the
   human at the gate; validity ≠ correctness.
+- **AC.** (independent-test-authorship 1.13.0) **Case-set coverage is made LEGIBLE, never ADEQUATE
+  (I48).** Cite this bullet as **Limitation AC**. It is the same register as **Limitation AA** and
+  **Limitation AB** — mechanized completeness is a property of *emitted text*, not of the world — now
+  extended to the frozen `case_set[]` / `case_set_discharge[]` contract. Five boundaries, each a
+  limitation of the shipped mechanism and none of them a mitigated risk:
+  - **(i) Coverage is of a DECLARED list, so it is legible, never adequacy-true.** I48-7 proves each
+    `discharged` row's `non_vacuity[]` reaches every `required_observations` / `forbidden_observations`
+    entry **that the brief happens to declare**. The declaration is authored by the same orchestrator
+    that authors the requirement; nothing measures whether the list names the observations that
+    *matter*. A one-line forbidden list discharges exactly as green as a ten-line one, and an
+    unstated failure mode is invisible by construction. **Never say a discharged case set is
+    complete or adequate** (Non-Goal 7): "complete" here means declared-coverage plus non-vacuity —
+    a defined bar, not adequacy.
+  - **(ii) Residual lens independence is ATTESTATION, not enforcement.** The structural mechanism
+    (the adequacy lens is held by a panel member who is not the unit's executor — I16's existing
+    distinct lenses, no fourth lens, zero added verification dispatches) and the commitment mechanism
+    (`case_set_derived.json` + its `sha256` / `commitment_iteration`, I42-class digest integrity) fix
+    **who** is not the author and **what was committed to, and when it stopped changing**. Neither
+    fixes **derivation order**: no artifact shows the derivation preceded the executor's output, only
+    that it was not re-derived afterwards. Everything beyond those two mechanisms ships **labelled
+    attestation** (Non-Goal 8), and this document does not claim it is verified.
+  - **(iii) A RED-UNDER-MUTATION result proves NON-VACUITY and nothing about correctness.** The
+    counterfactual mutant establishes only that the check *can* return a different answer. It says
+    nothing about whether the check tests the right property, nor whether the artifact is right
+    (Non-Goal 9). The converse failure is real and was measured in this run: **16 of 32
+    orchestrator-authored case entries came back `vacuous` and 3 `violated` — 19 of 32, 59%, against
+    13 `discharged`** (measured over `.wip/2026-08-02_235310_independent-test-authorship/units/*/debrief.json`,
+    counting `case_set_discharge[]` rows with `origin: "orchestrator"`). A check can fail by being
+    unable to **fail** *and* by being unable to **pass**; a two-directional criterion needs two checks.
+  - **(iv) `production_path: true` closes ONE SIGNATURE of cross-unit blindness, not the class.** It
+    makes one failure mode decidable — required observations seen only through a test-local shim, a
+    fixture-only path, an internal helper called directly, or a hand-built input that bypasses the
+    real caller. Integration blindness **remains open** (Non-Goal 10): nothing here observes a
+    defect that lives *between* units, and Phase 8's whole-run hunt for the same signature is a
+    backstop for that one signature only. Measured instance of the wider class in this very run: the
+    census of the iterate-over-`.get()` crash class that I48's own predicate polices is **190** at the
+    last pre-run commit `f547aef`, **194** at `4fb475d`, **192** at `c9e5571` and **192** in the
+    shipped tree — the run **added four, closed two, shipped two**, into the predicate that polices
+    them, and no per-unit case set saw it. Reproduce:
+    `for c in f547aef 4fb475d c9e5571 HEAD; do git show $c:plugins/dag/skills/dag/scripts/validate_run.py > /tmp/vr_$c.py; python3 plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file /tmp/vr_$c.py | head -1; done`
+    (`git rev-parse 4fb475d^` → `f547aef`, so the base really is the direct parent).
+  - **(v) Correlated blind spots between a same-model-family author and lens holder are
+    IRREDUCIBLE.** Every mechanism above fixes *when* derivation happened, *what* was committed to,
+    and *who* signed which artifact. None of them changes *what the family can see*. A failure mode
+    invisible to the author is invisible to the lens holder for the same reason, and no predicate in
+    this repository can observe that. Stated as permanent, not as pending work.
+
+  **The archive shows NO MEASURED DETECTION GAIN, and the defensible claim is CONSISTENCY AND
+  LEGIBILITY, NOT DETECTION.** Across **18 archived runs (205 units, 810 acceptance criteria), zero**
+  instances were found in which this mechanism would have caught what existing verification missed;
+  **54 of 68 high-stakes units (79%) already receive a 3-or-5-member independent panel** (run
+  `2026-08-02_235310_independent-test-authorship`, `units/U01/SPEC.md` §9, authority **D10**). Say
+  only this, and claim only this pair — **consistency and legibility**: the contract propagates a
+  requirement's negative statements into a fixed, greppable, pre-dispatch obligation, so what a unit
+  owed is legible after the fact and consistent across runs.
+  Any sentence — here, in `SKILL.md`, the wiki, a CHANGELOG entry or a PR body — that claims or
+  implies I48 catches defects verification otherwise misses is a **D10 honesty-boundary violation and
+  a FAIL**, not a stronger pitch. **Non-Goal 13** ("No padded prose, restated points, or invented
+  precision - no measured-sounding number ships without the command that produced it") is cited for
+  what it actually says, which is why every figure in this bullet ships with the command that
+  produced it; the detection ban itself lives in **D10** and Non-Goals 7–10, not in Non-Goal 13.
+  **The clean test was not run:** replaying one archived high-stakes unit with and without the
+  contract costs one unit and was deliberately skipped (D10) — a named residual, not a closed
+  question. **Two further measured reasons to distrust any green here:** a control is a control only
+  if the two sides *can* differ, and this run's "it crashes on HEAD too" defence compared
+  `validate_run.py` with itself (`git show HEAD:…` and the working tree both hash to
+  `f5864a15…`) — true and evidentially empty; and a whole fixture family's green was **machine-local**,
+  binding to a stale July `$TMPDIR/schemas` snapshot predating the run, red on a fresh `TMPDIR`. No
+  backstop is claimed for any of the five boundaries above.
 
 ### Verification currency — the escape-hatch class, worked member by member (verify-repair)
 

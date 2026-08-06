@@ -231,6 +231,40 @@ if [ "$mrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
 # run ONCE (not per-backend, like manifest_examples). A non-zero exit folds into fail_total,
 # so any drift FAILs this harness. spec_check lives HERE only — never in validate_run.py's
 # run path (it never reads spec/). PRESERVES (test infrastructure only, no enforcement change).
+# ---- I48 per-clause negative-fixture matrix (U28) -------------------------------------------
+# Clause list derived from validate_run.py's AST at run time; the grid asserts every enforced
+# clause has a fixture that goes RED on its single mutation and GREEN on the unmutated base.
+echo "== I48 per-clause matrix =="
+python3 "$TESTS_DIR/i48_clause_matrix.py" --matrix | tail -3
+python3 "$TESTS_DIR/i48_clause_matrix.py" --matrix >/dev/null || { echo "I48 clause matrix FAILED" >&2; exit 1; }
+echo "== I48 crash-class behaviour (U25 loci + silent-skip counterfactual) =="
+python3 "$TESTS_DIR/i48_clause_matrix.py" --behaviour || { echo "I48 behaviour FAILED" >&2; exit 1; }
+# ---- I48 crash-class SURVIVORS (U28 iteration 3) --------------------------------------------
+# The matrix above CANNOT cover the crash class: its coverage relation is over rep.fail sites and
+# a crashing site emits no row. This behavioural family covers it, one member per survivor. It is
+# KNOWN-RED on the shipped tree because validate_run.py:6698/:6705 are genuinely UNGUARDED and
+# U28 is not authorised to edit validate_run.py (it must stay byte-identical to HEAD so no
+# archived verdict can move). So the block does NOT gate on the open defect — that stays
+# disclosed and unenforced until wave 7. What it DOES gate is the INSTRUMENT: the exit code is
+# PINNED to the expected known-red 1, so a survivor family that was deleted, crashed, or went
+# unexpectedly green fails the suite instead of printing a reassuring, wrong note. (Iteration 2
+# emitted one cause-attributing NOTE for EVERY non-zero rc, so a DELETED instrument still read as
+# "open defect at :6698/:6705"; and a machine-local schemas defect kept the family red for an
+# unrelated reason without anyone noticing.) This costs the "suite stays green" DoD nothing.
+echo "== I48 crash-class SURVIVORS (KNOWN-RED disclosure — rc PINNED, defect not gated) =="
+set +e; python3 "$TESTS_DIR/i48_crash_class.py" --survivors; svrc=$?; set -e
+if [ "$svrc" -eq 1 ]; then
+  echo "NOTE: survivor family RED at the PINNED rc=1 — open defect at validate_run.py:6698/:6705, disclosed NOT gated"
+else
+  echo "I48 survivor family exited $svrc, expected the pinned 1: the INSTRUMENT moved (harness rot)," >&2
+  echo "not the defect. Read its output above before trusting any survivor figure." >&2
+  exit 1
+fi
+# WAVE 7 HANDOFF (exact, checkable): once the guard lands at validate_run.py:6698/:6705 the family
+# goes green, so this block must be re-pinned in ONE place — change `[ "$svrc" -eq 1 ]` in the `if`
+# above to `[ "$svrc" -eq 0 ]`, and reword the NOTE branch (it will then be the passing branch).
+# That single edit turns the block into a real gate on the defect itself.
+
 echo "== spec_check (clean run on real tree) =="
 set +e; scout=$(python3 "$SCRIPTS_DIR/spec_check.py" 2>&1); scrc=$?; set -e
 printf '%s\n' "$scout"

@@ -1,16 +1,28 @@
 # The validator and the invariant catalog
 
 **Audience:** technical readers who want to know *exactly* what the runtime enforcement layer
-mechanically guarantees — and, just as important, what it deliberately does **not**. Every claim
-here carries a `path:line` locator into the 1.11.0 tree that a verifier can open; the wiki's own
-rule is that an unresolved locator is a defect.
+mechanically guarantees — and, just as important, what it deliberately does **not**.
+
+**How to read the locators on this page — two classes, and only one of them is verified.** Every
+locator this revision *touched* is a line number **plus a quoted anchor**, e.g.
+`plugins/dag/skills/dag/scripts/validate_run.py:6436`, anchor *"release shipping I48; validator_version >= this arms T1"*, and every one of those anchors was
+grep-resolved to the cited line at writing time. The anchor is the ground truth and the number is a
+convenience: when the file shifts, the number rots and the anchor still finds the code, so a reader
+can detect drift without trusting the number. Every *other* locator on this page is a bare
+`path:line` citation written against the **1.11.0** tree (the tree is now **1.12.1**), left
+untouched on purpose — those numbers are known, counted, corpus-wide pre-existing drift whose repair
+is separately sized work, and a silent partial repair would make the remainder harder to find.
+**Treat a bare number as unverified**; the wiki's rule that an unresolved locator is a defect applies
+to the anchored class, which is the class this page's newest sections use throughout.
 
 **TL;DR.** `scripts/validate_run.py` is `dag`'s **external correctness signal** — the one part of
 the pipeline whose verdict does not come from a model's judgment. It reads a run directory,
 schema-validates every artifact, then checks the FSM invariants that schemas alone cannot express,
 and **exits non-zero on any violation**. It is invoked as an **explicit Bash step** the skill must
 call (Prime Directive 7), *not* a passive platform hook. What it enforces is **shape and structure**
-— the full invariant catalog **I1..I47 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates. What it cannot
+— the full invariant catalog **I1..I48 + I1b/I1c/I1d/I3b/I3c + I-dod** and the guard-ordering gates
+(**I48**, the case-set contract, is the newest arm and is version-gated *above* the current release
+stamp, so it is in the catalog and armed on nothing — §4.7). What it cannot
 enforce is **truth of content**: whether a PASS is *correct*, whether evidence resolves, whether a
 lens was *genuinely* applied. The single sentence to carry away, repeated verbatim across the repo:
 **validity ≠ correctness**
@@ -61,7 +73,7 @@ deadlock lesson).
 flowchart LR
   ART["run dir artifacts<br/>(JSON extracts + markdown ledger)"] --> V["validate_run.py<br/>(explicit Bash step, Prime Directive 7)"]
   V -->|"schema layer"| S["Draft-2020-12 schema validity<br/>(jsonschema OR stdlib mini)"]
-  V -->|"invariant layer"| I["I1..I47 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates"]
+  V -->|"invariant layer"| I["I1..I48 + I1b/I1c/I1d/I3b/I3c + I-dod<br/>+ guard-ordering gates<br/>(I48 version-gated ≥ 1.13.0 — armed on no run yet)"]
   S --> EX{"exit code"}
   I --> EX
   EX -->|0| OK["ok — shape + structure sound"]
@@ -141,7 +153,7 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I47 + I1b/I1c/I1d/I3b/I3c + I-dod
+## 4. The invariant catalog — I1..I48 + I1b/I1c/I1d/I3b/I3c + I-dod
 
 The primary table (§4 below) is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
 (`:187-211`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
@@ -612,6 +624,152 @@ the case above. Where **AA** names the loop that bumps *both* iterations without
 names the edit that bumps **neither**; both satisfy I43 exactly. The Phase-6 rule that an executor repair
 invalidates its prior panel governs this case as **discipline**, never as enforcement.
 
+### 4.7 The case-set contract (I48) — in the catalog, armed on nothing
+
+`I48` is the catalog's newest arm. Two things about it must be read separately, because conflating
+them is how a reader ends up believing the pipeline checks something it does not check *yet*:
+**what the predicate checks**, and **when it checks anything at all**. Everything below is read off
+the shipped predicate — the block that opens at
+`plugins/dag/skills/dag/scripts/validate_run.py:6418`, anchor *"I48 case-set contract (SPEC.md §3.1/§3.2/§3.2.1/§3.3/§6.1/§6.2)."* — and not off the spec, which
+the code has already diverged from once (below).
+
+**What it is for.** A unit's `brief.json` may freeze a `case_set[]`: a list of *checks* the
+orchestrator commits to **before** the executor runs, each with a `check_form` (`command` or
+`locator`), the criterion it operationalizes, and the observations that would make it informative.
+The executor answers each one in its `debrief.json` as a `case_set_discharge[]` row carrying an
+`outcome` (`discharged` / `violated` / `infeasible` / `vacuous`) and an `evidence_tier`
+(`asserted` / `located` / `executable`). Without a predicate, that contract is honour-system: a
+frozen entry can be dropped, re-worded after the fact, answered at a weaker tier than its form
+implies, or marked green by a counterfactual that was never run. I48 makes each of those failures a
+report row.
+
+**It arms on ZERO runs today, and that is deliberate.** The gate is the run's own
+`fsm-state.json.validator_version` reaching `1.13.0`
+(`plugins/dag/skills/dag/scripts/validate_run.py:6436`, anchor *"release shipping I48; validator_version >= this arms T1"*), compared with the same proper-semver
+helper `I41` uses. The current release stamp is **1.12.1** — the gate sits *above* it on purpose
+(`plugins/dag/skills/dag/scripts/validate_run.py:6432`, anchor *"is deliberately ABOVE 1.12.1 — the current release stamp"*), so the arm fires on **no archived run
+and on no run scaffolded by a validator that predates the contract**, including the run that
+authored it. The suppression is not silent: the block registers the gate with the same
+`_skew_record` companion every other version-gated arm uses, so **N-I45** counts `I48-T1` among the
+arms this run's stamp suppressed while their other preconditions held — which is exactly how the
+already-shipped fixtures observe it (`i45_no_skew_overfire` and `i45_g2prime_no_struct` in
+`scripts/tests/expectations.tsv` pin `'I48-T1'` inside their expected NOTE text). Read the
+consequence plainly: **every clause below is a promise about future runs**, and no claim on this
+page about I48 catching anything is a claim about the archive. (Page 15 states the same gate against
+the artifact contract; if the two pages ever disagree about the arming version, this one and the code
+are the tiebreak.)
+
+**The eight clauses, as shipped.** Each is a `rep.fail` row — never a NOTE, never a transition guard.
+
+- **I48-1 — absence is a FAIL, not a NOTE.** On a gated run, a brief carrying neither `case_set[]`
+  nor a non-blank `case_set_none_reason` fails outright: the contract is not optional, and an
+  explicit "none, because…" is the only other legal shape
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6491`, anchor *"contract is not optional on a gated run (SPEC §2.2)"*).
+- **I48-2 — totality in both directions, plus the duplicate rule.** A frozen entry with no
+  `origin: "orchestrator"` row is a **shrink** — an entry judged infeasible is escalated with a
+  recorded reason, never dropped (`plugins/dag/skills/dag/scripts/validate_run.py:6540`, anchor *"case_set_discharge is a SHRINK: frozen entr(y/ies)"*). The reverse direction fails too: an
+  orchestrator row matching no frozen entry
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6544`, anchor *"match no frozen brief entry"*),
+  a duplicated orchestrator id
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6547`, anchor *"appear in more than one origin='orchestrator' row"*), and — the shortcut this closes —
+  **zero** orchestrator rows against a non-empty frozen set, i.e. the executor answering a case set
+  it wrote itself (`plugins/dag/skills/dag/scripts/validate_run.py:6551`, anchor *"the executor authored its own case set"*). Brief-side duplicate ids are rejected *first*, before
+  any floor, so the verdict cannot flip on transcription order.
+- **I48-3 — no second copy of a frozen key.** An `origin: "orchestrator"` row that re-states any of
+  the **ten** brief-owned keys fails; a second copy is how "never shrink" is violated without leaving
+  a trace (`plugins/dag/skills/dag/scripts/validate_run.py:6565`, anchor *"origin='orchestrator' row re-states brief-owned key(s)"*).
+- **I48-4 — the vacuity biconditional, both arms.** `outcome: "vacuous"` without a non-blank
+  `vacuity_finding` fails, **and** a `vacuity_finding` on any other outcome fails
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6572`, anchor *"outcome='vacuous' without a non-blank vacuity_finding"*). A truthful vacuous entry is a
+  first-class outcome here — it has a required field of its own — not a euphemism for a miss.
+- **I48-5 — the evidence-tier floor.** `command ⇒ executable`, `locator ⇒ located`: a row whose
+  `evidence_tier` ranks below the floor its *governing* entry's `check_form` implies fails
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6606`, anchor *"is below the floor"*).
+- **I48-6 — locator shape.** A `locator` claiming `executable` fails (a locator can never reach
+  executable), and a `locator` whose `check` does not `fullmatch` the locator grammar fails — a
+  command string declared "locator" buys an illegitimate not-run
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6612`, anchor *"check_form='locator' with evidence_tier='executable'"*).
+- **I48-7 — per-observation totality, scoped to `discharged` rows.** A discharged row needs a
+  `non_vacuity[]` array (`plugins/dag/skills/dag/scripts/validate_run.py:6650`, anchor *"outcome='discharged' without a non_vacuity[] array"*) whose `observation_ref` **multiset** equals
+  `required ∪ forbidden` observations — one red counterfactual must not certify a partly-vacuous
+  entry (`plugins/dag/skills/dag/scripts/validate_run.py:6661`, anchor *"non_vacuity observation_ref multiset != required ∪ forbidden"*). Per member: a **command**-form
+  check may never record `counterfactual_result: "not-run"` — such a row is `vacuous`, never
+  `discharged` (`plugins/dag/skills/dag/scripts/validate_run.py:6673`, anchor *"MUST go red per observation"*); a `not-run` without a reason fails; a `red` carrying a reason
+  fails.
+- **I48-8 — findings route into `defects[]`.** A `violated`/`vacuous` outcome against a
+  verdict-bearing `verify.json` with an **empty** `defects[]` is a finding that reached no channel
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6696`, anchor *"findings MUST route into defects[], not audit_notes and not a"*); a defect filed under a case
+  **id** instead of a verbatim acceptance criterion fails
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6723`, anchor *"are case_set ENTRY IDS, not verbatim"*); and a bespoke `case_set_findings` block in the verify
+  fails, because a finding recorded anywhere else is invisible to `I6`
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6727`, anchor *"carries a bespoke case_set_findings block"*).
+
+**Eight markers, twenty-seven enforced rows.** The `I48-N` numbering above is the block's own comment
+scheme, and it is **coarser than the enforcement**: an AST walk of every `rep.fail` call inside the
+block finds **27** distinct report sites, not 8 (measured — `python3
+plugins/dag/skills/dag/scripts/tests/i48_clause_matrix.py --clauses`, which enumerates `K1..K27` from
+the predicate's source rather than from the spec or a brief). Cite a clause by marker when you mean
+the family and by line when you mean the row that fires.
+
+**Three design choices worth naming, because each closes a way the contract could have been
+laundered.**
+
+- **The governing entry.** The floor and the observation multiset are computed against the **frozen
+  brief entry** for an `origin: "orchestrator"` row and against **the row itself** for an
+  `origin: "executor"` ADD — so an executor cannot lower its own bar by re-declaring a `command`
+  check as a `locator`, and the branch that joins is guarded, so a row already reported as an extra
+  id never reaches the floor twice.
+- **The locator grammar is `fullmatch`ed and never `re.MULTILINE`.** A "locator" whose `check` is
+  really a shell command would buy an illegitimate not-run; the grammar
+  `^[^\s:]+:[0-9]+([ \t][^\n]*)?$` is matched whole, and the comment states the reason the `re.M`
+  flag is excluded — it re-opens the newline defeat
+  (`plugins/dag/skills/dag/scripts/validate_run.py:6457`, anchor *"matched with re.fullmatch and NEVER compiled with re.MULTILINE"*).
+- **Findings route into the channel that already bites.** I48-8 does not invent a reporting surface:
+  a non-discharge outcome must reach `verify.defects[]`, the only channel `I6`'s blocker-on-PASS rule
+  reads — and because `I6`'s cross-check is byte-exact membership over `brief.acceptance_criteria`,
+  filing the defect under a case **id** would turn `I6` red, so that mistake is failed by name rather
+  than left to surface as someone else's invariant.
+
+**Crash discipline is part of the contract, not an implementation detail.** Every value the block
+hashes or iterates comes from an untrusted artifact, and an uncaught `TypeError` here would abort the
+invariant pass **before any `RESULT:` line** — indistinguishable from a legitimate FAIL (both exit 1)
+while silently taking every later armed invariant down with it. So unhashable ids, unhashable
+`check_form`/`evidence_tier`, unhashable acceptance criteria and unhashable defect criteria are each
+**reported by their own row** rather than skipped, and a `required_observations` that is not an array
+is named as such instead of being coerced by `or []` (which would blame the `non_vacuity` refs for a
+defect that lives in the brief).
+
+**Classification: PRESERVES.** The block is offline and post-hoc by construction — it reads artifacts
+already on disk, emits only report rows, writes no `fsm-state` (no `.phase`, no `.gates`, no `.loop`),
+has no early `return`, appears in no transition guard and, in particular, **is not a guard on the
+correction loop's sole back-edge `LT7`**
+(`plugins/dag/skills/dag/scripts/validate_run.py:6420`, anchor *"OFFLINE and POST-HOC, by construction"*). Claims A–D of the termination proof, AO-1..7 and every
+I1–I47 predicate stand unchanged; the block is purely additive.
+
+**The code/registry disagreement, reported rather than smoothed.** I48-3's forbidden-key tuple has
+**ten** members, four of which (`requirement_ref_none_reason`, `forbidden_observations_none_reason`,
+`production_path`, `production_path_none_reason`) were, when this contract landed, named in **no**
+registry text — the descriptive `spec/invariants.json` title enumerated six. That divergence was
+found by reading the predicate rather than the spec, was reported rather than quietly patched into
+the registry's favour, and is now closed at the registry end: the entry enumerates the shipped tuple
+verbatim (`plugins/dag/skills/dag/spec/invariants.json:1794`, anchor *"ALL TEN frozen brief-owned keys"*), and the `references/state-machine.md` row is correct **by
+reference** because it cites `SPEC.md` §3.1 rather than re-listing the keys
+(`plugins/dag/skills/dag/references/state-machine.md:236`, anchor *"(independent-test-authorship 1.13.0)"*). Two things follow for a reader. First, `spec/` is
+**descriptive** — nothing in `validate_run.py` reads it — so a registry that lags cannot weaken the
+predicate; it can only mislead a person. Second, the general rule this instance illustrates:
+**when a registry row and the predicate disagree, the predicate is what runs.**
+
+**The honest boundary — Limitation AC.** I48 makes case-set coverage **legible**, never **adequate**.
+The coverage it proves is coverage of a **declared** list: I48-7 checks that a `discharged` row's
+counterfactuals reach every observation the brief *happens to declare*, and that declaration is
+authored by the same orchestrator that authored the requirement. A one-line forbidden list discharges
+exactly as green as a ten-line one, and an unstated failure mode is invisible by construction.
+Nothing checks that a counterfactual recorded `red` actually went red, that a `vacuity_finding` is
+honest, that an `asserted` tier was the best reachable, or that the frozen checks were the ones worth
+freezing. **Never read a fully discharged case set as a complete or adequate one.** The canonical
+statement, with its five sub-boundaries, is Limitation **AC** in
+`plugins/dag/skills/dag/references/state-machine.md:545`, anchor *"Case-set coverage is made LEGIBLE, never ADEQUATE"* — the same register as **AA** and **AB** above.
+
 ---
 
 ## 5. Fail-closed philosophy — absence is an attack surface
@@ -658,9 +816,12 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   hatch exists only for manually exercising the global-store (G1/G2) paths.
 - **What it sweeps.** A schema self-check (16 schemas well-formed — `dialogues.schema.json` joined at
   1.10.0), then **every fixture row** in
-  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **342 fixtures
-  at 1.11.0** (54→293 across the BGA, audit-round-2, guardrail-enforcement, depth-&-retrieval and
-  socratic-guardrail releases, then 293→342 across the cross-repo-lessons I41/I42 landing) — on **BOTH backends, unconditionally**:
+  [`tests/expectations.tsv`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv) — **389
+  fixture rows at this tree**, of which **109 expect exit 0 and 280 expect exit 1** (measured, not
+  quoted from an earlier release: `grep -vc '^#'` over the file for the total and
+  `grep -v '^#' … | awk -F'\t' '{print $2}' | sort | uniq -c` for the split; the page previously
+  published *342 at 1.11.0*, and a fixture count is a number that rots on every landing, so re-derive
+  it rather than trusting this sentence) — on **BOTH backends, unconditionally**:
   the normal backend (`jsonschema` if importable, else the stdlib mini) **and** a forced
   `DAG_FORCE_MINI=1` pass, so the pure-stdlib fallback is exercised even on hosts (CI) where
   `jsonschema` is installed and would otherwise hide it (the harness **never pip-installs**; a
@@ -672,9 +833,22 @@ It is **test infrastructure only** (PRESERVES — no enforcement change).
   ([`run_tests.sh:74-99`](../plugins/dag/skills/dag/scripts/run_tests.sh);
   [`expectations.tsv:1-3`](../plugins/dag/skills/dag/scripts/tests/expectations.tsv)). This is why
   the fixtures are cited throughout this page — each one is an executable proof that a specific check
-  fires (63 rows expect exit 0, 230 expect exit 1 with a pinned message). It exits non-zero if **any**
+  fires (the current exit-0/exit-1 split is the measured one given in the bullet above; the *63 / 230*
+  figures this sentence used to carry were a 1.11.0-era count). It exits non-zero if **any**
   fixture, the manifest pair, or the self-check mismatches
   ([`run_tests.sh:136-144`](../plugins/dag/skills/dag/scripts/run_tests.sh)).
+- **I48 is tested outside `expectations.tsv`, and the difference matters.** The case-set contract has
+  **no** row in the fixture table (measured: `grep -ci 'case_set\|case-set'` over `expectations.tsv`
+  → `0`; its only `I48` mentions are the two `N-I45` skew rows that expect `'I48-T1'` in their NOTE
+  text). Its tests are two standalone drivers the harness invokes directly — a **clause matrix** of
+  27 single-mutation fixtures, each run twice (mutated ⇒ the clause's own report row appears;
+  unmutated ⇒ it does not), so a fixture that is red-then-green pins *its* clause and nothing
+  incidental (`plugins/dag/skills/dag/scripts/run_tests.sh:238`, anchor *"--matrix | tail -3"*), and
+  an AST census of the iterate-over-`.get()` crash class
+  (`plugins/dag/skills/dag/scripts/run_tests.sh:255`, anchor *"--survivors; svrc=$?; set -e"*). The
+  reason this shape exists: a table row pins an exit code plus one substring, while a version-gated
+  predicate that arms on **no** run needs its fixtures to *construct* the gated state and to
+  enumerate their clauses from the predicate's source rather than from a spec.
 - **The dev-time drift + formal layer (same CI, never at validation time).** Two tools sit **outside**
   `validate_run.py` and never run during run validation. (1) The **SSR spec-registry drift check**:
   `spec/fsm.json` + `spec/invariants.json` descriptively mirror the FSM transition tables and the
@@ -758,6 +932,20 @@ with I16, and **I/J/K** with Bounded Graph Amendments.)
   checks that its rationale is true or that the maintainer was really asked. (This entry continues the
   canonical ledger in `state-machine.md` §5, whose letters run A–AA; the wiki list historically stopped
   at **K**.)
+
+- **AC — case-set coverage is LEGIBLE, not ADEQUATE (I48).** Whether a discharged case set was the
+  *right* set of checks. I48 proves the frozen entries were all answered, that the answers clear the
+  evidence-tier floor their `check_form` implies, that each `discharged` row's counterfactuals cover
+  every observation the brief **declared**, and that non-discharge outcomes reach `verify.defects[]`.
+  It cannot prove that a counterfactual recorded `red` was ever run, that a `vacuity_finding` is
+  honest, that an `asserted` tier was the best reachable, or that the declared observation lists name
+  the observations that matter — the list is authored by the same orchestrator that authored the
+  requirement, so a one-line forbidden list discharges exactly as green as a ten-line one. **Never
+  read "fully discharged" as "adequately checked."** And the one every reader of this page should
+  carry: **the predicate arms on no run at this release** (§4.7), so the whole entry is a statement
+  about a future the catalog has declared, not about work the archive has been judged against. Full
+  statement with its five sub-boundaries:
+  `plugins/dag/skills/dag/references/state-machine.md:545`, anchor *"Case-set coverage is made LEGIBLE, never ADEQUATE"*.
 
 **Reading the seam correctly.** A green `validate_run.py` exit tells you the artifacts are
 *well-shaped and the run obeyed the rules* — schema-valid, acyclic DAG, no unverified unit, gates in
