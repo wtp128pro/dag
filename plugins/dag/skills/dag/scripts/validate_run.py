@@ -362,6 +362,13 @@ def find_cycle(edges):
 #   * "inline" => a rep.ok/rep.fail label whose run-data interpolation LEADS the
 #                 string (a path prefix), so it cannot be split stem+tail; kept
 #                 inline verbatim and registered for enumeration.
+#   * "hoisted-var" (U25) => hoisted like the absent case AND read back from
+#                 LABEL_STEM[<key>] into a local alias, so the rep.ok/rep.fail call
+#                 site carries a VARIABLE rather than the literal stem. Recorded
+#                 distinctly because the absent case's promise ("the stem IS
+#                 interpolated into a rep label") is satisfied by a literal at the
+#                 call site, and a reader grepping for the stem text will not find
+#                 it there; the registry is the only copy of the string.
 # Bare path/artifact identifiers used as a `what` (e.g. `rel`, `units/<u>/<rel>`,
 # `learnings.json`, `amendments/<fn>`) carry no descriptive stem and are not listed.
 LABELS = [
@@ -509,6 +516,8 @@ LABELS = [
     {"key": "i46_nonconverged_pass", "stem": "I46 non-converged PASS", "invariant": "I46"},
     {"key": "note_i46", "stem": "N-I46 non-converged PASS", "invariant": "I46", "emitted_via": "print"},
     {"key": "note_i47", "stem": "N-I47 ledger desync at sign-off", "invariant": "I47", "emitted_via": "print"},
+    # FSM invariants — case-set contract (independent-test-authorship 1.13.0; U24 authors, U25 registers)
+    {"key": "i48_case_set", "stem": "I48 case-set contract", "invariant": "I48", "emitted_via": "hoisted-var"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -6425,10 +6434,15 @@ def main(argv=None):
     # contract. A gate at 1.12.0 would arm on runs stamped 1.12.1, including this repo's own.
     # ABSENCE of `case_set[]` on a gated run is a hard FAIL (I48-1), never an advisory NOTE.
     _I48_SHIP = "1.13.0"                 # release shipping I48; validator_version >= this arms T1
-    # Label stem is inline here on purpose: the LABELS/`spec/invariants.json` registration (and the
-    # references-doc row) is U25's unit (DECISIONS#D20). Registering a label group here without the
-    # matching registry entry would turn spec_check SC1 red in the interim.
-    _i48_stem = "I48 case-set contract"
+    # U25: U24's inline literal stem was a SHIM for the deferred registration (DECISIONS#D20) and is
+    # replaced here by the real hoist — the stem now has exactly one copy, in LABELS, and reaches this
+    # block through LABEL_STEM. All three registration sites (LABELS, `spec/invariants.json` group
+    # 'I48', the `references/state-machine.md` row) land together, because spec_check SC1 is
+    # bidirectional: a label group without a registry entry and a mechanical entry without real label
+    # prefixes each fail it. The LABELS entry carries `emitted_via: "hoisted-var"` (see the registry
+    # preamble): the labels below are built from this ALIAS, not from the literal, so the absent-value
+    # promise would misdescribe the call sites.
+    _i48_stem = LABEL_STEM["i48_case_set"]
     _i48_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
     _i48_t1 = _i27_semver_ge(_i48_ver, _I48_SHIP)
     _skew_record("I48-T1", True, _I48_SHIP, _i48_ver)      # N-I45 shadow count; stamp-only arm
@@ -6607,8 +6621,31 @@ def main(argv=None):
                 if _out != "discharged":
                     continue
                 _nv = _r.get("non_vacuity")
-                _obs = list(_gov.get("required_observations") or []) + \
-                       list(_gov.get("forbidden_observations") or [])
+                # U25 (DECISIONS#D24) — the iterate-over-`.get()` crash class, closed at the two
+                # observation-list loci. `list(x or [])` CRASHES on a truthy non-iterable (measured:
+                # `required_observations: 5` aborts main() with an uncaught TypeError BEFORE any
+                # RESULT: line, from BOTH origins — the brief entry on an orchestrator row, the row
+                # itself on an executor ADD) and MISDIAGNOSES every falsy container class
+                # (`0`, `False`, `''`, `{}`, `0.0`), which `or []` silently rewrites to an empty list
+                # so the totality check below blames the non_vacuity refs as "unknown" instead of
+                # naming the malformed field. A string is worse than either: `list("abc")` yields
+                # CHARACTERS, a silently plausible observation list. Same discipline as every other
+                # guard in this block: REPORT the offending value in a naming row, never skip it
+                # silently. This is a WIDENING of what is reported and is published as one.
+                _obs, _obs_bad = [], False
+                for _fk in ("required_observations", "forbidden_observations"):
+                    _fv = _gov.get(_fk)
+                    if _fv is None:
+                        continue
+                    if not isinstance(_fv, list):
+                        _obs_bad = True
+                        rep.fail(_rlbl,
+                                 f"{_fk} is {type(_fv).__name__} {_fv!r}, not an array — §3.2's "
+                                 "per-observation totality is a multiset over this list, so it "
+                                 "cannot be computed for this row; reported here rather than "
+                                 "raised, so the invariant pass still reaches its RESULT: line")
+                        continue
+                    _obs.extend(_fv)
                 if not isinstance(_nv, list):
                     rep.fail(_rlbl, "outcome='discharged' without a non_vacuity[] array — REQUIRED, "
                                     "one member per observation (SPEC §3.1/§3.2)")
@@ -6616,7 +6653,11 @@ def main(argv=None):
                 _refs = [m.get("observation_ref") for m in _nv if isinstance(m, dict)]
                 _nmiss = [o for o in _obs if _refs.count(o) != _obs.count(o)]
                 _nextra = [o for o in _refs if o not in _obs]
-                if _nmiss or _nextra:
+                # `_obs_bad` suppresses ONLY the multiset comparison, and only because the comparison
+                # would be against a KNOWN-INCOMPLETE `_obs` — the malformed field already has its own
+                # naming row above, so the defect still reaches the report exactly once. Every other
+                # clause below (the per-member counterfactual FAILs) still runs.
+                if not _obs_bad and (_nmiss or _nextra):
                     rep.fail(_rlbl, f"non_vacuity observation_ref multiset != required ∪ forbidden "
                                     f"observations (uncovered {sorted(set(map(str, _nmiss)))}, "
                                     f"unknown {sorted(set(map(str, _nextra)))}) — one red counterfactual "

@@ -1788,6 +1788,23 @@
         "references/state-machine.md#4",
         "verify-repair-units artifacts/predicate-spec.md §2.1"
       ]
+    },
+    {
+      "id": "I48",
+      "title": "Case-set contract \u2014 an OFFLINE, POST-HOC predicate over the brief's frozen case_set[] and the debrief's case_set_discharge[] (SPEC.md \u00a73.1/\u00a73.2/\u00a73.2.1/\u00a73.3/\u00a76.1/\u00a76.2). Version-gated on fsm-state.validator_version >= 1.13.0, deliberately ABOVE the 1.12.1 release stamp, so it arms on ZERO archived runs and on no run scaffolded by a validator predating the contract; the suppressed arm is counted by N-I45 through the _skew_record('I48-T1', ...) companion SC8 requires. Eight clauses: I48-1 ABSENCE of case_set[] on a gated run carrying no non-blank case_set_none_reason is a hard FAIL, never an advisory NOTE (\u00a72.2 explicit-none); I48-2 \u00a73.3 totality in both directions plus the duplicate rule; I48-3 \u00a73.1's forbidden second copy of check/check_form/trigger_ref/requirement_ref/observation lists on an origin:'orchestrator' row; I48-4 the vacuity_finding <=> outcome=='vacuous' biconditional, BOTH arms; I48-5 \u00a76.2 tier_shortfall against the floor DERIVED from the governing entry's check_form ({command: executable, locator: located}); I48-6 \u00a73.2's locator FAILs (the executable cap and the path:line shape, matched with re.fullmatch and never re.MULTILINE); I48-7 \u00a73.2's per-observation totality, SCOPED to discharged rows and CROSS-ARTIFACT (an orchestrator row's observation lists live only in the frozen brief), plus the command-form 'not-run' FAIL and the reason-presence biconditional; I48-8 \u00a76.1's routing of adequacy findings into the EXISTING verify.defects[], including the FAIL for a defect filed under a CASE ID rather than a verbatim acceptance criterion (I6's cross-check is byte-exact membership over brief.acceptance_criteria, so a case id turns I6 red). Every untrusted value that reaches a HASH site is filtered through _i48_hashable and REPORTED rather than skipped, and (U25, DECISIONS#D24) both observation-list loci are guarded against the iterate-over-.get() crash class: a non-array required_observations/forbidden_observations yields a NAMING row and a real RESULT: line instead of an uncaught TypeError, from BOTH origins. That guard is a WIDENING and is published as one \u2014 the falsy container classes (0, False, '', {}, 0.0) previously produced a MISDIAGNOSING multiset row whenever non_vacuity[] named the lost observations, and a string produced one via list('abc') yielding characters; the naming row REPLACES that row rather than adding to it. Emits ONLY rep.fail rows from inside the single invariant pass, writes no fsm-state, adds no state/edge/gate, and is NEVER a guard on the correction loop's sole back-edge LT7 => PRESERVES the termination proof Claims A-D, AO-1..7 and I1..I47.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I48 case-set contract"
+      ],
+      "provenance": [
+        "independent-test-authorship",
+        "U24",
+        "U25"
+      ],
+      "docs": [
+        "references/state-machine.md#4",
+        "independent-test-authorship units/U01/SPEC.md §3.1/§3.2/§3.3/§6.1/§6.2"
+      ]
     }
   ]
 }
