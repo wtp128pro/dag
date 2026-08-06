@@ -1,0 +1,19 @@
+{
+ "id": "L31",
+ "trigger": "Wave 8/9, U17 iteration 2, filed by two verification lenses independently and promoted out of one unit's residual_risks. U17 was capped at 32,000 tokens by the L28 costing method and spent ~46,000 (~144%). The overrun was NOT caused by the files it had to read: L28 prices MANDATORY READS (bytes of criteria-mandated inputs / bytes-per-token) and is structurally blind to what a unit must MEASURE. U17's brief froze a 7-entry case_set carrying 48 declared observations (28 required + 20 forbidden, counted programmatically over brief.case_set), 41 of which came to owe a RED COUNTERFACTUAL each once C6 returned `violated` and validate_run.py's I48-7 scoped the obligation with `if _out != \"discharged\": continue`. Each counterfactual is a mutate-run-restore cycle with its own command, output and restore - none of which appears anywhere in the read budget.",
+ "lesson": "A CASE-SET BUDGET MUST PRICE THE OBSERVATIONS, NOT ONLY THE READS. L28's estimator under-costs every case_set-bearing unit IN PROPORTION TO ITS OBSERVATION COUNT, so the error grows exactly where the contract is strongest - the units with the most declared required/forbidden observations are the ones whose budget is most wrong. The failure is silent: the executor discovers it mid-run with the artifact half-written, and the cheapest way out is to stop falsifying, which converts a budget defect into a VACUITY defect (L25) in the very unit the case set was meant to harden.",
+ "how_to_apply": "When freezing a brief that carries a `case_set[]`, cost it in TWO terms and record both in the brief: (1) L28's mandatory-read term, unchanged; (2) an OBSERVATION term - count `sum(len(required_observations) + len(forbidden_observations))` over the frozen case set BEFORE dispatch (`python3 -c \"import json;b=json.load(open('<RUN>/units/<UID>/brief.json'));print(sum(len(c.get('required_observations') or [])+len(c.get('forbidden_observations') or []) for c in b['case_set']))\"`) and multiply by a measured per-counterfactual cost, since every observation on a row that comes back `discharged` owes a red counterfactual. Cost the run BEFORE the unit executes, where it is free. If the two-term total exceeds the cap, SPLIT THE UNIT or NARROW THE CASE SET at freeze time - never let the executor absorb it, because the only lever an over-budget executor has is to stop falsifying.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "As of 2026-08-06, worktree `1188a8a`, run `2026-08-02_235310_independent-test-authorship`, unit U17 iteration 2. Observation count measured programmatically, per row: C1 4+2=6, C2 4+3=7, C3 7, C4 7, C5 7, C6 7, C7 7 -> TOTAL 48. Counterfactuals actually owed and written: 41, the six `discharged` rows only, because C6 is `violated` and `validate_run.py` scopes I48-7 with `if _out != \"discharged\": continue`. Budget: 32,000 tok cap (brief), ~46,000 spent (~144%). Filed independently by the `reproduce` (Red-Team / Devil's Advocate) and `guardrail` (Pragmatist / Simplifier) lenses on U17 iteration 1, both of whom also measured that the two figures the iteration-1 debrief published (`41 observations`, `checks passed: 687`) UNDERSTATE the finding. Precedent for the read-only half: `.dag/learnings/L28.json`.",
+ "since_wave": 9,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

@@ -113,10 +113,12 @@ before citing it rather than inheriting it.** Read `<RUN>` as that run's directo
 - **Control against the run's BASE commit, never HEAD, and assert the two sides are not identical.**
   Once a run commits its own work, *"it is broken at HEAD too"* stops distinguishing pre-existing from
   self-inflicted; here that control compared a file **with itself** and returned 2 == 2 by
-  construction. Re-measured for this entry: `for c in f547aef 4fb475d c9e5571 HEAD; do git show
+  construction. Re-measured for this entry: `for c in f547aef 4fb475d c9e5571 8bdf4d6; do git show
   $c:plugins/dag/skills/dag/scripts/validate_run.py > /private/tmp/vr_$c.py; python3
   plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file /private/tmp/vr_$c.py; done`
-  → **190 / 194 / 192 / 192**, with `git rev-parse 4fb475d^` → `f547aef` confirming the base is the
+  → **190 / 194 / 192 / 192** — a **dated snapshot**, not a claim to be current: all four points are
+  sha-pinned (the fourth read a bare `HEAD` until 2026-08-06; a commit ref cannot date a working
+  tree), re-measured 2026-08-06 at `1188a8a` and unchanged. With `git rev-parse 4fb475d^` → `f547aef` confirming the base is the
   direct parent. Before publishing a control, prove the sides can differ (`sha256`/`cmp`) and treat an
   empty diff as an **invalid** control, not a passing one. Publish the **gross** — this run *added
   four, closed two, shipped two* — never the net `+2`, which answers "did it get worse" and hides

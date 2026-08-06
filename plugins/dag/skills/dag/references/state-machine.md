@@ -578,16 +578,38 @@ doctrines, each with a migration argument (formal-classification.md).
     defect that lives *between* units, and Phase 8's whole-run hunt for the same signature is a
     backstop for that one signature only. Measured instance of the wider class in this very run: the
     census of the iterate-over-`.get()` crash class that I48's own predicate polices is **190** at the
-    last pre-run commit `f547aef`, **194** at `4fb475d`, **192** at `c9e5571` and **192** in the
-    shipped tree — the run **added four, closed two, shipped two**, into the predicate that polices
+    last pre-run commit `f547aef`, **194** at `4fb475d`, **192** at `c9e5571` and **192** at
+    `8bdf4d6` — four sha-pinned points, a **dated snapshot** re-measured 2026-08-06 at `1188a8a`
+    and unchanged; the run **added four, closed two, shipped two**, into the predicate that polices
     them, and no per-unit case set saw it. Reproduce:
-    `for c in f547aef 4fb475d c9e5571 HEAD; do git show $c:plugins/dag/skills/dag/scripts/validate_run.py > /tmp/vr_$c.py; python3 plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file /tmp/vr_$c.py | head -1; done`
+    `for c in f547aef 4fb475d c9e5571 8bdf4d6; do git show $c:plugins/dag/skills/dag/scripts/validate_run.py > /tmp/vr_$c.py; python3 plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file /tmp/vr_$c.py | head -1; done`
     (`git rev-parse 4fb475d^` → `f547aef`, so the base really is the direct parent).
   - **(v) Correlated blind spots between a same-model-family author and lens holder are
     IRREDUCIBLE.** Every mechanism above fixes *when* derivation happened, *what* was committed to,
     and *who* signed which artifact. None of them changes *what the family can see*. A failure mode
     invisible to the author is invisible to the lens holder for the same reason, and no predicate in
     this repository can observe that. Stated as permanent, not as pending work.
+
+  - **(vi) The §7 sha256 COMMITMENT LIFECYCLE is SHIPPED BUT UNEXERCISED AND UNPOLICED.**
+    `units/U01/SPEC.md` §7 defines, for a high-stakes unit, a case-set derivation dispatched
+    *concurrently* with the executor, frozen to `units/<UID>/case_set_derived.json` plus a
+    `.sha256`, and cited unchanged thereafter — the mechanism that makes a derivation provably
+    *not* post-hoc. **The run that authored, shipped and released it never executed it on a single
+    one of its own high-stakes units.** Measured in the authoring run
+    `2026-08-02_235310_independent-test-authorship`, **as of 2026-08-06 at worktree `1188a8a`**:
+    `find <RUN> -name 'case_set_derived.json' -o -name '*.sha256' | wc -l` → **0**;
+    `graph.json` carries **13** units tagged `high-stakes` of 28
+    (`U01 U03 U10 U17 U22 U24 U25 U26 U27 U28 U29 U32 U33`); of **118** `units/*/verify*.json`
+    documents exactly **1** carries a `case_set_audit` object — U17's own aggregated
+    `verify.json`, i.e. **0 of the other 117** — and that one records
+    `commitment_sha256` all-zeros with `commitment_match: false`, which is the *absence* of a
+    commitment reported honestly, not a commitment. And nothing reads it:
+    `/usr/bin/grep -c case_set_audit plugins/dag/skills/dag/scripts/validate_run.py` → **0** (rc 1),
+    so **no predicate enforces §7 at all**. The gap is disclosed rather than closed on purpose:
+    retrofitting a derivation onto an already-executed unit would manufacture exactly the post-hoc
+    artifact §7 exists to detect, and `AO-1` bars re-briefing an executed unit regardless. Read
+    `case_set_audit` as an **attestation** until a future release both exercises the lifecycle
+    pre-dispatch and adds the predicate; until then §7 is documentation, not a guarantee.
 
   **The archive shows NO MEASURED DETECTION GAIN, and the defensible claim is CONSISTENCY AND
   LEGIBILITY, NOT DETECTION.** Across **18 archived runs (205 units, 810 acceptance criteria), zero**
