@@ -113,6 +113,27 @@ block on every verify that carries a verdict:
 - Honesty boundary: presence / verbatim membership / coverage are mechanical; whether a
   `respected` row is *true* remains your attestation (presence-not-genuineness).
 
+## Case-set audit block (`case_set_audit` — the aggregated `verify.json` ONLY; on every verdict-bearing aggregated verify for a `high-stakes` unit)
+The mechanical record of the case-set mechanism — **not** a findings channel: anything that should
+block a PASS goes to `defects[]` per the block above. Per-member `verify_p<N>.json` files do not
+carry it; the lens holder supplies the values, the aggregator writes them. Wire shape only (the rule
+is SKILL.md Phase 6's panel step; SPEC `units/U01/SPEC.md` §6.2):
+- `case_set_audit` — object, `additionalProperties: false`, all six REQUIRED: `commitment_sha256`
+  (string, `^[0-9a-f]{64}$`; the 64-zero string
+  `0000000000000000000000000000000000000000000000000000000000000000` records that no derivation
+  exists, paired with `commitment_match: false`), `commitment_iteration` (integer ≥1, the iteration
+  in which the commitment was FIRST written, cited unchanged thereafter), `commitment_match`
+  (boolean), `discharge_check`, `novelty_rate`, `vocabulary_containment`.
+- `discharge_check` — object, `additionalProperties: false`, **four** fields, all REQUIRED (`[]`
+  when empty): `missing_ids`, `extra_ids`, `duplicate_ids`, `tier_shortfall_ids`. There is no fifth
+  field: the brief-side `case_set[].id` uniqueness precondition is evaluated first, with
+  `extra_ids`, and is recorded as a defect, not as a field here.
+- `novelty_rate` — `{"derived": <int ≥0>, "absent_from_executor_evidence": <int ≥0>}`, both
+  REQUIRED. There is no `rate` key.
+- `vocabulary_containment` — `{"artifact_only_identifiers": ["<identifier>", …]}`, REQUIRED.
+  There is no `note_emitted` key.
+
+
 ## Consequential-verbatim block (`consequential_verbatim_check` — the whole-run verify field, AF-19)
 On the **whole-run** `verify.json`, enumerate the consequential prompt-verbatim spot-checks:
 one row per consequential ambiguity-register item, recording that item's `register_id` and the

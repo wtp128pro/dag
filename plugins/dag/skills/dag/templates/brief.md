@@ -58,6 +58,69 @@
 - **CB-1 (copy VERBATIM into the acceptance criteria whenever this section is non-empty — I29-4):**
   Retrieval coverage: every claims_owed entry is discharged per its min_tier by evidence rows linked via covers_owed, and every required_sources entry is consulted at a declared fallback-ladder rung or its unreachability is declared in the debrief — never silently skipped.
 
+## Case set (`case_set[]` — mirrors `brief.json`; sibling of `claims_owed`)
+<!-- TEXT ONLY. The RULE — who derives it, when, how many entries, and what the executor may do
+     with it — is stated in full in SKILL.md Phases 5 and 6; an orchestrator acts on it without
+     opening this file. What follows is the wire shape and the strings that must be copied
+     byte-for-byte (SPEC: units/U01/SPEC.md §2, §4.1). Omit this section ONLY when the sidecar
+     carries neither `case_set` nor `case_set_none_reason`. -->
+- **Entry keys** (`brief.json` `case_set[].items`, `additionalProperties: false`) — REQUIRED:
+  `id` (`^C[0-9]+$`, unique in the array), `check`, `check_form` (`"command"` | `"locator"`),
+  `trigger_ref` (**VERBATIM** member of this brief's `acceptance_criteria[] ∪ dod_refs[] ∪
+  non_goal_refs[]`), `required_observations[]` (≥1), `forbidden_observations[]`, `production_path`
+  (boolean), plus **exactly one** of `requirement_ref` (**VERBATIM** member of this brief's
+  `dod_refs[] ∪ non_goal_refs[]`) / `requirement_ref_none_reason`. Conditional companions:
+  `forbidden_observations_none_reason` (iff `forbidden_observations` is empty),
+  `production_path_none_reason` (iff `production_path` is `false`). There is **no**
+  `min_evidence_tier` key and **no** `note` key — both were deleted.
+- **`check_form: "locator"` shape, verbatim:** `^[^\s:]+:[0-9]+([ \t][^\n]*)?$` — a `path:line`,
+  optionally followed by a single-line anchor phrase. `check_form: "command"` = a command line whose
+  exit status carries the observation.
+- **Explicit-none (copy the pair VERBATIM, as with `claims_owed`):** `"case_set": [],
+  "case_set_none_reason": "<what was searched before concluding no case set applies>"`. A
+  none-reason whose text names empty `dod_refs`/`non_goal_refs` as the ground is not an
+  explicit-none — that class uses the per-entry `requirement_ref_none_reason` form instead.
+- **`forbidden_observations_none_reason` — the verbatim content-test form (one line, copy as-is):**
+  `searched the quoted requirement_ref for not / never / must not / rather than / without / no X; none present.`
+- **Worked pair, byte-for-byte from SPEC §4.1** (one DoD item with **two** negative statements ⇒
+  **two** entries, because one `check` cannot reach every observation):
+
+```json
+[
+  {
+    "id": "C7",
+    "check_form": "command",
+    "check": "python3 -c \"import json,sys;b=json.load(open('brief.json'));d=json.load(open('debrief.json'));B=[e['id'] for e in b.get('case_set',[])];D=[r['id'] for r in d.get('case_set_discharge',[]) if r.get('origin')=='orchestrator'];miss=sorted(set(B)-set(D));dup=sorted({i for i in D if D.count(i)>1});print('missing',miss,'duplicate',dup);sys.exit(1 if miss or dup else 0)\"",
+    "trigger_ref": "The spec states the orchestrator-derives / executor-may-ADD-never-shrink rule and names the debrief discharge record as the ONLY home for an added entry (D13b).",
+    "requirement_ref": "SKILL.md Phase 5 instructs the ORCHESTRATOR to derive case_set[] pre-dispatch from the Definition of Done and the clarification register, each entry traced verbatim to its source item, with the forbidden observations derived from the requirement's own negative statements rather than from what the planned implementation happens to check; SKILL.md Phase 6 states the executor may ADD entries but never shrink one, and must escalate an infeasible entry with a recorded reason rather than dropping it silently.",
+    "required_observations": [
+      "every id in brief.case_set[] appears exactly once in debrief.case_set_discharge[] with origin 'orchestrator'"
+    ],
+    "forbidden_observations": [
+      "a brief case_set[] id with no origin 'orchestrator' row in case_set_discharge[] (shrink by omission)"
+    ],
+    "production_path": false,
+    "production_path_none_reason": "The requirement governs what two artifacts state about each other; there is no runtime consumer surface."
+  },
+  {
+    "id": "C8",
+    "check_form": "command",
+    "check": "python3 -c \"import json,sys;d=json.load(open('debrief.json'));bad=sorted(r['id'] for r in d.get('case_set_discharge',[]) if r.get('outcome')=='infeasible' and not str(r.get('infeasible_reason','')).strip());print('silent_drop',bad);sys.exit(1 if bad else 0)\"",
+    "trigger_ref": "The spec states the orchestrator-derives / executor-may-ADD-never-shrink rule and names the debrief discharge record as the ONLY home for an added entry (D13b).",
+    "requirement_ref": "SKILL.md Phase 5 instructs the ORCHESTRATOR to derive case_set[] pre-dispatch from the Definition of Done and the clarification register, each entry traced verbatim to its source item, with the forbidden observations derived from the requirement's own negative statements rather than from what the planned implementation happens to check; SKILL.md Phase 6 states the executor may ADD entries but never shrink one, and must escalate an infeasible entry with a recorded reason rather than dropping it silently.",
+    "required_observations": [
+      "every row with outcome 'infeasible' carries a non-empty infeasible_reason"
+    ],
+    "forbidden_observations": [
+      "a row with outcome 'infeasible' and an absent or whitespace-only infeasible_reason (the silent drop)"
+    ],
+    "production_path": false,
+    "production_path_none_reason": "The requirement governs what two artifacts state about each other; there is no runtime consumer surface."
+  }
+]
+```
+
+
 ## Evidence standard (see references/evidence-standards.md)
 - Claim types expected in this unit: <e.g., code-behavior, empirical-world-fact>
 - Required evidence: <e.g., path:line + a run; primary source + URL>

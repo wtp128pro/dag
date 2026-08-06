@@ -275,6 +275,48 @@
           "outcome": { "type": "string", "minLength": 1, "pattern": "\\S" }
         }
       }
+    },
+    "case_set_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OPTIONAL at the schema level, REQUIRED offline (case_set contract SPEC.md section 6.2) on every verdict-bearing AGGREGATED verify.json for a unit whose brief carries the high-stakes tag - a schema cannot read the sibling brief's tags, so the trigger is adjudicated post-hoc. Per-member verify_p<N>.json files MUST NOT carry it: the lens holder supplies the values, the aggregator writes them. This object records MECHANISM STATE only. It is NOT the findings channel - every case-set adequacy finding goes into the existing defects[] (section 6.1), because I6's blocker-on-PASS rule reads defects[] and a finding recorded anywhere else is invisible to it.",
+      "required": ["commitment_sha256", "commitment_iteration", "commitment_match", "discharge_check", "novelty_rate", "vocabulary_containment"],
+      "properties": {
+        "commitment_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "The hash cited from the frozen derivation (section 7). 64 zeros => no derivation exists, which on a high-stakes unit is a hard FAIL carried with commitment_match:false - omission is louder than compliance." },
+        "commitment_iteration": { "type": "integer", "minimum": 1, "description": "The iteration in which the commitment was FIRST written; cited unchanged forever. It detects what the hash cannot: a legitimately identical set re-derived at a later iteration leaves commitment_sha256 unchanged while this advances." },
+        "commitment_match": { "type": "boolean", "description": "true iff the recomputed hash equals the cited one. false is a hard FAIL (DoD 3b), never a NOTE." },
+        "discharge_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The section-3.3 adjudication; all four fields REQUIRED ([] when empty). Any non-empty list is a FAIL. Brief-side case_set[].id uniqueness is a PRECONDITION of the tier floor, not a fifth field - the four-field shape is unchanged.",
+          "required": ["missing_ids", "extra_ids", "duplicate_ids", "tier_shortfall_ids"],
+          "properties": {
+            "missing_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "ids in the frozen brief.case_set with NO origin:'orchestrator' row (shrink)." },
+            "extra_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "origin:'orchestrator' rows whose id is not in the frozen brief.case_set. Executor ADDs are origin:'executor' and are NEVER counted here - counting them would FAIL the exact behaviour Non-Goal 3 protects." },
+            "duplicate_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "ids appearing in more than one origin:'orchestrator' row." },
+            "tier_shortfall_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "ids whose row evidence_tier is below floor(row), where floor(row) := FLOOR[row.check_form] when origin:'executor' and FLOOR[brief.case_set[row.id].check_form] when origin:'orchestrator' (FLOOR = {command: executable, locator: located}). Defined over rows of BOTH origins; the id-resolution guard scopes the orchestrator BRANCH of floor(), not the field's domain. Evaluation order is NORMATIVE: extra_ids and the brief-side id-uniqueness precondition are computed FIRST, so a dangling id lands in extra_ids and never reaches floor()." }
+          }
+        },
+        "novelty_rate": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "DoD 3d. Recorded per run so a persistently zero reading exposes the step as redundant or as theater. A single zero reading is NOT itself a FAIL.",
+          "required": ["derived", "absent_from_executor_evidence"],
+          "properties": {
+            "derived": { "type": "integer", "minimum": 0 },
+            "absent_from_executor_evidence": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "vocabulary_containment": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "DoD 3c. Identifiers appearing in the derived set that exist only in the executor's artifact are positive evidence of contamination. Advisory NOTE only - never a FAIL.",
+          "required": ["artifact_only_identifiers"],
+          "properties": {
+            "artifact_only_identifiers": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        }
+      }
     }
   },
   "allOf": [
