@@ -328,6 +328,17 @@ Its six fields record **mechanism state**:
 | `novelty_rate` | How many derived cases were absent from the executor's evidence — recorded **per run**, so a persistently zero reading exposes the step as redundant or as theatre (`plugins/dag/skills/dag/schemas/verify.schema.json:303`, anchor *"a persistently zero reading exposes the step as redundant"*). A single zero reading is **not** itself a FAIL. |
 | `vocabulary_containment` | Identifiers in the derived set that exist only in the executor's artifact — positive evidence the derivation was contaminated by what it was supposed to check independently. **Advisory NOTE only, never a FAIL** (`plugins/dag/skills/dag/schemas/verify.schema.json:313`, anchor *"Advisory NOTE only - never a FAIL"*). |
 
+**NOT ENFORCED AS OF 1.13.0 — the "required" and the "hard FAIL" above are *attestations*, not
+predicates.** Measured: `/usr/bin/grep -c case_set_audit plugins/dag/skills/dag/scripts/validate_run.py`
+→ `0`, rc 1 (as of 2026-08-06, at the tip of `feat/case-set-contract`). No predicate reads this block, so
+neither a missing `case_set_audit` nor `commitment_match: false` nor the 64-zero `commitment_sha256` can
+produce a FAIL row — nothing adjudicates the post-hoc trigger this section describes. The live
+counterexample is the run that wrote this sentence: `.wip/2026-08-02_235310_independent-test-authorship`
+`units/U17/verify.json` is a verdict-bearing aggregate on a `high-stakes` unit carrying 64 zeros with
+`commitment_match: false`, and `bash plugins/dag/skills/dag/scripts/validate_run.sh <RUN> --quiet` reports
+**zero** rows about the commitment. Read this table as what a verifier *owes*, never as what the tooling
+*checks*. See `plugins/dag/skills/dag/references/state-machine.md` Limitation AC boundary (vi).
+
 **And the design rule that matters more than any of those fields:** `case_set_audit` is *not* where
 findings go. Every case-set adequacy finding — an uncovered acceptance criterion, an
 implementation-shaped forbidden observation, a vacuous check, an observation no `check` reaches, a
