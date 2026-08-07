@@ -416,7 +416,11 @@ run actually retrieved.
 ## 10. See also
 
 - [`14-validator-and-invariants.md`](14-validator-and-invariants.md) — the full invariant
-  catalog (I1..I34) and the offline/post-hoc discipline these nine invariants share.
+  catalog (I1..I48) and the offline/post-hoc discipline these nine invariants share — the same
+  discipline the later **case-set contract** (`case_set` → `case_set_discharge` →
+  `case_set_audit`, I48) reuses: derived by the orchestrator like `claims_owed`, filed by the
+  executor, adjudicated offline by the verifier
+  (`plugins/dag/skills/dag/schemas/brief.schema.json:106`, anchor *"case_set"*).
 - [`07-accuracy.md`](07-accuracy.md) — adaptive evidence standards and the *validity ≠
   correctness* frame the four-tier taxonomy and I31–I34 extend.
 - [`15-artifacts-and-schemas.md`](15-artifacts-and-schemas.md) — the `sources.json` schema, the

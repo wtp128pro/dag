@@ -3,6 +3,72 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] — 2026-08-06
+
+**The frozen case-set contract (`I48`).** A brief may now freeze a `case_set[]` — named checks, each
+with the observations it must be able to make and the observations it forbids — and a debrief must
+discharge every one of them back, row for row, with an `outcome`, its `evidence`, and a `non_vacuity`
+statement saying what would have made the row go red.
+
+- **Guarantee classification.** The correction-loop termination proof and **AO-1..7** are
+  **PRESERVED**: `I48` is an *offline, post-hoc* predicate over emitted artifacts and adds no live
+  guard to any transition — in particular none to `LT7 (RETRY→EXECUTE)`, the correction loop's sole
+  back-edge, so Claim D is untouched. **I1..I47** are **PRESERVED** verbatim; none is rewritten,
+  re-armed or re-scoped. The invariant *set* is **REVISED** by the addition of `I48`.
+  **Migration argument for that revision:** `I48` is gated on
+  `fsm-state.validator_version >= 1.13.0`, deliberately above the `1.12.1` release stamp, so it arms
+  on **zero** archived runs and on no run scaffolded by a validator predating the contract; the
+  suppressed arm is counted by the exit-neutral `N-I45` skew NOTE through the
+  `_skew_record('I48-T1', ...)` companion that `spec_check`'s **SC8** requires. A run that predates
+  the contract therefore keeps exactly the verdict it had.
+- **Eight clauses.** `I48-1` absence of `case_set[]` on a gated run with no non-blank
+  `case_set_none_reason` is a hard FAIL, not an advisory NOTE; `I48-2` §3.3 totality in both
+  directions plus the duplicate rule; `I48-3` the forbidden second copy of all **ten** brief-owned
+  keys on an `origin: "orchestrator"` row; `I48-4` the `vacuity_finding` ⇔ `outcome == "vacuous"`
+  biconditional, both arms; `I48-5` `tier_shortfall` against the floor derived from the governing
+  entry's `check_form` (`{command: executable, locator: located}`); `I48-6` the locator FAILs — the
+  `executable` cap and the `path:line` shape; `I48-7` per-observation totality, scoped to discharged
+  rows and cross-artifact, plus the command-form not-run FAIL; `I48-8` routing of adequacy findings
+  into the existing `verify.defects[]`, including the FAIL for a defect filed under a case id rather
+  than a verbatim acceptance criterion.
+- **Schemas.** `brief.schema.json` gains `case_set[]` and its explicit-none content bar;
+  `debrief.schema.json` gains `case_set_discharge[]`; `verify.schema.json` gains the adequacy-finding
+  route. All three additions are **optional** at the schema layer, so an artifact written against
+  1.12.x stays schema-valid — the obligation arrives only with the version gate.
+  `scripts/normalize_artifacts.py` mirrors both artifact schemas by hand and was updated in the same
+  change; `--self-test` exits 0.
+- **A widening published as one.** Both observation-list loci are guarded against the
+  iterate-over-`.get()` crash class: a non-array `required_observations` / `forbidden_observations`
+  now yields a naming row and a real `RESULT:` line from **both** origins instead of an uncaught
+  `TypeError`. **Where the "previously" lives:** within *this* release. At 1.12.1 neither locus
+  existed (`git show f547aef:plugins/dag/skills/dag/schemas/brief.schema.json | grep -c case_set` ->
+  `0`), so this is **not** a change from 1.12.1; the two loci first shipped *on this branch* a
+  `list(x or [])` form that misdiagnosed the falsy container values (`0`, `False`, `''`, `{}`,
+  `0.0`) whenever `non_vacuity[]` named the lost observations, and the shipped form reports the
+  malformed field by name instead.
+- **The crash class is NOT closed by this release — the gross.** The same change **ADDED four** sites of that class and **CLOSED two**; **two survive**, at `validate_run.py:6698` and `:6705`, inside the very block this release arms — and the first is a **live abort**: a `1.13.0`-stamped run whose `brief.acceptance_criteria` is not an array now exits 1 with **no** `RESULT:` line, where 1.12.1 reported `RESULT: FAIL`. That sentence stands unweakened and now ships with the command that reproduces it, both arms, on a throwaway fixture run: `cd plugins/dag/skills/dag/scripts/tests && python3 -c "import sys,json,shutil,subprocess;sys.path.insert(0,'.');import u29_fixture_base as mk;R=lambda s,d:(shutil.rmtree(d,ignore_errors=True),mk.build(d,stamp=s),json.dump(dict(json.load(open(d+'/units/U01/brief.json')),acceptance_criteria=7),open(d+'/units/U01/brief.json','w')),subprocess.run(['bash','../validate_run.sh',d,'--quiet'],capture_output=True,text=True))[-1];[print(s,'rc=%d'%r.returncode,'RESULT: line ->',any(l.startswith('RESULT:') for l in (r.stdout+r.stderr).splitlines())) for s,r in ((s,R(s,'/tmp/abort_'+s)) for s in ('1.13.0','1.12.1'))]"` -> `1.13.0 rc=1 RESULT: line -> False` / `1.12.1 rc=1 RESULT: line -> True`, with `TypeError: 'int' object is not iterable` on stderr of the first (measured 2026-08-06). Census over the class, measured against this run's BASE commit and not against HEAD (`scripts/tests/i48_crash_class.py --census --file <copy>`): `f547aef` **190** -> `4fb475d` **194** -> `c9e5571` **192** -> `8bdf4d6` **192**. All four points are now **sha-pinned** — the fourth previously read a bare `HEAD`, which cannot date a working tree; re-measured 2026-08-06 and unchanged at 192. Published as the **gross**, not the net `+2`. Open, recorded as `.dag/learnings/L27` and `L29`; the repair is a separate change.
+- **Test harness.** `scripts/tests/i48_clause_matrix.py` (per-clause matrix and behaviour arms) and
+  `scripts/tests/i48_crash_class.py` (whole-file census, survivors, provenance) ship and are invoked
+  by `run_tests.sh`; three counterfactual run-dir fixtures (`i48_counterfactual_fires`,
+  `..._green`, `..._suppressed`) and their `expectations.tsv` rows ship with them. `U29`'s four
+  standalone fixtures (`u29_fixture_none_reason.py`, `u29_fixture_tuple.py`, `u29_fixture_base.py`,
+  `u29_baseline_check.py`) ship under `scripts/tests/` and are **not** wired into
+  `expectations.tsv` — adding a row there is the move that changes what `run_tests.sh` executes, and
+  no pipeline behaviour change was in scope.
+- **Doctrine.** `SKILL.md`, `references/state-machine.md` (including `Limitation AC`, which records
+  what the contract does *not* close), `references/orchestrator-conduct.md`, the three artifact
+  templates and the wiki pages carry the contract. `CLAUDE.md` gains the case-set authoring section.
+- **What is not claimed.** No improvement in finding defects is claimed here, and none was measured:
+  the archive shows no measured gain of that kind. The defensible claim is **consistency and
+  legibility** — a check that cannot go red, or cannot go green without a forbidden move, becomes
+  *stateable* in the artifact. Whether a case set is complete or adequate stays unaddressed, and
+  cross-unit blindness stays open (`Limitation AC` boundary (iv), `.dag/learnings/L29.json`).
+- Nine cross-run learnings persisted to the project store (`L22`–`L30`). **Eight** of them
+  (`L22`–`L28`, `L30`) were carried over verbatim from the authoring run's ledger, each validated
+  against `learnings.schema.json` **before** write into a slot verified free against
+  `git show HEAD:`. The ninth, `L29`, was authored earlier in the same run directly into the
+  store; it was **verified present by sha256, not written or pre-validated here**.
+
 ## [1.12.1] — 2026-07-31
 
 **Doctrine retractions — five surfaces that still asserted the stamp is never refreshed.**

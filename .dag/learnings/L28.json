@@ -1,0 +1,19 @@
+{
+ "id": "L28",
+ "trigger": "Wave 6. U20's verifier ruled its ~62,000-token overrun against a 32,000 cap FORCED rather than gold-plating, and measured why: the page reads at 2.46 bytes/token, so criterion 1's MANDATORY full read of the 79,642-byte pre-edit page is about 32,400 tokens - roughly 101% of the entire cap on input alone - and criterion 2's mandatory read of validate_run.py:6418-6730 adds about 8,950. The two mandated reads come to about 129% of the cap BEFORE A LINE IS WRITTEN. D21 had already declared U20 'at the cap with the overrun recorded'; that was itself an underestimate. The unit was unsatisfiable within budget BY CONSTRUCTION and nobody costed it before freezing the brief. THEN THE ORCHESTRATOR REPEATED THE ERROR IN THE OPPOSITE DIRECTION: costing wave 7 it priced U15's mandatory reads at 187% of cap by summing the whole of SKILL.md and orchestrator-conduct.md - but U15's five criteria are grep, diff and targeted-edit criteria and NOT ONE mandates a full read. The 187% was an artifact of the orchestrator's assumption about the input, not a property of the unit.",
+ "lesson": "A token budget is a claim that the work FITS, and like any other claim it must be measured before it is frozen. Cost the reads the CRITERIA MANDATE - not the files the unit happens to touch, and not the files an orchestrator imagines it will open. The two errors are symmetric and both were made in one wave: summing too little produces a cap the unit cannot meet however well it works (L25's shape at the BUDGET layer - the third distinct layer this run has caught it on, after the check layer and the criterion layer); summing too much invents a crisis that does not exist and would have justified an unnecessary amendment. What separates them is the discipline that separates everything else here: read the criteria and ask what each one actually forces a reader to open.",
+ "how_to_apply": "Before freezing a brief, for each acceptance criterion name the artifacts it makes IMPOSSIBLE to discharge without reading in full, convert their bytes to tokens at a rate measured for the corpus (2.46 B/tok on this repo's prose), and compare the sum to the cap. If mandatory input alone approaches the cap the brief is DEFECTIVE - split the unit, or narrow the criterion from 'read all of X' to a measurement over X - and do it while the unit is unexecuted, where it costs no fuel. A criterion phrased 'no section of the page describes Y' FORCES a full read; one phrased 'a grep over Z returns zero hits with the command recorded' does not, and that distinction is worth more than any cap. And when an overrun IS declared, cost the mandatory reads BEFORE judging it gold-plating: U20's verifier reversed the natural suspicion by doing exactly that.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "U20's verifier, measured: Read reports the 970-line/96,537-byte page at 39,215 tokens = 2.46 B/tok; pre-edit page 79,642 B ~= 32,400 tok ~= 101% of the 32,000 cap; validate_run.py:6418-6730 = 313 lines/22,017 B ~= 8,950 tok; sum ~= 41,300 ~= 129% of cap. Gold-plating separately excluded: one file written, validate_run.py byte-identical to HEAD, all 198 added lines mapping to criterion 1 or 2. ORCHESTRATOR'S OWN COUNTER-EXAMPLE, measured then RETRACTED: it priced U15 at 55,397 tok = 187% of its 29,679 cap by summing SKILL.md (99,889 B) + orchestrator-conduct.md (36,388 B) IN FULL; reading U15's five criteria shows AC1 is a grep with recorded output, AC2 publishes a term list, AC3 covers only examples ADDED by this change, AC4 corrects one footer region, and AC5 fixes three named locators - no full read is mandated anywhere, so the 187% figure is VOID. U29 prices at 15,061 tok = 71% of its 21,145 cap on files it genuinely must read in full, which is tight and real.",
+ "since_wave": 7,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

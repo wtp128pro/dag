@@ -47,5 +47,31 @@ quote — prevents rediscovery), and — **retries only (`iteration>1`)** — `p
 verbatim echo of iteration n−1's `verify.feedback` (`actionable_changes` + `do_not_touch`) plus
 `changes_made[]`, ≥1 concrete change responsive to it (AO-6).
 
+**Case-set discharge** (`case_set_discharge[]` — emit it whenever this unit's brief carries
+`case_set`; the RULE the executor acts on is in SKILL.md Phase 6's dispatch blockquote, this is the
+wire shape only, SPEC `units/U01/SPEC.md` §3):
+- One row per frozen `brief.case_set` entry (`origin: "orchestrator"`), plus any row the executor
+  ADDs (`origin: "executor"` — this array is the ONLY home for an added entry; there is no addendum
+  file and no brief amendment).
+- Row keys (`additionalProperties: false`) — REQUIRED: `id` (`^C[0-9]+$` when `origin:
+  "orchestrator"`, `^CX[0-9]+$` when `origin: "executor"`), `origin` (`"orchestrator"` |
+  `"executor"`), `outcome` (`"discharged"` | `"violated"` | `"infeasible"` | `"vacuous"`),
+  `evidence` (a command + its ACTUAL output, or `path:line` + a quoted anchor phrase),
+  `evidence_tier` (`"executable"` | `"located"` | `"asserted"`). Conditional: `asserted_reason`
+  (iff `evidence_tier: "asserted"`), `non_vacuity[]` (iff `outcome: "discharged"`),
+  `infeasible_reason` (iff `outcome: "infeasible"`), `vacuity_finding` (iff `outcome: "vacuous"`).
+- `non_vacuity` is an **ARRAY**, `minItems: 1`, **one member per observation** —
+  `{observation_ref, counterfactual, counterfactual_result}` (`additionalProperties: false`), plus
+  `reason` iff `counterfactual_result: "not-run"`. `observation_ref` is a **VERBATIM** item of the
+  entry's `required_observations` ∪ `forbidden_observations`; `counterfactual_result` is
+  `"red"` | `"not-run"` — the field is `counterfactual_result`, **never** `result`.
+- An `origin: "executor"` row ALSO carries the brief-entry keys (`check`, `check_form`,
+  `trigger_ref`, `requirement_ref` / `requirement_ref_none_reason`, `required_observations`,
+  `forbidden_observations`, `forbidden_observations_none_reason`, `production_path`,
+  `production_path_none_reason`, each under its own condition). An `origin: "orchestrator"` row
+  carries **none** of them — they live in the frozen brief, and a second copy can be quietly
+  narrowed.
+
+
 No `debrief.md` is written. `debrief.json` is authoritative and is what the verifier and every
 downstream brief read.

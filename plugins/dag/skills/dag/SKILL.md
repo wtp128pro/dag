@@ -660,6 +660,32 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
   criterion (VERBATIM, from templates/brief.md §Required sources) to the unit's
   `acceptance_criteria` — that one line is what makes retrieval failure FAIL-able under I6
   (I29-4 FAILs its absence);
+- the **`case_set[]`** (schemas/brief.schema.json), and **the whole rule is these two sentences:**
+  **YOU the orchestrator** — never the executor — derive a `case_set[]` into `brief.json` before
+  dispatch, ≥1 entry per acceptance criterion, each entry naming what MUST be observed
+  (`required_observations`) and, taken from the requirement's **own negative statements**, what MUST
+  NOT be (`forbidden_observations`). The **executor** discharges every entry in
+  `debrief.case_set_discharge[]` and may **ADD** entries, but may never shrink, reword or silently
+  drop one; an entry it cannot run is recorded `infeasible` with a reason and escalated.
+  Mechanics: `trigger_ref` = the acceptance criterion **verbatim**; `requirement_ref` = the DoD /
+  clarification-register item **verbatim** (that register, not criterion prose, is the derivation
+  source, because the same orchestrator authors both the prose and the case set). Derive each
+  forbidden observation from the `requirement_ref`'s own *not / never / must not / rather than /
+  without* clauses, **never** from what the planned implementation happens to check — admission test:
+  *could someone who has never seen the implementation derive this from the requirement's text
+  alone?* If no, discard it; an observation phrased in an identifier that exists only in the
+  implementation (function name, predicate id, fixture path) was read off the code. An entry's
+  `check` MUST be able to observe **every** one of its required *and* forbidden observations — for
+  each, name an input under which the check **EXITS NON-ZERO** while exiting zero on the real input;
+  differing *stdout* is **not** enough. If any has none, **SPLIT** the entry. A print-only command
+  that exits 0 under every input (`wc -l`, a bare `sed -n`, any pipeline ending in `head`) is **not**
+  a valid `check_form: command` check and MUST be **rejected at derivation**; use an exit-bearing
+  form, or `check_form: locator` (a `path:line` to open, capped at `evidence_tier: located`).
+  Set `production_path: true` where the observation must be seen through the shipped
+  surface a real consumer reaches, not a shim, fixture or internal helper. **Rendering:** `brief.md`
+  MAY render `trigger_ref`/`requirement_ref` as a pointer to the byte-identical text already rendered
+  **in the same `brief.md`** (e.g. "AC 1", "DoD 3") — never a pointer out of the file, and
+  `brief.json` always keeps the verbatim strings the predicates read;
 - the **evidence standard** for this unit's claim types (evidence-standards.md);
 - the **budget contract** (this unit's `brief.budget_tokens` — the ≤ 32K plan-side ceiling; "read only
   what this brief lists"). **Report-side honesty is relative to THIS budget (F2):** in the debrief,
@@ -683,6 +709,22 @@ call per unit, ideally in a single message). For **each unit**:
 always; a background dispatch ends your turn there (U01). **Same-wave units own DISJOINT files; never
 run an evidence-reproducing verifier concurrent with an executor mutating what it reads; dispatch no repair while that unit's verification is in flight** (`MU-L25`, `MU-L40`; orchestrator-conduct.md §4).
 
+**Case-set derivation — `high-stakes` units only; ONE added dispatch, and it is not a verification.**
+Dispatch it in the SAME message as the executor, before any artifact exists, so blindness is a fact
+about what was on disk rather than a claim about conduct. It writes `units/<id>/case_set_derived.json`
++ `case_set_derived.sha256` (`shasum -a 256` format) **exactly once**; every later
+`verify.case_set_audit` cites that SAME hash and `commitment_iteration`. This **inverts** staleness:
+the OLD hash is the valid state, a FRESH one is evidence the set was re-derived after seeing the
+artifact — `commitment_match: false` or an advancing `commitment_iteration` is a hard FAIL. The
+diff-and-execute re-runs each iteration and is held by the panel's existing case-set-adequacy lens (a
+fold into I16's three lenses: no fourth lens, **zero** added verification dispatches). The audit
+records two readings: a **vocabulary-containment** advisory NOTE naming any artifact-only identifier
+found in the derived set (positive evidence of contamination), and the **novelty rate** — how many
+derived cases were absent from the executor's evidence — per run, so a persistently zero reading
+exposes the step as redundant. **ORDER stays unproven:** no artifact evidences the derivation preceded
+the executor's output (mtime is not evidence); that rests on this concurrent dispatch and ships as
+labelled attestation.
+
 1. **Execute.** Spawn the executor subagent (Agent tool). Prompt, tightly:
    > *Adopt persona `<X>`. Read `RUN_DIR/units/<id>/brief.md` and only the files it
    > lists, plus the brief's "Required sources" entries consulted through the fallback ladder
@@ -690,7 +732,17 @@ run an evidence-reproducing verifier concurrent with an executor mutating what i
    > `accessed`; discharge every `claims_owed` entry via `covers_owed` — never silent skipping).
    > Do the work. Stay within a 32K-token context budget. Produce
    > `RUN_DIR/units/<id>/debrief.json` (JSON-only, no .md) per templates/debrief.md. Every claim must carry admissible
-   > evidence. Before producing output, run the Socratic self-interrogation
+   > evidence. **Discharge EVERY `case_set[]` entry from your `brief.json` in
+   > `debrief.case_set_discharge[]`:** one row per entry, `id` matching, `origin: "orchestrator"`,
+   > `outcome` ∈ `discharged | violated | infeasible | vacuous`, and on `discharged` a `non_vacuity[]`
+   > member **per observation** — a red on one half of an entry never certifies the other half. You
+   > may ADD entries (`origin: "executor"`, carrying their own `check`/`check_form`/refs); you may
+   > never shrink, reword or silently drop one — an entry you cannot run is `infeasible` **with a
+   > reason**, escalated, not dropped. Discharging a `production_path: true` entry through a shim,
+   > fixture-only path or internal helper is `violated`, not `discharged`, even if every required
+   > observation was seen. Do NOT restate `check`, `check_form`, `trigger_ref` or `requirement_ref`
+   > on an `origin: "orchestrator"` row: a second copy can be quietly narrowed.
+   > Before producing output, run the Socratic self-interrogation
    > (references/socratic-protocol.md, self-mode: FORK·COUNTER·ADMIT·PIVOT·RESIDUAL) on your
    > material claims and record the result in the debrief's `socratic` block; skip it only if
    > the unit is purely mechanical. Report your context footprint and confidence.*
@@ -999,7 +1051,9 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    `T-VENDOR`/`T-COMM` outnumber consulted rows of those tiers — open ≥1 queued row per
    external tier or record in SYNTHESIS.md why not. Record the sample outcomes in that
    verification's `audit_notes` (attestation-level; the validator never opens locators —
-   honest residual).
+   honest residual). It also hunts the **production-path signature** as a backstop: any
+   `production_path: true` case-set entry discharged through a shim, fixture-only path or internal
+   helper is `violated`. A backstop only — it never licenses skipping the per-unit check.
 3. **Final sign-off gate** (`AskUserQuestion`): present the result, a decision-log
    summary, **the Definition-of-Done checklist with each item's met/unmet status and any
    non-goal that slipped in,** unmet criteria (if any), and residual risks. Ask to accept or iterate. Use

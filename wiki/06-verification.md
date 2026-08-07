@@ -9,7 +9,10 @@ verifier persona receives the brief, the debrief, and the artifacts — but **no
 executor's chain-of-thought — and is incentivized to *refute*. Its verdict is a machine-checkable
 `verify.json` (PASS / FAIL / DISAGREE) with a no-vague-FAIL rule and an independent premise
 re-check. This same discipline runs three times: per unit (Phase 6), on genuine splits
-(Phase 7 → human), and on the whole deliverable (Phase 8).
+(Phase 7 → human), and on the whole deliverable (Phase 8). Since the **case-set contract** the
+verifier no longer only re-audits the evidence the executor chose to bring: it adjudicates a
+**pre-dispatch obligation** — the brief's frozen `case_set[]`, discharged row-by-row in the debrief's
+`case_set_discharge[]` and audited on `verify.json`'s `case_set_audit` (§5, §6.1, §8).
 
 > **Proof-status legend** (used verbatim below): *machine-checked (in scope)* = a validator/schema
 > enforces it on emitted artifacts; *hand-proved* = argued on paper, not mechanized; *asserted
@@ -221,6 +224,36 @@ matters because §6's I6 rule requires every `defect.criterion` to be a *member*
 criteria: without CB-1 there is no criterion to fail an under-retrieved unit against — *"that one line is
 what makes retrieval failure FAIL-able under I6"* (the bridge is whitespace-normalized presence-checked).
 
+**The case-set contract — the second thing the verifier re-audits.** Evidence re-check asks whether the
+evidence the executor *brought* is real. It cannot ask whether the executor brought evidence about the
+right things, because until the case-set contract there was no pre-dispatch record of what those things
+were. The rule is two sentences (`plugins/dag/skills/dag/SKILL.md:663`, anchor *"the whole rule is these
+two sentences"*): the **orchestrator** — never the executor — derives a `case_set[]` into `brief.json`
+before dispatch, ≥1 entry per acceptance criterion, each entry naming what MUST be observed
+(`required_observations`) and, taken from the requirement's **own negative statements**, what MUST NOT be
+(`forbidden_observations`); the **executor** discharges every entry in `case_set_discharge[]` and may
+**ADD** entries, but may never shrink, reword or silently drop one — an entry it cannot run is
+`infeasible` **with a reason**, escalated, not dropped
+(`plugins/dag/skills/dag/SKILL.md:736`, anchor *"one row per entry"*).
+
+Two consequences the verifier cares about. First, a `discharged` row owes a `non_vacuity[]` member **per
+observation**, not per entry: a counterfactual that goes red on one half of an entry never certifies the
+other half. Second, an outcome of `vacuous` is a *first-class, representable result* — the check was run
+and proved not to test the property (its counterfactual came back green), recorded with a
+`vacuity_finding`. `vacuous` ranks with `violated`, never with `discharged`. That representability is the
+point: a truthful `vacuous` is a measurement, whereas a check quietly relabelled green is not.
+
+Mechanically this is **I48**, an offline post-hoc predicate over the frozen `case_set[]` and the emitted
+`case_set_discharge[]` — eight clauses covering totality in both directions, the forbidden second copy of
+the frozen keys on an orchestrator row, the `vacuity_finding` ⇔ `vacuous` biconditional (both arms), the
+evidence-tier floor, the locator-form FAILs, per-observation totality, and the routing rule of §6.1
+(`plugins/dag/skills/dag/references/state-machine.md:236`, anchor *"I48 case-set contract"*). It adds no
+state, no edge, no gate flag, and never guards `LT7` — so Claims A–D and AO-1..7 are **PRESERVED**. It is
+**version-gated at `validator_version >= 1.13.0`** — the stamp this release ships — which means it
+arms on *zero* archived runs (each stamped below the gate) while arming on any run scaffolded or
+`--restamp`ed at `1.13.0` or above; where the gate does suppress it, the suppressed arm is
+shadow-counted rather than silently skipped.
+
 ---
 
 ## 6. The verdict / feedback JSON contract
@@ -275,6 +308,47 @@ productive:
 - `actionable_changes` — concrete edits for the next iteration (required; non-empty on FAIL).
 - `do_not_touch` — what was already correct and must be *preserved*. This is what stops a retry from
   regressing the parts that passed.
+
+### 6.1 `case_set_audit` — mechanism state, and deliberately NOT the findings channel
+
+`verify.json` carries one more optional object, `case_set_audit`
+(`plugins/dag/skills/dag/schemas/verify.schema.json:279`, anchor *"case_set_audit"*). Optional at the
+schema level and **required offline** on every verdict-bearing *aggregated* `verify.json` for a unit whose
+brief carries the `high-stakes` tag — a schema cannot read the sibling brief's tags, so the trigger is
+adjudicated post-hoc, exactly as I22's and I30's adoption-closure rules are. Per-member
+`verify_p<N>.json` files MUST NOT carry it: the lens holder supplies the values, the aggregator writes
+them, and a panelist holding a different lens is never asked to fabricate a hash.
+
+Its six fields record **mechanism state**:
+
+| Field | What it records |
+|---|---|
+| `commitment_sha256` / `commitment_iteration` / `commitment_match` | The frozen derivation's hash, the iteration it was FIRST written, and whether the recomputed hash still equals it. `false` is a **hard FAIL**, never a NOTE. 64 zeros means *no derivation exists* — on a high-stakes unit that too is a hard FAIL, so omission is louder than compliance. |
+| `discharge_check` | The never-shrink adjudication: `missing_ids` / `extra_ids` / `duplicate_ids` / `tier_shortfall_ids`, all four required, `[]` when empty; **any** non-empty list is a FAIL (`plugins/dag/skills/dag/schemas/verify.schema.json:291`, anchor *"all four fields REQUIRED"*). Executor **ADDs** carry `origin: "executor"` and are never counted as `extra_ids` — counting them would fail the exact behaviour the contract protects. The evidence-tier floor is **derived** from the governing entry's `check_form` (`command` ⇒ `executable`, `locator` ⇒ `located`), so `asserted` on any discharge row is always a shortfall (`plugins/dag/skills/dag/schemas/verify.schema.json:297`, anchor *"tier_shortfall_ids"*). |
+| `novelty_rate` | How many derived cases were absent from the executor's evidence — recorded **per run**, so a persistently zero reading exposes the step as redundant or as theatre (`plugins/dag/skills/dag/schemas/verify.schema.json:303`, anchor *"a persistently zero reading exposes the step as redundant"*). A single zero reading is **not** itself a FAIL. |
+| `vocabulary_containment` | Identifiers in the derived set that exist only in the executor's artifact — positive evidence the derivation was contaminated by what it was supposed to check independently. **Advisory NOTE only, never a FAIL** (`plugins/dag/skills/dag/schemas/verify.schema.json:313`, anchor *"Advisory NOTE only - never a FAIL"*). |
+
+**NOT ENFORCED AS OF 1.13.0 — the "required" and the "hard FAIL" above are *attestations*, not
+predicates.** Measured: `/usr/bin/grep -c case_set_audit plugins/dag/skills/dag/scripts/validate_run.py`
+→ `0`, rc 1 (as of 2026-08-06, at the tip of `feat/case-set-contract`). No predicate reads this block, so
+neither a missing `case_set_audit` nor `commitment_match: false` nor the 64-zero `commitment_sha256` can
+produce a FAIL row — nothing adjudicates the post-hoc trigger this section describes. The live
+counterexample is the run that wrote this sentence: `.wip/2026-08-02_235310_independent-test-authorship`
+`units/U17/verify.json` is a verdict-bearing aggregate on a `high-stakes` unit carrying 64 zeros with
+`commitment_match: false`, and `bash plugins/dag/skills/dag/scripts/validate_run.sh <RUN> --quiet` reports
+**zero** rows about the commitment. Read this table as what a verifier *owes*, never as what the tooling
+*checks*. See `plugins/dag/skills/dag/references/state-machine.md` Limitation AC boundary (vi).
+
+**And the design rule that matters more than any of those fields:** `case_set_audit` is *not* where
+findings go. Every case-set adequacy finding — an uncovered acceptance criterion, an
+implementation-shaped forbidden observation, a vacuous check, an observation no `check` reaches, a
+shrink, a commitment mismatch — is written into the **existing** `defects[]`
+(`plugins/dag/skills/dag/schemas/verify.schema.json:282`, anchor *"This object records MECHANISM STATE
+only"*). The reason is I6: its blocker-on-PASS rule reads `defects[]`, so a finding filed anywhere else
+— a bespoke block, `audit_notes` — is invisible to it with no new predicate. Routing into `defects[]`
+inherits I6's reach for free. The converse also bites: a defect filed under a *case id* rather than a
+verbatim acceptance criterion turns **I6** red, because I6's cross-check is byte-exact membership over
+the brief's `acceptance_criteria`.
 
 ---
 
@@ -351,6 +425,19 @@ Three facts make this a mechanism, not a slogan:
   the maker, and there are no clones behind the lenses (`references/state-machine.md` I16, line 205).
   Independence is the whole point of the panel; like the rest of I16 it is presence/shape-checked and
   gates no transition.
+
+**Case-set adequacy is a fold into the existing three lenses — no fourth lens, zero added verification
+dispatches.** The obvious way to check a case set is to add a fourth panelist for it. Dag does not: on a
+`high-stakes` unit the adequacy check is held by *one of the three existing lenses*, by a member who is
+not the unit's executor, and its findings land in that member's own `defects[]` (§6.1) where the existing
+panel-adjudication machinery already resolves dissent. Added **verification** dispatches: **zero**
+(`plugins/dag/skills/dag/SKILL.md:720`, anchor *"no fourth lens"*). The mechanism's *one* added dispatch
+is the **derivation**, and it is not a verification dispatch: it is sent in the same message as the
+executor, before any artifact exists, so blindness is a fact about what was on disk rather than a claim
+about conduct (`plugins/dag/skills/dag/SKILL.md:712`, anchor *"ONE added dispatch, and it is not a
+verification"*). The panel's shape, its distinct-lens requirement, its pairwise-distinct personas and its
+discrete-majority aggregation are all unchanged by this — which is the point of folding rather than
+extending.
 
 **Loop-until-dry (a bounded recall sweep).** Inside one VERIFY node the verifier may run repeated
 adversarial rounds that **accumulate** defects until a round surfaces **no new defect** ("dry") or it
@@ -486,6 +573,25 @@ row is itself `--quiet`-gated, so it too is invisible in the mandated invocation
 severity — exit-neutrality holds). A ledger label left non-terminal over a *current* verification is
 neither predicate's business: that is the advisory **`N-I47`**, which is un-gated and does print.
 
+**One artifact runs the freshness rule BACKWARDS, on purpose.** Everything above says *fresh is valid,
+stale is the defect*. The case-set derivation commitment says the opposite, and the inversion is the
+whole mechanism: `units/<UID>/case_set_derived.json` and its `.sha256` sidecar are written **exactly
+once**, at `commitment_iteration`, before the executor's artifact exists, and every later iteration's
+`case_set_audit` cites that **same** hash and that **same** iteration. For this one artifact the **old**
+hash is the valid state and a **fresh** one is evidence the case set was re-derived after seeing the
+work it was supposed to judge — so `commitment_match: false`, or a `commitment_iteration` that advances,
+is a hard FAIL (`plugins/dag/skills/dag/SKILL.md:716`, anchor *"This **inverts** staleness"*). There is
+no contradiction with I43/I44/I46: those read the aggregated `verify.json`, and the derivation artifacts
+are outside their domain. Only the *derivation* is once-only; the diff-and-execute against the frozen set
+**re-runs every iteration**, held by the panel's existing adequacy lens (§8).
+
+Two honest edges on that rule, both of which the shipped text states rather than glosses. **mtime is not
+evidence** — only the recomputed hash is. And the commitment fixes **content, not order**: no artifact
+evidences that the derivation preceded the executor's output. A set authored at iteration 1 *after*
+reading the artifact, then committed once and cited unchanged forever, satisfies every clause above
+exactly. Derivation-before-artifact rests on the orchestrator's concurrent dispatch and ships as
+**labelled attestation** (`plugins/dag/skills/dag/SKILL.md:724`, anchor *"ORDER stays unproven"*).
+
 ```mermaid
 flowchart TD
     E["Phase 6: unit executed
@@ -533,7 +639,7 @@ Trace of authority for this section: verdict semantics and loop caps →
 
 ## 11. Honest limits
 
-This page would violate its own subject if it overstated the guarantee. Three limits, stated plainly:
+This page would violate its own subject if it overstated the guarantee. The limits, stated plainly:
 
 - **Completeness is legible, not true (Limitation AA).** The currency predicates of §10 prove that a
   `verify.json` is *present, parseable, verdict-bearing and current* — never that the verification was
@@ -551,6 +657,19 @@ This page would violate its own subject if it overstated the guarantee. Three li
   file would make that decidable; it is named here as a **possibility, not as something shipped** — no
   predicate computes it today. **AA** covers the loop that bumps *both* iterations; **AB** covers the edit
   that bumps **neither**.
+
+- **The case-set contract buys CONSISTENCY AND LEGIBILITY, not detection.** This is the limit most
+  easily overstated, so state it flatly: the mechanism of §5/§6.1/§8 propagates a requirement's negative
+  statements into a fixed, greppable, **pre-dispatch** obligation, so what a unit owed is legible after
+  the fact and consistent across runs. It is **not** claimed to catch defects that independent
+  verification otherwise misses, and the measurement behind that restraint is the reason it is worded
+  this way rather than more strongly. Nor is a case set ever claimed **complete** or **adequate**: it
+  binds every acceptance criterion, which is a coverage property of the *list*, not a guarantee about the
+  *world*. And I48, like I16 and I22 before it, is **presence-and-shape**: it can decide that a
+  `non_vacuity[]` member exists for every observation and that its `counterfactual_result` reads `red` —
+  never that the counterfactual was genuinely constructed and genuinely run. `vacuous` is representable
+  precisely so that an executor who *does* run it has somewhere truthful to land; nothing forces the
+  honest reading over the flattering one.
 
 - **Self-attestation (Limitation A).** `executor_reasoning_seen: false` is *machine-checked (in
   scope)* as a **field value** — the schema rejects any other value. But that the verifier *truly*

@@ -373,7 +373,7 @@ i44_override_quiet_control	1	!(accepted-incomplete override)	--quiet
 i44_no_signoff_antecedent	0	RESULT: PASS
 i44_closed_current_fail	0	I44 sign-off closure (signoff_confirmed with 1 executed unit(s); all verified and current)
 i45_skew_note	0	N-I45 version-skew visibility
-i45_no_skew_overfire	0	suppressed 6 version-gated arm(s) whose other preconditions HELD: ['I27-T1', 'I35-I40-T1', 'I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1']
+i45_no_skew_overfire	0	suppressed 7 version-gated arm(s) whose other preconditions HELD: ['I27-T1', 'I35-I40-T1', 'I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1', 'I48-T1']
 i46_nonconverged_pass_at_signoff	1	I46 non-converged PASS (units/U01)
 i46_nonconverged_midloop_note	0	N-I46 non-converged PASS (units/U01)
 i46_converged_true_positive	0	I46 non-converged PASS (1 verify doc(s) declare converged
@@ -417,9 +417,9 @@ i44_override_malformed	1	I44 sign-off closure (units/U01)
 i44_no_signoff_antecedent	0	!I44 sign-off closure
 # §2.5 P2-G1 over-fire control: a CURRENT FAIL is CLOSED verification — no I44 FAIL row.
 i44_closed_current_fail	0	!FAIL  I44 sign-off closure
-# §3.5 P3-G2' — count COMPOSITION, one file, no structural artifact: exactly 4 arms, asserted as the
+# §3.5 P3-G2' — count COMPOSITION, one file, no structural artifact: exactly 5 arms, asserted as the
 # arm-id LIST so an off-by-two cannot satisfy it. Measured on both backends.
-i45_g2prime_no_struct	0	suppressed 4 version-gated arm(s) whose other preconditions HELD: ['I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1']
+i45_g2prime_no_struct	0	suppressed 5 version-gated arm(s) whose other preconditions HELD: ['I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1', 'I48-T1']
 # §3.5 P3-G1 — N-I45's first FUNCTIONING over-fire control: same bytes + validator_version 99.0.0 =>
 # no N-I45 line at all. Refutes iteration 1's 'cannot be expressed as a GREEN row' claim by construction.
 i45_stamp_raised	0	!N-I45 version-skew visibility
@@ -427,3 +427,10 @@ i45_stamp_raised	0	!N-I45 version-skew visibility
 i46_no_converged_key	0	!I46 non-converged PASS
 # §4.4 P4-G3 verdict boundary: no PER-UNIT I46 row (the adoption-scoped rep.ok row still emits).
 i46_nonconverged_fail_verdict	0	!I46 non-converged PASS (units/U01)
+# I48 counterfactual family (U10): the predicate is shown to FIRE, and the two silences are told
+# apart. _fires and _suppressed carry BYTE-IDENTICAL units/ artifacts; only the stamp differs, so
+# the FAIL->PASS move is attributable to the version gate alone. _green's NEGATIVE N-I45 pin is
+# load-bearing: it is the only thing that stops an armed green decaying into a suppressed green.
+i48_counterfactual_fires	1	I48 case-set contract (units/U01 C2): non_vacuity observation_ref multiset
+i48_counterfactual_suppressed	0	suppressed 1 version-gated arm(s) whose other preconditions HELD: ['I48-T1']
+i48_counterfactual_green	0	!N-I45 version-skew visibility

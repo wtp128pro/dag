@@ -206,7 +206,12 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.12.1** — **doctrine retractions**: five surfaces that still asserted the
+Current version: **1.13.0** — **the frozen case-set contract**: a brief may freeze a `case_set[]` of
+named checks and a debrief must discharge each one back, row for row, with an outcome, its evidence
+and a non-vacuity statement. Enforced by **I48**, an **offline post-hoc** predicate in eight clauses
+over the emitted artifacts — no live guard on any transition — **version-gated on
+`validator_version >= 1.13.0`**, which is why this release is a minor: below that stamp the predicate
+is inert, so no archived run arms it. Previously, **1.12.1** — **doctrine retractions**: five surfaces that still asserted the
 `validator_version` stamp is never refreshed now carry an inserted retraction (`init_run.sh --restamp`
 shipped in 1.12.0 as a flag plus the orchestrator protocol that calls it; the *automatic* form remains
 **unbuilt**). Documentation only — no predicate, schema or invariant changes. Previously, **1.12.0** —

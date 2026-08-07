@@ -233,6 +233,7 @@ proof — in `references/self-learning-loops.md`; this section is the pipeline-l
 | **N-I45 version-skew visibility** (verify-repair 1.12.0) | An exit-neutral **NOTE**, not an invariant with a FAIL arm: a shadow count of the version-gated arms this run's own `validator_version` stamp suppressed **while the arm's non-version precondition HELD**. The count is of **evaluation gates** and is an **UPPER BOUND** on suppressed FAILs (an armed clause may well have passed) — the upper-bound sentence is normative text, and the measured `stamp 1.10.1 → 0 problems / 1.11.0 → 8 problems` figure may **NOT** be restated as this NOTE's output (the wrong-mechanism defect). Fires loudly on unstamped archives, where every comparison against an absent stamp is `False` — intended: it is the version-skew policy's *"what would need to change to re-validate this run today"* made legible. | `validate_run.py` — a bare `print` before `_finish`, touching neither `rep.problems` nor `rep.checked` ⇒ **exit-neutral by construction**; zero suppressed arms emits nothing. **NOT** `--quiet`-gated (a filed, labelled deviation from its quiet-gated I39-4 sibling: SKILL.md mandates `--quiet`, so a quiet-gated skew NOTE would be inert in the only invocation that matters). It READS `validator_version` because the stamp is its subject matter, but its own emission is not stamp-gated — calling it version-gated is a category error. Completeness is enforced mechanically by **SC8** (`count('_skew_record(') == count('_i27_semver_ge(') - 1`), so a future version-gated arm added without a recorder breaks the dev-time build instead of silently under-counting. **PRESERVES** everything. |
 | **I46 non-converged PASS** (verify-repair 1.12.0) | An aggregated `verdict: PASS` whose `converged` is **identically `False`** — absent, `0`, `""` and `null` never arm, which is what keeps it archive-silent. The field was **dead data**, read by nothing, so a verifier honestly reporting "I hit the `R_max = 3` round cap, coverage may be incomplete" under a PASS said so to no one. Severity is tiered exactly like I43/I44: exit-neutral **NOTE below sign-off** (a round-capped verifier is being honest, and punishing an optional honesty field would teach runs to omit it), **hard FAIL under `signoff_confirmed`** (a unit whose own verification declares its coverage incomplete, at claimed completion, is verification left unfinished). `verify_rounds` is printed when present but is never a condition. | `validate_run.py` post-hoc/offline (stem `I46 non-converged PASS`, NOTE stem `N-I46`); downgradable by the same per-unit `accepted_incomplete` override as I44. The FAIL arm is a **recorded fork** (DECISIONS#29): the intake wording says "flags", which is severity-neutral. Its field is `verdict == PASS ∧ converged is False`, so the **iteration-parity census is silent on it** — I46's own 2 archived FAILs (U03/U07 of the repair target) are an arming consequence of a different field and are published as such, never implied by the parity number (§5). Never guards `LT7` ⇒ **PRESERVES** everything. |
 | **N-I47 ledger desync at sign-off** (verify-repair 1.12.0, DoD 6) | An **advisory NOTE and nothing else** — the predicate I44 deliberately does not carry, closed here so the doctrine no longer promises a fifth member the code lacks. Four conjuncts: (1) `signoff_confirmed is True` by identity; (2) the unit is EXECUTED (`unit_dirs_with_debrief`, exactly I44's domain); (3) its verification is **COMPLETE AND CURRENT** — present, usable, verdict-bearing and iteration-matched, the exact **negation** of I44 arms a–d and I43-a/-b, so the row never double-charges a fact another predicate already FAILs; (4) `fsm-state.units[].status` is **NON-TERMINAL**, defined as the whitelist `{pending, briefed, executing, verifying}` rather than `not in {passed, failed}` — `escalated` (Phase-7-closed), `retired` (cancelled) and `blocked` (I10's domain) are CLOSED outcomes at sign-off, and an unknown/future enum member must never arm an advisory. | `validate_run.py` — a bare `print` touching neither problem sink ⇒ **exit-neutral by construction**, so it can move no exit code and newly RED no archived run (the witness `2026-07-05_143454` U09 keeps its verdict). **NOT** gated on `validator_version` (stdout is its only channel; `init_run.sh` stamps once at scaffold, so a gate would not arm on the run authoring it) — **RETRACTED BY INSERTION (U20; DECISIONS#61 — appended, never deleted).** Retracted is exactly the clause "`init_run.sh` stamps once at scaffold, so a gate would not arm on the run authoring it", and **only** that clause: its sibling "stdout is its only channel" is TRUE, is **not** retracted, and remains a standing reason un-gating is safe. That clause is FALSE at this tree. What shipped in this release (1.12.0, this run's own U08) is the **flag** `init_run.sh --restamp <RUN_DIR>` **plus the orchestrator protocol in `SKILL.md` that invokes it**; an **automatic** re-stamp on phase advance (DoD 18) is **UNBUILT**. `--restamp` has already raised this run's `fsm-state.json` to `validator_version` 1.12.0 against plugin `1.12.0`, so a `>=1.12.0` gate **would** arm on the authoring run. The **un-gating decision stands**, on the replacement reasons. Full retraction: `verify-repair-units` `artifacts/predicate-spec.md` **§0.4-a**; the surviving divergence (MANUAL re-stamp landed, DoD 18's AUTOMATIC re-stamp-on-phase-advance did not) is **§9-R16**. The interrupted clause resumes here — and **NOT** `--quiet`-gated (§9-R12). Whitelist is doctrine, not tuning: over all 18 of this repository's `.wip/` run dirs (17 archived + this in-flight run) it selects the **same two units** as the broader form, so it buys no silence. Fixtures `i47_ledger_desync_note` / `i47_ledger_desync_control`. Limitation: it names a **documentation** defect only — it neither infers the correct label nor re-checks the verdict, and the opposite lie (a terminal label with no verdict behind it) is I2's G4, untouched. **PRESERVES** Claims A–D, AO-1..AO-7 and I1..I46. |
+| **I48 case-set contract** (independent-test-authorship 1.13.0) | An **OFFLINE, POST-HOC** predicate over the brief's frozen `case_set[]` and the debrief's `case_set_discharge[]` (`SPEC.md` §3.1/§3.2/§3.2.1/§3.3/§6.1/§6.2), authored in U24 and REGISTERED here (U25, DECISIONS#D20). Eight clauses: **I48-1** absence of `case_set[]` on a gated run with no non-blank `case_set_none_reason` is a **hard FAIL**, never an advisory NOTE; **I48-2** §3.3 totality both directions + duplicates; **I48-3** §3.1's forbidden second copy of the frozen keys on an `origin: "orchestrator"` row; **I48-4** the `vacuity_finding` ⇔ `outcome == 'vacuous'` biconditional, **both** arms; **I48-5** §6.2 tier shortfall against the floor **derived** from the governing entry's `check_form` (`{command: executable, locator: located}`); **I48-6** §3.2's locator FAILs (executable cap; `path:line` shape via `re.fullmatch`, never `re.MULTILINE`); **I48-7** §3.2's per-observation totality, **scoped to `discharged` rows** and **CROSS-ARTIFACT** (an orchestrator row's observation lists exist only in the frozen brief), plus the command-form `not-run` FAIL and the `reason` biconditional; **I48-8** §6.1's routing of adequacy findings into the **EXISTING** `verify.defects[]`, including the FAIL for a defect filed under a **case id** instead of a verbatim acceptance criterion (I6's cross-check is byte-exact membership over `brief.acceptance_criteria`, so a case id turns **I6** red). | `validate_run.py` post-hoc/offline, stem `I48 case-set contract` (registered in `LABELS` as `i48_case_set` with `emitted_via: "hoisted-var"`, and in `spec/invariants.json` as the mechanical entry `I48` — SC1 is bidirectional, so the two land together or neither does). **VERSION-GATED** at `validator_version >= 1.13.0` — the stamp **1.13.0 itself ships**, so it arms on **zero** archived runs (every one is stamped below the gate) and on no run scaffolded by a pre-`1.13.0` validator, and **is** armed for any run scaffolded or `--restamp`ed at `1.13.0` or above; the suppressed arm is shadow-counted by **N-I45** through the `_skew_record("I48-T1", …)` companion **SC8** makes mandatory (`count('_skew_record(') == count('_i27_semver_ge(') - 1`), and a **second** recorder breaks that identity in the other direction. Every untrusted value reaching a **hash** site is filtered through `_i48_hashable` and **REPORTED**, never skipped. **U25 (DECISIONS#D24) closes the iterate-over-`.get()` crash class** at both observation-list loci: a non-array `required_observations`/`forbidden_observations` on a `discharged` row now yields a **naming row and a real `RESULT:` line** instead of an uncaught `TypeError` that aborted `main()` before any result — reachable from **both** origins (the frozen brief entry; the row itself on an executor ADD). That guard is a **WIDENING, published as one**: the falsy container classes (`0`, `False`, `''`, `{}`, `0.0`) previously produced a **misdiagnosing** multiset row *whenever* `non_vacuity[]` named the observations the `or []` rewrite dropped (and were silent when it did not — the row count is contingent on `non_vacuity[]`), and a **string** produced one via `list("abc")` yielding characters; the naming row **REPLACES** that row rather than adding to it. Adds no state, edge or gate flag and **never** guards `LT7` ⇒ **PRESERVES** Claims A–D, AO-1..AO-7 and I1..I47. |
 
 **Socratic seam (canonical 4-key).** The `brief` carries only a **reference** to
 `references/socratic-protocol.md`; the answered block `socratic = {premise, counter, pivot,
@@ -541,6 +542,97 @@ doctrines, each with a migration argument (formal-classification.md).
   is a *recorded human decision*, not a validator-proved fact: nothing checks that the rationale is
   true or that the maintainer was actually asked. Backstop: the independent verifier; the panel; the
   human at the gate; validity ≠ correctness.
+- **AC.** (independent-test-authorship 1.13.0) **Case-set coverage is made LEGIBLE, never ADEQUATE
+  (I48).** Cite this bullet as **Limitation AC**. It is the same register as **Limitation AA** and
+  **Limitation AB** — mechanized completeness is a property of *emitted text*, not of the world — now
+  extended to the frozen `case_set[]` / `case_set_discharge[]` contract. Five boundaries, each a
+  limitation of the shipped mechanism and none of them a mitigated risk:
+  - **(i) Coverage is of a DECLARED list, so it is legible, never adequacy-true.** I48-7 proves each
+    `discharged` row's `non_vacuity[]` reaches every `required_observations` / `forbidden_observations`
+    entry **that the brief happens to declare**. The declaration is authored by the same orchestrator
+    that authors the requirement; nothing measures whether the list names the observations that
+    *matter*. A one-line forbidden list discharges exactly as green as a ten-line one, and an
+    unstated failure mode is invisible by construction. **Never say a discharged case set is
+    complete or adequate** (Non-Goal 7): "complete" here means declared-coverage plus non-vacuity —
+    a defined bar, not adequacy.
+  - **(ii) Residual lens independence is ATTESTATION, not enforcement.** The structural mechanism
+    (the adequacy lens is held by a panel member who is not the unit's executor — I16's existing
+    distinct lenses, no fourth lens, zero added verification dispatches) and the commitment mechanism
+    (`case_set_derived.json` + its `sha256` / `commitment_iteration`, I42-class digest integrity) fix
+    **who** is not the author and **what was committed to, and when it stopped changing**. Neither
+    fixes **derivation order**: no artifact shows the derivation preceded the executor's output, only
+    that it was not re-derived afterwards. Everything beyond those two mechanisms ships **labelled
+    attestation** (Non-Goal 8), and this document does not claim it is verified.
+  - **(iii) A RED-UNDER-MUTATION result proves NON-VACUITY and nothing about correctness.** The
+    counterfactual mutant establishes only that the check *can* return a different answer. It says
+    nothing about whether the check tests the right property, nor whether the artifact is right
+    (Non-Goal 9). The converse failure is real and was measured in this run: **16 of 32
+    orchestrator-authored case entries came back `vacuous` and 3 `violated` — 19 of 32, 59%, against
+    13 `discharged`** (measured over `.wip/2026-08-02_235310_independent-test-authorship/units/*/debrief.json`,
+    counting `case_set_discharge[]` rows with `origin: "orchestrator"`). A check can fail by being
+    unable to **fail** *and* by being unable to **pass**; a two-directional criterion needs two checks.
+  - **(iv) `production_path: true` closes ONE SIGNATURE of cross-unit blindness, not the class.** It
+    makes one failure mode decidable — required observations seen only through a test-local shim, a
+    fixture-only path, an internal helper called directly, or a hand-built input that bypasses the
+    real caller. Integration blindness **remains open** (Non-Goal 10): nothing here observes a
+    defect that lives *between* units, and Phase 8's whole-run hunt for the same signature is a
+    backstop for that one signature only. Measured instance of the wider class in this very run: the
+    census of the iterate-over-`.get()` crash class that I48's own predicate polices is **190** at the
+    last pre-run commit `f547aef`, **194** at `4fb475d`, **192** at `c9e5571` and **192** at
+    `8bdf4d6` — four sha-pinned points, a **dated snapshot** re-measured 2026-08-06 at `1188a8a`
+    and unchanged; the run **added four, closed two, shipped two**, into the predicate that polices
+    them, and no per-unit case set saw it. Reproduce:
+    `for c in f547aef 4fb475d c9e5571 8bdf4d6; do git show $c:plugins/dag/skills/dag/scripts/validate_run.py > /tmp/vr_$c.py; python3 plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file /tmp/vr_$c.py | head -1; done`
+    (`git rev-parse 4fb475d^` → `f547aef`, so the base really is the direct parent).
+  - **(v) Correlated blind spots between a same-model-family author and lens holder are
+    IRREDUCIBLE.** Every mechanism above fixes *when* derivation happened, *what* was committed to,
+    and *who* signed which artifact. None of them changes *what the family can see*. A failure mode
+    invisible to the author is invisible to the lens holder for the same reason, and no predicate in
+    this repository can observe that. Stated as permanent, not as pending work.
+
+  - **(vi) The §7 sha256 COMMITMENT LIFECYCLE is SHIPPED BUT UNEXERCISED AND UNPOLICED.**
+    `units/U01/SPEC.md` §7 defines, for a high-stakes unit, a case-set derivation dispatched
+    *concurrently* with the executor, frozen to `units/<UID>/case_set_derived.json` plus a
+    `.sha256`, and cited unchanged thereafter — the mechanism that makes a derivation provably
+    *not* post-hoc. **The run that authored, shipped and released it never executed it on a single
+    one of its own high-stakes units.** Measured in the authoring run
+    `2026-08-02_235310_independent-test-authorship`, **as of 2026-08-06 at worktree `1188a8a`**:
+    `find <RUN> -name 'case_set_derived.json' -o -name '*.sha256' | wc -l` → **0**;
+    `graph.json` carries **13** units tagged `high-stakes` of 28
+    (`U01 U03 U10 U17 U22 U24 U25 U26 U27 U28 U29 U32 U33`); of **118** `units/*/verify*.json`
+    documents exactly **1** carries a `case_set_audit` object — U17's own aggregated
+    `verify.json`, i.e. **0 of the other 117** — and that one records
+    `commitment_sha256` all-zeros with `commitment_match: false`, which is the *absence* of a
+    commitment reported honestly, not a commitment. And nothing reads it:
+    `/usr/bin/grep -c case_set_audit plugins/dag/skills/dag/scripts/validate_run.py` → **0** (rc 1),
+    so **no predicate enforces §7 at all**. The gap is disclosed rather than closed on purpose:
+    retrofitting a derivation onto an already-executed unit would manufacture exactly the post-hoc
+    artifact §7 exists to detect, and `AO-1` bars re-briefing an executed unit regardless. Read
+    `case_set_audit` as an **attestation** until a future release both exercises the lifecycle
+    pre-dispatch and adds the predicate; until then §7 is documentation, not a guarantee.
+
+  **The archive shows NO MEASURED DETECTION GAIN, and the defensible claim is CONSISTENCY AND
+  LEGIBILITY, NOT DETECTION.** Across **18 archived runs (205 units, 810 acceptance criteria), zero**
+  instances were found in which this mechanism would have caught what existing verification missed;
+  **54 of 68 high-stakes units (79%) already receive a 3-or-5-member independent panel** (run
+  `2026-08-02_235310_independent-test-authorship`, `units/U01/SPEC.md` §9, authority **D10**). Say
+  only this, and claim only this pair — **consistency and legibility**: the contract propagates a
+  requirement's negative statements into a fixed, greppable, pre-dispatch obligation, so what a unit
+  owed is legible after the fact and consistent across runs.
+  Any sentence — here, in `SKILL.md`, the wiki, a CHANGELOG entry or a PR body — that claims or
+  implies I48 catches defects verification otherwise misses is a **D10 honesty-boundary violation and
+  a FAIL**, not a stronger pitch. **Non-Goal 13** ("No padded prose, restated points, or invented
+  precision - no measured-sounding number ships without the command that produced it") is cited for
+  what it actually says, which is why every figure in this bullet ships with the command that
+  produced it; the detection ban itself lives in **D10** and Non-Goals 7–10, not in Non-Goal 13.
+  **The clean test was not run:** replaying one archived high-stakes unit with and without the
+  contract costs one unit and was deliberately skipped (D10) — a named residual, not a closed
+  question. **Two further measured reasons to distrust any green here:** a control is a control only
+  if the two sides *can* differ, and this run's "it crashes on HEAD too" defence compared
+  `validate_run.py` with itself (`git show HEAD:…` and the working tree both hash to
+  `f5864a15…`) — true and evidentially empty; and a whole fixture family's green was **machine-local**,
+  binding to a stale July `$TMPDIR/schemas` snapshot predating the run, red on a fresh `TMPDIR`. No
+  backstop is claimed for any of the five boundaries above.
 
 ### Verification currency — the escape-hatch class, worked member by member (verify-repair)
 

@@ -135,6 +135,19 @@ TIERS = ["light", "standard", "full"]
 # Widening the guard's permission surface without a corresponding writer would weaken it.
 ADJUDICATION_RESOLUTIONS = ["repoll", "withdrawn", "escalated-p7"]
 DISPOSITIONS = ["downgraded-minor", "withdrawn", "overruled-by-repoll", "upheld"]
+# case_set contract enums (debrief.case_set_discharge[]). Declared for the same reason
+# and on the same terms as the I41 pair above: mirrored so the BIDIRECTIONAL T7a2 can see
+# them, and deliberately NOT added to ALL_VOCAB, because ALL_VOCAB is the content guard's
+# allow-list of values this script may WRITE and no code path repairs these positions.
+# They are also the positions where guessing would be WORST: `outcome` and
+# `counterfactual_result` are the vacuity discriminators, so a normalizer that mapped an
+# out-of-enum value onto `discharged` or `red` would manufacture the exact certification
+# the mechanism exists to withhold. Out-of-enum here must stay a refusal, never a repair.
+DISCHARGE_ORIGINS = ["orchestrator", "executor"]
+DISCHARGE_OUTCOMES = ["discharged", "violated", "infeasible", "vacuous"]
+EVIDENCE_TIERS = ["executable", "located", "asserted"]
+COUNTERFACTUAL_RESULTS = ["red", "not-run"]
+CHECK_FORMS = ["command", "locator"]
 
 # Closed objects (additionalProperties:false in the schemas). Unknown keys inside
 # these are stripped — and the stripped key AND its value are reported verbatim.
@@ -159,6 +172,38 @@ CLOSED_RETRIEVAL_COVERAGE = {
     "retrieval_probes_none_reason", "sources_check",
 }
 
+# case_set contract closed objects. Mirror declarations on the I41 terms: no call site
+# walks into `case_set_discharge` / `case_set_audit` yet, so these six sets are INERT at
+# runtime — they exist so T7b/T7c compare them and so a LATER schema edit at these pointers
+# fails the self-test rather than rotting silently. (The two sites in this file that ARE
+# runtime-live are TOP_LEVEL_DEBRIEF / TOP_LEVEL_VERIFY: measured on an unmirrored tree,
+# `case_set_discharge` drew "key is outside debrief.schema.json … it may hold narrative that
+# belongs in `result`/`handoff_notes`" — advice to relocate the ONLY home an executor-ADDED
+# entry has, i.e. the I41 failure mode reproduced on a new key. Mirrored: 0 advisories.)
+# The section-2.1 keys below are legal only on an `origin: "executor"` row; that conditional
+# lives in the schema's allOf and is deliberately NOT mirrored here — this set is the
+# closed-key UNION, which is what an additionalProperties:false property set is.
+CLOSED_DISCHARGE_ROW = {
+    "id", "origin", "outcome", "evidence", "evidence_tier", "asserted_reason",
+    "non_vacuity", "infeasible_reason", "vacuity_finding", "check", "check_form",
+    "trigger_ref", "requirement_ref", "requirement_ref_none_reason",
+    "required_observations", "forbidden_observations",
+    "forbidden_observations_none_reason", "production_path",
+    "production_path_none_reason",
+}
+CLOSED_NON_VACUITY_ROW = {
+    "observation_ref", "counterfactual", "counterfactual_result", "reason",
+}
+CLOSED_CASE_SET_AUDIT = {
+    "commitment_sha256", "commitment_iteration", "commitment_match", "discharge_check",
+    "novelty_rate", "vocabulary_containment",
+}
+CLOSED_DISCHARGE_CHECK = {
+    "missing_ids", "extra_ids", "duplicate_ids", "tier_shortfall_ids",
+}
+CLOSED_NOVELTY_RATE = {"derived", "absent_from_executor_evidence"}
+CLOSED_VOCABULARY_CONTAINMENT = {"artifact_only_identifiers"}
+
 # Documented key-name synonyms. Applied ONLY when the canonical key is absent, so no
 # real value is ever overwritten. Each entry quotes the lesson that RECORDS it; the
 # nine speculative premise_check variants and all seven acceptance_self_check
@@ -180,7 +225,7 @@ PRIOR_FEEDBACK_KEYS = {"actionable_changes", "do_not_touch", "changes_made"}
 TOP_LEVEL_DEBRIEF = {
     "unit_id", "persona", "iteration", "result", "evidence_table", "socratic",
     "acceptance_self_check", "assumptions", "residual_risks", "confidence",
-    "footprint", "handoff_notes", "prior_feedback",
+    "footprint", "handoff_notes", "prior_feedback", "case_set_discharge",
 }
 # `panel_adjudication` (I41, 1.11.0) is a LEGITIMATE top-level verify property. Before it
 # was mirrored here, `unknown-top-level-key` advised an orchestrator that it "is outside
@@ -193,6 +238,7 @@ TOP_LEVEL_VERIFY = {
     "inputs_reviewed", "audit_notes", "panel", "panel_adjudication", "verify_rounds",
     "converged", "feedback", "defects", "socratic", "premise_check", "disagreement",
     "retrieval_coverage", "guardrail_compliance", "consequential_verbatim_check",
+    "case_set_audit",
 }
 
 # Required-key lists, mirrored from the schemas' own `required` arrays and asserted
@@ -207,6 +253,15 @@ REQUIRED_KEYS = {
         "$.socratic": ["confidence", "counter", "pivot", "premise"],
         "$.acceptance_self_check[]": ["criterion", "met"],
         "$.footprint": ["tokens_consumed", "within_budget"],
+        # case_set contract. Mirrored so the bidirectional T7d2 is satisfied and so a
+        # LATER schema edit at these pointers fails the self-test. Inert at runtime for the
+        # same reason as the I41 entries below (check_required is dispatched from explicit
+        # pointers in normalize_debrief), and deliberately so: the CONDITIONAL requirements
+        # (non_vacuity iff discharged, the reason fields, the origin-scoped section-2.1
+        # keys) live in the schemas' allOf, which no offline predicate here evaluates.
+        "$.case_set_discharge[]": ["evidence", "evidence_tier", "id", "origin", "outcome"],
+        "$.case_set_discharge[].non_vacuity[]": ["counterfactual", "counterfactual_result",
+                                                 "observation_ref"],
     },
     "verify": {
         "$": ["defects", "executor_reasoning_seen", "feedback", "iteration",
@@ -233,6 +288,17 @@ REQUIRED_KEYS = {
         "$.retrieval_coverage.sources_check[]": ["origin", "outcome", "source_id"],
         "$.guardrail_compliance[]": ["non_goal", "status"],
         "$.consequential_verbatim_check[]": ["outcome", "register_id"],
+        # case_set contract (SPEC section 6.2). Same terms as the debrief entries above:
+        # mirror declarations, inert at runtime, no new advisory. `discharge_check`'s four
+        # fields are all REQUIRED and are `[]` when empty — an omitted list is not an empty
+        # one, which is why the required array carries all four rather than none.
+        "$.case_set_audit": ["commitment_iteration", "commitment_match",
+                             "commitment_sha256", "discharge_check", "novelty_rate",
+                             "vocabulary_containment"],
+        "$.case_set_audit.discharge_check": ["duplicate_ids", "extra_ids", "missing_ids",
+                                             "tier_shortfall_ids"],
+        "$.case_set_audit.novelty_rate": ["absent_from_executor_evidence", "derived"],
+        "$.case_set_audit.vocabulary_containment": ["artifact_only_identifiers"],
     },
 }
 
@@ -253,6 +319,8 @@ SCALAR_TYPES = {
         "$.evidence_table[]": {"reproducible": "boolean", "vendor_silent": "boolean"},
         "$.acceptance_self_check[]": {"met": "boolean"},
         "$.footprint": {"tokens_consumed": "integer", "within_budget": "boolean"},
+        # case_set contract — the schema-typed scalars T7f flagged as unmirrored.
+        "$.case_set_discharge[]": {"production_path": "boolean"},
     },
     "verify": {
         "$": {"iteration": "integer", "executor_reasoning_seen": "boolean",
@@ -266,6 +334,14 @@ SCALAR_TYPES = {
         "$.panel_adjudication.dissent_refs[]": {"defect_index": "integer"},
         "$.panel_adjudication.dispositions[]": {"defect_index": "integer"},
         "$.panel_adjudication.repoll[]": {"tested_defect": "boolean"},
+        # case_set contract (SPEC section 6.2). commitment_match:false is a hard FAIL, so a
+        # string "false" standing in for the boolean is exactly the drift class this table
+        # exists to DETECT (advisory, never repair — a guessed boolean here would flip a
+        # FAIL to a PASS).
+        "$.case_set_audit": {"commitment_iteration": "integer",
+                             "commitment_match": "boolean"},
+        "$.case_set_audit.novelty_rate": {"derived": "integer",
+                                          "absent_from_executor_evidence": "integer"},
     },
 }
 
@@ -2016,6 +2092,18 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
          "VERDICTS (repoll pre)"),
         ("verify", "$.panel_adjudication.repoll[].post_verdict", VERDICTS,
          "VERDICTS (repoll post)"),
+        # case_set contract (SPEC section 3.1/3.2). Declaring the pointer is what forces
+        # T7a to then compare the members, so these five lines are what make the enums
+        # checked in BOTH directions rather than merely present.
+        ("debrief", "$.case_set_discharge[].origin", DISCHARGE_ORIGINS,
+         "DISCHARGE_ORIGINS"),
+        ("debrief", "$.case_set_discharge[].outcome", DISCHARGE_OUTCOMES,
+         "DISCHARGE_OUTCOMES"),
+        ("debrief", "$.case_set_discharge[].evidence_tier", EVIDENCE_TIERS,
+         "EVIDENCE_TIERS"),
+        ("debrief", "$.case_set_discharge[].check_form", CHECK_FORMS, "CHECK_FORMS"),
+        ("debrief", "$.case_set_discharge[].non_vacuity[].counterfactual_result",
+         COUNTERFACTUAL_RESULTS, "COUNTERFACTUAL_RESULTS"),
     ]
     bad = [f"{n}@{k}{p}: {idx[k][2].get(p)} != {v}"
            for k, p, v, n in vocabs if idx[k][2].get(p) != v]
@@ -2047,6 +2135,20 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
         ("verify", "$.retrieval_coverage.sources_check[]"): ("CLOSED_SOURCES_ROW", CLOSED_SOURCES_ROW),
         ("verify", "$.guardrail_compliance[]"): ("CLOSED_GUARDRAIL_ROW", CLOSED_GUARDRAIL_ROW),
         ("verify", "$.consequential_verbatim_check[]"): ("CLOSED_CVC_ROW", CLOSED_CVC_ROW),
+        # case_set contract. This is the direction that would let strip_closed() DELETE a
+        # legitimate discharge field under --write (L15's silent-rot mode); T7c asserts the
+        # other direction, that no closed object in either schema lacks a mirror here.
+        ("debrief", "$.case_set_discharge[]"): ("CLOSED_DISCHARGE_ROW",
+                                                CLOSED_DISCHARGE_ROW),
+        ("debrief", "$.case_set_discharge[].non_vacuity[]"): ("CLOSED_NON_VACUITY_ROW",
+                                                              CLOSED_NON_VACUITY_ROW),
+        ("verify", "$.case_set_audit"): ("CLOSED_CASE_SET_AUDIT", CLOSED_CASE_SET_AUDIT),
+        ("verify", "$.case_set_audit.discharge_check"): ("CLOSED_DISCHARGE_CHECK",
+                                                         CLOSED_DISCHARGE_CHECK),
+        ("verify", "$.case_set_audit.novelty_rate"): ("CLOSED_NOVELTY_RATE",
+                                                      CLOSED_NOVELTY_RATE),
+        ("verify", "$.case_set_audit.vocabulary_containment"): (
+            "CLOSED_VOCABULARY_CONTAINMENT", CLOSED_VOCABULARY_CONTAINMENT),
     }
     bad = [f"{n}@{k}{p}: mirror {sorted(v)} != schema {sorted(idx[k][1].get(p) or [])}"
            for (k, p), (n, v) in closed_map.items() if idx[k][1].get(p) != v]

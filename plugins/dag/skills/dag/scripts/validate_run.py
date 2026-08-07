@@ -362,6 +362,13 @@ def find_cycle(edges):
 #   * "inline" => a rep.ok/rep.fail label whose run-data interpolation LEADS the
 #                 string (a path prefix), so it cannot be split stem+tail; kept
 #                 inline verbatim and registered for enumeration.
+#   * "hoisted-var" (U25) => hoisted like the absent case AND read back from
+#                 LABEL_STEM[<key>] into a local alias, so the rep.ok/rep.fail call
+#                 site carries a VARIABLE rather than the literal stem. Recorded
+#                 distinctly because the absent case's promise ("the stem IS
+#                 interpolated into a rep label") is satisfied by a literal at the
+#                 call site, and a reader grepping for the stem text will not find
+#                 it there; the registry is the only copy of the string.
 # Bare path/artifact identifiers used as a `what` (e.g. `rel`, `units/<u>/<rel>`,
 # `learnings.json`, `amendments/<fn>`) carry no descriptive stem and are not listed.
 LABELS = [
@@ -509,6 +516,8 @@ LABELS = [
     {"key": "i46_nonconverged_pass", "stem": "I46 non-converged PASS", "invariant": "I46"},
     {"key": "note_i46", "stem": "N-I46 non-converged PASS", "invariant": "I46", "emitted_via": "print"},
     {"key": "note_i47", "stem": "N-I47 ledger desync at sign-off", "invariant": "I47", "emitted_via": "print"},
+    # FSM invariants — case-set contract (independent-test-authorship 1.13.0; U24 authors, U25 registers)
+    {"key": "i48_case_set", "stem": "I48 case-set contract", "invariant": "I48", "emitted_via": "hoisted-var"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -6404,6 +6413,320 @@ def main(argv=None):
                 rep.fail(f"{LABEL_STEM['gbrief']} (units/{uid})",
                          "brief.json present but schema-invalid (see the schema FAIL above) — "
                          "I5/I6/I11/I12/I16 skip this unit until it validates")
+
+    # -----------------------------------------------------------------------
+    # I48 case-set contract (SPEC.md §3.1/§3.2/§3.2.1/§3.3/§6.1/§6.2).
+    #
+    # OFFLINE and POST-HOC, by construction: every clause below reads artifacts that already
+    # exist on disk and emits ONLY `rep.fail(...)` report rows. It is evaluated inside this
+    # single invariant pass, it appears in NO transition guard, it never writes fsm-state
+    # (no `.phase`, no `.gates`, no `.loop`), and it has no early `return` — a `continue`
+    # here advances THIS loop's unit cursor and nothing else. In particular it is NOT a guard
+    # on the correction loop's sole back-edge LT7 (RETRY→EXECUTE): a live guard there can leave
+    # RETRY with no enabled out-edge → deadlock, breaking Claim D of the termination proof
+    # (CLAUDE.md; SPEC.md §3.2 `infeasible`; Non-Goal 2). Violations route to a report row,
+    # escalation stays on the EXISTING ESCALATE branch. No existing invariant is touched:
+    # this block is purely additive and reads `_i30_briefs` / `_i30_debriefs` / `_i30_verifies`
+    # (already-parsed raw docs) without mutating them.
+    #
+    # VERSION GATE: `_I48_SHIP` is deliberately ABOVE 1.12.1 — the current release stamp — so the
+    # arm fires on ZERO archived runs and on no run scaffolded by a validator that predates the
+    # contract. A gate at 1.12.0 would arm on runs stamped 1.12.1, including this repo's own.
+    # ABSENCE of `case_set[]` on a gated run is a hard FAIL (I48-1), never an advisory NOTE.
+    _I48_SHIP = "1.13.0"                 # release shipping I48; validator_version >= this arms T1
+    # U25: U24's inline literal stem was a SHIM for the deferred registration (DECISIONS#D20) and is
+    # replaced here by the real hoist — the stem now has exactly one copy, in LABELS, and reaches this
+    # block through LABEL_STEM. All three registration sites (LABELS, `spec/invariants.json` group
+    # 'I48', the `references/state-machine.md` row) land together, because spec_check SC1 is
+    # bidirectional: a label group without a registry entry and a mechanical entry without real label
+    # prefixes each fail it. The LABELS entry carries `emitted_via: "hoisted-var"` (see the registry
+    # preamble): the labels below are built from this ALIAS, not from the literal, so the absent-value
+    # promise would misdescribe the call sites.
+    _i48_stem = LABEL_STEM["i48_case_set"]
+    _i48_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    _i48_t1 = _i27_semver_ge(_i48_ver, _I48_SHIP)
+    _skew_record("I48-T1", True, _I48_SHIP, _i48_ver)      # N-I45 shadow count; stamp-only arm
+    _I48_FLOOR = {"command": "executable", "locator": "located"}
+    _I48_RANK = {"asserted": 0, "located": 1, "executable": 2}
+    # §3.1: these keys live in the FROZEN brief for an orchestrator row; re-stating them in the
+    # debrief creates a second copy that can be quietly narrowed.
+    _I48_ORCH_FORBIDDEN = ("check", "check_form", "trigger_ref", "requirement_ref",
+                           "requirement_ref_none_reason", "required_observations",
+                           "forbidden_observations", "forbidden_observations_none_reason",
+                           "production_path", "production_path_none_reason")
+    # §10 (b): matched with re.fullmatch and NEVER compiled with re.MULTILINE — re.M is the flag
+    # that re-opens the newline defeat.
+    _I48_LOCATOR_RE = re.compile(r"[^\s:]+:[0-9]+([ \t][^\n]*)?")
+
+    def _i48_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _i48_hashable(x):
+        # §3.3's totality join and §6.1's id membership test both HASH untrusted artifact values.
+        # A list/dict id (or acceptance-criterion) is schema-invalid, but an uncaught TypeError
+        # would abort main() BEFORE any RESULT: line — indistinguishable from a legitimate FAIL
+        # (both rc 1) while taking every later armed row down with it. Every hash site below is
+        # therefore filtered through this predicate, and every value it rejects is REPORTED by a
+        # rep.fail row rather than silently dropped: a guard that only skips trades a crash for a
+        # blind spot. Hashable-but-non-string ids (e.g. an int) are NOT affected — they keep the
+        # shrink/extra_ids rows they already produce.
+        try:
+            hash(x)
+        except TypeError:
+            return False
+        return True
+
+    if _i48_t1:
+        for _uid in sorted(_i30_briefs):
+            _b = _i30_briefs.get(_uid) or {}
+            _lbl = f"{_i48_stem} (units/{_uid})"
+            _cs = _b.get("case_set")
+
+            # I48-1 — ABSENCE on a gated run is a hard FAIL, not a NOTE (§2.2 explicit-none).
+            if not isinstance(_cs, list):
+                if _i48_blank(_b.get("case_set_none_reason")):
+                    rep.fail(_lbl,
+                             f"validator_version {_i48_ver!r} (>= {_I48_SHIP}) but brief.json carries "
+                             "neither case_set[] nor a non-blank case_set_none_reason — the case-set "
+                             "contract is not optional on a gated run (SPEC §2.2)")
+                continue
+
+            # §6.2 evaluation order is NORMATIVE: the brief-side id-uniqueness precondition is
+            # computed FIRST, before any floor, so a duplicate id can never surface as a KeyError.
+            _i48_ids = [e.get("id") for e in _cs if isinstance(e, dict)]
+            _i48_unh = [repr(i) for i in _i48_ids if not _i48_hashable(i)]
+            if _i48_unh:
+                rep.fail(_lbl,
+                         f"brief.case_set[] carries UNHASHABLE id(s) {_i48_unh} (list/dict) — an id "
+                         "must be a scalar the §3.3 join can key on; reported here rather than "
+                         "raised, so the invariant pass still reaches its RESULT: line")
+            _i48_ids = [i for i in _i48_ids if _i48_hashable(i)]
+            _i48_bdup = sorted({i for i in _i48_ids if _i48_ids.count(i) > 1}, key=str)
+            if _i48_bdup:
+                rep.fail(_lbl,
+                         f"brief.case_set[] ids not unique: {_i48_bdup} — 'unique within the array' "
+                         "(SPEC §2.1) is prose JSON Schema cannot express; the tier floor's verdict "
+                         "would flip on transcription order alone")
+                continue
+            _i48_byid = {e.get("id"): e for e in _cs
+                         if isinstance(e, dict) and _i48_hashable(e.get("id"))}
+
+            _d = _i30_debriefs.get(_uid)
+            if _d is None:
+                continue                      # not yet executed — mid-run, nothing to adjudicate
+            _rows = _d.get("case_set_discharge")
+            if not isinstance(_rows, list):
+                if _cs:
+                    rep.fail(_lbl,
+                             f"brief carries {len(_cs)} case_set entr(y/ies) but debrief.json has no "
+                             "case_set_discharge[] — every frozen entry must be discharged (SPEC §3.3)")
+                continue
+            _rows = [r for r in _rows if isinstance(r, dict)]
+            _orch = [r for r in _rows if r.get("origin") == "orchestrator"]
+            _oids = [r.get("id") for r in _orch]
+            _runh = [repr(r.get("id")) for r in _rows if not _i48_hashable(r.get("id"))]
+            if _runh:
+                rep.fail(_lbl,
+                         f"case_set_discharge row(s) carry UNHASHABLE id(s) {_runh} (list/dict) — "
+                         "the §3.3 totality join and §6.1's id membership test both hash a row id; "
+                         "reported here rather than raised (covers executor ADDs too)")
+            _oids = [i for i in _oids if _i48_hashable(i)]
+
+            # I48-2 — §3.3 totality, both directions, plus the duplicate rule.
+            _miss = sorted([i for i in _i48_byid if i not in _oids], key=str)
+            _extra = sorted({i for i in _oids if i not in _i48_byid}, key=str)
+            _rdup = sorted({i for i in _oids if _oids.count(i) > 1}, key=str)
+            if _miss:
+                rep.fail(_lbl, f"case_set_discharge is a SHRINK: frozen entr(y/ies) {_miss} have no "
+                               "origin='orchestrator' row (SPEC §3.3 — an entry judged infeasible is "
+                               "escalated with a recorded reason, never dropped)")
+            if _extra:
+                rep.fail(_lbl, f"origin='orchestrator' row(s) {_extra} match no frozen brief entry "
+                               "(SPEC §6.2 extra_ids; an executor ADD carries origin='executor')")
+            if _rdup:
+                rep.fail(_lbl, f"id(s) {_rdup} appear in more than one origin='orchestrator' row "
+                               "(SPEC §6.2 duplicate_ids)")
+            if _cs and not _orch:
+                rep.fail(_lbl, "case_set_discharge carries ZERO origin='orchestrator' rows against a "
+                               "non-empty frozen case_set — the executor authored its own case set "
+                               "(Non-Goal 3), which is not a shortcut")
+
+            for _r in _rows:
+                _rid = _r.get("id")
+                _rlbl = f"{_i48_stem} (units/{_uid} {_rid})"
+                _org = _r.get("origin")
+                _out = _r.get("outcome")
+                _tier = _r.get("evidence_tier")
+
+                # I48-3 — §3.1: the forbidden second copy on an orchestrator row.
+                if _org == "orchestrator":
+                    _dupk = [k for k in _I48_ORCH_FORBIDDEN if k in _r]
+                    if _dupk:
+                        rep.fail(_rlbl, f"origin='orchestrator' row re-states brief-owned key(s) "
+                                        f"{_dupk} — these MUST be absent (SPEC §3.1); a second copy "
+                                        "is how 'never shrink' is violated without leaving a trace")
+
+                # I48-4 — §3.1: vacuity_finding <=> outcome 'vacuous' (a biconditional, both arms).
+                _vf = "vacuity_finding" in _r
+                if _out == "vacuous" and (not _vf or _i48_blank(_r.get("vacuity_finding"))):
+                    rep.fail(_rlbl, "outcome='vacuous' without a non-blank vacuity_finding — the only "
+                                    "field carrying the measured vacuity (SPEC §3.2.1 route 2)")
+                if _out != "vacuous" and _vf:
+                    rep.fail(_rlbl, f"vacuity_finding present on outcome={_out!r} — REQUIRED exactly "
+                                    "when outcome='vacuous', MUST be absent otherwise (SPEC §3.1)")
+
+                # Governing entry (§3.1/§6.2): the row itself for an executor ADD; the frozen brief
+                # entry for an orchestrator row — the ONLY branch that joins, and it is guarded, so a
+                # row already reported in extra_ids never reaches the floor.
+                if _org == "executor":
+                    _gov = _r
+                elif _i48_hashable(_rid) and _rid in _i48_byid:
+                    _gov = _i48_byid[_rid]
+                else:
+                    continue
+                _cf = _gov.get("check_form")
+
+                # I48-5 — §6.2 tier_shortfall: evidence_tier below the derived floor.
+                # `dict.get(k)` HASHES k, so the floor lookup below is a hash site on TWO untrusted
+                # values — the governing entry's check_form (reachable from BOTH origins: the frozen
+                # brief entry on an orchestrator row, the row itself on an executor ADD) and the row's
+                # evidence_tier. Same discipline as every other site in this block: filter through
+                # _i48_hashable, and REPORT the offending value rather than skip it silently.
+                _i48_cfh, _i48_tih = _i48_hashable(_cf), _i48_hashable(_tier)
+                if not (_i48_cfh and _i48_tih):
+                    _i48_bad = ([f"check_form {_cf!r}"] if not _i48_cfh else []) + \
+                               ([f"evidence_tier {_tier!r}"] if not _i48_tih else [])
+                    rep.fail(_rlbl,
+                             f"UNHASHABLE {' and '.join(_i48_bad)} (list/dict) — §6.2's tier floor is "
+                             "a dict lookup that hashes both, so the shortfall check cannot run for "
+                             "this row; reported here rather than raised, so the invariant pass still "
+                             "reaches its RESULT: line")
+                _floor = _I48_FLOOR.get(_cf) if _i48_cfh else None
+                if _floor and _i48_tih and _I48_RANK.get(_tier, -1) < _I48_RANK[_floor]:
+                    rep.fail(_rlbl, f"evidence_tier {_tier!r} is below the floor {_floor!r} derived "
+                                    f"from the governing entry's check_form {_cf!r} (SPEC §2.1.0/§6.2)")
+
+                # I48-6 — §3.2's locator FAILs: the executable cap and the shape.
+                if _cf == "locator":
+                    if _tier == "executable":
+                        rep.fail(_rlbl, "check_form='locator' with evidence_tier='executable' — a "
+                                        "locator can never reach executable (SPEC §3.2)")
+                    _ck = _gov.get("check")
+                    if not isinstance(_ck, str) or not _I48_LOCATOR_RE.fullmatch(_ck):
+                        rep.fail(_rlbl, "check_form='locator' whose check does not fullmatch "
+                                        "^[^\\s:]+:[0-9]+([ \\t][^\\n]*)?$ — a command string declared "
+                                        "'locator' buys an illegitimate not-run (SPEC §3.2)")
+
+                # I48-7 — §3.2 per-observation totality, SCOPED to discharged rows, CROSS-ARTIFACT.
+                if _out != "discharged":
+                    continue
+                _nv = _r.get("non_vacuity")
+                # U25 (DECISIONS#D24) — the iterate-over-`.get()` crash class, closed at the two
+                # observation-list loci. `list(x or [])` CRASHES on a truthy non-iterable (measured:
+                # `required_observations: 5` aborts main() with an uncaught TypeError BEFORE any
+                # RESULT: line, from BOTH origins — the brief entry on an orchestrator row, the row
+                # itself on an executor ADD) and MISDIAGNOSES every falsy container class
+                # (`0`, `False`, `''`, `{}`, `0.0`), which `or []` silently rewrites to an empty list
+                # so the totality check below blames the non_vacuity refs as "unknown" instead of
+                # naming the malformed field. A string is worse than either: `list("abc")` yields
+                # CHARACTERS, a silently plausible observation list. Same discipline as every other
+                # guard in this block: REPORT the offending value in a naming row, never skip it
+                # silently. This is a WIDENING of what is reported and is published as one.
+                _obs, _obs_bad = [], False
+                for _fk in ("required_observations", "forbidden_observations"):
+                    _fv = _gov.get(_fk)
+                    if _fv is None:
+                        continue
+                    if not isinstance(_fv, list):
+                        _obs_bad = True
+                        rep.fail(_rlbl,
+                                 f"{_fk} is {type(_fv).__name__} {_fv!r}, not an array — §3.2's "
+                                 "per-observation totality is a multiset over this list, so it "
+                                 "cannot be computed for this row; reported here rather than "
+                                 "raised, so the invariant pass still reaches its RESULT: line")
+                        continue
+                    _obs.extend(_fv)
+                if not isinstance(_nv, list):
+                    rep.fail(_rlbl, "outcome='discharged' without a non_vacuity[] array — REQUIRED, "
+                                    "one member per observation (SPEC §3.1/§3.2)")
+                    continue
+                _refs = [m.get("observation_ref") for m in _nv if isinstance(m, dict)]
+                _nmiss = [o for o in _obs if _refs.count(o) != _obs.count(o)]
+                _nextra = [o for o in _refs if o not in _obs]
+                # `_obs_bad` suppresses ONLY the multiset comparison, and only because the comparison
+                # would be against a KNOWN-INCOMPLETE `_obs` — the malformed field already has its own
+                # naming row above, so the defect still reaches the report exactly once. Every other
+                # clause below (the per-member counterfactual FAILs) still runs.
+                if not _obs_bad and (_nmiss or _nextra):
+                    rep.fail(_rlbl, f"non_vacuity observation_ref multiset != required ∪ forbidden "
+                                    f"observations (uncovered {sorted(set(map(str, _nmiss)))}, "
+                                    f"unknown {sorted(set(map(str, _nextra)))}) — one red counterfactual "
+                                    "must not certify a partly-vacuous entry (SPEC §3.2)")
+                for _m in _nv:
+                    if not isinstance(_m, dict):
+                        continue
+                    _cr = _m.get("counterfactual_result")
+                    # §3.2 FAIL 1: a command-form check may never record 'not-run'.
+                    if _cf == "command" and _cr == "not-run":
+                        rep.fail(_rlbl, f"check_form='command' with counterfactual_result='not-run' for "
+                                        f"{str(_m.get('observation_ref'))[:60]!r} — a command-form check "
+                                        "MUST go red per observation; such a row is 'vacuous', never "
+                                        "'discharged' (SPEC §3.2)")
+                    if _cr == "not-run" and _i48_blank(_m.get("reason")):
+                        rep.fail(_rlbl, "counterfactual_result='not-run' without a non-blank reason "
+                                        "naming why no executable counterfactual can exist (SPEC §3.2)")
+                    if _cr == "red" and "reason" in _m:
+                        rep.fail(_rlbl, "reason present on counterfactual_result='red' — MUST be absent "
+                                        "(SPEC §3.2)")
+
+            # I48-8 (D13a, §6.1) — adequacy findings route into the EXISTING verify.defects[], the
+            # only channel I6's blocker-on-PASS rule reads. Two arms, both post-hoc:
+            #   (a) a non-discharge outcome recorded against a verdict-bearing verify with an empty
+            #       defects[] is a finding that reached no channel;
+            #   (b) a defect filed under a CASE ID instead of a verbatim acceptance criterion turns
+            #       I6 RED (its cross-check is byte-exact membership over brief.acceptance_criteria),
+            #       so routing into defects[] must carry the criterion string, not the entry id.
+            _v = _i30_verifies.get(_uid)
+            if isinstance(_v, dict):
+                _defs = _v.get("defects") if isinstance(_v.get("defects"), list) else []
+                _bad = [r.get("id") for r in _rows if r.get("outcome") in ("violated", "vacuous")]
+                if _bad and not _defs:
+                    rep.fail(_lbl, f"case_set_discharge records non-discharge outcome(s) for {_bad} but "
+                                   "the verdict-bearing verify.json has an empty defects[] — adequacy "
+                                   "findings MUST route into defects[], not audit_notes and not a "
+                                   "bespoke block (SPEC §6.1 / D13a): I6 reads defects[]")
+                _cunh = [repr(c) for c in (_b.get("acceptance_criteria") or [])
+                         if not _i48_hashable(c)]
+                if _cunh:
+                    rep.fail(_lbl,
+                             f"brief.acceptance_criteria carries UNHASHABLE member(s) {_cunh} "
+                             "(list/dict) — I6's cross-check is byte-exact membership over this "
+                             "array, which hashes every member; reported here rather than raised")
+                _crit = {c for c in (_b.get("acceptance_criteria") or []) if _i48_hashable(c)}
+                _ids_all = set(_i48_byid) | {r.get("id") for r in _rows
+                                             if _i48_hashable(r.get("id"))}
+                # The clause above guards the BRIEF-side members of the byte-exact membership test;
+                # the value TESTED for membership comes from verify.json and is equally untrusted —
+                # and `x in <set>` hashes x. Report it, then exclude it from the probe.
+                _dunh = [repr(df.get("criterion")) for df in _defs
+                         if isinstance(df, dict) and not _i48_hashable(df.get("criterion"))]
+                if _dunh:
+                    rep.fail(_lbl,
+                             f"verify.json defect(s) carry an UNHASHABLE criterion {_dunh} "
+                             "(list/dict) — §6.1's miscited-defect probe hashes this value against "
+                             "the case_set id set; reported here rather than raised")
+                _miscited = [df.get("criterion") for df in _defs
+                             if isinstance(df, dict) and _i48_hashable(df.get("criterion"))
+                             and df.get("criterion") in _ids_all
+                             and df.get("criterion") not in _crit]
+                if _miscited:
+                    rep.fail(_lbl, f"defect criterion(s) {_miscited} are case_set ENTRY IDS, not verbatim "
+                                   "members of brief.acceptance_criteria — I6's cross-check is byte-exact "
+                                   "membership, so this turns I6 RED (SPEC §6.1)")
+                if "case_set_findings" in _v:
+                    rep.fail(_lbl, "verify.json carries a bespoke case_set_findings block — adequacy "
+                                   "findings MUST go to defects[] (SPEC §6.1); a finding recorded "
+                                   "anywhere else is invisible to I6")
 
     # I10 synthesis/DONE completeness (BRK-02) — no unit may reach P8/DONE unexecuted.
     # T12 "all units accounted for": iterate the GRAPH's declared units, not just the dirs that

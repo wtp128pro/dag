@@ -1,0 +1,19 @@
+{
+ "id": "L23",
+ "trigger": "U22's iteration-3 confirmation panel: two independent lenses measured that debrief.json's handoff_notes STILL carried two claims the artifact itself had RETRACTED - handoff_notes[3] telling downstream validator units the trailing-newline fixture 'CANNOT BE BUILT - do not spend budget on it', and handoff_notes[5] citing the id join as 'total by 3.3'. Both were retracted in SPEC.md (measured clean there, both greps -> 0) and both were superseded by later entries [12] and [13] in the SAME handoff_notes array, but neither stale entry carried a supersession marker. The orchestrator propagates handoff_notes into downstream briefs, so the retracted forms were one briefing step away from reaching nineteen units.",
+ "lesson": "A retraction lands in the artifact and stops there. The handoff_notes, evidence rows and summaries that QUOTE the retracted claim are separate syntactic units, they are what the orchestrator actually propagates downstream, and they go stale silently - a correction pass naturally focuses on the normative text it was commissioned to fix, not on the unit's own outbound summary of it. Superseding a claim by ADDING a corrected entry later in the same array is not a retraction: a reader of entry [3] never reaches entry [12].",
+ "how_to_apply": "When a unit retracts or corrects a claim, sweep its OWN outbound surfaces in the same pass - handoff_notes, evidence_table rows, result and residual_risks - and mark each stale instance in situ (L21's same-syntactic-unit rule applied to the debrief, not only to the artifact). As ORCHESTRATOR, never propagate a handoff note without checking it against the artifact's current text: propagate the corrected form only, and drop the superseded one entirely rather than carrying both and trusting the reader to order them. Where the debrief is already verified and I4 bars an iteration bump, do NOT edit it - the obligation moves to the orchestrator's briefing step and must be written into the ledger, not remembered.",
+ "scope": {
+  "applies_to": [
+   "all"
+  ],
+  "excludes": [],
+  "expiry": "project"
+ },
+ "evidence": "units/U22/verify_p10.json and units/U22/verify_p11.json (both independently identified handoff_notes[3] and [5] as carrying retracted claims with no supersession marker, each measuring the artifact clean at the same time); units/U22/verify.json audit_notes (the orchestrator obligation recorded in place of an artifact edit); DECISIONS.md#D18.",
+ "since_wave": 3,
+ "promotable": true,
+ "origin": {
+  "store": "project"
+ }
+}

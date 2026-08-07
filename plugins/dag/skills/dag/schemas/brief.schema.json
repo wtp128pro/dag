@@ -103,6 +103,103 @@
       "minLength": 1,
       "description": "REQUIRED by I29-5 (.strip() bar, validator-side) exactly when claims_owed is present and empty - the I21 explicit-none pattern; 'forgot' and 'none owed' must be distinguishable."
     },
+    "case_set": {
+      "type": "array",
+      "description": "OPTIONAL (independent-test authorship; U01 SPEC.md §2). ORCHESTRATOR-derived at P5, modelled on claims_owed: the executor MAY ADD entries (debrief-side, origin 'executor') and MUST escalate an infeasible one with a recorded reason, but never authors, self-authorizes or shrinks its own case set. A case_set is derived for EVERY unit; the array is OPTIONAL only so pre-adoption archived runs stay schema-valid (version skew) — a brief scaffolded at or above the adoption version carrying neither case_set nor case_set_none_reason is a FAIL, checked validator-side. There is NO min_evidence_tier key (U01 §2.1.0 DELETED it): every discharge row's evidence floor is a total function of its GOVERNING entry's check_form, FLOOR = {command: executable, locator: located}, so 'asserted' is always a shortfall. Empty [] REQUIRES case_set_none_reason (§2.2, enforced at the schema root below). §2.1's 'id … unique within the array' is PROSE ONLY: JSON Schema cannot express uniqueness on a PROPERTY across array items (uniqueItems compares whole items, and two entries differing in check_form are not equal items), so brief-side id uniqueness is a validator-side PRECONDITION commissioned in §10(e) — evaluated BEFORE tier_shortfall_ids, together with extra_ids — never a schema constraint.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "check", "check_form", "trigger_ref",
+          "required_observations", "forbidden_observations", "production_path"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^C[0-9]+$" },
+          "check": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The procedure that discharges the entry: a command to run, or a locator to open. Named `check` — NEVER `probe` (D11, §2.3). COVERAGE RULE (§2.1.1, normative): the check MUST be able to observe EVERY item of required_observations AND of forbidden_observations; an entry whose single check cannot reach all of them MUST be SPLIT into as many entries as it takes. That rule is discipline — no offline predicate evaluates it."
+          },
+          "check_form": {
+            "type": "string",
+            "enum": ["command", "locator"],
+            "description": "Which form the `check` string is, on the wire. Set by the ORCHESTRATOR at derivation; the entry's ONLY form declaration (min_evidence_tier was a total function of it and is deleted). `command` = a command line whose exit status carries the observation; `locator` = a path:line (+ optional single-line anchor phrase) to open. CS-1 below pins the locator shape. VALIDATOR NOTE, load-bearing: match that shape with re.fullmatch (or \\A…\\Z) and NEVER compile it with re.MULTILINE — re.M restores the newline-prefix bypass verbatim (measured, §2.1), and plain re.search accepts `<locator> + one terminal newline` payload and all (measured, §10 b)."
+          },
+          "trigger_ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "VERBATIM member of this brief's acceptance_criteria[] ∪ dod_refs[] ∪ non_goal_refs[] — byte-equality, not paraphrase. Same membership discipline as claims_owed.trigger_ref (I29-2, no straw obligations), with a WIDER domain (claims_owed's referent is acceptance_criteria/dod_refs only; case_set adds non_goal_refs — §2.3). Totality (§2.2, validator-side): when case_set is non-empty every acceptance_criteria[] entry MUST be some entry's trigger_ref; an uncovered criterion is a FAIL, not a NOTE."
+          },
+          "requirement_ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "VERBATIM member of this brief's dod_refs[] ∪ non_goal_refs[] (themselves verbatim ∈ clarifications.json). DoD 1's 'verbatim source_ref to a Definition-of-Done or clarification-register item' — carried under this name because `source_ref` already means a ^S[0-9]+$ SOURCES pointer in claims_owed (§2.3). §4 derives forbidden_observations from THIS field's text, never from acceptance-criterion prose. REQUIRED exactly when the brief's dod_refs ∪ non_goal_refs is non-empty — enforced by the ROOT-level branch (CS-R1), NOT by this items.required array, which would leave the register-empty class with no conforming move."
+          },
+          "requirement_ref_none_reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The register-EMPTY branch of §2.2 (validator-side .strip() bar). REQUIRED exactly when the brief's dod_refs[] AND non_goal_refs[] are both empty/absent; MUST be absent otherwise (CS-R1). CONTENT TEST, as on forbidden_observations_none_reason: it MUST name that the brief carries no register refs AND what was searched in clarifications.json before concluding the unit traces to no register item. In this branch §4's derivation source falls back to the orchestrator-authored trigger_ref text, so §4's independence is ABSENT for this class and ships labelled (§9)."
+          },
+          "required_observations": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "What MUST be observed for the entry to discharge. One counterfactual per observation debrief-side (non_vacuity is an ARRAY, §3.1) — a single red on one half of an entry must not certify the other half (§2.1.1)."
+          },
+          "forbidden_observations": {
+            "type": "array",
+            "minItems": 0,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "What MUST NOT be observed, derived per §4 from the requirement_ref text. Empty only with the companion below (CS-2)."
+          },
+          "forbidden_observations_none_reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "I21 explicit-none (plus a validator-side .strip() bar). REQUIRED exactly when forbidden_observations is empty (CS-2). CONTENT TEST — the load-bearing part: it MUST name the clauses searched for in the requirement_ref text, e.g. 'searched the quoted requirement_ref for not / never / must not / rather than / without / no X; none present.' A none-reason that names no search is an escape hatch, not an explicit-none."
+          },
+          "production_path": {
+            "type": "boolean",
+            "description": "true ⇒ the required observations MUST be observed through the surface a real consumer reaches (§5). ADMISSION TEST the orchestrator applies: does this requirement name an artifact, entry point or predicate that some consumer other than this unit's own test will read? Yes ⇒ true; No ⇒ false AND production_path_none_reason (CS-3)."
+          },
+          "production_path_none_reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "REQUIRED exactly when production_path is false (validator-side .strip() bar). Names why the requirement has no consumer surface, e.g. 'the requirement is about what a document states; there is no runtime surface.' Removes the guess: false must be a decision, not a default."
+          }
+        },
+        "oneOf": [
+          { "$comment": "CS-0 (§2.1 a): entry-local XOR — exactly one of requirement_ref / requirement_ref_none_reason, never both, never neither. Belt-and-braces: redundant under CS-R1's correct ROOT placement, kept so the entry is self-describing.",
+            "required": ["requirement_ref"] },
+          { "required": ["requirement_ref_none_reason"] }
+        ],
+        "allOf": [
+          { "$comment": "CS-1 (§2.1): when check_form is 'locator', check MUST be a path:line optionally followed by a SINGLE-LINE anchor phrase, so the form cannot be misdeclared for free. Match it with re.fullmatch (or \\A…\\Z); NEVER re.MULTILINE. Known-open, disclosed (§9, §10 b): a genuine path:line declared 'locator' buys the same legal not-run for zero characters, and a `path:line ` + payload + one terminal newline is accepted by plain re.search — which is exactly why §10(b) commissions the method-ban fixture.",
+            "if": { "properties": { "check_form": { "const": "locator" } }, "required": ["check_form"] },
+            "then": { "properties": { "check": { "pattern": "^[^\\s:]+:[0-9]+([ \\t][^\\n]*)?$" } } } },
+          { "$comment": "CS-2 (§2.1): forbidden_observations_none_reason REQUIRED exactly when forbidden_observations is empty — and absent otherwise, so the explicit-none cannot be carried alongside a non-empty list. Same 'exactly when' idiom as claims_owed's B1/B2 pair.",
+            "if": { "properties": { "forbidden_observations": { "maxItems": 0 } }, "required": ["forbidden_observations"] },
+            "then": { "required": ["forbidden_observations_none_reason"] },
+            "else": { "not": { "required": ["forbidden_observations_none_reason"] } } },
+          { "$comment": "CS-3 (§2.1): production_path_none_reason REQUIRED exactly when production_path is false, absent otherwise.",
+            "if": { "properties": { "production_path": { "const": false } }, "required": ["production_path"] },
+            "then": { "required": ["production_path_none_reason"] },
+            "else": { "not": { "required": ["production_path_none_reason"] } } }
+        ]
+      }
+    },
+    "case_set_none_reason": {
+      "type": "string",
+      "minLength": 1,
+      "allOf": [
+        { "$comment": "CB-1 (D17): CONTENT bar, at parity with forbidden_observations_none_reason and above a mere non-blank/.strip() bar — the reason MUST NAME THE SEARCH that was actually performed. 'n/a', '-', 'none', 'no cases' name no search and are REJECTED here, so the explicit-none form cannot be used to bypass the mechanism it exists to make legible.",
+          "pattern": "[Ss]earched|[Rr]eviewed|[Ee]xamined|[Ii]nspected|[Ee]numerated|[Ww]alked" },
+        { "$comment": "CB-2 (D17): the reason MUST NAME THE SURFACE searched — the acceptance criteria and/or the clarification register — so 'searched, found nothing' is not conforming either.",
+          "pattern": "acceptance_criteria|acceptance criteri|clarifications\\.json|definition_of_done|dod_refs|non_goal_refs" },
+        { "$comment": "CB-3 (§2.2): the escape hatch closed explicitly — case_set_none_reason MUST NOT record 'the brief carries no dod_refs/non_goal_refs' as the ground for an empty case set. That class uses the PER-ENTRY requirement_ref_none_reason and still derives its case_set. Targeted at one named string class; it is a keyword test, not a semantic one.",
+          "not": { "pattern": "([Nn]o|[Ee]mpty|[Aa]bsent|[Ll]acks|[Nn]either)[^.]{0,40}(dod_refs|non_goal_refs)|(dod_refs|non_goal_refs)[^.]{0,40}([Ee]mpty|[Aa]bsent|[Nn]one|[Nn]either)" } }
+      ],
+      "description": "REQUIRED exactly when case_set is present and empty (§2.2; the I21 explicit-none pattern, .strip() bar validator-side) — 'forgot' and 'no case applies' must be distinguishable. Unlike claims_owed_none_reason this field carries a MECHANICAL CONTENT bar (CB-1..CB-3 above, orchestrator ruling DECISIONS.md#D17): it MUST name the search performed AND the surface searched (acceptance_criteria / clarifications.json), and MUST NOT ground the empty case set in empty register refs. HONESTY BOUND (§9): CB-1..CB-3 are keyword tests. They make a bypass legible and cost more than two characters; they do not make the reason TRUE — a fluent string naming a search that never happened still passes, and the content-test instrument has already been defeated twice on `check`. Do not read them as closure."
+    },
     "dod_refs": {
       "type": "array",
       "minItems": 1,
@@ -114,5 +211,18 @@
       "items": { "type": "string", "minLength": 1 },
       "description": "OPTIONAL (guardrail enforcement). Mirror of the graph unit's `non_goal_refs` — the non_goals items this unit must actively respect, each VERBATIM ∈ clarifications.json non_goals. MAY be [] (explicit 'no non-goal applies' — no minItems; empty-STRING elements still barred). Same I21 brief-mirror posture as dod_refs."
     }
-  }
+  },
+  "allOf": [
+    { "$comment": "CS-R1 (U01 SPEC.md §2.1 b, §2.2): BRIEF-LEVEL branch selection for the register trace, and it MUST live at the schema ROOT — the branch condition is over dod_refs/non_goal_refs, which are siblings of case_set, so collapsing this into case_set.items silently degrades to the entry-local oneOf (CS-0) alone and a REGISTER-BEARING brief whose entry carries requirement_ref_none_reason would become VALID. Register-bearing ⇒ requirement_ref on EVERY entry (obligation unchanged); register-empty ⇒ requirement_ref_none_reason per entry, which is the first conforming move that class has ever had. Vacuous on a brief with no case_set.",
+      "if": { "anyOf": [
+        { "properties": { "dod_refs": { "minItems": 1 } }, "required": ["dod_refs"] },
+        { "properties": { "non_goal_refs": { "minItems": 1 } }, "required": ["non_goal_refs"] } ] },
+      "then": { "properties": { "case_set": { "items": {
+        "required": ["requirement_ref"], "not": { "required": ["requirement_ref_none_reason"] } } } } },
+      "else": { "properties": { "case_set": { "items": {
+        "required": ["requirement_ref_none_reason"], "not": { "required": ["requirement_ref"] } } } } } },
+    { "$comment": "CS-R2 (§2.2): case_set: [] REQUIRES case_set_none_reason — the I21 explicit-none, mirroring claims_owed/claims_owed_none_reason (which enforces the same rule validator-side as I29-5). Together with CB-1..CB-3 on that field, an empty case set costs a named search or a schema FAIL.",
+      "if": { "properties": { "case_set": { "maxItems": 0 } }, "required": ["case_set"] },
+      "then": { "required": ["case_set_none_reason"] } }
+  ]
 }

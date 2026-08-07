@@ -103,7 +103,7 @@ rule.
 
 **Sources:** `DAG-L7` · **Strength:** T1 · **Binds at:** Phase 3 cartography of any run that
 refreshes an existing corpus (docs, references, locators, config), **before** the human's scope
-decision. · **Checked against:** `SKILL.md:437-440`, anchor *"Map the terrain the task lives in"*
+decision. · **Checked against:** `SKILL.md:502-505`, anchor *"Map the terrain the task lives in"*
 (the Phase-3 opening paragraph) and `references/methodology.md §Cartography` — **ABSENT**; neither
 distinguishes debt already in the corpus from drift the current change causes.
 
@@ -129,7 +129,7 @@ overrun looks like executor sloppiness.
 derivations across **two** stores (3 BB + 2 MU), **zero** dag. (The intake ledger's per-entry note on
 `MU-L14` calls this "3/3 repos"; the source list contains no `DAG-` id, so read it as 2/3 — see
 §8.) · **Binds at:** Phase 4 step 1, applying the atomicity test and setting `brief.budget_tokens`.
-· **Checked against:** `SKILL.md:486-488`, anchor *"a **reasoning/instruction budget, not a data
+· **Checked against:** `SKILL.md:551-553`, anchor *"a **reasoning/instruction budget, not a data
 budget**"*, and `references/methodology.md:190-194`, anchor *"Independently verifiable within
 budget"* — **WEAKER**: every
 budget framing in the skill is a *reading/context* framing ("a reasoning budget, not a data budget",
@@ -152,7 +152,7 @@ context), say so in the brief and raise the budget deliberately rather than by h
 ### R6 · DoD coverage must be clause-granular, not item-granular
 
 **Sources:** `MU-L9` (primary) + `MU-L35` · **Strength:** T1x (2 × music) · **Binds at:** Phase 4
-step 4 — the critique persona checking DoD coverage. · **Checked against:** `SKILL.md:519-520`,
+step 4 — the critique persona checking DoD coverage. · **Checked against:** `SKILL.md:584-585`,
 anchor *"DoD item is covered by ≥1 unit"* —
 **WEAKER**: the check is *"every DoD item is covered by ≥1 unit"*, which an item containing "A, B,
 **or** C" satisfies while a clause ships nothing.
@@ -171,7 +171,7 @@ free at Phase 4; found at Phase 8 it costs an amendment or a residual.
 ### R19 · A shared integration point needs an owning unit — or a cross-unit criterion on every consumer
 
 **Sources:** `MU-L12` · **Strength:** T1 · **Binds at:** Phase 4 step 4 — for any unit whose
-deliverable is "add a new consumer of shared state X". · **Checked against:** `SKILL.md:519-520`,
+deliverable is "add a new consumer of shared state X". · **Checked against:** `SKILL.md:584-585`,
 anchor *"DoD item is covered by ≥1 unit"* —
 **ABSENT**. (Same paragraph as `R6`, different absence: `R6` is about how finely coverage is checked,
 `R19` is about an invariant that *no single unit's* acceptance criteria can express.)
@@ -194,7 +194,7 @@ partial coverage is the worst of the three, since it produces PASSes that read a
 
 **Sources:** `DAG-L5` · **Strength:** T1 · **Binds at:** Phase 5, writing a brief's context-pointer
 bullet for a unit that must edit or cite inside a monolithic file. · **Checked against:**
-`SKILL.md:582-585`, anchor *"the minimal **context**: pointers (file paths)"* (the minimal-context
+`SKILL.md:647-650`, anchor *"the minimal **context**: pointers (file paths)"* (the minimal-context
 bullet) — **ABSENT** *at baseline `2dee92a`*: the bullet asked for paths and inline load-bearing
 facts; nothing required a range. **Note the citation is now self-referential** — this run mounted
 the `DAG-L5` hook *inside* that same bullet (it is why the old `:559-561` range stopped resolving),
@@ -240,7 +240,7 @@ behaviour foreclosed — a rule with no reachable alternative is not a rule.
 ### R17 · A documentation unit is a stale-string detector for the code
 
 **Sources:** `MU-L44` · **Strength:** T1 · **Binds at:** Phase 5, writing a documentation unit's
-acceptance criteria. · **Checked against:** `SKILL.md:580`, anchor *"objective + acceptance criteria
+acceptance criteria. · **Checked against:** `SKILL.md:645`, anchor *"objective + acceptance criteria
 (verbatim, testable)"* — **ABSENT**: nothing distinguishes a doc unit's two possible responses to a
 prose/behaviour mismatch.
 
@@ -259,7 +259,7 @@ prose. Give it an explicit output slot for those findings so reporting is not sc
 **Sources:** `DAG-L4` (primary) + `DAG-L8`, `DAG-L11` · **Strength:** T1x — three derivations, all
 dag-store, because **only this repo builds validators**; the other stores' silence is
 non-evidence here, not disagreement. · **Binds at:** Phase 5/6, writing the **verifier** brief for
-any unit tagged `validator` / `design` / `formal`. · **Checked against:** `SKILL.md:659-666`, anchor
+any unit tagged `validator` / `design` / `formal`. · **Checked against:** `SKILL.md:776-783`, anchor
 *"4. **Adversarially verify** (req 9)"* (the adversarial-verify mandate) — **WEAKER**: the mandate is
 claim- and criterion-scoped ("re-check every
 claim's evidence… hunt hallucinations and unmet criteria"); nothing directs the verifier to
@@ -290,10 +290,10 @@ mechanism that could not have produced a different answer.
 
 **Sources:** `MU-L25` (primary), `MU-L40` · **Strength:** T1x (2 × music) · **Binds at:** dispatching
 a wave (Phase 6 head); dispatching a repair between adjudications (Phase 7). · **Checked against:**
-`SKILL.md:162-163`, anchor *"executors with `isolation: 'worktree'` (Agent tool)"* — **WEAKER**:
-worktree isolation is *"consider"*-ed and only for **executors**; `SKILL.md:613-614`, anchor
+`SKILL.md:227-228`, anchor *"executors with `isolation: 'worktree'` (Agent tool)"* — **WEAKER**:
+worktree isolation is *"consider"*-ed and only for **executors**; `SKILL.md:704-705`, anchor
 *"Process waves in topological order"*, states wave parallelism with no shared-tree caveat at all;
-`SKILL.md:787-796`, anchor *"**Frozen executed prefix (I17) — the load-bearing rule.**"*, freezes
+`SKILL.md:959-968`, anchor *"**Frozen executed prefix (I17) — the load-bearing rule.**"*, freezes
 **graph** mutation during execution but says nothing about dispatching work onto artifacts under
 adjudication.
 
@@ -320,9 +320,9 @@ executors but not hazards 2–3, which are ordering constraints, not isolation o
 **Sources:** `BB-L26` (primary), `DAG-L2`, `MU-L32` + `BB-L8`, `DAG-L6`, `MU-L15`, `MU-L34` ·
 **Strength:** **T3 — the only rule in this file independently derived in all three stores**, seven
 derivations. · **Binds at:** after a unit's `debrief.json`+`verify.json` **pair** lands and **before**
-`validate_run.sh` runs on that pair. · **Checked against:** `SKILL.md:131-137`, anchor *"In Phase 6,
+`validate_run.sh` runs on that pair. · **Checked against:** `SKILL.md:173-179`, anchor *"In Phase 6,
 \"each artifact\" means each unit's `debrief.json`+`verify.json` PAIR"* (the pair-cadence paragraph),
-and `SKILL.md:652`, anchor *"quote it (expanded) rather than paraphrase"* — **the "quote the exact
+and `SKILL.md:769`, anchor *"quote it (expanded) rather than paraphrase"* — **the "quote the exact
 shape, don't paraphrase" half is ALREADY-SAYS-IT**; the normalizer half is **ABSENT** at baseline
 `2dee92a`. The existing text names the drift and its compounding, then prescribes only earlier
 validation.
@@ -359,7 +359,7 @@ dozen units at once.
 · **Binds at:** rendering any human-gate message carrying a tally or an exhaustive-sounding count
 (P2 R-CONFIRM, P8 sign-off). · **Checked against:** `references/evidence-standards.md:38`, anchor
 *"**Numeric/quantitative**"* — **ALREADY-SAYS-IT for evidence-table rows** (a numeric claim owes "the
-measurement + how it was produced"); `SKILL.md:426`, anchor *"`resolution_source` tally"* —
+measurement + how it was produced"); `SKILL.md:491`, anchor *"`resolution_source` tally"* —
 **WEAKER**: it mandates a gate-message tally and requires no derivation for it.
 
 The evidence rules bind debriefs, which verifiers read adversarially. Gate messages bind **humans**,
@@ -384,7 +384,7 @@ rule's own ledger committed it twice.
 
 **Sources:** `BB-L34` · **Strength:** T1 · **Binds at:** Phase 8 step 3, assembling the sign-off gate
 message when any unit was skipped, blocked or never dispatched. · **Checked against:**
-`SKILL.md:867-870`, anchor *"**Mechanical counterpart (I23):** at P8/DONE"* — **WEAKER**: closure is enforced only at
+`SKILL.md:1039-1042`, anchor *"**Mechanical counterpart (I23):** at P8/DONE"* — **WEAKER**: closure is enforced only at
 P8/DONE and only as "referenced by no PASS-verified unit"; nothing names a skipped unit's items
 **undischarged at skip time**, and nothing forces that word into the human's message.
 
@@ -403,7 +403,7 @@ missing with it. "Unit U0x was skipped" is a status line the human skims; "DoD i
 ### R9 · Promotion is write AND land
 
 **Sources:** `BB-L33` · **Strength:** T1 · **Binds at:** Phase 8 step 4, writing promotable learnings
-into `.dag/learnings/`. · **Checked against:** `SKILL.md:896-902`, anchor *"**Promote durable
+into `.dag/learnings/`. · **Checked against:** `SKILL.md:1108-1114`, anchor *"**Promote durable
 LEARNINGS → persist (03/P2 write end).**"* — **ABSENT** at baseline `2dee92a`: the step specified
 the write and stopped.
 
@@ -438,7 +438,7 @@ Three items the intake deliberately did not turn into rules. They are recorded s
 them instead of re-deriving them:
 
 - **Budget-ceiling revision (`BB-L50`).** The conclusion — raise a unit's budget ceiling above 32,000
-  — **REVISES** the atomicity argument at `SKILL.md:484-491`, anchor *"Adopt the
+  — **REVISES** the atomicity argument at `SKILL.md:549-556`, anchor *"Adopt the
   **Planner/Architect** persona"* (Phase 4 step 1), rather than adding to it, and a revision
   owes a migration argument no unit has yet owned. Carried as a residual, not as conduct.
 - **Disagreement adjudication over a vendor string (`BB-L28`, second half).** When two agents disagree
@@ -459,8 +459,8 @@ them instead of re-deriving them:
 ---
 
 **Provenance of the "checked against" column.** Every `file:line` above was re-opened at this
-iteration and confirmed to contain the text its anchor phrase quotes; the 16 `SKILL.md` locators were
-re-derived from their anchor phrases against a `SKILL.md` of **989 lines** (`wc -l`, run twice with
+iteration and confirmed to contain the text its anchor phrase quotes; the 17 `SKILL.md` locators were
+re-derived from their anchor phrases against a `SKILL.md` of **1201 lines** (`wc -l`, run twice with
 an identical result to confirm the file was not mid-edit). The four **ABSENT** verdicts rest on a
 search rather than on a weaker sentence.
 
@@ -475,7 +475,7 @@ where `2dee92a` is the last commit **before this run's edits**. The pin replaces
 
 | verdict | pattern | hits at `2dee92a` | hits in the CURRENT tree |
 |---|---|---|---|
-| `R4` | `line range\|section anchor\|line-range` | 0 | **2** — `SKILL.md:584-585`, anchor *"MUST carry a line range or"*: the `DAG-L5` hook **this run mounted** |
+| `R4` | `line range\|section anchor\|line-range` | 0 | **2** — `SKILL.md:649-650`, anchor *"MUST carry a line range or"*: the `DAG-L5` hook **this run mounted** |
 | `R16` | `pre-existing\|preexisting` | 4 — all unrelated (`formal-models.md:379`, `self-learning-loops.md:182`, `state-machine.md:207`, `:208`), each the phrase *"a pre-existing gap"* about a validator invariant, none about counting corpus debt at cartography | 4 — the same four lines, unchanged |
 | `R17` | `stale string\|stale-string\|silently reword` | 0 | 0 |
 | `R19` | `integration point\|shared state\|owning unit` | 0 | **1** — `state-machine.md:230`, matching *"owning unit"* inside the new `I42` digest-integrity row (`R18`/`BB-L46`), unrelated to a shared integration point |
