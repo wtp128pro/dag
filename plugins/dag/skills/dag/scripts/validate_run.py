@@ -693,6 +693,28 @@ def main(argv=None):
             if not os.path.isdir(udir):
                 continue
             unit_subdirs.add(uid)
+            # READABILITY PROBE (top of the loop, before ANY per-unit read). A units/<id>/ the
+            # process cannot read fails this block TWO ways, and the quieter one arrives first:
+            # os.path.isdir() returns True (stat only needs the PARENT), the os.path.exists()
+            # probes below return a SILENT False so the unit reads as EMPTY and is dropped, and
+            # only the os.listdir() further down raises — aborting main() before any RESULT: line
+            # and silently disabling every predicate after it. So probe by ATTEMPTING the read
+            # (os.access() lies under some mount/container configurations and would re-introduce
+            # the silent path), emit a row NAMING the unit, and skip it: unreadability is
+            # REPORTED, never inferred from absence. The except clause below names the whole error
+            # CLASS (EACCES, EIO, ELOOP, ENOENT on a racing delete, …) rather than the single
+            # PermissionError that reproduced — and this comment deliberately does NOT spell that
+            # class's name, so a token grep over this block cannot be satisfied by prose while the
+            # clause itself is narrowed. uid stays in unit_subdirs so the structural triggers that read it
+            # (A8/I-dod) keep firing fail-closed — a dir we cannot read is not a dir that is absent.
+            try:
+                udir_entries = sorted(os.listdir(udir))
+            except OSError as e:
+                rep.fail(f"units/{uid}/ unreadable",
+                         f"unit directory could not be read ({e.__class__.__name__}: {e}); "
+                         f"unit {uid} was SKIPPED — its artifacts are unvalidated, so treat this "
+                         f"run as unchecked for {uid} rather than as a unit with no work")
+                continue
             if any(os.path.exists(os.path.join(udir, f"{name}.{ext}"))
                    for name in UNIT_PRIMARIES for ext in ("md", "json")):
                 unit_dirs_with_work.add(uid)
@@ -737,7 +759,10 @@ def main(argv=None):
             # AUDIT artifacts — deliberately NOT inserted into unit_docs, so they never override the
             # aggregated verify.json that the downstream per-unit checks (I6/I16/…) read. Additive /
             # validate-if-present => PRESERVES (a run with no verify_p* files is unaffected).
-            for prel in sorted(f for f in os.listdir(udir)
+            # Reuses the readability probe's listing rather than re-reading the directory: the
+            # probe above is the ONLY os.listdir of udir now, so this line cannot raise even if
+            # the directory's mode changes mid-run (the crash locus that reproduced).
+            for prel in sorted(f for f in udir_entries
                                if f.startswith("verify_p") and f.endswith(".json")):
                 p = os.path.join(udir, prel)
                 try:

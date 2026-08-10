@@ -196,6 +196,16 @@ for PY in $INTERPRETERS; do
   done
 done
 
+# unit_dir_unreadable RED half (U01). The sweep above can only run fixtures in the state git can
+# store, and git stores NO directory modes — so the committed fixture is the GREEN CONTROL (its
+# expectations.tsv row negatively pins the guard's message) and this script manufactures the
+# unreadable dir on a throwaway copy, then restores it. Without this line the red half would sit
+# in the tree and never run. Test infrastructure only: no new invariant, no predicate (PRESERVES).
+echo "== unit_dir_unreadable (per-unit scan readability guard) =="
+set +e; urout=$(bash "$TESTS_DIR/unit_dir_unreadable/reproduce.sh" 2>&1); urrc=$?; set -e
+printf '%s\n' "$urout"
+if [ "$urrc" -ne 0 ]; then fail_total=$((fail_total + 1)); fi
+
 # manifest_examples (N-09): schemas/manifest.schema.json is not auto-run against a run dir, so
 # check its instance pair directly. Reuse make_validator() (no jsonschema required — falls back
 # to the built-in mini validator).

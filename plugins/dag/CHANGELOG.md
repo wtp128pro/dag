@@ -149,9 +149,23 @@ codes on a differing pair), the live-guard prohibition (no `return`/`raise`/`sys
 of the ten blocks), and archive silence — which is non-vacuous, because `mode_declared_missing` goes
 red at the shipping stamp.
 
-**One pre-existing crash is disclosed and NOT fixed here**, because it is on `main` and predates this
-change: a `units/<id>/` directory with mode `000` raises an unguarded `PermissionError` in the
-`verify_p*` scan and aborts before any result line. Same L29 class the new code guards against.
+**The pre-existing crash the red team found IS fixed here** — that disclosure said it was not, and
+that sentence is corrected rather than left standing. A `units/<id>/` directory the validator cannot
+read raised an unguarded `PermissionError` in the `verify_p*` scan and aborted before any `RESULT:`
+line, silently disabling every predicate after it. It now yields a FAIL row **naming the unit** and
+the validator still reaches its summary (`validate_run.py:696-717`, fixture
+`scripts/tests/unit_dir_unreadable/`).
+
+The fix was produced by a **dag run on this branch**, dogfooding the machinery above end to end
+(`.wip/2026-08-10_072606_permission-crash-fix/`, `manual` mode, signed off at `DONE`, validator
+clean). Cartography found a second failure mode the crash report did not name: `os.path.exists`
+returns a **silent False** on an unreadable directory, so the unit read as *empty* **before** the
+crash was reached — guarding only the raising line would have traded a loud crash for a quiet lie.
+The guard therefore sits at the top of the loop and catches `OSError`, not `PermissionError` alone.
+
+**Bounded, not absolute:** mode `444` (listable but not traversable) still drops a unit silently,
+byte-identically pre- and post-guard. That is disclosed in the run's `SYNTHESIS.md` as a residual and
+debted, not claimed closed.
 
 ## [1.13.0] — 2026-08-06
 

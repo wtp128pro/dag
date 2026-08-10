@@ -475,3 +475,4 @@ obligation_vacuous_ok	0	I59 obligation source-naming (VACUOUS: 0 `O-<NN>` obliga
 directive_class_drift	1	I53 directive provenance (units/U01)
 mode_ver_bypass	1	gate ordering
 mode_record_conflation	1	I51 machine-decision channel (I51-2 exclusivity by record, signoff)
+unit_dir_unreadable	0	!unit directory could not be read
