@@ -1,0 +1,1 @@
+RED on I52, on the OTHER side of the same clause: the projection exists but is over ceiling. Test 3 of the source design asks for exactly this pair — if both invocations returned the same status the size check would be inert regardless of the value it printed.

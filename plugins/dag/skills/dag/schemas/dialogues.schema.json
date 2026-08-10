@@ -33,6 +33,35 @@
             "minLength": 1,
             "description": "DP-49: REQUIRED on a p2-r<k> re-entry instance (allOf below); the recorded rollback license (impasse-dossier choice (b) or a P7/T11 rollback-to-P2 decision)."
           },
+          "horizon": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "I49 (1.14.0, Ask 1) — the dialogue instance's own second pass, RECORDED rather than held in the orchestrator's head. Name the expedient answer (which must be one actually offered — I49-3 joins it against a question's `recommended` verbatim), the durable answer and what it costs, and which is chosen. OPTIONAL: absent => the mechanism is not adopted and I49 is silent, which is what keeps every archived run green. Adoption is CLOSED, not partial — once any dialogue instance or any `socratic` block in a run carries a horizon, I49-1 requires one everywhere (a half-adopted horizon record is how 'we only wrote it down when it flattered us' would look). On a genuinely mechanical surface the legal value is expedient == durable == the same sentence with choice 'durable' and durable_cost 'no material horizon; the two answers coincide' — the DP-35 record-never-manufacture sentinel, mirroring the existing `counter` sentinel.",
+            "required": ["expedient", "durable", "durable_cost", "choice"],
+            "properties": {
+              "expedient": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "The cheaper answer. At DS-2/DS-4 this MUST equal some question's `recommended` string verbatim (whitespace-normalized) in the same instance — I49-3, the anti-strawman join: you cannot strawman an option you already recommended." },
+              "durable": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "durable_cost": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "choice": { "type": "string", "enum": ["durable", "expedient"] },
+              "debt": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["revisit_condition", "decisions_ref"],
+                "properties": {
+                  "revisit_condition": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "The condition that FORCES revisiting. A debt with no revisit condition is an excuse." },
+                  "decisions_ref": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "A DECISIONS.md reference that must RESOLVE (I49-2). A debt not in the ledger is invisible to the next run." }
+                }
+              }
+            },
+            "allOf": [
+              { "$comment": "I49-2 strict iff, forward half: debt REQUIRED when choice == expedient.",
+                "if":   { "properties": { "choice": { "const": "expedient" } }, "required": ["choice"] },
+                "then": { "required": ["debt"] } },
+              { "$comment": "I49-2 strict iff, backward half: debt FORBIDDEN when choice == durable. Forbidding it on durable is what makes `grep -l revisit_condition` an EXACT inventory of a run's debts rather than a list of decorations.",
+                "if":   { "properties": { "choice": { "const": "durable" } }, "required": ["choice"] },
+                "then": { "not": { "required": ["debt"] } } }
+            ]
+          },
           "rounds": {
             "type": "array",
             "items": {

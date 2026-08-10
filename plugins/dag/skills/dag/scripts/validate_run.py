@@ -56,6 +56,7 @@ TOP_ARTIFACTS = {
     "fsm-state.json": "fsm-state.schema.json",
     "sources.json": "sources.schema.json",
     "dialogues.json": "dialogues.schema.json",
+    "machine-decisions.json": "machine-decisions.schema.json",
 }
 UNIT_ARTIFACTS = {
     "brief.json": "brief.schema.json",
@@ -518,6 +519,22 @@ LABELS = [
     {"key": "note_i47", "stem": "N-I47 ledger desync at sign-off", "invariant": "I47", "emitted_via": "print"},
     # FSM invariants — case-set contract (independent-test-authorship 1.13.0; U24 authors, U25 registers)
     {"key": "i48_case_set", "stem": "I48 case-set contract", "invariant": "I48", "emitted_via": "hoisted-var"},
+    # FSM invariants — drift & autonomy (1.14.0). Every one is an OFFLINE, POST-HOC predicate over
+    # emitted artifacts: none appears in a transition-admission path and none is a live guard on the
+    # correction loop's sole back-edge LT7 (RETRY->EXECUTE), where a guard that can be false leaves
+    # RETRY with no enabled out-edge => deadlock, breaking Claim D of the termination proof.
+    {"key": "i49_horizon", "stem": "I49 horizon record", "invariant": "I49"},
+    {"key": "i50_prose_bounds", "stem": "I50 prose bounds", "invariant": "I50"},
+    {"key": "note_i50", "stem": "N-I50 prose bounds", "invariant": "I50", "emitted_via": "print"},
+    {"key": "i51_machine_gate", "stem": "I51 machine-decision channel", "invariant": "I51"},
+    {"key": "i52_projection", "stem": "I52 projection ceiling", "invariant": "I52"},
+    {"key": "i53_directive", "stem": "I53 directive provenance", "invariant": "I53"},
+    {"key": "i54_clock", "stem": "I54 deliverable clock", "invariant": "I54"},
+    {"key": "i56_starvation", "stem": "I56 requirement-starvation disclosure", "invariant": "I56"},
+    {"key": "note_i56", "stem": "N-I56 requirement-starvation disclosure", "invariant": "I56", "emitted_via": "print"},
+    {"key": "note_i57", "stem": "N-I57 run composition", "invariant": "I57", "emitted_via": "print"},
+    {"key": "i58_resequence", "stem": "I58 re-sequencing eligibility", "invariant": "I58"},
+    {"key": "i59_obligation_source", "stem": "I59 obligation source-naming", "invariant": "I59"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -7276,6 +7293,1010 @@ def main(argv=None):
         rep.fail(f"{LABEL_STEM['gpersonas_failclosed']}",
                  "gates.personas_confirmed=true but no VALID personas.json (T2)")
 
+    # =========================================================================
+    # 1.14.0 — DRIFT & AUTONOMY (I49, I50, I51, I52, I53, I54, I56, I57, I58, I59)
+    #
+    # OFFLINE AND POST-HOC BY CONSTRUCTION. Every clause below reads artifacts that already exist
+    # on disk and emits only `rep.fail(...)` / `rep.ok(...)` / a bare `print(...)`. None appears in
+    # a transition-admission path, none writes fsm-state, and in particular NONE is a live guard on
+    # the correction loop's sole back-edge LT7 (RETRY->EXECUTE): a guard there that can be false
+    # leaves RETRY with no enabled out-edge => deadlock, which refutes Claim D of the termination
+    # proof outright. Violations route to a report row; escalation stays on the EXISTING ESCALATE
+    # branch. Mid-loop staleness is legal exactly as it is for I43/I44 — the arms that quantify over
+    # a finished run fire only at P8/DONE.
+    #
+    # ARMING. Every predicate here is either ADOPTION-armed (silent until a run emits the key or
+    # file it polices) or VERSION-gated (silent below the 1.14.0 stamp), so no archived run in
+    # .wip/ changes grade on the day this ships. The one predicate that could not be adoption-armed
+    # — I51-1's `run_mode` presence, because absence is exactly what it polices — is version-gated
+    # with a `_skew_record` companion, which is the same posture I48 takes.
+    #
+    # NOT BUILT, DELIBERATELY. I55 (consequence-proportional verification depth) is DEFERRED and is
+    # NOT implemented here. Its recording slice ships as two OPTIONAL, UNREAD schema fields
+    # (debrief.consumed_upstream[], verify.consequence) so the deferral is an order to measure
+    # rather than a burial; the housekeeping fuel counter (the enforced half of I57) is likewise
+    # deferred. Both deferrals, with their adoption triggers, are recorded in
+    # references/state-machine.md "Deferred mechanisms (1.14.0)".
+    # =========================================================================
+    _N14_SHIP = "1.14.0"
+    _n14_ver = fsm.get("validator_version") if isinstance(fsm, dict) else None
+    # NOTE ON STYLE, which is load-bearing rather than cosmetic: each version-gated arm below calls
+    # the semver comparison for ITSELF and pairs it with its own `_skew_record`, exactly as _i27_t1
+    # and _i48_t1 already do. Hoisting one shared boolean would be tidier code and would silently
+    # break spec_check SC8, whose completeness rule is a 1:1 gate-to-recorder count. A refactor that
+    # makes a shipped drift checker go red is a defect in the refactor, not in the checker.
+    # (This comment deliberately names the helper WITHOUT its open paren: SC8 counts a bare string,
+    # so a prose mention carrying the paren would inflate the gate count and fail the very check
+    # this paragraph exists to respect — the same self-matching-comment trap the `_i27_semver_ge`
+    # definition site already records against its own leading-`def` anchor.)
+
+    def _n14_blank(x):
+        return not str(x if x is not None else "").strip()
+
+    def _n14_ws(s):
+        return re.sub(r"\s+", " ", str(s if s is not None else "")).strip()
+
+    def _n14_read(rel):
+        """Read a run-relative text file, or None if it is absent/unreadable. NEVER raises — the
+        L29 crash class (an unguarded index or a bare comprehension over a missing key) takes the
+        whole validator non-zero on a run it used to pass, silently disabling every downstream
+        invariant."""
+        try:
+            with open(os.path.join(rd, rel), "r", encoding="utf-8", errors="replace") as _f:
+                return _f.read()
+        except Exception:
+            return None
+
+    _n14_decisions = _n14_read("DECISIONS.md")
+
+    def _n14_ref_resolves(ref):
+        """(ok, why_not) for a DECISIONS.md reference. Fail-closed: a missing ledger is never read
+        as 'no claim made'."""
+        if _n14_blank(ref):
+            return (False, "blank reference")
+        if _n14_decisions is None:
+            return (False, "no DECISIONS.md under the run dir")
+        _t = str(ref).strip()
+        if "#" in _t:
+            _t = _t.rsplit("#", 1)[1]
+        elif ":" in _t:
+            _t = _t.rsplit(":", 1)[1]
+        _t = _t.strip()
+        if not _t:
+            return (False, f"reference {ref!r} names no anchor within DECISIONS.md")
+        if _t.lower() in _n14_decisions.lower():
+            return (True, None)
+        return (False, f"anchor {_t!r} does not resolve to any line in DECISIONS.md")
+
+    # ---- canonical unit order (declared, because the run directory supplies no chronology) ------
+    # I54-2 and I56-1 both count "after", and NOTHING on disk dates a unit: verify.schema.json,
+    # debrief.schema.json and graph.schema.json each carry ZERO timestamp keys, and graph.json
+    # orders WAVES, never units inside one. So the order is STIPULATED — graph.json.waves[] in wave
+    # order, tie-broken by ascending unit id — and both FAIL messages name the rule they used, so an
+    # intra-wave disagreement is diagnosable as a disagreement about RECONSTRUCTION rather than read
+    # as evidence of narration. Within a wave this is a canonical reconstruction, NOT real time.
+    _N14_ORDER_RULE = "graph.json.waves[] in wave order, tie-broken by ascending unit id"
+    _n14_units_by_id = {}
+    _n14_wave_of = {}
+    if isinstance(graph_doc, dict):
+        for _gu in (graph_doc.get("units") or []):
+            if isinstance(_gu, dict) and isinstance(_gu.get("id"), str):
+                _n14_units_by_id[_gu["id"]] = _gu
+        for _wv in (graph_doc.get("waves") or []):
+            if not isinstance(_wv, dict):
+                continue
+            _wn = _as_int(_wv.get("wave"))
+            for _wu in (_wv.get("units") or []):
+                if isinstance(_wu, str) and _wn is not None:
+                    _n14_wave_of[_wu] = _wn
+    # Units with no wave row sort LAST (a large sentinel), never silently first: a unit the waves[]
+    # table forgot must not be able to reset a starvation streak by accident of ordering.
+    _n14_order = sorted(_n14_units_by_id, key=lambda u: (_n14_wave_of.get(u, 10 ** 6), u))
+
+    def _n14_verdict(uid):
+        _v = unit_docs.get(uid, {}).get("verify")
+        return _v.get("verdict") if isinstance(_v, dict) else None
+
+    # -------------------------------------------------------------------------------------------
+    # I49 — horizon record (Ask 1: internal re-evaluation inside every Socratic dialogue)
+    # ADOPTION-armed and ADOPTION-CLOSED: silent until a run writes its first `horizon`, and then
+    # required on EVERY dialogue instance and every socratic block in that run. Partial adoption is
+    # a FAIL by design, because a half-adopted horizon record is how "we only wrote it down when it
+    # flattered us" would look.
+    # -------------------------------------------------------------------------------------------
+    _n14_h_stem = LABEL_STEM["i49_horizon"]
+    _n14_h_sites = []          # (label, horizon, surface_id, recommended_set)
+    _n14_dlg_doc = docs.get("dialogues")
+    if isinstance(_n14_dlg_doc, dict):
+        for _di, _dd in enumerate(_n14_dlg_doc.get("dialogues") or []):
+            if not isinstance(_dd, dict):
+                continue
+            _recs = set()
+            for _rr in (_dd.get("rounds") or []):
+                if not isinstance(_rr, dict):
+                    continue
+                for _qq in (_rr.get("questions") or []):
+                    if isinstance(_qq, dict) and isinstance(_qq.get("recommended"), str):
+                        _recs.add(_n14_ws(_qq["recommended"]))
+            _n14_h_sites.append((f"dialogues.json[{_dd.get('instance') or _di}]",
+                                 _dd.get("horizon"), _dd.get("surface_id"), _recs))
+    for _uid in sorted(unit_docs):
+        for _kind in ("debrief", "verify"):
+            _doc = unit_docs.get(_uid, {}).get(_kind)
+            if not isinstance(_doc, dict):
+                continue
+            _soc = _doc.get("socratic")
+            if isinstance(_soc, dict):
+                _n14_h_sites.append((f"units/{_uid}/{_kind}.json:socratic",
+                                     _soc.get("horizon"), None, None))
+    # ARMING IS A CONJUNCTION — adoption AND the 1.14.0 stamp — and the second conjunct is NOT
+    # defensive style, it is a MEASURED repair. `socratic` is additionalProperties:true and the
+    # dialogues element was open to an undeclared key, so a run written BEFORE this shipped could
+    # already carry a `horizon`, and one does: the run that DESIGNED this invariant dogfooded the
+    # field in its own assembly unit. Measured on this tree —
+    #   grep -rl '"horizon"' .wip/2026-08-09_140537_dag-drift-and-autonomy-redesign --include='*.json'
+    #   -> units/U14/debrief.json, units/U14/verify.json
+    # — and a pure content-adoption gate armed on it, adding 30 I49-1 FAIL rows to an archived run
+    # (20 -> 50) on the day this shipped. THAT IS THE ADOPTION GATE LEAKING, not a defect in the
+    # archive. A content trigger is only archive-safe where the key was previously SCHEMA-FORBIDDEN
+    # (progress_clock, context_contract, deliverable, priority_class, kind:'resequence' all are,
+    # since their parent objects are additionalProperties:false); where the parent object was OPEN,
+    # the version stamp is the only sound gate.
+    _n14_h_adopted = (any(isinstance(_h, dict) for (_, _h, _, _) in _n14_h_sites)
+                      and _i27_semver_ge(_n14_ver, _N14_SHIP))
+    _skew_record("I49-T1", any(isinstance(_h, dict) for (_, _h, _, _) in _n14_h_sites),
+                 _N14_SHIP, _n14_ver)
+    if _n14_h_adopted:
+        _n14_h_bad = False
+        for _lbl, _h, _sid, _recs in _n14_h_sites:
+            # I49-1 presence closure
+            if not isinstance(_h, dict):
+                rep.fail(f"{_n14_h_stem} ({_lbl})",
+                         "this run has ADOPTED `horizon` (at least one site carries one) but this "
+                         "site does not — I49-1 adoption closure. Partial adoption is a FAIL by "
+                         "design: a horizon recorded only where it flatters the run is not a record")
+                _n14_h_bad = True
+                continue
+            # I49-2 debt has teeth
+            _choice = _h.get("choice")
+            _debt = _h.get("debt")
+            if _choice == "expedient":
+                if not isinstance(_debt, dict):
+                    rep.fail(f"{_n14_h_stem} ({_lbl})",
+                             "choice == 'expedient' with no `debt` object — I49-2. A debt with no "
+                             "revisit condition is an excuse")
+                    _n14_h_bad = True
+                else:
+                    if _n14_blank(_debt.get("revisit_condition")):
+                        rep.fail(f"{_n14_h_stem} ({_lbl})",
+                                 "choice == 'expedient' with a blank debt.revisit_condition — I49-2")
+                        _n14_h_bad = True
+                    _ok_ref, _why_ref = _n14_ref_resolves(_debt.get("decisions_ref"))
+                    if not _ok_ref:
+                        rep.fail(f"{_n14_h_stem} ({_lbl})",
+                                 f"debt.decisions_ref does not resolve: {_why_ref} — I49-2. A debt "
+                                 "not in the ledger is invisible to the next run")
+                        _n14_h_bad = True
+            elif _choice == "durable" and _debt is not None:
+                rep.fail(f"{_n14_h_stem} ({_lbl})",
+                         "a `debt` block is present on choice == 'durable' — I49-2 backward half. "
+                         "Forbidding it here is what makes `grep -l revisit_condition` an EXACT "
+                         "inventory of the run's debts rather than a list of decorations")
+                _n14_h_bad = True
+            # I49-3 anti-strawman join (elicitation surfaces only)
+            if _sid in ("DS-2", "DS-4") and isinstance(_recs, set):
+                _exp = _n14_ws(_h.get("expedient"))
+                if _exp and _exp not in _recs:
+                    rep.fail(f"{_n14_h_stem} ({_lbl})",
+                             f"horizon.expedient does not match any question's `recommended` string "
+                             f"in this instance — I49-3, the anti-strawman join. You cannot strawman "
+                             f"an option you already recommended. Offered strings: "
+                             f"{sorted(_recs) if _recs else '(none)'}")
+                    _n14_h_bad = True
+        if not _n14_h_bad:
+            rep.ok(f"{_n14_h_stem} ({len(_n14_h_sites)} site(s) closed; debt iff + anti-strawman join hold)")
+
+    # -------------------------------------------------------------------------------------------
+    # I50 — plain-language prose bounds (Ask 2, ONE ARM OF THREE).
+    # Only `i50_prose_bounds` ships. The other two arms of the source recommendation — term coverage
+    # and anchor resolution — are preconditioned on a RUN_DIR/GLOSSARY.md that exists NOWHERE in the
+    # tree, and run against a directory with no glossary THEY WOULD FAIL EVERY RUN. They are
+    # deferred until that artifact ships; see references/state-machine.md "Deferred mechanisms".
+    # VERSION-gated (not adoption-gated), because the thing it polices is prose every run already
+    # writes — there is no key whose appearance could arm it without also re-grading every archive.
+    # -------------------------------------------------------------------------------------------
+    _N14_PROSE_FILES = ("PLAN.md", "DECISIONS.md", "PROGRESS.md", "LEARNINGS.md",
+                        "CLARIFICATIONS.md", "DIALOGUES.md", "SYNTHESIS.md")
+    _N14_MAX_WPS, _N14_MEAN_WPS, _N14_ARI, _N14_SHARE = 60, 18.0, 14.0, 0.50
+    # MINIMUM CORPUS for the AGGREGATE bounds. The three thresholds were fitted against four real
+    # files carrying 45-181 scorable sentences and 685-3,717 words; ARI in particular
+    # (4.71 x chars/word + 0.5 x mean - 21.43) is a continuous-prose index and is NOISE over a
+    # handful of fragmentary lines. MEASURED, and this is why the floor exists rather than being
+    # tidiness: on a FRESHLY SCAFFOLDED, EMPTY run — before anyone has written a word — the seeded
+    # PLAN.md scored 7 sentences / 44 words / ARI 15.4 and the seeded DECISIONS.md scored
+    # prose_share 0.40, so BOTH went red. That is the wrong-direction defect, which is the worse
+    # one: it pays an author to PAD AN EMPTY LEDGER to buy a green.
+    #
+    # THE SPLIT IS PRINCIPLED, NOT A WEAKENING. `max_wps` is a property of ONE SENTENCE and needs no
+    # corpus at all — a 90-word sentence is a 90-word sentence in a two-line file — so it ALWAYS
+    # applies. The three AGGREGATE bounds (mean, ARI, prose-line share) are statistics over a
+    # population and are only meaningful once one exists. 30 sits comfortably below the smallest
+    # fitted corpus (45), so nothing the thresholds were calibrated against escapes.
+    #
+    # DISCLOSED ESCAPE: a file kept permanently under 30 scorable sentences is never scored on the
+    # aggregates. On a real run PLAN/DECISIONS/PROGRESS/SYNTHESIS grow past it; a run that keeps
+    # every ledger tiny has other problems. The longest-sentence bound bites at any size.
+    _N14_MIN_SENTENCES = 30
+    # Thresholds are set from the measured corpora, not from taste: three passing files top out at
+    # 38/48/50-word longest sentences, means 14.3/14.4/15.2 and ARI 9.4/9.6/10.9, against a failing
+    # file's 90-word sentence, mean 20.5 and ARI 15.3. A sentence splitter is a HEURISTIC and a
+    # different heuristic gives different numbers — any reimplementation must re-fit these rather
+    # than inherit them.
+    _N14_SENT_RE = re.compile(r"(?<=[.!?])(?:\*{1,2}|_{1,2})?\s+")
+    _N14_CODE_RE = re.compile(r"`[^`]*`")
+    # A bare PATH is machine text, not prose, and is normalised to a single short word before
+    # scoring. This is not tidiness — it repairs a MEASURED collision between two predicates
+    # shipped in the same change: I59 REQUIRES every obligation line in PROGRESS.md to name the
+    # run-directory file it read, and a 30-character path counts as one word with thirty characters,
+    # which drives ARI (4.71 x chars/word + ...) straight through the bound. Without this, a run
+    # that satisfies I59 exactly is FAILED by I50 for doing so. The exemption can only LOWER a
+    # score, and only on lines carrying machine identifiers, so it cannot launder prose: a sentence
+    # is still counted at its true word length. Same doctrine as the existing fence and table
+    # exemptions — score the sentences that frame the machine text, never the machine text.
+    _N14_PATH_RE = re.compile(r"(?<!\S)(?:[A-Za-z0-9_.-]*/[A-Za-z0-9_./#-]+"
+                              r"|[A-Za-z0-9_.-]+\.(?:json|md|py|sh|tsv|tla|als|cfg))(?!\S)")
+    _N14_ROW_RE = re.compile(r"^\s*\|")
+    _N14_FENCE_RE = re.compile(r"^\s*(```|~~~)")
+
+    def _n14_prose_score(text):
+        """Score PROSE LINES ONLY. Tables, tallies and fenced commands are exempt BY CONSTRUCTION,
+        so the rule bites on the sentences that frame numbers and never asks anyone to delete one —
+        which is what keeps it from fighting BB-L44 (no count without the command that produced it)
+        and losing. The prose-line FLOOR closes the wholesale escape of moving everything into
+        tables or a fence; it does NOT close a selective one, and that limit is disclosed rather
+        than argued away (moving 33 of 131 prose lines was measured to buy a green)."""
+        _in_fence = False
+        _paras, _cur = [], []
+        _cand = _prose = 0
+        for _ln in str(text or "").split("\n"):
+            if _N14_FENCE_RE.match(_ln):
+                _in_fence = not _in_fence
+                if _cur:
+                    _paras.append(_cur)
+                    _cur = []
+                continue
+            if _in_fence:
+                continue
+            if not _ln.strip():
+                if _cur:
+                    _paras.append(_cur)
+                    _cur = []
+                continue
+            _cand += 1
+            if _N14_ROW_RE.match(_ln):
+                if _cur:
+                    _paras.append(_cur)
+                    _cur = []
+                continue
+            _prose += 1
+            _cur.append(_ln)
+        if _cur:
+            _paras.append(_cur)
+        _share = (float(_prose) / _cand) if _cand else 0.0
+        _sents = []
+        for _p in _paras:
+            _t = _N14_PATH_RE.sub("file", _N14_CODE_RE.sub(" ", " ".join(_p)))
+            for _frag in _N14_SENT_RE.split(_t):
+                _w = _frag.split()
+                if len(_w) >= 3:
+                    _sents.append(_w)
+        _out = {"prose_lines": _prose, "candidate_lines": _cand,
+                "prose_share": round(_share, 3), "sentences": len(_sents)}
+        if not _sents:
+            _out["code"] = "TOO-SHORT-TO-SCORE"
+            return _out
+        # The longest sentence is scored at ANY size — it needs no corpus.
+        _out["max_wps"] = max(len(_s) for _s in _sents)
+        if len(_sents) < _N14_MIN_SENTENCES:
+            _out["code"] = "TOO-SHORT-TO-SCORE"
+            return _out
+        if _share < _N14_SHARE:
+            _out["code"] = "NO-PROSE-LINES"
+            return _out
+        _words = sum(len(_s) for _s in _sents)
+        _chars = sum(len("".join(_s)) for _s in _sents)
+        _mean = float(_words) / len(_sents)
+        _out.update({"code": None, "words": _words, "mean_wps": round(_mean, 1),
+                     "max_wps": max(len(_s) for _s in _sents),
+                     "ari": round(4.71 * (float(_chars) / _words) + 0.5 * _mean - 21.43, 1)})
+        return _out
+
+    _n14_prose_present = [_f for _f in _N14_PROSE_FILES if os.path.exists(os.path.join(rd, _f))]
+    _skew_record("I50-T1", bool(_n14_prose_present), _N14_SHIP, _n14_ver)
+    if _n14_prose_present and _i27_semver_ge(_n14_ver, _N14_SHIP):
+        _n14_p_stem = LABEL_STEM["i50_prose_bounds"]
+        # accepted_prose[] — the recorded, greppable override, in the accepted_incomplete idiom:
+        # available but LOUD. It never suppresses (a named file still prints an N-I50 NOTE), never
+        # covers a file it does not name, and FAILS CLOSED if malformed.
+        _n14_ap = fsm.get("accepted_prose") if isinstance(fsm, dict) else None
+        _n14_ap_files, _n14_ap_bad = set(), None
+        if _n14_ap is not None:
+            if not isinstance(_n14_ap, dict):
+                _n14_ap_bad = "accepted_prose is not an object"
+            elif not (isinstance(_n14_ap.get("files"), list) and _n14_ap.get("files")
+                      and all(isinstance(_x, str) and _x.strip() for _x in _n14_ap["files"])):
+                _n14_ap_bad = "accepted_prose.files must be a non-empty list of non-blank strings"
+            elif _n14_blank(_n14_ap.get("rationale")):
+                _n14_ap_bad = "accepted_prose.rationale is blank"
+            elif "DECISIONS.md" not in str(_n14_ap.get("decision_ref") or ""):
+                _n14_ap_bad = "accepted_prose.decision_ref does not name DECISIONS.md"
+            else:
+                _n14_ap_files = {_x.strip() for _x in _n14_ap["files"]}
+        if _n14_ap_bad:
+            rep.fail(f"{_n14_p_stem} (accepted_prose malformed)",
+                     f"{_n14_ap_bad} — a malformed override covers NOTHING and fails closed, so the "
+                     "prose bounds below still bind on every file")
+        _n14_p_bad = False
+        for _pf in _n14_prose_present:
+            _txt = _n14_read(_pf)
+            if _txt is None:
+                continue
+            _sc = _n14_prose_score(_txt)
+            _breaches = []
+            # The per-sentence bound binds at ANY corpus size; the aggregates need a population.
+            if _sc.get("max_wps", 0) > _N14_MAX_WPS:
+                _breaches.append(f"longest sentence {_sc['max_wps']} > {_N14_MAX_WPS} words")
+            if _sc.get("code") == "NO-PROSE-LINES":
+                _breaches.append(f"NO-PROSE-LINES (prose_share {_sc['prose_share']} < {_N14_SHARE}, "
+                                 f"{_sc['sentences']} scorable sentence(s))")
+            elif _sc.get("code") is None:
+                if _sc["mean_wps"] > _N14_MEAN_WPS:
+                    _breaches.append(f"mean {_sc['mean_wps']} > {_N14_MEAN_WPS} words/sentence")
+                if _sc["ari"] > _N14_ARI:
+                    _breaches.append(f"ARI {_sc['ari']} > {_N14_ARI}")
+            if not _breaches:
+                continue
+            if _pf in _n14_ap_files:
+                print(f"  NOTE  {LABEL_STEM['note_i50']} ({_pf}): {'; '.join(_breaches)} — "
+                      "DOWNGRADED by a well-formed fsm-state.accepted_prose naming this file. "
+                      "Downgraded, never suppressed.")
+            else:
+                rep.fail(f"{_n14_p_stem} ({_pf})",
+                         f"{'; '.join(_breaches)}. Scored over PROSE LINES ONLY (tables, tallies and "
+                         f"fenced commands are exempt by construction) — {_sc}. A run may ship over "
+                         "the bound by recording fsm-state.accepted_prose naming this file, a "
+                         "rationale and a DECISIONS.md ref")
+                _n14_p_bad = True
+        if not _n14_p_bad:
+            rep.ok(f"{_n14_p_stem} ({len(_n14_prose_present)} ledger file(s) within "
+                   f"max {_N14_MAX_WPS} / mean {_N14_MEAN_WPS} / ARI {_N14_ARI} / share {_N14_SHARE})")
+
+    # -------------------------------------------------------------------------------------------
+    # I51 — the machine-decision channel (Ask 3: fully automatic mode). THE ONE **REVISES**.
+    # Today a run at DONE asserts a human signed off. After this, a run at DONE asserts a human
+    # signed off OR a machine closed sign-off under a recorded mode with a recorded analyst. That
+    # is a WEAKER sentence than the one dag makes today, and it is made openly rather than by
+    # editing SKILL.md's "setting it without a human is a defect" — which stays literally true and
+    # unedited, because a machine-closed gate sets a DIFFERENT key that no human ever sets.
+    # It detects CONFLATION, never FORGERY.
+    # -------------------------------------------------------------------------------------------
+    _N14_GATES = (("personas", "personas_confirmed", "personas_machine_closed", "DS-1"),
+                  ("clarification", "clarification_resolved", "clarification_machine_closed", "DS-2"),
+                  ("signoff", "signoff_confirmed", "signoff_machine_closed", "DS-5"))
+    _n14_mc_stem = LABEL_STEM["i51_machine_gate"]
+    _n14_mode = fsm.get("run_mode") if isinstance(fsm, dict) else None
+    _n14_md = docs.get("machine-decisions")
+    _n14_md_recs = (_n14_md.get("decisions") or []) if isinstance(_n14_md, dict) else []
+    _n14_mclosed = {_g: (gates.get(_mk) is True) for _g, _hk, _mk, _s in _N14_GATES}
+    _n14_any_machine = any(_n14_mclosed.values()) or bool(_n14_md_recs)
+
+    def _n14_critical(_rec):
+        """Clause-by-clause recomputation of critical(q) from the record's OWN fields, so an
+        orchestrator cannot quietly narrow the definition. An honest PROXY: measurable and
+        re-derivable, and not a claim that every genuinely consequential question falls inside it."""
+        if _rec.get("gate") in ("signoff", "disagreement"):
+            return True                                    # clause 1, gate-level form
+        if _rec.get("surface_id") in ("DS-4", "DS-5"):
+            return True                                    # clause 1, surface-level form
+        _ea = _rec.get("edits_anchor")
+        if isinstance(_ea, list) and any(_x in ("definition_of_done", "non_goals") for _x in _ea):
+            return True                                    # clause 2 — the question would move scope
+        _an = _rec.get("analyst") if isinstance(_rec.get("analyst"), dict) else {}
+        _av = _n14_ws(_an.get("verdict")).lower()
+        if _av == "abstain":
+            return True                                    # clause 4a — refusal or tie
+        try:
+            if float(_an.get("confidence")) < 0.7:
+                return True                                # clause 4b
+        except (TypeError, ValueError):
+            return True                                    # unreadable confidence => fail closed
+        if _av != _n14_ws(_rec.get("orchestrator_recommendation")).lower():
+            return True                                    # clause 3 — the analyst contradicts
+        return False
+
+    # I51-1 (mode declared) — VERSION-gated. Written unarmed this reds every archived run in .wip/,
+    # because run_mode is a NEW top-level fsm-state property; that is the concrete breakage the
+    # gate exists to prevent, and the archive fixtures are what prove it did.
+    _n14_past_p1 = phase in ("P2_CLARIFICATION", "P3_CARTOGRAPHY", "P4_DECOMPOSITION",
+                             "P5_BRIEFING", "P6_EXECUTE_VERIFY", "P7_DISAGREEMENT_GATE",
+                             "P8_SYNTHESIS", "DONE")
+    _skew_record("I51-1", bool(fsm) and _n14_past_p1, _N14_SHIP, _n14_ver)
+    if fsm and _n14_past_p1 and _i27_semver_ge(_n14_ver, _N14_SHIP):
+        if _n14_mode not in ("manual", "critical-only", "automatic"):
+            rep.fail(f"{_n14_mc_stem} (I51-1 mode declared)",
+                     f"fsm-state.run_mode is {_n14_mode!r} — from P2 onward a run must DECLARE its "
+                     "autonomy mode (manual | critical-only | automatic), chosen at a Phase-0/1 "
+                     "dialogue with NO ASSUMED DEFAULT")
+        else:
+            rep.ok(f"{_n14_mc_stem} (I51-1 run_mode={_n14_mode!r})")
+
+    # Same conjunction, same reason: `gates` is additionalProperties:true, so a `*_machine_closed`
+    # key was already writable before this shipped and a content-only trigger is not archive-sound.
+    _skew_record("I51-2..6", _n14_any_machine, _N14_SHIP, _n14_ver)
+    if ((_n14_any_machine or _n14_mode in ("critical-only", "automatic"))
+            and _i27_semver_ge(_n14_ver, _N14_SHIP)):
+        _n14_mc_bad = False
+        _n14_by_gate = {}
+        for _r in _n14_md_recs:
+            if isinstance(_r, dict):
+                _n14_by_gate.setdefault(_r.get("gate"), []).append(_r)
+        for _g, _hk, _mk, _surface in _N14_GATES:
+            # I51-2 (exclusivity) — a run may NEVER claim both a human and a machine closed one gate.
+            if gates.get(_hk) is True and gates.get(_mk) is True:
+                rep.fail(f"{_n14_mc_stem} (I51-2 exclusivity, {_g})",
+                         f"gates.{_hk} and gates.{_mk} are BOTH true — one gate, two deciders. The "
+                         "machine path may not reach the human vocabulary even by mistake")
+                _n14_mc_bad = True
+            if not _n14_mclosed[_g]:
+                continue
+            # I51-3 (backing) — the MC-2 shape (a set flag must be backed by a record), copied.
+            _backing = [_r for _r in _n14_by_gate.get(_g, [])
+                        if _r.get("decided_by") == "machine"
+                        and not _n14_blank((_r.get("analyst") or {}).get("reasoning"))]
+            if not _backing:
+                rep.fail(f"{_n14_mc_stem} (I51-3 backing, {_g})",
+                         f"gates.{_mk} is true but machine-decisions.json carries no record for gate "
+                         f"{_g!r} with decided_by == 'machine' and a non-blank analyst.reasoning")
+                _n14_mc_bad = True
+            # I51-6 (channel disjointness) — the two channels never both describe the same gate.
+            _dlg_hits = []
+            if isinstance(_n14_dlg_doc, dict):
+                _dlg_hits = [_d.get("instance") for _d in (_n14_dlg_doc.get("dialogues") or [])
+                             if isinstance(_d, dict) and _d.get("surface_id") == _surface]
+            if _dlg_hits:
+                rep.fail(f"{_n14_mc_stem} (I51-6 channel disjointness, {_g})",
+                         f"gates.{_mk} is true while dialogues.json carries {_surface} record(s) "
+                         f"{_dlg_hits} for the same gate — a machine decision dressed in the human "
+                         "channel. This detects CONFLATION, never forgery")
+                _n14_mc_bad = True
+        # I51-4 (critical recomputation) — recomputed from the record, never trusted from it.
+        for _ri, _r in enumerate(_n14_md_recs):
+            if not isinstance(_r, dict):
+                continue
+            _want = _n14_critical(_r)
+            _got = _r.get("critical")
+            if _got is not _want:
+                rep.fail(f"{_n14_mc_stem} (I51-4 critical recomputation, decisions[{_ri}])",
+                         f"record for gate {_r.get('gate')!r} records critical={_got!r} but the "
+                         f"clauses recompute critical={_want!r} — 'critical' is a RECOMPUTED "
+                         "predicate, not an adjective an orchestrator may narrow")
+                _n14_mc_bad = True
+        # I51-5 (mode consistency)
+        if _n14_mode == "manual" and any(_n14_mclosed.values()):
+            rep.fail(f"{_n14_mc_stem} (I51-5 mode consistency)",
+                     f"run_mode == 'manual' but "
+                     f"{sorted(_g for _g in _n14_mclosed if _n14_mclosed[_g])} machine-closed — "
+                     "manual means today's behaviour and ZERO machine closures")
+            _n14_mc_bad = True
+        if _n14_mode == "critical-only":
+            for _ri, _r in enumerate(_n14_md_recs):
+                if isinstance(_r, dict) and _n14_critical(_r) and _r.get("decided_by") == "machine":
+                    rep.fail(f"{_n14_mc_stem} (I51-5 mode consistency, decisions[{_ri}])",
+                             f"run_mode == 'critical-only' but a CRITICAL question on gate "
+                             f"{_r.get('gate')!r} was machine-decided — in this mode a critical "
+                             "question halts for the human")
+                    _n14_mc_bad = True
+        if not _n14_mc_bad:
+            rep.ok(f"{_n14_mc_stem} (mode={_n14_mode!r}, {len(_n14_md_recs)} machine decision(s), "
+                   "channels disjoint)")
+
+    # -------------------------------------------------------------------------------------------
+    # I52 — projection ceiling (Ask 4: orchestrator context relief).
+    # ADOPTION-armed on fsm-state.context_contract. HONEST GRADE: OBSERVABLE, with ENFORCED
+    # explicitly disclaimed — the size check is fully mechanical, but no predicate can establish
+    # that the orchestrator READ the projection rather than answering from residual context. The
+    # design makes statelessness LEGIBLE, never TRUE.
+    # -------------------------------------------------------------------------------------------
+    _n14_cc = fsm.get("context_contract") if isinstance(fsm, dict) else None
+    if isinstance(_n14_cc, dict):
+        _n14_pj_stem = LABEL_STEM["i52_projection"]
+        _n14_ceiling = _as_int(_n14_cc.get("projection_ceiling_bytes"))
+        _n14_recorded = {}
+        for _u in (fsm.get("units") or []):
+            if isinstance(_u, dict) and isinstance(_u.get("unit_id"), str):
+                _n14_recorded[_u["unit_id"]] = _as_int(_u.get("projection_bytes"))
+        _n14_pj_bad = False
+        _n14_pj_n = 0
+        for _uid in sorted(unit_dirs_with_debrief):
+            if not os.path.exists(os.path.join(rd, "units", _uid, "verify.json")):
+                continue                      # a LANDED PAIR is debrief + verify; mid-loop is legal
+            _ap = os.path.join(rd, "units", _uid, "adjudication.json")
+            if not os.path.exists(_ap):
+                rep.fail(f"{_n14_pj_stem} (units/{_uid})",
+                         "context_contract is adopted and this unit has a landed debrief+verify "
+                         "pair, but units/%s/adjudication.json is absent — the orchestrator has no "
+                         "bounded projection to read and must ingest the whole pair" % _uid)
+                _n14_pj_bad = True
+                continue
+            _sz = os.path.getsize(_ap)
+            _n14_pj_n += 1
+            if _n14_ceiling is not None and _sz > _n14_ceiling:
+                rep.fail(f"{_n14_pj_stem} (units/{_uid})",
+                         f"adjudication.json is {_sz} B > ceiling {_n14_ceiling} B "
+                         "(context_contract.projection_ceiling_bytes)")
+                _n14_pj_bad = True
+            _rec_sz = _n14_recorded.get(_uid)
+            if _rec_sz is not None and _rec_sz != _sz:
+                rep.fail(f"{_n14_pj_stem} (units/{_uid})",
+                         f"fsm-state.units[].projection_bytes records {_rec_sz} B but the file on "
+                         f"disk is {_sz} B — a recorded size that disagrees with the file is "
+                         "narration, not a measurement")
+                _n14_pj_bad = True
+        if not _n14_pj_bad:
+            rep.ok(f"{_n14_pj_stem} ({_n14_pj_n} landed pair(s) projected under "
+                   f"{_n14_ceiling} B; OBSERVABLE — reading is not decidable from artifacts)")
+
+    # -------------------------------------------------------------------------------------------
+    # I59 — obligation source-naming (the second predicate Ask 4's design needs; rendered `I52-B`
+    # in the source document, which explicitly asked the implementing run to allocate a proper
+    # second number. It is I59.)
+    # -------------------------------------------------------------------------------------------
+    if isinstance(_n14_cc, dict):
+        _n14_ob_stem = LABEL_STEM["i59_obligation_source"]
+        _n14_prog = _n14_read("PROGRESS.md")
+        if _n14_prog is None:
+            rep.fail(f"{_n14_ob_stem}",
+                     "context_contract is adopted but PROGRESS.md is absent — the turn contract "
+                     "says every discharged obligation names the file it read, and there is "
+                     "nowhere for it to say so")
+        else:
+            _n14_ob_re = re.compile(r"\bO(?:1[0-9]|2[01]|[1-9])\b")
+            _n14_path_re = re.compile(r"[A-Za-z0-9_./-]*[/][A-Za-z0-9_./-]+|\b[A-Za-z0-9_.-]+\.(?:json|md|py|sh|tsv)\b")
+            _n14_ob_bad = 0
+            _n14_ob_seen = 0
+            for _li, _line in enumerate(_n14_prog.split("\n"), 1):
+                if not _n14_ob_re.search(_line):
+                    continue
+                _n14_ob_seen += 1
+                if not _n14_path_re.search(_line):
+                    rep.fail(f"{_n14_ob_stem} (PROGRESS.md:{_li})",
+                             "this entry discharges an orchestrator obligation and names no "
+                             "run-directory file it read — under the turn contract an obligation "
+                             "discharged from memory is an obligation discharged from nothing")
+                    _n14_ob_bad += 1
+            if _n14_ob_bad == 0:
+                rep.ok(f"{_n14_ob_stem} ({_n14_ob_seen} obligation entr(y|ies) in PROGRESS.md each "
+                       "name a source file; form only — that the file was READ is not decidable)")
+
+    # -------------------------------------------------------------------------------------------
+    # I53 — directive provenance (Drift fix 1: explicit maintainer requests outrank generated work).
+    # ADOPTION-armed: silent unless a run carries directives/, a directive_ref, or a priority_class.
+    # ENFORCED for provenance and shape; OBSERVABLE — and UNENFORCEABLE IN PRINCIPLE — for the
+    # GENUINENESS of the directive, because a true quotation of the maintainer and a fabricated one
+    # are the same bytes in the same file (Limitation AD).
+    # -------------------------------------------------------------------------------------------
+    _n14_dirdir = os.path.join(rd, "directives")
+    _n14_dirfiles = []
+    if os.path.isdir(_n14_dirdir):
+        try:
+            _n14_dirfiles = sorted(_f for _f in os.listdir(_n14_dirdir) if _f.endswith(".json"))
+        except Exception:
+            _n14_dirfiles = []
+    _n14_amend_dref = {}
+    for _fn, _rec in amendments:
+        _o = _rec.get("origin") if isinstance(_rec, dict) else None
+        if isinstance(_o, dict) and _o.get("directive_ref"):
+            _n14_amend_dref[_fn] = _o["directive_ref"]
+    _n14_pc_units = {_uid: _gu.get("priority_class")
+                     for _uid, _gu in _n14_units_by_id.items() if _gu.get("priority_class")}
+    if _n14_dirfiles or _n14_amend_dref or _n14_pc_units:
+        _n14_d_stem = LABEL_STEM["i53_directive"]
+        _n14_d_bad = False
+        # Load + schema-validate the ledger. A row that will not parse is fail-closed, never read
+        # as "no claim made".
+        _n14_directives = {}
+        _n14_dschema = schemas.get("directive.schema.json")
+        for _fn in _n14_dirfiles:
+            _p = os.path.join(_n14_dirdir, _fn)
+            try:
+                _inst = load_json(_p)
+            except Exception as _e:
+                rep.fail(f"{_n14_d_stem} (directives/{_fn})", f"not valid JSON: {_e}")
+                _n14_d_bad = True
+                continue
+            if _n14_dschema is not None:
+                _errs = validate(_inst, _n14_dschema)
+                if _errs:
+                    for _e in _errs:
+                        rep.fail(f"{_n14_d_stem} (directives/{_fn})", _e)
+                    _n14_d_bad = True
+                    continue
+            # I53-5 append-only shape: id unique and equal to the filename stem.
+            _stem_id = _fn[:-5]
+            if _inst.get("id") != _stem_id:
+                rep.fail(f"{_n14_d_stem} (directives/{_fn})",
+                         f"id {_inst.get('id')!r} != filename stem {_stem_id!r} — I53-5. An id that "
+                         "can drift from its filename makes the ledger un-greppable")
+                _n14_d_bad = True
+            if _stem_id in _n14_directives:
+                rep.fail(f"{_n14_d_stem} (directives/{_fn})", f"duplicate directive id {_stem_id!r} — I53-5")
+                _n14_d_bad = True
+            _n14_directives[_stem_id] = _inst
+            # I53-2 the row has teeth (schema-enforced too; kept so a schema relaxation cannot
+            # silently disarm the predicate).
+            if _n14_blank(_inst.get("verbatim_request")) or _n14_blank(_inst.get("transcript_ref")):
+                rep.fail(f"{_n14_d_stem} (directives/{_fn})",
+                         "blank verbatim_request or transcript_ref — I53-2, fail-closed: a missing "
+                         "quotation is never read as 'no claim made'")
+                _n14_d_bad = True
+        # I53-1 a human_request amendment must carry a resolving directive_ref and human_gate:true.
+        for _fn, _rec in amendments:
+            if not isinstance(_rec, dict):
+                continue
+            _o = _rec.get("origin") if isinstance(_rec.get("origin"), dict) else {}
+            if _o.get("trigger") != "human_request":
+                continue
+            _dref = _o.get("directive_ref")
+            if _n14_blank(_dref):
+                rep.fail(f"{_n14_d_stem} (amendments/{_fn})",
+                         "origin.trigger == 'human_request' with no origin.directive_ref — I53-1. A "
+                         "directive with no ledger row is exactly the state the incident describes: "
+                         "an explicit request indistinguishable from a self-generated investigation")
+                _n14_d_bad = True
+            if _rec.get("human_gate") is not True:
+                rep.fail(f"{_n14_d_stem} (amendments/{_fn})",
+                         "origin.trigger == 'human_request' with human_gate != true — I53-1")
+                _n14_d_bad = True
+        # I53-5 every directive_ref anywhere resolves to a file that exists.
+        for _fn, _dref in sorted(_n14_amend_dref.items()):
+            _target = str(_dref).split("/")[-1]
+            if _target[:-5] not in _n14_directives:
+                rep.fail(f"{_n14_d_stem} (amendments/{_fn})",
+                         f"origin.directive_ref {_dref!r} resolves to no file under directives/ "
+                         f"(present: {sorted(_n14_directives) or '(none)'}) — I53-5")
+                _n14_d_bad = True
+        # I53-3 priority_class is DERIVED, never asserted.
+        _n14_directive_added = set()
+        for _fn, _rec in amendments:
+            if not isinstance(_rec, dict):
+                continue
+            _o = _rec.get("origin") if isinstance(_rec.get("origin"), dict) else {}
+            if _o.get("trigger") != "human_request":
+                continue
+            _target = str(_o.get("directive_ref") or "").split("/")[-1]
+            if _target[:-5] in _n14_directives:
+                for _ua in (_rec.get("units_added") or []):
+                    if isinstance(_ua, str):
+                        _n14_directive_added.add(_ua)
+        for _uid, _pc in sorted(_n14_pc_units.items()):
+            if _pc == "directive" and _uid not in _n14_directive_added:
+                rep.fail(f"{_n14_d_stem} (graph.json units[{_uid}])",
+                         "priority_class == 'directive' but this unit appears in no units_added of "
+                         "any amendment whose origin.trigger == 'human_request' with a RESOLVING "
+                         "directive_ref — I53-3. The class is DERIVED, never asserted; "
+                         "self-promotion with no ledger row is the drift, not the cure")
+                _n14_d_bad = True
+        # I53-4 the class may not drift between the graph and a frozen brief once the unit executed.
+        for _uid in sorted(unit_dirs_with_debrief):
+            _b = unit_docs.get(_uid, {}).get("brief")
+            if not isinstance(_b, dict) or "priority_class" not in _b:
+                continue
+            _gpc = _n14_units_by_id.get(_uid, {}).get("priority_class", "normal") or "normal"
+            _bpc = _b.get("priority_class") or "normal"
+            if _gpc != _bpc:
+                rep.fail(f"{_n14_d_stem} (units/{_uid})",
+                         f"priority_class differs between graph.json ({_gpc!r}) and the frozen "
+                         f"brief.json ({_bpc!r}) on an EXECUTED unit — I53-4, riding the existing "
+                         "I17 content anchor. This STRENGTHENS the frozen prefix; it relaxes nothing")
+                _n14_d_bad = True
+        if not _n14_d_bad:
+            rep.ok(f"{_n14_d_stem} ({len(_n14_directives)} ledger row(s), "
+                   f"{len(_n14_amend_dref)} amendment reference(s) resolve; genuineness stays "
+                   "OBSERVABLE — Limitation AD)")
+
+    # -------------------------------------------------------------------------------------------
+    # I54 — the deliverable clock (Drift fix 2). ADOPTION-armed on fsm-state.progress_clock.
+    # It WARNS IN FLIGHT and BLOCKS ONLY AT SIGN-OFF, and it adds NO fourth human gate: no
+    # REQUIRED_GATES flag, no attestation boolean, no question asked, and no guard on LT7.
+    # -------------------------------------------------------------------------------------------
+    _n14_clock = fsm.get("progress_clock") if isinstance(fsm, dict) else None
+    if isinstance(_n14_clock, dict):
+        _n14_c_stem = LABEL_STEM["i54_clock"]
+        _n14_c_bad = False
+        # I54-1 (classification) — a counter over a PARTIALLY labelled population is worse than no
+        # counter, because it reads low.
+        _n14_unclassified = [_u for _u in _n14_order
+                             if _n14_units_by_id[_u].get("deliverable") not in ("ships", "informs")]
+        if _n14_unclassified:
+            rep.fail(f"{_n14_c_stem} (I54-1 classification)",
+                     f"progress_clock is adopted but {len(_n14_unclassified)} graph unit(s) carry no "
+                     f"`deliverable` value: {_n14_unclassified[:12]}"
+                     f"{' …' if len(_n14_unclassified) > 12 else ''}")
+            _n14_c_bad = True
+        # I54-2 (recomputation) — THE arm that makes the number evidence rather than narration.
+        _n14_count, _n14_last_ship = 0, None
+        _n14_crossings = []
+        _n14_thr = _as_int(_n14_clock.get("surface_threshold"))
+        if _n14_thr is None or _n14_thr < 1:
+            _n14_thr = 3
+        for _u in _n14_order:
+            _vd = _n14_verdict(_u)
+            if _vd not in ("PASS", "FAIL"):
+                continue                                   # not yet adjudicated to a terminal verdict
+            if _n14_units_by_id[_u].get("deliverable") == "ships" and _vd == "PASS":
+                _n14_count, _n14_last_ship = 0, _u
+                continue
+            _n14_count += 1
+            if _n14_count == _n14_thr:
+                _n14_crossings.append(_u)
+        _n14_written = _as_int(_n14_clock.get("units_since_ship"))
+        if _n14_written != _n14_count:
+            rep.fail(f"{_n14_c_stem} (I54-2 recomputation)",
+                     f"fsm-state.progress_clock.units_since_ship is {_n14_clock.get('units_since_ship')!r} "
+                     f"but the recomputation from graph.json + units/*/verify.json gives "
+                     f"{_n14_count}. Order rule used: {_N14_ORDER_RULE}. Within a wave that is a "
+                     "canonical RECONSTRUCTION, not real time — so read a disagreement here as "
+                     "arithmetic first and reconstruction second")
+            _n14_c_bad = True
+        _n14_wls = _n14_clock.get("last_ship_unit")
+        if (_n14_wls or None) != _n14_last_ship:
+            rep.fail(f"{_n14_c_stem} (I54-2 recomputation)",
+                     f"progress_clock.last_ship_unit is {_n14_wls!r} but the recomputation gives "
+                     f"{_n14_last_ship!r} (order rule: {_N14_ORDER_RULE})")
+            _n14_c_bad = True
+        # I54-3 (disclosure) — fires ONLY at P8/DONE, exactly like I23 DoD closure. A run may not
+        # reach DONE claiming it crossed its own threshold in silence: that is the incident verbatim.
+        if phase in ("P8_SYNTHESIS", "DONE") and _n14_clock.get("enabled") is not False:
+            _n14_sa = _n14_clock.get("surfaced_at")
+            _n14_sa = _n14_sa if isinstance(_n14_sa, list) else []
+            if len(_n14_crossings) > len(_n14_sa):
+                rep.fail(f"{_n14_c_stem} (I54-3 disclosure)",
+                         f"the clock crossed its threshold of {_n14_thr} at unit(s) "
+                         f"{_n14_crossings} but surfaced_at[] holds only {len(_n14_sa)} record(s). "
+                         "The human need not ACT on the warning; the run may not pretend the "
+                         "warning never happened")
+                _n14_c_bad = True
+        if not _n14_c_bad:
+            rep.ok(f"{_n14_c_stem} (units_since_ship={_n14_count} recomputed, last_ship="
+                   f"{_n14_last_ship!r}, {len(_n14_crossings)} threshold crossing(s) disclosed)")
+
+    # -------------------------------------------------------------------------------------------
+    # I56 — requirement-starvation disclosure (Drift fix 4: a cap on consecutive non-shipping units
+    # per requirement). This section DEFINES NO FIELD: it consumes graph.json units[].deliverable
+    # READ-ONLY and keeps NO counter, because with a planner-written label a persisted counter is a
+    # second copy of a derivable fact and a second copy is a divergence waiting to happen.
+    # ENFORCED as an AFTER-THE-FACT disclosure, and PROSE-ONLY at the instant it should fire: a
+    # dossier BACKFILLED at P8, after every token is spent, satisfies I56 exactly, and nothing in
+    # the run directory distinguishes the two. That limit is stated, not blurred.
+    # -------------------------------------------------------------------------------------------
+    _n14_deliv_adopted = any(_gu.get("deliverable") for _gu in _n14_units_by_id.values())
+    if _n14_deliv_adopted:
+        _n14_s_stem = LABEL_STEM["i56_starvation"]
+        _n14_cap_n = _as_int(gates.get("starvation_cap_n"))
+        if _n14_cap_n is None or _n14_cap_n < 1:
+            _n14_cap_n = 3
+        _n14_cap_on = gates.get("starvation_cap_enabled") is not False
+        # run(d): per DoD item, the trailing streak of adjudicated non-"ships" units citing it.
+        _n14_runs = {}
+        for _u in _n14_order:
+            if _n14_verdict(_u) not in ("PASS", "FAIL"):
+                continue
+            _gu = _n14_units_by_id[_u]
+            _ships = _gu.get("deliverable") == "ships"
+            for _d in (_gu.get("dod_refs") or []):
+                if not isinstance(_d, str):
+                    continue
+                _cur = _n14_runs.setdefault(_d, [0, []])
+                if _ships:
+                    _n14_runs[_d] = [0, []]        # a shipping unit resets ALL k items it cites
+                else:
+                    _cur[0] += 1
+                    _cur[1].append(_u)
+        # The two legal sinks, and only those two. A file called `starvation.md` would be neither
+        # schema-validated nor recognised — validate_run.py maps schemas for exactly brief/debrief/
+        # verify/disagreement — which is why the fourth `origin` literal exists.
+        _n14_disclosed = []
+        for _uid in sorted(unit_subdirs):
+            _dis = unit_docs.get(_uid, {}).get("disagreement")
+            if isinstance(_dis, dict) and _dis.get("origin") == "requirement-starvation":
+                _n14_disclosed.append(" ".join(str(_dis.get(_k) or "") for _k in
+                                               ("subject", "question", "why_material", "recommendation")))
+        for _r in _n14_md_recs:
+            if isinstance(_r, dict) and _r.get("gate") == "disagreement":
+                _n14_disclosed.append(" ".join([str(_r.get("question") or ""),
+                                                str(_r.get("decision") or "")]
+                                               + [str(_o) for _o in (_r.get("options") or [])]))
+        _n14_s_bad = False
+        _n14_breached = sorted(_d for _d, _v in _n14_runs.items() if _v[0] >= _n14_cap_n)
+        for _d in _n14_breached:
+            _streak = _n14_runs[_d][1][-_n14_cap_n:]
+            if not _n14_cap_on:
+                # I56-2 — switching a gate off must NOT erase the evidence it would have produced.
+                print(f"  NOTE  {LABEL_STEM['note_i56']}: cap DISABLED "
+                      f"(gates.starvation_cap_enabled=false) — DoD item {_d!r} reached "
+                      f"run(d)={_n14_runs[_d][0]} against N={_n14_cap_n} on units {_streak}")
+                continue
+            if any(_d in _txt for _txt in _n14_disclosed):
+                continue
+            rep.fail(f"{_n14_s_stem} ({_d!r})",
+                     f"{_n14_runs[_d][0]} consecutive non-shipping units against this DoD item "
+                     f"(N={_n14_cap_n}, units {_streak}) and NO disclosure names it. The two legal "
+                     "sinks are a units/<id>/disagreement.json with origin "
+                     "'requirement-starvation', or a machine-decisions.json record on gate "
+                     "'disagreement'. Order rule: " + _N14_ORDER_RULE)
+            _n14_s_bad = True
+        if not _n14_s_bad:
+            rep.ok(f"{_n14_s_stem} (N={_n14_cap_n}, enabled={_n14_cap_on}, "
+                   f"{len(_n14_runs)} DoD item(s) tracked, {len(_n14_breached)} at or over the cap; "
+                   "ENFORCED as disclosure, PROSE-ONLY as timeliness)")
+
+    # -------------------------------------------------------------------------------------------
+    # I58 — re-sequencing eligibility (Drift fix 6). ADOPTION-armed on a `resequence` record.
+    # Termination is bought by FUEL alone: a resequence adds and retires nothing, so the shipped
+    # `fuel_cost == max(1, added - retired)` already charges it 1 and the published global bound
+    # holds VERBATIM with no new term. There is NO monotone measure over the wave assignment — a
+    # unit may legally go 5 -> 3 -> 5 — which is why I58-3 forbids a vacuous record.
+    # -------------------------------------------------------------------------------------------
+    _n14_rs = [(_fn, _r) for _fn, _r in amendments
+               if isinstance(_r, dict) and _r.get("kind") == "resequence"]
+    if _n14_rs:
+        _n14_r_stem = LABEL_STEM["i58_resequence"]
+        _n14_r_bad = False
+        _n14_amend_names = [_fn for _fn, _ in amendments]
+        for _fn, _rec in _n14_rs:
+            _lbl = f"{_n14_r_stem} (amendments/{_fn})"
+            _payload = _rec.get("resequenced") or []
+            _snap = _rec.get("wave_snapshot") if isinstance(_rec.get("wave_snapshot"), dict) else None
+            # I58-3 non-vacuity
+            if not _payload:
+                rep.fail(_lbl, "resequenced[] is empty — I58-3. A record that changes nothing is a "
+                               "FAIL, not a free re-run: termination here is bought by fuel alone")
+                _n14_r_bad = True
+            for _e in _payload:
+                if isinstance(_e, dict) and _as_int(_e.get("wave_from")) == _as_int(_e.get("wave_to")):
+                    rep.fail(_lbl, f"resequenced entry for {_e.get('unit_id')!r} has "
+                                   f"wave_to == wave_from ({_e.get('wave_to')!r}) — I58-3 vacuity")
+                    _n14_r_bad = True
+            # I58-1 eligibility — a FAIL-CLOSED CONJUNCTION, deliberately stronger than the code's
+            # frozen set (debrief-presence) and at least as strong as SKILL.md's prose freeze. A
+            # predicate keyed on debrief-presence alone is not merely weaker; it is a TRAP: nothing
+            # fails at the instant of the re-wave, and the moment the unit's debrief lands the I17
+            # frozen-content anchor emits `wave X != brief Y`, whose ONLY repair is to undo the
+            # re-sequencing the run just spent fuel on.
+            _n14_status = {}
+            for _u in (fsm.get("units") or []):
+                if isinstance(_u, dict) and isinstance(_u.get("unit_id"), str):
+                    _n14_status[_u["unit_id"]] = _u.get("status")
+            for _e in _payload:
+                if not isinstance(_e, dict):
+                    continue
+                _u = _e.get("unit_id")
+                _st = _n14_status.get(_u)
+                if _st != "pending":
+                    rep.fail(_lbl, f"unit {_u!r} has fsm-state status {_st!r}, not 'pending' — "
+                                   "I58-1 eligibility. Only a pending, un-briefed unit may be "
+                                   "re-waved")
+                    _n14_r_bad = True
+                _udir = os.path.join(rd, "units", str(_u))
+                _held = []
+                if os.path.isdir(_udir):
+                    try:
+                        _held = sorted(_f for _f in os.listdir(_udir)
+                                       if _f.split(".")[0] in UNIT_PRIMARIES)
+                    except Exception:
+                        _held = []
+                if _held:
+                    rep.fail(_lbl, f"unit {_u!r} holds {_held} — I58-1 eligibility. Re-waving a "
+                                   "unit that already has a brief plants a future I17 "
+                                   "frozen-content FAIL whose only repair undoes this amendment")
+                    _n14_r_bad = True
+                # I58-2 the target wave is legal: at or beyond the frontier, and above every dep.
+                _wt = _as_int(_e.get("wave_to"))
+                _fw = _as_int(_rec.get("frontier_wave"))
+                if _fw is None:
+                    rep.fail(_lbl, "frontier_wave is absent or non-integral on a resequence record "
+                                   "— I58-2, a FAIL and never a `continue`. Reusing the shipped "
+                                   "frontier clause's guard verbatim would let a record DISARM the "
+                                   "check by omitting the key (the L24 silent-skip shape)")
+                    _n14_r_bad = True
+                elif _wt is not None and _wt < _fw:
+                    rep.fail(_lbl, f"unit {_u!r} moves to wave {_wt} below frontier_wave {_fw} — "
+                                   "I58-2")
+                    _n14_r_bad = True
+                _deps = (_n14_units_by_id.get(_u, {}) or {}).get("deps") or []
+                _dw = [_n14_wave_of[_d] for _d in _deps if _d in _n14_wave_of]
+                if _dw and _wt is not None and _wt < 1 + max(_dw):
+                    rep.fail(_lbl, f"unit {_u!r} moves to wave {_wt} but its dependencies sit at "
+                                   f"{sorted(set(_dw))} — I58-2 requires wave_to >= 1 + max(dep wave)")
+                    _n14_r_bad = True
+            # I58-5 the record adds and retires nothing (schema-enforced too; kept so a schema
+            # relaxation cannot silently disarm the fuel argument this rests on).
+            for _k in ("units_added", "units_retired", "edges_added"):
+                if _rec.get(_k):
+                    rep.fail(_lbl, f"{_k} is non-empty on a resequence record — I58-5. The fuel "
+                                   "charge max(1, added - retired) == 1 is only correct because a "
+                                   "resequence moves nothing in or out of the graph")
+                    _n14_r_bad = True
+            # I58-6 trigger
+            _o = _rec.get("origin") if isinstance(_rec.get("origin"), dict) else {}
+            if _o.get("trigger") not in ("priority_change", "human_request"):
+                rep.fail(_lbl, f"origin.trigger is {_o.get('trigger')!r} — I58-6 admits exactly "
+                               "'priority_change' and 'human_request'. A unit's own debrief handoff "
+                               "may NOT fire a resequence, or a run could re-order itself once per "
+                               "unit")
+                _n14_r_bad = True
+            elif _o.get("trigger") == "priority_change" and _n14_blank(_o.get("source_ref")):
+                rep.fail(_lbl, "origin.trigger == 'priority_change' with a blank origin.source_ref "
+                               "— I58-6")
+                _n14_r_bad = True
+            # I58-4a the snapshot agrees with the record.
+            if _snap is None:
+                rep.fail(_lbl, "wave_snapshot is absent — I58-4a. Without it the interesting half "
+                               "of this invariant is not decidable by ANY predicate over emitted "
+                               "artifacts: a run directory holds exactly one graph.json, "
+                               "baseline_units is an id set with no waves, and for the very "
+                               "population the clause polices (a pending, un-briefed unit the "
+                               "record does not list) the pre-amendment wave was recorded nowhere")
+                _n14_r_bad = True
+            else:
+                for _e in _payload:
+                    if not isinstance(_e, dict):
+                        continue
+                    _u = _e.get("unit_id")
+                    if _as_int(_snap.get(_u)) != _as_int(_e.get("wave_from")):
+                        rep.fail(_lbl, f"wave_snapshot[{_u!r}] is {_snap.get(_u)!r} but the record "
+                                       f"claims wave_from {_e.get('wave_from')!r} — I58-4a")
+                        _n14_r_bad = True
+                # I58-4b totality: a non-final record's SUCCESSOR must also carry a snapshot, so
+                # I58-4's comparison target always exists. Absence is a FAIL, never a skip.
+                _idx = _n14_amend_names.index(_fn)
+                _is_final_rs = all(_r2.get("kind") != "resequence"
+                                   for _fn2, _r2 in amendments[_idx + 1:] if isinstance(_r2, dict))
+                _target_map, _target_desc = None, None
+                if _idx + 1 < len(amendments):
+                    _fn2, _r2 = amendments[_idx + 1]
+                    _s2 = _r2.get("wave_snapshot") if isinstance(_r2, dict) else None
+                    if isinstance(_s2, dict):
+                        _target_map, _target_desc = _s2, f"the successor record amendments/{_fn2}"
+                    else:
+                        rep.fail(_lbl, f"this resequence record is not the final record in the "
+                                       f"chain and its successor amendments/{_fn2} carries no "
+                                       "wave_snapshot — I58-4b totality guard. Absence is a FAIL, "
+                                       "never a skip: without it I58-4 is decidable only in the "
+                                       "last chain position")
+                        _n14_r_bad = True
+                else:
+                    _target_map, _target_desc = _n14_wave_of, "graph.json.waves[]"
+                # I58-4 — the clause that catches a SILENT re-wave of a unit the record never named.
+                if _target_map is not None:
+                    _moved = {_e.get("unit_id"): _as_int(_e.get("wave_to"))
+                              for _e in _payload if isinstance(_e, dict)}
+                    for _u, _w0 in sorted(_snap.items()):
+                        _expect = _moved.get(_u, _as_int(_w0))
+                        _actual = _as_int(_target_map.get(_u))
+                        if _actual is None:
+                            continue          # retired/absent downstream: not this clause's business
+                        if _actual != _expect:
+                            rep.fail(_lbl, f"unit {_u!r} sits at wave {_actual} in {_target_desc} "
+                                           f"but wave_snapshot + resequenced[] imply {_expect} — "
+                                           "I58-4. This is the clause that catches a silent re-wave "
+                                           "of a unit the record does not name")
+                            _n14_r_bad = True
+                del _is_final_rs
+        if not _n14_r_bad:
+            rep.ok(f"{_n14_r_stem} ({len(_n14_rs)} resequence record(s): eligible, non-vacuous, "
+                   "snapshot-complete; wave MINIMALITY is deliberately NOT enforced)")
+
     # Gate ordering: phase requires prior gates true. personas_confirmed is the FIRST
     # gate (Phase 1) and is required from P2 onward — the human persona gate is not skippable.
     # D-06/BRK-13: `signoff_confirmed` (the Phase-8 human sign-off, G-signoff/T12) is added to the
@@ -7294,14 +8315,50 @@ def main(argv=None):
         "P8_SYNTHESIS": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved"],
         "DONE": ["personas_confirmed", "clarification_resolved", "cartography_done", "decomposition_approved", "signoff_confirmed"],
     }
+    # 1.14.0 / I51 — **REVISES**, declared. The TABLE above is UNCHANGED (spec_check SC3 diffs it
+    # against the spec-derived gate map, and this widening must not move that diff); what is widened
+    # is the SATISFACTION TEST: each of the three HUMAN gates is now satisfied by
+    # `<g>_confirmed OR <g>_machine_closed`. The two MECHANICAL flags (cartography_done,
+    # decomposition_approved) are untouched — they are phase-completion flags with no human
+    # touchpoint, so they have nothing to record.
+    #
+    # WHAT THIS CHANGES, in one sentence: today a run at DONE asserts a human signed off; after this
+    # it asserts a human signed off OR a machine closed sign-off under a recorded run_mode with a
+    # recorded analyst. That is weaker, and it is the whole point — before this widening, honesty and
+    # completion were MUTUALLY EXCLUSIVE, because SKILL.md says setting a gate flag without a human
+    # is a defect while REQUIRED_GATES makes signoff_confirmed mandatory for DONE. `*_confirmed`
+    # keeps its exact meaning and SKILL.md's sentence stays literally true and unedited; I51-2 makes
+    # setting BOTH a hard FAIL, so the machine path cannot reach the human vocabulary even by
+    # mistake.
+    #
+    # MIGRATION — three things change for EXISTING run directories, one of them unrepairable:
+    #   (1) Nothing fails, BUT ONLY because I51-1 is version-gated: `run_mode` is a new top-level
+    #       fsm-state property, so an unarmed presence check would red every archived run in .wip/.
+    #   (2) Every archived `signoff_confirmed: true` becomes permanently AMBIGUOUS — a human, or a
+    #       run written before the distinction existed. There is nothing honest to backfill, because
+    #       the fact was never recorded. This breaks a READER'S INFERENCE, not a predicate, and it
+    #       CANNOT BE REPAIRED.
+    #   (3) Any external consumer of `gates` that reads the five known flags will read a
+    #       fully-automatic run as unfinished until it is taught this OR.
+    _N14_GATE_OR = {"personas_confirmed": "personas_machine_closed",
+                    "clarification_resolved": "clarification_machine_closed",
+                    "signoff_confirmed": "signoff_machine_closed"}
     if fsm:
         gates = fsm.get("gates", {})
         need = REQUIRED_GATES.get(phase, [])
-        missing = [g for g in need if not gates.get(g, False)]
+        missing = [g for g in need
+                   if not (gates.get(g, False) or gates.get(_N14_GATE_OR.get(g, ""), False))]
         if missing:
-            rep.fail(f"{LABEL_STEM['gate_ordering']}", f"phase {phase} requires gates {missing} = true")
+            rep.fail(f"{LABEL_STEM['gate_ordering']}",
+                     f"phase {phase} requires gates {missing} = true "
+                     f"(or the disjoint machine sibling {[_N14_GATE_OR[g] for g in missing if g in _N14_GATE_OR]})")
         elif need:
-            rep.ok(f"{LABEL_STEM['gate_ordering']} (phase {phase}: prior gates satisfied)")
+            _n14_via_machine = [g for g in need
+                                if not gates.get(g, False)
+                                and gates.get(_N14_GATE_OR.get(g, ""), False)]
+            rep.ok(f"{LABEL_STEM['gate_ordering']} (phase {phase}: prior gates satisfied"
+                   + (f"; {_n14_via_machine} closed by the MACHINE channel, not by a human"
+                      if _n14_via_machine else "") + ")")
 
     # N-I45 version-skew visibility (P3 §3.1(3)) — exit-neutral by CONSTRUCTION: a bare print, touching
     # neither rep.problems nor rep.checked. DELIBERATELY NOT gated on args.quiet (§3.3): SKILL.md mandates
@@ -7323,6 +8380,76 @@ def main(argv=None):
               f"{sorted(a['arm'] for a in _SKEW)}. Suppressed arms are an UPPER BOUND on suppressed "
               "FAILs — an armed clause may have passed. Re-run with the stamp raised to see the actual "
               "verdicts.")
+
+    # N-I57 run composition (1.14.0, Drift fix 5) — OBSERVABLE-ONLY and EXIT-NEUTRAL BY
+    # CONSTRUCTION: a bare print touching neither rep.problems nor rep.checked, the exact N-I45
+    # archetype. Deliberately NOT --quiet-gated, for the reason N-I45 records: SKILL.md mandates
+    # --quiet, so a quiet-gated NOTE would be inert in the one invocation that matters.
+    #
+    # WHAT IT IS AND IS NOT. The gap the diagnosis actually establishes is NOT that housekeeping is
+    # unbounded — searched by CAPABILITY rather than by activity name, executor repairs, panel
+    # re-polls, re-verification, amendments, dialogue rounds and per-unit reading are all already
+    # bounded — it is that a run's COMPOSITION is UNPUBLISHED. No artifact anywhere states the ratio
+    # of work that ships to work that only informs, so no one could have been asked to choose. THIS
+    # PROPOSAL MAKES THE AGGREGATE LEGIBLE AND DOES NOT BOUND IT. The enforced half — an `hk_fuel`
+    # counter — is DEFERRED (no run has yet been MEASURED to lose delivery to housekeeping, and its
+    # exhaustion route has no defined path in fully-automatic mode); its adoption trigger is the
+    # first run whose N-I57 line records delivered units stalling while housekeeping counts rise.
+    #
+    # TWO GROUPS, KEPT APART, BECAUSE THEY ARE NOT COMPARABLE — and never summed. Unit-loop
+    # artifacts are bounded by I4 (retries <= 2, iteration <= retries+1) and the R_MAX=3 re-poll cap;
+    # run-level ledger acts are bounded by nothing. Where an input is absent the count prints `n/a`
+    # rather than guessing, and the exit status is unchanged either way.
+    def _n57(fn):
+        try:
+            return fn()
+        except Exception:
+            return None
+
+    def _n57s(v):
+        return "n/a" if v is None else str(v)
+
+    def _n57_count(rel, pat):
+        _t = None
+        try:
+            with open(os.path.join(rd, rel), "r", encoding="utf-8", errors="replace") as _f:
+                _t = _f.read()
+        except Exception:
+            return None
+        return len(re.findall(pat, _t, re.M | re.I))
+
+    def _n57_glob(sub, pat):
+        _base = os.path.join(rd, "units")
+        if not os.path.isdir(_base):
+            return None
+        _n = 0
+        for _u in os.listdir(_base):
+            _ud = os.path.join(_base, _u)
+            if not os.path.isdir(_ud):
+                continue
+            _n += sum(1 for _f in os.listdir(_ud) if re.match(pat, _f))
+        return _n
+
+    _n57_dec = _n57(lambda: _n57_count("DECISIONS.md", r"^## "))
+    _n57_cor = _n57(lambda: _n57_count("PROGRESS.md", r"correct|supersed|retract|withdraw"))
+    _n57_lrn = _n57(lambda: len(load_json(os.path.join(rd, "learnings.json")).get("entries") or []))
+    _n57_pan = _n57(lambda: _n57_glob("units", r"^verify_p.*\.json$"))
+    _n57_fbk = _n57(lambda: _n57_glob("units", r"^feedback_iter.*\.md$"))
+    _n57_ship = None
+    try:
+        if any((_gu or {}).get("deliverable") for _gu in _n14_units_by_id.values()):
+            _n57_ship = sum(1 for _u, _gu in _n14_units_by_id.items()
+                            if _gu.get("deliverable") == "ships" and _n14_verdict(_u) == "PASS")
+    except Exception:
+        _n57_ship = None
+    print(f"  NOTE  {LABEL_STEM['note_i57']}: delivered (deliverable:'ships' PASS-verified) = "
+          f"{_n57s(_n57_ship)}; run-level housekeeping (bounded by NOTHING) = "
+          f"{_n57s(_n57_dec)} DECISIONS entries, {_n57s(_n57_cor)} PROGRESS correction/supersession "
+          f"mentions, {_n57s(_n57_lrn)} learnings.json entries; unit-loop artifacts (already bounded "
+          f"by I4 and the R_MAX=3 re-poll cap — NOT comparable with the group above, never summed) = "
+          f"{_n57s(_n57_pan)} verify_p files, {_n57s(_n57_fbk)} feedback_iter rounds. "
+          "ADVISORY: this makes the aggregate LEGIBLE and does not bound it, and it counts RECORDED "
+          "artifacts only.")
     return _finish(rep)
 
 def _finish(rep):

@@ -8,15 +8,20 @@
   "required": ["id", "kind", "origin", "rationale", "scope_change", "human_gate", "fuel_cost", "fuel_before", "fuel_after", "graph_revision_after"],
   "properties": {
     "id": { "type": "string", "pattern": "^A[0-9]{2,}$" },
-    "kind": { "enum": ["add_units", "split_unit", "add_edges", "cancel_unit", "revise_anchors"] },
+    "kind": { "enum": ["add_units", "split_unit", "add_edges", "cancel_unit", "revise_anchors", "resequence"] },
     "origin": {
       "type": "object",
       "additionalProperties": false,
       "required": ["trigger"],
       "properties": {
-        "trigger": { "enum": ["debrief_handoff", "footprint_breach", "p7_resolution", "human_request"] },
+        "trigger": { "enum": ["debrief_handoff", "footprint_breach", "p7_resolution", "human_request", "priority_change"] },
         "source_unit": { "type": "string", "pattern": "^U[0-9]{2,}$" },
-        "source_ref": { "type": "string" }
+        "source_ref": { "type": "string" },
+        "directive_ref": {
+          "type": "string",
+          "pattern": "^directives/H[0-9]{2,}\\.json$",
+          "description": "I53 (1.14.0, Drift fix 1). OPTIONAL — a schema WIDENING, so nothing valid today becomes invalid. Points at the append-only directive ledger row backing a human_request trigger. I53-1 makes it (plus human_gate:true) MANDATORY on a human_request amendment, and I53-5 requires the file to exist. HONEST BOUNDARY: this records PROVENANCE, never TRUTH. Nothing mechanical stops an orchestrator writing a directives/H01.json, fabricating a verbatim_request and passing I53 — human_gate genuineness is already an admitted attestation (Limitation I) and directive_ref inherits it exactly. What changes is what a lie COSTS and what it LEAVES BEHIND: a fabricated quotation sits in directives/ where the maintainer can read it, and the act moves from UNMARKED to MARKED AND FALSE."
+        }
       }
     },
     "rationale": { "type": "string", "minLength": 1 },
@@ -92,6 +97,25 @@
     "propagation": {
       "const": "remaining-scope-none",
       "description": "AM-5/GV-17: attestation that no remaining in-scope unit needs the revision. OPTIONAL: absent => valid."
+    },
+    "resequenced": {
+      "type": "array",
+      "description": "I58 (1.14.0, Drift fix 6) — the resequence payload: the wave moves this record makes. REQUIRED non-empty when kind == 'resequence' and FORBIDDEN otherwise (allOf below). Every entry must have wave_to != wave_from (I58-3): a record that changes nothing is a FAIL, not a free re-run, because termination here is bought by FUEL alone and there is NO monotone measure over the wave assignment — a unit may legally go 5 -> 3 -> 5 across two records.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "wave_from", "wave_to"],
+        "properties": {
+          "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "wave_from": { "type": "integer", "minimum": 1 },
+          "wave_to": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "wave_snapshot": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 1 },
+      "description": "I58 (1.14.0) — the PRE-amendment wave map: every unit id in the graph before this record, to its integer wave. REQUIRED when kind == 'resequence'. This is STATE THE RUN DOES NOT OTHERWISE KEEP, and without it I58-4 is not decidable by any predicate over emitted artifacts: a run directory holds exactly ONE graph.json and no snapshot, baseline_units is an id set with no waves, and for the very population the clause polices — a pending, un-briefed unit the record does NOT list — the pre-amendment wave was recorded nowhere. Nor is it reconstructible: briefs carry a wave, but I58-1 restricts eligibility to units holding NO brief, so the two populations are disjoint. Measured cost: 113 B on a 14-unit graph, 369 B at the N0+fuel0 <= 46 ceiling. IMMUTABILITY, at the strength it actually has: it inherits the append-only record's existing trust level and NOTHING MORE — no predicate hashes an amendment body, so a retro-edit here is neither more nor less detectable than a retro-edit of units_added. The snapshot makes the COMPARISON decidable; it does not make the snapshot TRUE."
     }
   },
   "allOf": [
@@ -133,6 +157,20 @@
       "then": { "required": ["revise_ops", "list"],
                 "allOf": [
                   { "not": { "required": ["units_added"] } },
-                  { "not": { "required": ["units_retired"] } } ] } }
+                  { "not": { "required": ["units_retired"] } } ] } },
+    { "$comment": "I58 kind closure — resequence: a pure re-ordering. Carries its payload, its pre-amendment wave map and its frontier, and adds/retires NOTHING — which is exactly what makes I18's already-shipped `fuel_cost == max(1, |added| - |retired|) == max(1,0) == 1` the right and already-implemented charge, so the published global bound holds VERBATIM with no new term.",
+      "if": { "properties": { "kind": { "const": "resequence" } }, "required": ["kind"] },
+      "then": { "required": ["resequenced", "wave_snapshot", "frontier_wave"],
+                "properties": { "resequenced": { "minItems": 1 } },
+                "allOf": [
+                  { "not": { "required": ["units_added"] } },
+                  { "not": { "required": ["units_retired"] } },
+                  { "not": { "required": ["edges_added"] } },
+                  { "not": { "required": ["retired_snapshot"] } } ] } },
+    { "$comment": "I58 strict iff, backward half: the resequence payload is FORBIDDEN on every other kind, so `grep -l resequenced` is an exact inventory of a run's re-orderings and no other kind can smuggle a wave move.",
+      "if": { "properties": { "kind": { "enum": ["add_units", "split_unit", "add_edges", "cancel_unit", "revise_anchors"] } }, "required": ["kind"] },
+      "then": { "allOf": [
+                  { "not": { "required": ["resequenced"] } },
+                  { "not": { "required": ["wave_snapshot"] } } ] } }
   ]
 }

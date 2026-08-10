@@ -59,7 +59,7 @@ fail_total=0
 # Step 0: schema self-check (16 schemas well-formed).
 echo "== self-check =="
 if bash "$SCRIPTS_DIR/validate_run.sh" --self-check >/dev/null 2>&1; then
-  echo "  PASS  schema self-check (16 schemas)"
+  echo "  PASS  schema self-check (18 schemas)"
 else
   echo "  FAIL  schema self-check"
   fail_total=$((fail_total + 1))

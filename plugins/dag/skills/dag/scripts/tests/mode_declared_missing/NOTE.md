@@ -1,0 +1,1 @@
+RED on I51-1. THIS IS THE CONTROL THAT MAKES THE ARCHIVE SILENCE NON-VACUOUS. Every archived run under .wip/ emits no I51 row at all; that is only evidence of correct arming if a run stamped AT the shipping version with no run_mode goes red. It does.

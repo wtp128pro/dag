@@ -1,0 +1,27 @@
+{
+  "id": "A01",
+  "kind": "resequence",
+  "origin": {
+    "trigger": "priority_change",
+    "source_ref": "directives/H01.json"
+  },
+  "rationale": "The maintainer's toolbar request outranks the queued investigation.",
+  "scope_change": false,
+  "human_gate": false,
+  "fuel_cost": 1,
+  "fuel_before": 4,
+  "fuel_after": 3,
+  "frontier_wave": 2,
+  "resequenced": [
+    {
+      "unit_id": "U02",
+      "wave_from": 3,
+      "wave_to": 3
+    }
+  ],
+  "wave_snapshot": {
+    "U01": 1,
+    "U02": 3
+  },
+  "graph_revision_after": 2
+}

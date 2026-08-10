@@ -1,0 +1,1 @@
+RED on I54-2. Differs from clock_ok in ONE INTEGER: units_since_ship is rewritten to disagree with the recomputation. This is the arm that makes the number EVIDENCE rather than NARRATION — without it the counter inherits the fate of `updated_at`, which is agent-typed at every phase advance and read by no predicate.

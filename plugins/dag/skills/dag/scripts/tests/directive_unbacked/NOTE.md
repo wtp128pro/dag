@@ -1,0 +1,1 @@
+RED on I53-1. Differs from directive_ok by ONE removed key: an amendment claims a human_request trigger with no ledger row behind it. That is the incident's state verbatim — an explicit request indistinguishable from a self-generated investigation.

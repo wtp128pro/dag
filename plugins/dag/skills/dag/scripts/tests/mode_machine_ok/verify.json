@@ -1,0 +1,38 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Skeptic",
+  "verdict": "PASS",
+  "iteration": 1,
+  "executor_reasoning_seen": false,
+  "feedback": {
+    "actionable_changes": [],
+    "do_not_touch": []
+  },
+  "defects": [],
+  "socratic": {
+    "premise": "The whole-run sweep spot check is symmetric.",
+    "counter": "A one-sided spot check would pass a sweep that only ever probed clean rows.",
+    "pivot": "Probe one row of each class.",
+    "confidence": "high"
+  },
+  "premise_check": {
+    "executor_premise_quoted": "Both units passed.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "holds"
+  },
+  "sweep_spot_check": [
+    {
+      "dimension": "terms",
+      "disposition": "probed-clear",
+      "probe_attempted": true,
+      "outcome": "re-probed for a missed material ambiguity; clean disposition holds"
+    },
+    {
+      "dimension": "scope-boundaries",
+      "disposition": "ambiguity-found",
+      "probe_attempted": true,
+      "outcome": "re-probed the found ambiguity; the register row still covers it"
+    }
+  ]
+}

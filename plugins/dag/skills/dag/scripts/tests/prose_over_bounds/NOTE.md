@@ -1,0 +1,1 @@
+RED on I50-3. DECISIONS.md carries a single sentence far over the 60-word cap. The bound is scored over PROSE LINES ONLY, so tables, tallies and fenced commands are exempt by construction and the rule never asks anyone to delete a number.

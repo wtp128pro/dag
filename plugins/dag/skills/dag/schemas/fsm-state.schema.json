@@ -32,6 +32,52 @@
       "type": "string",
       "description": "OPTIONAL (1.10.0; schema-deltas §D). Ledger-side mirror of dialogues.json.anchors_baseline.content_hash. As of 1.10.1 it is CROSS-CHECKED by I39-7 when present: a present mirror MUST equal that content_hash (Limitation X hardening — a coordinated rewrite must then also rewrite fsm-state, raising the cost to three files; adoption-gated on presence, absent => silent). Absent => valid (the zero-delta primary posture; round counters + the anchor baseline live in dialogues.json, DP-21). DECLARED so the top-level additionalProperties:false is not violated (the lens2 rule); NEVER required (archive-safe) and NEVER gates a transition — still PRESERVES (GV-28)."
     },
+    "accepted_prose": {
+      "description": "OPTIONAL, ADDITIVE (I50-3, 1.14.0). The recorded per-file override for the plain-language prose bounds: a decision to ship a named ledger file knowingly over one of the three bounds. DELIBERATELY UNCONSTRAINED here — any JSON value is schema-valid — so a MALFORMED override reaches validate_run.py's fail-closed arm instead of being intercepted by the schema layer, exactly as accepted_incomplete does. Well-formed shape: {files:[<run-relative filename>,...], rationale:<non-blank str>, decision_ref:<str containing 'DECISIONS.md'>}. A named file is DOWNGRADED from FAIL to a greppable N-I50 NOTE — never suppressed, never covering a file it does not name, and fails closed if malformed. NOT in the source recommendation: added by the implementing run because I50-3 is a HARD FAIL on prose style with no other recorded way out, and this repository's own idiom for 'available but loud' is accepted_incomplete. Disclosed rather than smuggled.",
+      "$comment": "Intentionally schema-unconstrained; see the accepted_incomplete precedent above."
+    },
+    "run_mode": {
+      "type": "string",
+      "enum": ["manual", "critical-only", "automatic"],
+      "description": "I51 (1.14.0, Ask 3) — the run's autonomy mode, chosen at a Phase-0/1 dialogue with NO ASSUMED DEFAULT. 'manual' is today's behaviour (zero machine-closed gates). 'critical-only' machine-closes non-critical gates and HALTS for the human on a critical one. 'automatic' machine-closes every gate including sign-off, with analyst dissent recorded rather than escalated. This is a NEW TOP-LEVEL PROPERTY on a closed object, so it is a genuine schema edit — added to `properties` only, NEVER to `required`, so every archived run directory keeps validating. I51-1's presence requirement is VERSION-GATED on validator_version >= 1.14.0 for the same reason: written unarmed it would red every archived run in .wip/ on the next validator run."
+    },
+    "context_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "I52/I59 (1.14.0, Ask 4) — the orchestrator's turn contract, promoting the run directory from failure-path fallback to declared working memory: 'You hold no history between obligations. Before discharging any obligation, name the run-directory file you will read to discharge it, and read it.' Absent => the mechanism is not adopted and both predicates are silent (archive-safe). HONEST BOUNDARY: this makes statelessness LEGIBLE, never TRUE — no predicate can establish that the orchestrator READ the named file rather than answering from residual context, which is why the enforcement class is OBSERVABLE and ENFORCED is explicitly disclaimed.",
+      "required": ["stateless_turns", "projection_ceiling_bytes"],
+      "properties": {
+        "stateless_turns": { "type": "boolean" },
+        "projection_ceiling_bytes": { "type": "integer", "minimum": 1, "description": "Ceiling on units/<Uxx>/adjudication.json. 12000 is an ASSUMED design parameter (~4.6% of the measured 262,448 B debrief+verify pair), not a measurement — tune it on first use. NOTE: the source recommendation's claimed net saving of ~101,808 tokens/unit is WITHDRAWN as unreachable at this ceiling; adopt the mechanism for the context relief, not for the saving." }
+      }
+    },
+    "progress_clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "I54 (1.14.0, Drift fix 2) — the deliverable clock. Counts units ADJUDICATED since the last graph.json unit marked deliverable:'ships' reached PASS. Deliberately NOT wall-clock (the run has no trustworthy clock source other than an agent typing one — L3 records ledger timestamps drifting ~7h from unforgeable sources) and NOT tokens (both per-unit token figures on disk are declarations by the agent being measured). It is a count the validator RECOMPUTES, which is what makes it evidence rather than narration. Absent => mechanism not adopted (I54 silent — archive-safe), the same posture `depth` uses.",
+      "required": ["units_since_ship", "surface_threshold", "enabled"],
+      "properties": {
+        "units_since_ship": { "type": "integer", "minimum": 0 },
+        "last_ship_unit": { "type": ["string", "null"], "description": "Unit id of the most recent deliverable:'ships' unit that reached PASS, or null if none has." },
+        "surface_threshold": { "type": "integer", "minimum": 1, "description": "Default 3. DERIVED, not chosen by taste: the incident report records the failure at four ('My run hit four in a row'), so three fires strictly before the observed failure and after two — the smallest count that is not simply 'two in a row', a shape any dependency chain produces. Anyone with more than one incident should re-derive it." },
+        "enabled": { "type": "boolean" },
+        "surfaced_at": {
+          "type": "array",
+          "description": "APPEND-ONLY. One record per surfacing event. 'Surfaced unprompted' cannot mean the run interrupts you — SKILL.md forbids ending a turn outside a gate — so it means three writes at the next boundary the run reaches anyway: a PROGRESS.md line, a record here, and a mandatory line in the run's next reply whatever that reply is for. In fully-automatic mode the audience is 'machine' and the breach lands in the run's final summary; it is NEVER silently dropped. A clock breach is explicitly NOT critical and never interrupts in critical-only mode: a threshold crossing is a DISCLOSURE, not a choice, and the choice it might prompt belongs to I56.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["units_since_ship", "phase", "audience"],
+            "properties": {
+              "units_since_ship": { "type": "integer", "minimum": 0 },
+              "phase": { "type": "string", "minLength": 1 },
+              "audience": { "type": "string", "enum": ["human", "machine"], "description": "COLLISION 8 — a machine-AUDIENCE disclosure is NOT a machine-DECISION. These records must stay DISJOINT from machine-decisions.json: I51 quantifies over decisions only, and if these surfacings landed in that channel the count of machine-made decisions (the one number a human reviewing an unattended run actually needs) would become uninterpretable." },
+              "wall_clock_advisory": { "type": "string", "minLength": 1, "description": "OPTIONAL colour, script-stamped from `date` in the same command that writes the line — never typed from memory. Read by no predicate, and the trigger for nothing." }
+            }
+          }
+        }
+      }
+    },
     "gates": {
       "type": "object",
       "additionalProperties": true,
@@ -42,8 +88,13 @@
         "decomposition_approved": { "type": "boolean" },
         "signoff_confirmed": {
           "type": "boolean",
-          "description": "The human accepted the deliverable at the Phase-8 sign-off gate (G-signoff / T12). REQUIRED true to reach phase DONE — validate_run.py's REQUIRED_GATES lists it for DONE, so a run at DONE without it is INVALID (D-06). Like personas_confirmed, the flag is a human attestation the validator checks the PRESENCE of, not the genuineness of."
-        }
+          "description": "The human accepted the deliverable at the Phase-8 sign-off gate (G-signoff / T12). REQUIRED true to reach phase DONE — validate_run.py's REQUIRED_GATES lists it for DONE, so a run at DONE without it is INVALID (D-06). Like personas_confirmed, the flag is a human attestation the validator checks the PRESENCE of, not the genuineness of. Its meaning is UNCHANGED by 1.14.0's I51: only a human sets it, and setting it without a human remains a defect. A machine-closed gate sets the DISJOINT sibling key below, never this one."
+        },
+        "personas_machine_closed": { "type": "boolean", "description": "I51 (1.14.0). The DISJOINT machine channel. Set true iff the Phase-1 gate was closed by the main agent under a recorded run_mode having consulted an independent analyst, with a backing machine-decisions.json record. I51-2 makes it a FAIL to set this AND personas_confirmed on the same gate. This key lives inside the OPEN `gates` object, so it costs no schema edit; it is declared here for documentation only." },
+        "clarification_machine_closed": { "type": "boolean", "description": "I51 (1.14.0). As personas_machine_closed, for the Phase-2 clarification gate." },
+        "signoff_machine_closed": { "type": "boolean", "description": "I51 (1.14.0). As personas_machine_closed, for the Phase-8 sign-off gate. This is the key that lets an honest fully-automatic run reach DONE: REQUIRED_GATES is widened to `<g>_confirmed OR <g>_machine_closed`, so a run no longer has to choose between SKILL.md's 'setting it without a human is a defect' and finishing." },
+        "starvation_cap_n": { "type": "integer", "minimum": 1, "description": "I56 (1.14.0, Drift fix 4). Default 3. CHOSEN, NOT MEASURED, and the section says so: the single datum supports FOUR and says nothing about three, so 3 is a judgement calibrated to fire before the incident's fourth investigation and after two. Raise it to tune. Lives in the open `gates` object at zero schema cost." },
+        "starvation_cap_enabled": { "type": "boolean", "description": "I56 (1.14.0). Default true. Set false to disable the cap — which converts I56 from a FAIL into a greppable NOTE recording that the cap was off and what each run(d) reached. Switching a gate off must not erase the evidence it would have produced, so complete silence here would make the disabling unauditable." }
       }
     },
     "loop": {
@@ -80,7 +131,8 @@
           "loop_state": {
             "type": "string",
             "enum": ["EXECUTE", "VERIFY", "ADJUDICATE", "RETRY", "ESCALATE", "DONE"]
-          }
+          },
+          "projection_bytes": { "type": "integer", "minimum": 0, "description": "I52 (1.14.0, Ask 4). OPTIONAL. The recorded size of units/<unit_id>/adjudication.json — the bounded projection the orchestrator reads INSTEAD of the whole debrief+verify pair. A CLAIM: I52 recomputes it from the file on disk and FAILs on disagreement, so it can never be narration." }
         }
       }
     },

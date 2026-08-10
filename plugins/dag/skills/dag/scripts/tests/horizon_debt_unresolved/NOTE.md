@@ -1,0 +1,1 @@
+RED on I49-2, on the half the SCHEMA CANNOT REACH. The debt iff itself is schema-enforced (see horizon_debt_on_durable, which the schema layer rejects); what only a predicate can check is whether decisions_ref RESOLVES. Here D99 is not in DECISIONS.md, so the debt is invisible to the next run.

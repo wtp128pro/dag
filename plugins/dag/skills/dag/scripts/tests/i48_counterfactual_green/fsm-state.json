@@ -25,5 +25,6 @@
       "status": "executing"
     }
   ],
-  "validator_version": "1.13.0"
+  "validator_version": "1.14.0",
+  "run_mode": "manual"
 }

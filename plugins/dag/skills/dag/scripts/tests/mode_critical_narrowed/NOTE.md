@@ -1,0 +1,1 @@
+RED on I51-4. The analyst CONTRADICTS the orchestrator's recommendation and the record writes critical:false anyway. `critical` is a RECOMPUTED predicate, not an adjective an orchestrator may narrow; its green twin is mode_machine_ok, which carries the same record with an agreeing analyst and critical:true.

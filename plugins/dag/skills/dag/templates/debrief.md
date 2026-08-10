@@ -31,6 +31,18 @@ never truncate to "fit" the schema.
   `vendor_silent` + `vendor_surface_searched`, and — on design-judgment rows —
   `extracted_premises` (+ `extracted_premises_none_reason`). Enforcement: I29/I30 + I31–I34
   (RL-1/RL-2/RL-3/CO-1), offline.
+- `socratic.horizon{expedient, durable, durable_cost, choice[, debt]}` — OPTIONAL (1.14.0, I49).
+  Name the **expedient** answer, the **durable** one, what durable **costs**, and which you chose. If
+  you chose expedient, `debt{revisit_condition, decisions_ref}` is REQUIRED and the ref must RESOLVE
+  in `DECISIONS.md`; if you chose durable, `debt` is FORBIDDEN — that is what makes
+  `grep -l revisit_condition` an exact inventory of the run's debts. On a genuinely mechanical unit
+  the legal value is the two answers coinciding, with
+  `durable_cost: "no material horizon; the two answers coincide"`. **Record, never manufacture.**
+  Adoption is closed: once any site in the run carries a horizon, every site must.
+- `consumed_upstream[]{unit_id, used_for[, artifact_ref]}` — OPTIONAL (1.14.0). Which upstream unit
+  outputs you ACTUALLY used. **No predicate reads this**, and that is deliberate: it exists so the
+  deferred `I55` can be measured rather than argued about. Fill it if you can; nothing fails if you
+  do not.
 - `socratic{premise, counter, pivot, confidence}` — result of the pre-output self-interrogation;
   `counter` records an OUTCOME (mechanical units: `counter: "unit is mechanical; no material
   premise to break"`); `confidence` starts `high|medium|low`

@@ -3,6 +3,110 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] — 2026-08-09
+
+**Drift and autonomy — ten offline predicates, and one declared REVISES.** The motivating incident:
+*a maintainer asked for a piece of work; the run spent itself investigating around it instead, and
+they only found out because they asked.* The diagnosis is that this is **two independent causes with
+one shared root** — the requested work could not be moved forward once the plan was fixed, and the
+investigation spiral could not be *seen* while it was happening. The shared root is that dag measured
+how **big** a run is and never what it was **spending itself on**: its budgets bound the total amount
+of work, and nothing anywhere priced the *mix* of work that ships something against work that only
+informs.
+
+### Added — invariants (all OFFLINE, POST-HOC, none a live guard on `LT7`)
+
+- **`I49` horizon record.** Every Socratic dialogue instance and every `socratic` block closes with a
+  `horizon`: the expedient answer, the durable one, what durable costs, which was chosen, and — iff
+  expedient — the debt and the condition that forces revisiting. The anti-strawman join requires the
+  expedient string to match a question's `recommended` **verbatim**: *you cannot strawman an option
+  you already recommended.* Armed on **adoption AND the 1.14.0 stamp**; the version conjunct is a
+  measured repair, because a pure content trigger armed on an archived run that had dogfooded the
+  field while designing it.
+- **`I50` prose bounds.** Plain language as something a checker can **fail**, scored over prose lines
+  only so tables, tallies and fenced commands are exempt by construction and the rule never asks
+  anyone to delete a number. **One arm of three ships**; the other two are deferred behind a
+  `GLOSSARY.md` that does not exist yet.
+- **`I51` machine-decision channel — the one REVISES.** See below.
+- **`I52` projection ceiling** and **`I59` obligation source-naming.** The run directory is promoted
+  from failure-path fallback to the orchestrator's declared working memory, with a size-capped
+  per-unit projection. Adds **no agents**.
+- **`I53` directive provenance.** An append-only `directives/` ledger, an `origin.directive_ref`, and
+  a **derived** `priority_class`, so an explicit maintainer request stops being indistinguishable from
+  a self-generated investigation.
+- **`I54` deliverable clock.** `graph.json units[].deliverable` (`ships` | `informs`,
+  planner-written) plus a `progress_clock` the validator **RECOMPUTES** — the arm that makes the
+  number evidence rather than narration. It warns in flight and blocks only at sign-off.
+- **`I56` requirement-starvation disclosure.** A cap on consecutive non-shipping units per DoD item,
+  routed through the **existing** Phase-7 path. Defines no field and stores no counter.
+- **`N-I57` run composition.** An exit-neutral advisory NOTE publishing what a run spent itself on.
+- **`I58` re-sequencing eligibility.** A new `resequence` amendment kind carrying the pre-amendment
+  `wave_snapshot` — state the run did not otherwise keep, and without which the clause that catches a
+  *silent* re-wave is not decidable by any predicate.
+
+### Changed — **REVISES: gate attestation** (`I51`), with its migration argument
+
+Today a run at `DONE` asserts a human signed off. **After this, a run at `DONE` asserts a human signed
+off *or* a machine closed sign-off under a recorded `run_mode` with a recorded analyst.** That is a
+weaker sentence, and it is made openly rather than by editing `SKILL.md`.
+
+*Why it is not a weakening in practice.* `SKILL.md`'s *"setting it without a human is a defect"* stays
+literally true and **unedited**: a machine-closed gate sets a **different** key
+(`gates.<g>_machine_closed`) that no human ever sets, backed by a `machine-decisions.json` record
+whose `decided_by` is a `const` the schema makes it structurally impossible to type `"human"`. Only
+the **satisfaction test** for `REQUIRED_GATES` is widened to `<g>_confirmed OR <g>_machine_closed`;
+the table itself is untouched, so the spec-drift checker still diffs it. Before this, honesty and
+completion were **mutually exclusive** — a run that honoured that sentence could not reach `DONE`.
+
+*What stops working in existing run directories — three things, one unrepairable.* (1) Nothing fails,
+but **only** because `I51-1` is version-gated: `run_mode` is a new top-level property on a closed
+object, and an unarmed presence check would red every archived run. (2) Every archived
+`signoff_confirmed: true` becomes permanently **ambiguous** — a human, or a run written before the
+distinction existed — and this **cannot be repaired**, because the fact was never recorded; it breaks
+a reader's inference, not a predicate. (3) External consumers of `gates` will read a fully-automatic
+run as unfinished until taught the `OR`.
+
+*The honesty boundary, stated rather than implied.* It detects **conflation, never forgery**. Nothing
+detects whether a human genuinely answered when `*_confirmed` is set, nor whether the analyst was
+actually consulted, was independent, or was fairly briefed. What the design buys is narrower and worth
+saying plainly: **it removes the incentive to forge, by making the honest path the only one that
+reaches `DONE`.**
+
+### Deferred — with stated adoption triggers, not quietly dropped
+
+- **`I55` consequence-proportional verification depth (escalation arm).** Its published
+  `+4 sub-agents / ~76,000 tokens` reproduces a *citation* proxy; the structural proxy the design
+  implies gives **11 of 14 units firing, +22 sub-agents, ~416,000 tokens — 89.8% of the entire
+  ten-recommendation bill**. Its own panel ruled the price not earned, and on the motivating incident
+  it moves in the **wrong direction**: its escalation triggers are exactly the profile of the shadow
+  investigations that caused the drift. **Not refuted** — its monotone join was verified sound across
+  96 of 96 states. The **zero-cost recording slice DID ship** as two optional, unread schema keys
+  (`debrief.consumed_upstream[]`, `verify.consequence`) so the deferral is an order to measure.
+- **The `hk_fuel` housekeeping counter** (the enforced half of `I57`), on four grounds including one
+  added here: **its exhaustion route has no defined path in fully-automatic mode.**
+
+Both are recorded in `references/state-machine.md` §"Deferred mechanisms (1.14.0)" with their
+triggers.
+
+### Added — conduct rules (`references/orchestrator-conduct.md`)
+
+- **`R20`** — keep self-check phrasing (*"double-check your answer"*, *"verify before responding"*)
+  out of briefs. **Read narrowly: this is not a licence to verify less.** dag's verification is
+  structural — maker ≠ checker, a separate agent blind to the executor's reasoning — and Non-Goal 2
+  forbids touching it.
+- **`R21`** — **a named gap, not a mechanism.** dag bounds units, retries and verify rounds; **nothing
+  bounds the orchestrator's own ad-hoc dispatches**, which were the majority of the spend in the run
+  that produced this release. The deliverable clock's tick is the *unit*, so a unit that consumes
+  seventeen agents advances it by zero: **intra-unit spend is invisible to every mechanism here.**
+  Until `hk_fuel` ships this is a rule you write down, not a bound you get.
+
+### Verification
+
+423 of 423 fixture rows green on **both** validator backends (31 of them new, each a red/green pair
+built from one shared base by mutating exactly the field under test); `spec_check` PASS 8 / FAIL 0;
+`normalize_artifacts.py --self-test` 0 failures; and **every one of the 22 archived runs under
+`.wip/` produces a byte-identical FAIL-line count before and after**, with zero `I49`–`I59` rows.
+
 ## [1.13.0] — 2026-08-06
 
 **The frozen case-set contract (`I48`).** A brief may now freeze a `case_set[]` — named checks, each

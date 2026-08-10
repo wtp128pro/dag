@@ -1,0 +1,1 @@
+RED on I54-3. A run reaches DONE having crossed its own threshold with an EMPTY surfaced_at[] — exit 0 here is the incident verbatim. It fires only at P8/DONE, exactly like I23 DoD closure, so mid-run staleness stays legal. The starvation dossier is present so this fixture isolates the CLOCK arm rather than doubling up with I56.

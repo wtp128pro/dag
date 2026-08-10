@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/directive.schema.json",
+  "title": "Maintainer directive ledger row (I53, Drift fix 1)",
+  "description": "One append-only record per explicit maintainer request, stored as directives/H<NN>.json at the run root. Reuses the amendments/ convention deliberately rather than inventing a discipline: files are never edited or deleted, ids are unique, and the id equals the filename stem. It exists because `origin.trigger: \"human_request\"` is today a label NOTHING READS — measured at 1.13.0: five hits tree-wide (two normative, three test fixtures) and `grep -c 'human_request' validate_run.py` -> 0, against a live positive control (`p7_resolution` -> 1). The defect is wider than one enum member: three of the four trigger values have ZERO readers, so an explicit maintainer request and a self-generated investigation are indistinguishable in the run directory — the incident verbatim.\n\nWHAT THIS DOES NOT DO, stated here rather than left for a reader to discover: it records PROVENANCE, never TRUTH. Nothing mechanical stops an orchestrator writing this file, fabricating a verbatim_request and setting human_gate:true — genuineness is an admitted attestation (Limitation I, inherited exactly, and recorded as Limitation AD). What changes is what a lie COSTS and what it LEAVES BEHIND: it costs fuel (a directive rides add_units, so self-promotion is bounded above by fuel0); it costs a QUOTATION rather than a boolean, in a file the maintainer can read; it is greppable after the fact ('show me every request the run says I made' is one cat); and it removes the cover story, moving the act from UNMARKED to MARKED AND FALSE. The inverse error matters more in practice and is under-defended: I53 fires on the amendments that EXIST, so a real directive the orchestrator never files as a directive leaves no row for any predicate to fail on.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "verbatim_request", "transcript_ref", "received_at_wave", "human_gate"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^H[0-9]{2,}$",
+      "description": "Unique within the run and equal to the filename stem (I53-5)."
+    },
+    "verbatim_request": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "description": "The maintainer's own words, quoted — not the orchestrator's paraphrase of them. This is the field that makes a fabrication legible: manufacturing words attributed to the maintainer, in a file the maintainer can read, is not harder for a machine but is enormously more visible to a human."
+    },
+    "transcript_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "description": "Where the request was made — the same convention I39's confirmation records already use. Fail-closed on absence: a missing ref is never read as 'no claim made'."
+    },
+    "received_at_wave": { "type": "integer", "minimum": 1 },
+    "human_gate": {
+      "const": true,
+      "description": "A directive row asserts a human spoke. Typed as a const so the file cannot record a directive that admits it had no human behind it; genuineness remains unenforceable from emitted artifacts."
+    },
+    "received_at": { "type": "string", "minLength": 1, "description": "OPTIONAL advisory colour. Read by no predicate." }
+  }
+}
