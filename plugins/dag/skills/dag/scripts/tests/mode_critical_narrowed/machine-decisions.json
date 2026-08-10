@@ -22,7 +22,8 @@
         "reasoning": "Every DoD item traces to a PASS-verified unit.",
         "dissent": true,
         "dissent_detail": "DoD-B is not closed by any unit."
-      }
+      },
+      "edits_anchor": []
     }
   ]
 }

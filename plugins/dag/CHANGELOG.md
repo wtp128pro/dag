@@ -23,10 +23,17 @@ informs.
   you already recommended.* Armed on **adoption AND the 1.14.0 stamp**; the version conjunct is a
   measured repair, because a pure content trigger armed on an archived run that had dogfooded the
   field while designing it.
-- **`I50` prose bounds.** Plain language as something a checker can **fail**, scored over prose lines
-  only so tables, tallies and fenced commands are exempt by construction and the rule never asks
-  anyone to delete a number. **One arm of three ships**; the other two are deferred behind a
-  `GLOSSARY.md` that does not exist yet.
+- **`I50` prose bounds — OBSERVABLE, and the downgrade is itself the finding.** Scored over prose
+  lines only, so tables, tallies and fenced commands are exempt by construction and the rule never
+  asks anyone to delete a number. The source recommendation graded this **ENFORCED** on thresholds
+  fitted against **four** files. Re-measured over the whole corpus — all **127** ledger files across
+  the 21 archived runs — **48 (37%) breach at least one bound, in 17 of the 21 runs**, and the
+  breaches are real, not scorer artifacts (the longest is a genuine 95-word sentence). **Four of the
+  seven ledgers in the run that designed this predicate fail it.** A hard FAIL there would be routed
+  around rather than obeyed, which is this document's own argument against a gate that becomes
+  noise, turned on itself. So it **reports and does not fail**, with a stated promotion trigger.
+  **One arm of three ships**; the other two are deferred behind a `GLOSSARY.md` that does not exist
+  yet.
 - **`I51` machine-decision channel — the one REVISES.** See below.
 - **`I52` projection ceiling** and **`I59` obligation source-naming.** The run directory is promoted
   from failure-path fallback to the orchestrator's declared working memory, with a size-capped
@@ -100,12 +107,51 @@ triggers.
   seventeen agents advances it by zero: **intra-unit spend is invisible to every mechanism here.**
   Until `hk_fuel` ships this is a rule you write down, not a bound you get.
 
-### Verification
+### Verification, and what the red-team passes found
 
-423 of 423 fixture rows green on **both** validator backends (31 of them new, each a red/green pair
+428 of 428 fixture rows green on **both** validator backends (36 of them new, each a red/green pair
 built from one shared base by mutating exactly the field under test); `spec_check` PASS 8 / FAIL 0;
 `normalize_artifacts.py --self-test` 0 failures; and **every one of the 22 archived runs under
 `.wip/` produces a byte-identical FAIL-line count before and after**, with zero `I49`–`I59` rows.
+
+Four independent adversarial passes were run over the ten predicates before this landed. They
+returned **31 confirmed findings**, and the serious ones are recorded here because the alternative
+is a changelog that describes the design rather than what shipped:
+
+- **The `REVISES` had a hole.** The `REQUIRED_GATES` satisfaction widening was **unversioned** while
+  every arm policing `<g>_machine_closed` is gated at 1.14.0 — so below that stamp a run reached
+  `DONE` with no human, no machine record, exit 0 and **zero `I51` rows**, while the validator
+  printed *"closed by the MACHINE channel, not by a human"*. Not adversarial-only: `--restamp` is
+  opt-in and unenforced. Fixture `mode_ver_bypass`.
+- **I51 was blind in the record→flag direction.** A run declaring `manual`, with
+  `signoff_confirmed: true`, a human DS-5 dialogue **and** a machine record for that gate passed
+  clean while I51's own green line asserted *"channels disjoint"*. Fixture `mode_record_conflation`.
+- **I52 checked size and nothing else** — an empty file, a directory, or a projection flatly
+  contradicting its own `verify.json` all passed, on the one artifact the orchestrator reads
+  *instead of* the pair.
+- **I49-2 was defeated by a one-character anchor** (`DECISIONS.md#a` resolved), and I49 built its
+  site set from schema-validated docs — so the violating document was rejected one layer earlier and
+  I49 printed `PASS … debt iff holds` over a set it had silently shrunk.
+- **I56's disclosure match was a substring**: a dossier "disclosed" `DoD-A` by mentioning the path
+  `docs/DoD-Archive.md`. And a `ships` unit whose verification **FAILED** reset the streak.
+- **I58-4's domain was chosen by the record's own author** (omit the moved unit from `wave_snapshot`
+  and the silent re-wave escaped), and **I58-4b could not go green** — it demanded a `wave_snapshot`
+  the schema forbids on the kind it demanded it from.
+- **I53-4 was dead code**: `brief.schema.json` never declared `priority_class`, so the arm skipped
+  every unit while advertising itself as strengthening the frozen prefix.
+- **I50 failed a freshly scaffolded, empty run**, and **I59's token collided with the `O1`–`O4`
+  evidence vocabulary the skill already ships.**
+
+Every one is fixed, and each fix carries its measurement in the code at the site it repairs.
+**What the passes could not break:** the crash class (68 malformed-shape runs across both backends,
+zero tracebacks), exit-neutrality of `N-I57` (byte-identical stdout after ablation, identical exit
+codes on a differing pair), the live-guard prohibition (no `return`/`raise`/`sys.exit`/write in any
+of the ten blocks), and archive silence — which is non-vacuous, because `mode_declared_missing` goes
+red at the shipping stamp.
+
+**One pre-existing crash is disclosed and NOT fixed here**, because it is on `main` and predates this
+change: a `units/<id>/` directory with mode `000` raises an unguarded `PermissionError` in the
+`verify_p*` scan and aborts before any result line. Same L29 class the new code guards against.
 
 ## [1.13.0] — 2026-08-06
 

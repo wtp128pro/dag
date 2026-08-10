@@ -20,7 +20,8 @@
         "verdict": "accept",
         "confidence": 0.9,
         "reasoning": "Every DoD item traces to a PASS-verified unit."
-      }
+      },
+      "edits_anchor": []
     }
   ]
 }

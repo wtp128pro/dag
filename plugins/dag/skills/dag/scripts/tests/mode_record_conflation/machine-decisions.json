@@ -1,0 +1,27 @@
+{
+  "run_label": "fx",
+  "decisions": [
+    {
+      "gate": "signoff",
+      "surface_id": "DS-5",
+      "phase": "P8_SYNTHESIS",
+      "question": "Do you accept the deliverable as it stands?",
+      "options": [
+        "accept",
+        "reject"
+      ],
+      "orchestrator_recommendation": "accept",
+      "decision": "accept",
+      "critical": true,
+      "mode": "automatic",
+      "decided_by": "machine",
+      "analyst": {
+        "agent_id": "analyst-1",
+        "verdict": "accept",
+        "confidence": 0.9,
+        "reasoning": "Every DoD item traces to a PASS-verified unit."
+      },
+      "edits_anchor": []
+    }
+  ]
+}

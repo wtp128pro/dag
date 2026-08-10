@@ -1272,6 +1272,15 @@ obligation, NAME the run-directory file you will read to discharge it, and read 
 `PROGRESS.md` entry that records the discharge — an obligation discharged from memory is an obligation
 discharged from nothing, and I59 fails an entry that names no source.
 
+**Stamp the obligation as `O-<NN>`, hyphenated, and name a file that EXISTS.** The hyphen is not
+decoration: a bare `O13` collides with the `O1`–`O4` evidence-admissibility vocabulary
+`references/evidence-standards.md` already defines and this file already cites, and keying the check
+on the bare form reds a run for correctly citing dag's own evidence rules. The path must resolve
+inside the run directory — without that, `N/A`, `and/or` and `50/50` all satisfied the check, so
+entries reading *"discharged from memory, no file read"* passed the predicate whose whole point is
+that they should not. **Until you stamp the token, I59 quantifies over an empty set and says so:** its
+OK row reads `VACUOUS` rather than pretending to a green it did not earn.
+
 This promotes the sentence below from the failure path to the **normal** path, and it is the whole
 mechanism: **it adds no agents.** Measured, the alternatives all move cost rather than remove it — one
 orchestrator agent per phase re-reads a 210,242-byte preamble nine times (~769K tokens of *new*

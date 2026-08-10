@@ -443,9 +443,9 @@ horizon_ok	0	!  FAIL  I49 horizon record
 horizon_partial	1	I49 horizon record (units/U01/verify.json:socratic)
 horizon_strawman	1	I49 horizon record (dialogues.json[p2])
 horizon_debt_unresolved	1	debt.decisions_ref does not resolve
-horizon_debt_on_durable	1	units/U01/debrief.json
-prose_over_bounds	1	I50 prose bounds (DECISIONS.md)
-prose_accepted	0	N-I50 prose bounds (DECISIONS.md)
+horizon_debt_on_durable	1	I49 horizon record (units/U01/debrief.json:socratic)
+prose_over_bounds	0	NOTE  N-I50 prose bounds (DECISIONS.md): longest sentence 100 > 60 words
+prose_accepted	0	N-I50 prose bounds (DECISIONS.md) (ACKNOWLEDGED in fsm-state.accepted_prose)
 prose_accepted_malformed	1	I50 prose bounds (accepted_prose malformed)
 mode_machine_ok	0	closed by the MACHINE channel
 mode_both_flags	1	I51 machine-decision channel (I51-2 exclusivity, signoff)
@@ -470,4 +470,8 @@ clock_surfaced_ok	0	!  FAIL  I54 deliverable clock (I54-3
 resequence_ok	0	!  FAIL  I58 re-sequencing eligibility (amendments/A01.json)
 resequence_executing	1	I58 re-sequencing eligibility (amendments/A01.json)
 resequence_vacuous_and_silent	1	I58-4
-prose_short_corpus_ok	0	!  FAIL  I50 prose bounds
+prose_short_corpus_ok	0	!N-I50 prose bounds
+obligation_vacuous_ok	0	I59 obligation source-naming (VACUOUS: 0 `O-<NN>` obligation tokens
+directive_class_drift	1	I53 directive provenance (units/U01)
+mode_ver_bypass	1	gate ordering
+mode_record_conflation	1	I51 machine-decision channel (I51-2 exclusivity by record, signoff)

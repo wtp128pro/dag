@@ -13,7 +13,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["gate", "phase", "question", "options", "orchestrator_recommendation", "decision", "critical", "mode", "analyst", "decided_by"],
+        "required": ["gate", "phase", "question", "options", "orchestrator_recommendation", "decision", "critical", "mode", "analyst", "decided_by", "edits_anchor"],
         "properties": {
           "gate": {
             "type": "string",
@@ -28,12 +28,12 @@
           "decision": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "The chosen option. DELIBERATELY not named `a`: dialogues.json's `answers[].a` is reserved for the literal verbatim human answer, and a machine answer written there would be byte-indistinguishable from a human one." },
           "critical": {
             "type": "boolean",
-            "description": "RECOMPUTED by the validator from this record's own fields (I51-4), never trusted from it, so an orchestrator cannot quietly narrow the definition. critical(q) holds iff surface_id in {DS-4, DS-5} OR the question edits definition_of_done/non_goals OR the analyst's verdict differs from orchestrator_recommendation (whitespace-normalized) OR the analyst abstained OR analyst.confidence < 0.7. This is an honest PROXY: it is measurable and re-derivable, and it is not a claim that every genuinely consequential question falls inside it."
+            "description": "RECOMPUTED by the validator from this record's own fields (I51-4), never trusted from it. Note the honest limit on how far that goes: clauses 1, 3 and 4 are re-derived from data the record cannot fake without contradicting itself, but clause 2 reads `edits_anchor`, which is the orchestrator's own declaration about its own question — requiring the field makes an omission visible; it does not make the declaration true. Comparison in clause 3 is whitespace- AND case-normalized. critical(q) holds iff surface_id in {DS-4, DS-5} OR the question edits definition_of_done/non_goals OR the analyst's verdict differs from orchestrator_recommendation (whitespace-normalized) OR the analyst abstained OR analyst.confidence < 0.7. This is an honest PROXY: it is measurable and re-derivable, and it is not a claim that every genuinely consequential question falls inside it."
           },
           "edits_anchor": {
             "type": "array",
             "items": { "type": "string", "enum": ["definition_of_done", "non_goals"] },
-            "description": "Clause 2 of critical(): which scope anchor this question would move, if any. Absent or empty => none."
+            "description": "Clause 2 of critical(): which scope anchor this question would move, if any. REQUIRED, because an explicit [] is a CLAIM and an omission is not — while it was optional, clause 2 could be narrowed by simply leaving the field out, and a question reading \"Should we DROP a non_goal and ADD a definition_of_done item?\" was recorded critical:false and passed. It is the SOLE input to clause 2 and nothing cross-checks it against the actual anchor lists, so the honest reading is: this records what the orchestrator DECLARES the question touches. Requiring the declaration is the cheapest thing that makes the omission visible."
           },
           "mode": { "type": "string", "enum": ["manual", "critical-only", "automatic"] },
           "timestamp": { "type": "string", "minLength": 1 },
