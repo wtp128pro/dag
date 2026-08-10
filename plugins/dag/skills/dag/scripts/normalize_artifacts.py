@@ -201,6 +201,23 @@ CLOSED_CASE_SET_AUDIT = {
 CLOSED_DISCHARGE_CHECK = {
     "missing_ids", "extra_ids", "duplicate_ids", "tier_shortfall_ids",
 }
+# 1.14.0 additions. Same terms as the I41 / case_set entries above: no call site walks into
+# these yet, so they are INERT at runtime and exist so T7b/T7c/T7d2 compare them and so a LATER
+# schema edit at these pointers fails the self-test rather than rotting silently. The two that are
+# runtime-LIVE are the TOP_LEVEL_* additions below — without those, `unknown-top-level-key` would
+# tell an orchestrator that `consumed_upstream` / `consequence` are "outside the schema" and should
+# be folded into `result` / `audit_notes`, i.e. advise DESTROYING the only home those fields have.
+# That is the exact 1.11.0 `panel_adjudication` failure mode, reproduced on new keys.
+CLOSED_HORIZON = {"expedient", "durable", "durable_cost", "choice", "debt"}
+CLOSED_HORIZON_DEBT = {"revisit_condition", "decisions_ref"}
+CLOSED_CONSUMED_UPSTREAM_ROW = {"unit_id", "used_for", "artifact_ref"}
+CLOSED_CONSEQUENCE = {"downstream_consumers", "deliverable_reach", "graph_effect",
+                      "human_question_ref", "measured_at"}
+# I49 horizon.choice. Declared so the BIDIRECTIONAL T7a2 sees it mirrored; deliberately NOT added
+# to ALL_VOCAB, on the same terms as the I41 and case_set enums — ALL_VOCAB is the content guard's
+# near-miss corpus, not an inventory of every enum in the schemas.
+HORIZON_CHOICES = ["durable", "expedient"]
+
 CLOSED_NOVELTY_RATE = {"derived", "absent_from_executor_evidence"}
 CLOSED_VOCABULARY_CONTAINMENT = {"artifact_only_identifiers"}
 
@@ -226,6 +243,7 @@ TOP_LEVEL_DEBRIEF = {
     "unit_id", "persona", "iteration", "result", "evidence_table", "socratic",
     "acceptance_self_check", "assumptions", "residual_risks", "confidence",
     "footprint", "handoff_notes", "prior_feedback", "case_set_discharge",
+    "consumed_upstream",
 }
 # `panel_adjudication` (I41, 1.11.0) is a LEGITIMATE top-level verify property. Before it
 # was mirrored here, `unknown-top-level-key` advised an orchestrator that it "is outside
@@ -238,7 +256,7 @@ TOP_LEVEL_VERIFY = {
     "inputs_reviewed", "audit_notes", "panel", "panel_adjudication", "verify_rounds",
     "converged", "feedback", "defects", "socratic", "premise_check", "disagreement",
     "retrieval_coverage", "guardrail_compliance", "consequential_verbatim_check",
-    "case_set_audit",
+    "case_set_audit", "consequence",
 }
 
 # Required-key lists, mirrored from the schemas' own `required` arrays and asserted
@@ -262,6 +280,10 @@ REQUIRED_KEYS = {
         "$.case_set_discharge[]": ["evidence", "evidence_tier", "id", "origin", "outcome"],
         "$.case_set_discharge[].non_vacuity[]": ["counterfactual", "counterfactual_result",
                                                  "observation_ref"],
+        # 1.14.0: I49 horizon + the U08 recording slice. Mirrored on the same inert terms.
+        "$.socratic.horizon": ["choice", "durable", "durable_cost", "expedient"],
+        "$.socratic.horizon.debt": ["decisions_ref", "revisit_condition"],
+        "$.consumed_upstream[]": ["unit_id", "used_for"],
     },
     "verify": {
         "$": ["defects", "executor_reasoning_seen", "feedback", "iteration",
@@ -299,6 +321,10 @@ REQUIRED_KEYS = {
                                              "tier_shortfall_ids"],
         "$.case_set_audit.novelty_rate": ["absent_from_executor_evidence", "derived"],
         "$.case_set_audit.vocabulary_containment": ["artifact_only_identifiers"],
+        # 1.14.0: I49 horizon + the U08 recording slice (verify side).
+        "$.socratic.horizon": ["choice", "durable", "durable_cost", "expedient"],
+        "$.socratic.horizon.debt": ["decisions_ref", "revisit_condition"],
+        "$.consequence": ["measured_at"],
     },
 }
 
@@ -2104,6 +2130,8 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
         ("debrief", "$.case_set_discharge[].check_form", CHECK_FORMS, "CHECK_FORMS"),
         ("debrief", "$.case_set_discharge[].non_vacuity[].counterfactual_result",
          COUNTERFACTUAL_RESULTS, "COUNTERFACTUAL_RESULTS"),
+        ("debrief", "$.socratic.horizon.choice", HORIZON_CHOICES, "HORIZON_CHOICES"),
+        ("verify", "$.socratic.horizon.choice", HORIZON_CHOICES, "HORIZON_CHOICES"),
     ]
     bad = [f"{n}@{k}{p}: {idx[k][2].get(p)} != {v}"
            for k, p, v, n in vocabs if idx[k][2].get(p) != v]
@@ -2149,6 +2177,14 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
                                                       CLOSED_NOVELTY_RATE),
         ("verify", "$.case_set_audit.vocabulary_containment"): (
             "CLOSED_VOCABULARY_CONTAINMENT", CLOSED_VOCABULARY_CONTAINMENT),
+        # 1.14.0 additions, both artifacts.
+        ("debrief", "$.socratic.horizon"): ("CLOSED_HORIZON", CLOSED_HORIZON),
+        ("debrief", "$.socratic.horizon.debt"): ("CLOSED_HORIZON_DEBT", CLOSED_HORIZON_DEBT),
+        ("debrief", "$.consumed_upstream[]"): ("CLOSED_CONSUMED_UPSTREAM_ROW",
+                                               CLOSED_CONSUMED_UPSTREAM_ROW),
+        ("verify", "$.socratic.horizon"): ("CLOSED_HORIZON", CLOSED_HORIZON),
+        ("verify", "$.socratic.horizon.debt"): ("CLOSED_HORIZON_DEBT", CLOSED_HORIZON_DEBT),
+        ("verify", "$.consequence"): ("CLOSED_CONSEQUENCE", CLOSED_CONSEQUENCE),
     }
     bad = [f"{n}@{k}{p}: mirror {sorted(v)} != schema {sorted(idx[k][1].get(p) or [])}"
            for (k, p), (n, v) in closed_map.items() if idx[k][1].get(p) != v]

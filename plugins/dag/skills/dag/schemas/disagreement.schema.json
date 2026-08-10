@@ -9,7 +9,11 @@
   "properties": {
     "subject": { "type": "string", "minLength": 1 },
     "question": { "type": "string", "minLength": 1 },
-    "origin": { "type": "string", "enum": ["executor-verifier", "persona-persona", "criteria-conflict"] },
+    "origin": {
+      "type": "string",
+      "enum": ["executor-verifier", "persona-persona", "criteria-conflict", "requirement-starvation"],
+      "description": "1.14.0 adds a FOURTH literal, `requirement-starvation` (I56, Drift fix 4): a DoD item that has gone N consecutive non-shipping units with nothing shipped, put to the human as a three-way trade through the EXISTING Phase-7 path. This is ADDITIVE — every dossier already on disk carries one of the three original literals and stays valid. Filing starvation under `criteria-conflict` was explicitly REJECTED: that would widen an enum's meaning silently."
+    },
     "why_material": { "type": "string" },
     "options": {
       "type": "array",

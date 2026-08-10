@@ -1,0 +1,1 @@
+GREEN EXIT, LOUD OUTPUT. With the cap switched off I56 must emit a greppable NOTE naming what each run(d) reached, and must not FAIL. COMPLETE SILENCE HERE WOULD BE A FAILING RESULT, not a passing one: switching a gate off must not erase the evidence it would have produced, or the disabling is unauditable.

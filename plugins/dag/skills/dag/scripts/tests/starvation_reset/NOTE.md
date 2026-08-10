@@ -1,0 +1,1 @@
+GREEN control. THE SAME FIXTURE AS starvation_fires WITH ONE FIELD CHANGED: U02 ships, so the streak resets and the cap must stay silent. That single-field difference is what makes these a red/green PAIR rather than two unrelated greens — a cap that fires on healthy runs is how a new gate becomes noise and gets switched off.

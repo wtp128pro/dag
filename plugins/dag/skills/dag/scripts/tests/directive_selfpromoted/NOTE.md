@@ -1,0 +1,1 @@
+RED on I53-3. The unit labels ITSELF priority_class:'directive' while the amendment that added it was an ordinary debrief handoff. The class is DERIVED, never asserted: self-promotion with no ledger row is the drift, not the cure.

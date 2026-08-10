@@ -11,6 +11,11 @@
     "socratic_protocol", "tags", "learnings_applied"
   ],
   "properties": {
+    "priority_class": {
+      "type": "string",
+      "enum": ["directive", "normal"],
+      "description": "OPTIONAL (1.14.0, I53-4). Mirror of graph.json units[].priority_class, frozen at dispatch. WITHOUT THIS DECLARATION I53-4 IS DEAD CODE: this schema is additionalProperties:false, so a brief carrying the key was schema-INVALID, never entered unit_docs, and the drift arm's own guard skipped every unit — while the invariant advertised itself as riding the I17 content anchor and STRENGTHENING the frozen prefix. It strengthened nothing. Declared here as a widening (optional, no archived brief becomes invalid) so the arm can actually fire."
+    },
     "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
     "title": { "type": "string", "minLength": 1 },
     "wave": { "type": "integer", "minimum": 1 },

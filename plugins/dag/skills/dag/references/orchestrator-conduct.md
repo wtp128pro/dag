@@ -284,6 +284,31 @@ re-derive the **composed** corner cells when a new mechanism meets an existing i
 trusting either one's headline. A green suite co-authored with the thing it pins is exactly the
 mechanism that could not have produced a different answer.
 
+### R20 · Keep self-check phrasing out of briefs — dag's verification is structural, not self-administered
+
+**Sources:** maintainer directive, 1.14.0 · **Strength:** conduct rule — a directive, NOT a
+corpus-derived verdict, and it carries no receipt of its own. Recorded so it is greppable rather
+than remembered. · **Binds at:** Phase 5, writing any brief; and Phase 7, writing a repair brief.
+
+Do not write *"double-check your answer"*, *"verify before responding"*, *"add a final verification
+step"*, or any variant, into an executor brief.
+
+**Read this narrowly. It is NOT a licence to verify less.** The guidance behind it concerns
+**self-check** instructions — telling a model to re-examine its own work. dag's verification is a
+different thing structurally: **maker ≠ checker**, a separate agent that never sees the executor's
+reasoning. That mechanism is what caught every real defect in the run that produced this rule, and
+**Non-Goal 2 forbids touching it** — no change may make it possible to verify *less*, even where that
+would save money. Deleting a self-check sentence from a brief removes a redundant instruction to one
+agent; it removes nothing from the independent panel that adjudicates that agent.
+
+The distinction is worth holding because the two are easy to conflate under cost pressure. Note that
+the 1.14.0 change set contains its own instance of the same trade, resolved the same way: I55
+(consequence-proportional depth) would have *added* verification at +18–24 sub-agents, and it was
+deferred — not because verification is expensive in general, but because that mechanism's own honest
+finding was that it fires hardest on exactly the non-shipping investigations that caused the drift it
+was meant to fix. Cut verification only where a measurement says it is aimed the wrong way; never as
+a default.
+
 ## §4 — Phase 6: dispatch and execution (and Phase 7 repairs)
 
 ### R5 · Shared-tree concurrency
@@ -350,6 +375,38 @@ load-bearing and must not be traded away:
 Everything it fixes is drift a human would have called obvious; the reason it earns machinery is that
 the cost is *silent compounding* — deferred to the wave's end, the same defect must be repaired in a
 dozen units at once.
+
+### R21 · Your own ad-hoc dispatches are bounded by NOTHING — so bound them by hand, and record the count
+
+**Sources:** maintainer directive, 1.14.0 · **Strength:** conduct rule — a **named gap**, not a
+mechanism. There is no predicate behind this and there is not going to be one until `hk_fuel` ships. ·
+**Binds at:** every point in Phase 6/7 where you dispatch an agent that is not a unit executor or its
+adjudicating verifier. · **Checked against:** the four bounds that DO exist — amendment fuel
+(`expansion.fuel_initial`, schema max 32), retries (`maximum: 2`), verify iterations
+(`iteration <= retries+1 <= 3`), panel re-polls (`R_MAX = 3`) — **NONE of which quantifies over an
+orchestrator-initiated dispatch.**
+
+dag bounds units, retries and verify rounds. **Nothing bounds the dispatches you make on your own
+initiative:** extra panel members, blind derivers, conformance-repair passes, one-off probes. In the
+run that produced this rule, that unmetered class was the **majority of the spend** — seventeen agents
+on unit 1 of 14, of which twelve were verifications inside a single unit's loop.
+
+Note precisely what the 1.14.0 mechanisms do and do not see here, because it is easy to assume they
+cover it: the deliverable clock's tick is the **unit**, so a unit that consumes seventeen agents
+advances it by **zero**; the starvation cap counts units per DoD item, likewise. **Intra-unit spend is
+invisible to both.** The `N-I57` run-composition NOTE is the only thing that surfaces it at all, and it
+is advisory — it makes the aggregate legible and bounds nothing.
+
+Conduct, until a mechanism exists:
+- **Decide the number before you spend it.** Before convening anything beyond one executor and one
+  verifier for a unit, say in `PROGRESS.md` how many agents you are about to dispatch and why. A count
+  chosen after the fact is not a budget.
+- **A second dispatch on the same question needs a reason the first one could not have produced.**
+  Re-asking a strictly smaller version of a question already answered is not diligence; it is the drift
+  under diagnosis wearing a procedural costume.
+- **Read the `N-I57` line every time the validator runs.** Delivered units stalling while housekeeping
+  counts rise is the adoption trigger for the deferred `hk_fuel` counter — that measurement is the one
+  thing that converts this rule from judgement into arithmetic, and nobody has it yet.
 
 ## §5 — Any phase: human-gate messages
 

@@ -1,0 +1,1 @@
+GREEN. The streak still reaches the cap, but the trade IS put to the human through the EXISTING Phase-7 channel: units/U03/disagreement.json with the fourth origin literal, plus the DS-4 dialogue record its mere presence already compels. No new gate, no new phase, no new state and no new file name — a file called starvation.md would be neither schema-validated nor recognised.

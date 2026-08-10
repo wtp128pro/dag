@@ -1,0 +1,1 @@
+GREEN control for prose_over_bounds, differing in ONE added fsm-state key. A well-formed accepted_prose DOWNGRADES the breach to a greppable N-I50 NOTE — never suppresses it. The pin below asserts the NOTE is PRESENT, so 'downgraded' cannot decay into 'silent'.

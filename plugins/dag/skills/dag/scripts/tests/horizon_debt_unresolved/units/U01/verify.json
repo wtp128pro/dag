@@ -1,0 +1,67 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Skeptic",
+  "verdict": "PASS",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": [
+    {
+      "path": "units/U01/brief.json",
+      "bytes": 2209,
+      "sha256": "b641918e70ba60026c5756e2d13869bd4af5e43cf74cebb0da8a0d98c1f88a62"
+    },
+    {
+      "path": "units/U01/debrief.json",
+      "bytes": 4507,
+      "sha256": "8f3d5f6b5171b6e781f7251e6ca7a0992d70aaa6a6f27f3af4c72c7aca532d08"
+    }
+  ],
+  "feedback": {
+    "actionable_changes": [],
+    "do_not_touch": [
+      "the maker!=checker mandate framing",
+      "the disclosed search-summary caveat"
+    ]
+  },
+  "defects": [],
+  "socratic": {
+    "premise": "On independent re-check the executor's 13 findings meet every acceptance criterion.",
+    "counter": "Re-resolved each cited source independently and sought a broken/undated locator; none found, so the PASS HOLDS.",
+    "pivot": "If a single cited primary source failed to resolve, the verdict would flip to FAIL.",
+    "confidence": "high - sources re-resolved; the one search-summary figure was already disclosed.",
+    "horizon": {
+      "expedient": "Ship the narrow fix now and revisit the general case later.",
+      "durable": "Rewrite the whole path so the general case is handled once.",
+      "durable_cost": "One extra wave and a schema migration.",
+      "choice": "durable"
+    }
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER on the premise from the sources directly (not the executor's reasoning): it holds."
+  },
+  "panel": [
+    {
+      "lens": "correctness",
+      "verdict": "PASS",
+      "verifier_persona": "Adversarial Verifier (correctness)",
+      "summary": "criteria met, sources resolve"
+    },
+    {
+      "lens": "reproduce",
+      "verdict": "PASS",
+      "verifier_persona": "Reproducibility Auditor",
+      "summary": "re-resolved every locator; holds"
+    },
+    {
+      "lens": "guardrail",
+      "verdict": "PASS",
+      "verifier_persona": "Scope Red-Team",
+      "summary": "no out-of-scope / gold-plating"
+    }
+  ],
+  "verify_rounds": 2,
+  "converged": true
+}

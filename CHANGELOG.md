@@ -3,6 +3,24 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.18] — 2026-08-09
+
+- **`dag` 1.13.0 → 1.14.0 — drift and autonomy.** Ten offline post-hoc predicates (`I49`–`I54`,
+  `I56`–`I59`) that let a run see what it is spending itself on: a `horizon` record so a dialogue's
+  rejected alternative survives in the artifact, measurable plain-language prose bounds, a bounded
+  per-unit projection contract for the orchestrator's context, an append-only directive ledger so an
+  explicit maintainer request stops being indistinguishable from self-generated investigation, a
+  **recomputed** deliverable clock, a cap on consecutive non-shipping units per requirement, an
+  exit-neutral run-composition NOTE, and re-sequencing eligibility carrying the pre-amendment wave map
+  that makes it decidable at all.
+- **One declared REVISES.** A disjoint machine-decision channel lets a fully-automatic run reach
+  `DONE` **without forging a human attestation** — previously honesty and completion were mutually
+  exclusive. Every archived `signoff_confirmed: true` becomes permanently ambiguous, and that cannot
+  be repaired; the migration argument is in the plugin changelog.
+- **Two mechanisms deferred with stated adoption triggers** rather than quietly dropped, and two new
+  orchestrator conduct rules — including one that is explicitly a **named gap**, not a mechanism:
+  nothing bounds the orchestrator's own ad-hoc dispatches.
+
 ## [1.0.17] — 2026-08-06
 
 - **`dag` 1.12.1 → 1.13.0 — the frozen case-set contract.** A brief may freeze a `case_set[]` of

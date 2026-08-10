@@ -1,0 +1,22 @@
+{
+  "id": "A01",
+  "kind": "add_units",
+  "origin": {
+    "trigger": "human_request",
+    "directive_ref": "directives/H01.json"
+  },
+  "rationale": "The maintainer asked for the toolbar work directly.",
+  "scope_change": false,
+  "human_gate": true,
+  "dod_refs": [
+    "DoD-A"
+  ],
+  "fuel_cost": 1,
+  "fuel_before": 4,
+  "fuel_after": 3,
+  "frontier_wave": 2,
+  "units_added": [
+    "U03"
+  ],
+  "graph_revision_after": 2
+}

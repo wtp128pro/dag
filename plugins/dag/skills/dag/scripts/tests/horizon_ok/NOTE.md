@@ -1,0 +1,1 @@
+GREEN control for the I49 family. Every dialogue instance and every socratic block carries a horizon; the DS-2 instance's `expedient` is copied VERBATIM from a question's `recommended`, so the I49-3 anti-strawman join resolves. Its red twins differ in exactly one field each.

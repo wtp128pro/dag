@@ -1,0 +1,1 @@
+RED on I56-1. Three consecutive non-shipping units cite the same DoD item and NOTHING discloses it. ENFORCED as an after-the-fact disclosure and PROSE-ONLY at the instant it should fire: a dossier BACKFILLED at P8, after every token is spent, satisfies I56 exactly, and nothing in the run directory distinguishes the two.

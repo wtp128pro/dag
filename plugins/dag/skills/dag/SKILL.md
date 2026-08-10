@@ -104,7 +104,25 @@ so most are dead weight until their phase arrives.
    (`personas_confirmed`, `clarification_resolved`, `signoff_confirmed`) is an attestation the human
    decided; setting it without a human is a defect the validator cannot detect but you must not
    commit. (`cartography_done` and `decomposition_approved` are mechanical phase-completion flags, not
-   human attestations — no human touchpoint sits at cartography or decomposition.) **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
+   human attestations — no human touchpoint sits at cartography or decomposition.)
+   **Autonomy mode (1.14.0, I51) — the sentence above is UNEDITED and stays true.** Ask, at Phase 0/1,
+   with **no assumed default**, and record the answer as `fsm-state.run_mode` ∈ `manual` |
+   `critical-only` | `automatic`. In `critical-only` or `automatic`, a gate the machine closes is
+   recorded as `gates.<g>_machine_closed` **plus** a `machine-decisions.json` record — **never** as
+   `<g>_confirmed`, which remains an attestation that a human decided and is a defect to set without
+   one. `REQUIRED_GATES` is satisfied by `<g>_confirmed` **OR** `<g>_machine_closed`, which is what
+   lets an honest unattended run reach `DONE`: before this, a run that honoured the sentence above
+   could not finish, so **honesty and completion were mutually exclusive**. A machine-closed gate
+   requires an **independent analyst sub-agent** that receives the question, the options, your
+   *recommendation* and the run-dir path — and never your *reasoning* (the same maker-is-never-the-
+   checker line drawn for verifiers). A sub-agent cannot ask the human (`AskUserQuestion` is the main
+   agent's), so "automatic" can only ever mean **you deciding, having consulted an analyst** — never a
+   sub-agent answering. In `critical-only` a **critical** question still halts for the human;
+   `critical` is a predicate the validator RECOMPUTES from the record, not an adjective you may
+   narrow. **This REVISES the gate-attestation guarantee, and says so:** a run at `DONE` now asserts a
+   human signed off *or* a machine closed sign-off under a recorded mode with a recorded analyst.
+   Every archived `signoff_confirmed: true` becomes permanently ambiguous, and that cannot be repaired
+   — the fact was never recorded. It detects **conflation, never forgery**. **Harness-tool fallback (U10):** if `AskUserQuestion` / `TaskCreate` / `TaskUpdate` are
    unavailable, substitute a plain numbered question in your reply for the gate, and track unit state in
    `PROGRESS.md` instead of the task tools — the gates and the ledger are what matter, not the tool.
    **Continuation contract (U01).** Exactly two conditions license a stop: a human gate and a
@@ -468,6 +486,19 @@ the gates that already exist). The series has three round kinds:
   bound — grep `validate_run.py` for the `(stuffing)` / `(pages)` FAIL labels, :4104-4117 today). An
   item the human just authored in R-FORBID is auto-settled and never re-presented.
 
+**Horizon — close every dialogue instance with its own second pass (1.14.0, I49).** Before you close
+an instance, record a `horizon` on it: *name the **expedient** answer — it must be one you actually
+offered — the **durable** answer and what it **costs**, and which you recommend; if expedient wins,
+record the **debt** and the condition that forces revisiting.* The expedient string must match a
+question's `recommended` **verbatim** at DS-2/DS-4, which is what makes a strawman structurally hard:
+**you cannot strawman an option you already recommended.** An expedient choice owes a
+`debt.revisit_condition` and a `decisions_ref` that RESOLVES in `DECISIONS.md`; a durable choice must
+carry **no** `debt` at all, so `grep -l revisit_condition` is an exact inventory of the run's debts.
+On a genuinely mechanical surface the legal value is the two answers coinciding with
+`durable_cost: "no material horizon; the two answers coincide"` — **the obligation is to RECORD, never
+to manufacture**, and the same `horizon` block closes each `socratic` block in a debrief/verify.
+Adoption is closed: once one site carries a horizon, all of them must.
+
 **Anti-drift.** A round's page queue is FROZEN at round open — questions/items discovered
 mid-round are recorded and DEFERRED to the NEXT round, never appended live, so scope cannot
 silently grow inside a round; and a settled item is never re-asked without a `reopened_by`
@@ -578,6 +609,16 @@ file listing.
    unit" statement; an ABSENT key, once any unit has adopted the field, is a closure FAIL —
    the validator's **I21** makes forgot-vs-none-applicable mechanically distinguishable,
    offline (same adoption-closure + membership + brief-mirror shape as I20).
+   **Classify every unit by what it PRODUCES (1.14.0, I54) — `deliverable` ∈ `ships` | `informs`, on
+   `graph.json units[]`, written HERE by the planner.** `ships` means the unit's `outputs[]` include at
+   least one path **outside** the run directory — a change to the thing the human asked about.
+   `informs` means it produces a finding, a measurement, a document section or a decision input, and
+   nothing the human asked for changes when it lands. Writing it at plan time is the whole point: the
+   deliverable clock and the starvation cap are then computable **before** the units run and **without
+   trusting the agent being counted**. Once any unit carries it, every unit must (I54-1) — a counter
+   over a partly-labelled population reads LOW, which is worse than no counter. Be honest here: an
+   `informs` unit is not a lesser unit, and mislabelling investigation as `ships` disarms the only
+   mechanism that can see a run spending itself on itself.
 3. Build the **dependency DAG**; topologically sort into **waves** (units within a wave
    are independent → run in parallel). Reject cycles.
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
@@ -836,10 +877,47 @@ labelled attestation.
 
    | Guard | → | Action |
    |-------|---|--------|
-   | `verdict == PASS` | **DONE** | Mark the unit done (`TaskUpdate`); append any *generalizable* lesson to `LEARNINGS.md` (see Ledger discipline → LEARNINGS entry schema); propagate handoff notes into downstream briefs; update `PROGRESS.md`. |
+   | `verdict == PASS` | **DONE** | Mark the unit done (`TaskUpdate`); append any *generalizable* lesson to `LEARNINGS.md` (see Ledger discipline → LEARNINGS entry schema); propagate handoff notes into downstream briefs; update `PROGRESS.md`. **Then recompute the starvation streak (1.14.0, I56)** — see below. |
    | `verdict == FAIL ∧ retries < 2` | **RETRY** | `retries += 1`; embed the prior `feedback` (verbatim) in the next executor brief; re-execute, then re-verify (**the repair INVALIDATES the prior panel** — see below). Log the iteration in `PROGRESS.md`. |
    | `verdict == FAIL ∧ retries == 2` | **ESCALATE** | Retry budget exhausted → treat as a material disagreement → **Phase 7**. |
    | `verdict == DISAGREE` | **ESCALATE** | Objective-irresolvable executor↔verifier split → **Phase 7**. |
+
+   **Requirement starvation — the cap that fires with no maintainer utterance (1.14.0, I56).** At each
+   `ADJUDICATE → DONE` row, for each DoD item this unit cites, recompute `run(d)`: order the units that
+   reached DONE in **wave order, tie-broken by unit id**, restrict to units whose `dod_refs` contain
+   *d*, and take the trailing streak whose `deliverable` is **not** `ships`. **Persist nothing** — with
+   a planner-written label a stored counter is a second copy of a derivable fact, and a second copy is
+   a divergence waiting to happen. When `run(d)` reaches `gates.starvation_cap_n` (**default 3**),
+   write `units/<id>/disagreement.md` **plus its `.json` sidecar** with `origin:
+   "requirement-starvation"` and put the trade to the human through the **existing Phase-7 path** — no
+   new gate, no new phase, no new state, no new file name. The dossier MUST carry, in order: **what
+   starved** (the DoD item verbatim and the number it hit); **what was spent** (unit ids, summed
+   `tokens_consumed`, sub-agents dispatched, fuel remaining — numbers, not adjectives); **what was
+   learned** (one line per unit — non-shipping is not worthless, and the human is choosing whether to
+   buy more of it); **what remains unknown**, as a question someone can answer; and **three options,
+   each in full, exactly one `★ Recommended`** — keep investigating (with the next unit's projected
+   cost), accept partial (with what ships and what does not), drop it (with what breaks downstream and
+   whether it is reversible). In `automatic` mode the dossier is written in full and routed to the
+   **machine-decision channel** instead, never to a `disagreement.*` record — that record's mere
+   presence compels a DS-4 dialogue entry whose only decision slot is reserved for a verbatim human
+   answer. `N = 3` is **chosen, not measured**: the single incident behind it supports four and says
+   nothing about three. Raise `gates.starvation_cap_n` to tune it; `gates.starvation_cap_enabled:
+   false` switches it off, which converts the FAIL to a greppable NOTE rather than to silence.
+
+   **Deliverable clock — say it before you are asked (1.14.0, I54).** After each wave, count the units
+   adjudicated since the last unit marked `deliverable: "ships"` passed. If that count has reached
+   `fsm-state.progress_clock.surface_threshold` (default 3), say so in your reply, in plain words,
+   **before anything else**: how many units have finished, how long the run has been going, and the
+   last thing that actually shipped. **Do not wait to be asked.** Take the elapsed time from `date`, in
+   the same command that writes the line — never from memory (L3: an orchestrator under narrative
+   momentum invents plausible sequential clock readings, measured drifting ~7h from unforgeable
+   sources). Write all three: a `PROGRESS.md` line, a `progress_clock.surfaced_at[]` record, and the
+   line in your next reply. The counter is **recomputed by the validator** from `graph.json` +
+   `units/*/verify.json`, so a number you narrate rather than derive is a FAIL. A crossing is a
+   **disclosure, not a choice** — it is explicitly NOT critical, never interrupts in `critical-only`,
+   and the choice it might prompt belongs to the starvation cap above. Keep these records **out of**
+   `machine-decisions.json`: an `audience: "machine"` disclosure decides nothing, and mixing it into
+   that channel destroys the one number a human reviewing an unattended run needs.
 
    **Retries are capped at 2** (`fsm-state.loop.retries` / `fsm-state.units[].retries`, each schema
    `maximum: 2` — there is no top-level `fsm-state.retries` field; the top level is
@@ -945,7 +1023,23 @@ frozen.** Depth: references/state-machine.md §4 (I3b/I3c/I17/I18/I19), referenc
 
 **When.** Only **between** unit adjudications, on a trigger: `debrief_handoff` (a debrief says "we also
 need X"), `footprint_breach` on a **not-yet-dispatched** unit, `p7_resolution` (the human approves a
-split at the disagreement gate), or `human_request`.
+split at the disagreement gate), `human_request`, or `priority_change` (1.14.0 — the re-sequencing
+trigger; a unit's own debrief handoff may **not** fire one, or a run could re-order itself once per
+unit).
+
+**A maintainer request must leave a record, and be placed where it can actually run (1.14.0, I53).**
+When the maintainer asks for something mid-run, write an append-only `directives/H<NN>.json` carrying
+their words **verbatim**, a `transcript_ref`, the wave you received it in, and `human_gate: true`; put
+`origin.directive_ref` on the amendment that acts on it; and set `priority_class: "directive"` on the
+units it adds. That class is **derived, never asserted** — the validator traces it back to a
+directive-origin amendment with a resolving ref, so self-promotion with no ledger row FAILs. **Place a
+`human_request` unit at `frontier_wave` itself — the earliest wave the frontier rule permits — not
+above it**, unless a dependency forbids it. Two honest limits, stated so nobody over-reads this: the
+frontier is the *same* wave as a queued investigation, not ahead of it, so intra-wave dispatch order
+still decides; and nothing mechanical stops a fabricated `verbatim_request` — what changes is that the
+lie now costs a **quotation**, in a file the maintainer can read, and moves the act from *unmarked* to
+*marked and false*. The failure this does **not** catch at all is the inverse one: a real directive you
+never file leaves no row for any predicate to fail on. **File it.**
 
 **Kinds (whitelist — nothing else exists; free-form mutation is forbidden):**
 
@@ -955,6 +1049,7 @@ split at the disagreement gate), or `human_request`.
 | `split_unit` | replace one **unexecuted** unit with ≥2 children covering its tags + every acceptance criterion (`criteria_map`); parent id retired, never reused | autonomous (scope-preserving) |
 | `add_edges` | add edges whose **target** is unexecuted; layering must still hold | autonomous |
 | `cancel_unit` | retire an unexecuted unit without replacement | **always human-gated** (drops planned scope) |
+| `resequence` | re-derive the wave assignment of `pending`, **un-briefed** units after a priority change; adds and retires nothing; carries the pre-amendment wave map (`wave_snapshot`) and a non-empty `resequenced[]`; never touches a unit holding any artifact | autonomous (`scope_change: false`, `human_gate: false`) |
 
 **Frozen executed prefix (I17) — the load-bearing rule.** No amendment may modify, retire, re-wave, or
 rewire a unit that has a `debrief.json`/`verify.json` or is executing/verifying/passed/failed/blocked/
@@ -966,6 +1061,19 @@ they remain attested; dispatch-timing stays Limitation J.) **The correction loop
 exited, bypassed, or interrupted by an amendment** — a FAIL that "needs a split" still exits via RETRY or
 ESCALATE→P7, where the human may approve a split as the T11 resolution. Amendments are **never** used to
 dodge a FAIL.
+
+**Re-sequencing eligibility (1.14.0, I58) — narrower than the frozen prefix, on purpose.** A unit may
+be re-waved only if its status is `pending` **and** its directory holds none of
+`brief.*`/`debrief.*`/`verify.*`/`disagreement.*`. Keying this on debrief-presence alone (all I17
+actually checks) is not merely weaker — it is a **trap**: nothing fails at the instant of the re-wave,
+and when that unit's debrief finally lands, I17's frozen-content anchor emits `wave X != brief Y`,
+whose only repair is to **undo the re-sequencing you just spent fuel on**. Record `wave_snapshot` (every
+pre-amendment unit id → its wave): without it, the clause that catches a *silent* re-wave of a unit the
+record never names is not decidable by any predicate, because a run directory holds one `graph.json`
+and no history. A resequence costs **1 fuel** under the existing formula, so termination is bought by
+the fuel budget alone — there is **no monotone measure over the wave assignment**, and a unit may
+legally go 5 → 3 → 5. A record that moves nothing is a FAIL, not a free re-run. What this does **not**
+claim: that the resulting order is *good*. Wave minimality stays unenforced.
 
 **Fuel (I18) — termination.** Each amendment costs `max(1, |units_added| − |units_retired|)` fuel;
 `expansion.fuel_remaining` decreases monotonically (schema max 32). **Fuel exhausted + an amendment
@@ -1156,6 +1264,40 @@ checkable `applies()` predicate: references/self-learning-loops.md §4. **Across
 `supersedes`, `scope.model` narrowing, and the `V_tag_eff = global ∪ project ∪ run_local` domain) is
 Phase-0.5 intake + Phase-8 persist as prose steps; the validator only checks it **post-hoc** — see
 references/self-learning-loops.md §4.4.
+
+## The run directory is your working memory — not only your safety net
+
+**Turn contract (1.14.0, I52/I59).** *You hold no history between obligations. Before discharging any
+obligation, NAME the run-directory file you will read to discharge it, and read it.* Name it in the
+`PROGRESS.md` entry that records the discharge — an obligation discharged from memory is an obligation
+discharged from nothing, and I59 fails an entry that names no source.
+
+**Stamp the obligation as `O-<NN>`, hyphenated, and name a file that EXISTS.** The hyphen is not
+decoration: a bare `O13` collides with the `O1`–`O4` evidence-admissibility vocabulary
+`references/evidence-standards.md` already defines and this file already cites, and keying the check
+on the bare form reds a run for correctly citing dag's own evidence rules. The path must resolve
+inside the run directory — without that, `N/A`, `and/or` and `50/50` all satisfied the check, so
+entries reading *"discharged from memory, no file read"* passed the predicate whose whole point is
+that they should not. **Until you stamp the token, I59 quantifies over an empty set and says so:** its
+OK row reads `VACUOUS` rather than pretending to a green it did not earn.
+
+This promotes the sentence below from the failure path to the **normal** path, and it is the whole
+mechanism: **it adds no agents.** Measured, the alternatives all move cost rather than remove it — one
+orchestrator agent per phase re-reads a 210,242-byte preamble nine times (~769K tokens of *new*
+reading to avoid ~85K of held reading); a per-unit digest broker is +1 agent per unit at a measured
+18,722-token floor each. Meanwhile per-unit artifact traffic was measured at **106,686 tokens**, which
+exhausts a 200K window at **N ≈ 1.07 units**.
+
+**Bounded projections.** Where `fsm-state.context_contract` is adopted, each landed debrief+verify pair
+gets a `units/<Uxx>/adjudication.json` carrying exactly the fields the adjudication and fence-doctrine
+obligations consume and nothing else, under `projection_ceiling_bytes` (12,000 is an *assumed*
+parameter, not a measurement — tune it on first use). Read the projection; read the whole pair only
+when the projection is missing or over ceiling, **and say so in `PROGRESS.md` when you do**.
+
+**What this buys, stated at the strength it has.** It makes statelessness **legible, never true**: no
+predicate can establish you *read* the named file rather than answering from residual context. Adopt it
+for the context relief — the source recommendation's claimed ~101,808-token-per-unit saving is
+**withdrawn** as unreachable at this ceiling.
 
 ## Failure & resumption
 

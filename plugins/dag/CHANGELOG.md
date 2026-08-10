@@ -3,6 +3,170 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] — 2026-08-09
+
+**Drift and autonomy — ten offline predicates, and one declared REVISES.** The motivating incident:
+*a maintainer asked for a piece of work; the run spent itself investigating around it instead, and
+they only found out because they asked.* The diagnosis is that this is **two independent causes with
+one shared root** — the requested work could not be moved forward once the plan was fixed, and the
+investigation spiral could not be *seen* while it was happening. The shared root is that dag measured
+how **big** a run is and never what it was **spending itself on**: its budgets bound the total amount
+of work, and nothing anywhere priced the *mix* of work that ships something against work that only
+informs.
+
+### Added — invariants (all OFFLINE, POST-HOC, none a live guard on `LT7`)
+
+- **`I49` horizon record.** Every Socratic dialogue instance and every `socratic` block closes with a
+  `horizon`: the expedient answer, the durable one, what durable costs, which was chosen, and — iff
+  expedient — the debt and the condition that forces revisiting. The anti-strawman join requires the
+  expedient string to match a question's `recommended` **verbatim**: *you cannot strawman an option
+  you already recommended.* Armed on **adoption AND the 1.14.0 stamp**; the version conjunct is a
+  measured repair, because a pure content trigger armed on an archived run that had dogfooded the
+  field while designing it.
+- **`I50` prose bounds — OBSERVABLE, and the downgrade is itself the finding.** Scored over prose
+  lines only, so tables, tallies and fenced commands are exempt by construction and the rule never
+  asks anyone to delete a number. The source recommendation graded this **ENFORCED** on thresholds
+  fitted against **four** files. Re-measured over the whole corpus — all **127** ledger files across
+  the 21 archived runs — **48 (37%) breach at least one bound, in 17 of the 21 runs**, and the
+  breaches are real, not scorer artifacts (the longest is a genuine 95-word sentence). **Four of the
+  seven ledgers in the run that designed this predicate fail it.** A hard FAIL there would be routed
+  around rather than obeyed, which is this document's own argument against a gate that becomes
+  noise, turned on itself. So it **reports and does not fail**, with a stated promotion trigger.
+  **One arm of three ships**; the other two are deferred behind a `GLOSSARY.md` that does not exist
+  yet.
+- **`I51` machine-decision channel — the one REVISES.** See below.
+- **`I52` projection ceiling** and **`I59` obligation source-naming.** The run directory is promoted
+  from failure-path fallback to the orchestrator's declared working memory, with a size-capped
+  per-unit projection. Adds **no agents**.
+- **`I53` directive provenance.** An append-only `directives/` ledger, an `origin.directive_ref`, and
+  a **derived** `priority_class`, so an explicit maintainer request stops being indistinguishable from
+  a self-generated investigation.
+- **`I54` deliverable clock.** `graph.json units[].deliverable` (`ships` | `informs`,
+  planner-written) plus a `progress_clock` the validator **RECOMPUTES** — the arm that makes the
+  number evidence rather than narration. It warns in flight and blocks only at sign-off.
+- **`I56` requirement-starvation disclosure.** A cap on consecutive non-shipping units per DoD item,
+  routed through the **existing** Phase-7 path. Defines no field and stores no counter.
+- **`N-I57` run composition.** An exit-neutral advisory NOTE publishing what a run spent itself on.
+- **`I58` re-sequencing eligibility.** A new `resequence` amendment kind carrying the pre-amendment
+  `wave_snapshot` — state the run did not otherwise keep, and without which the clause that catches a
+  *silent* re-wave is not decidable by any predicate.
+
+### Changed — **REVISES: gate attestation** (`I51`), with its migration argument
+
+Today a run at `DONE` asserts a human signed off. **After this, a run at `DONE` asserts a human signed
+off *or* a machine closed sign-off under a recorded `run_mode` with a recorded analyst.** That is a
+weaker sentence, and it is made openly rather than by editing `SKILL.md`.
+
+*Why it is not a weakening in practice.* `SKILL.md`'s *"setting it without a human is a defect"* stays
+literally true and **unedited**: a machine-closed gate sets a **different** key
+(`gates.<g>_machine_closed`) that no human ever sets, backed by a `machine-decisions.json` record
+whose `decided_by` is a `const` the schema makes it structurally impossible to type `"human"`. Only
+the **satisfaction test** for `REQUIRED_GATES` is widened to `<g>_confirmed OR <g>_machine_closed`;
+the table itself is untouched, so the spec-drift checker still diffs it. Before this, honesty and
+completion were **mutually exclusive** — a run that honoured that sentence could not reach `DONE`.
+
+*What stops working in existing run directories — three things, one unrepairable.* (1) Nothing fails,
+but **only** because `I51-1` is version-gated: `run_mode` is a new top-level property on a closed
+object, and an unarmed presence check would red every archived run. (2) Every archived
+`signoff_confirmed: true` becomes permanently **ambiguous** — a human, or a run written before the
+distinction existed — and this **cannot be repaired**, because the fact was never recorded; it breaks
+a reader's inference, not a predicate. (3) External consumers of `gates` will read a fully-automatic
+run as unfinished until taught the `OR`.
+
+*The honesty boundary, stated rather than implied.* It detects **conflation, never forgery**. Nothing
+detects whether a human genuinely answered when `*_confirmed` is set, nor whether the analyst was
+actually consulted, was independent, or was fairly briefed. What the design buys is narrower and worth
+saying plainly: **it removes the incentive to forge, by making the honest path the only one that
+reaches `DONE`.**
+
+### Deferred — with stated adoption triggers, not quietly dropped
+
+- **`I55` consequence-proportional verification depth (escalation arm).** Its published
+  `+4 sub-agents / ~76,000 tokens` reproduces a *citation* proxy; the structural proxy the design
+  implies gives **11 of 14 units firing, +22 sub-agents, ~416,000 tokens — 89.8% of the entire
+  ten-recommendation bill**. Its own panel ruled the price not earned, and on the motivating incident
+  it moves in the **wrong direction**: its escalation triggers are exactly the profile of the shadow
+  investigations that caused the drift. **Not refuted** — its monotone join was verified sound across
+  96 of 96 states. The **zero-cost recording slice DID ship** as two optional, unread schema keys
+  (`debrief.consumed_upstream[]`, `verify.consequence`) so the deferral is an order to measure.
+- **The `hk_fuel` housekeeping counter** (the enforced half of `I57`), on four grounds including one
+  added here: **its exhaustion route has no defined path in fully-automatic mode.**
+
+Both are recorded in `references/state-machine.md` §"Deferred mechanisms (1.14.0)" with their
+triggers.
+
+### Added — conduct rules (`references/orchestrator-conduct.md`)
+
+- **`R20`** — keep self-check phrasing (*"double-check your answer"*, *"verify before responding"*)
+  out of briefs. **Read narrowly: this is not a licence to verify less.** dag's verification is
+  structural — maker ≠ checker, a separate agent blind to the executor's reasoning — and Non-Goal 2
+  forbids touching it.
+- **`R21`** — **a named gap, not a mechanism.** dag bounds units, retries and verify rounds; **nothing
+  bounds the orchestrator's own ad-hoc dispatches**, which were the majority of the spend in the run
+  that produced this release. The deliverable clock's tick is the *unit*, so a unit that consumes
+  seventeen agents advances it by zero: **intra-unit spend is invisible to every mechanism here.**
+  Until `hk_fuel` ships this is a rule you write down, not a bound you get.
+
+### Verification, and what the red-team passes found
+
+428 of 428 fixture rows green on **both** validator backends (36 of them new, each a red/green pair
+built from one shared base by mutating exactly the field under test); `spec_check` PASS 8 / FAIL 0;
+`normalize_artifacts.py --self-test` 0 failures; and **every one of the 22 archived runs under
+`.wip/` produces a byte-identical FAIL-line count before and after**, with zero `I49`–`I59` rows.
+
+Four independent adversarial passes were run over the ten predicates before this landed. They
+returned **31 confirmed findings**, and the serious ones are recorded here because the alternative
+is a changelog that describes the design rather than what shipped:
+
+- **The `REVISES` had a hole.** The `REQUIRED_GATES` satisfaction widening was **unversioned** while
+  every arm policing `<g>_machine_closed` is gated at 1.14.0 — so below that stamp a run reached
+  `DONE` with no human, no machine record, exit 0 and **zero `I51` rows**, while the validator
+  printed *"closed by the MACHINE channel, not by a human"*. Not adversarial-only: `--restamp` is
+  opt-in and unenforced. Fixture `mode_ver_bypass`.
+- **I51 was blind in the record→flag direction.** A run declaring `manual`, with
+  `signoff_confirmed: true`, a human DS-5 dialogue **and** a machine record for that gate passed
+  clean while I51's own green line asserted *"channels disjoint"*. Fixture `mode_record_conflation`.
+- **I52 checked size and nothing else** — an empty file, a directory, or a projection flatly
+  contradicting its own `verify.json` all passed, on the one artifact the orchestrator reads
+  *instead of* the pair.
+- **I49-2 was defeated by a one-character anchor** (`DECISIONS.md#a` resolved), and I49 built its
+  site set from schema-validated docs — so the violating document was rejected one layer earlier and
+  I49 printed `PASS … debt iff holds` over a set it had silently shrunk.
+- **I56's disclosure match was a substring**: a dossier "disclosed" `DoD-A` by mentioning the path
+  `docs/DoD-Archive.md`. And a `ships` unit whose verification **FAILED** reset the streak.
+- **I58-4's domain was chosen by the record's own author** (omit the moved unit from `wave_snapshot`
+  and the silent re-wave escaped), and **I58-4b could not go green** — it demanded a `wave_snapshot`
+  the schema forbids on the kind it demanded it from.
+- **I53-4 was dead code**: `brief.schema.json` never declared `priority_class`, so the arm skipped
+  every unit while advertising itself as strengthening the frozen prefix.
+- **I50 failed a freshly scaffolded, empty run**, and **I59's token collided with the `O1`–`O4`
+  evidence vocabulary the skill already ships.**
+
+Every one is fixed, and each fix carries its measurement in the code at the site it repairs.
+**What the passes could not break:** the crash class (68 malformed-shape runs across both backends,
+zero tracebacks), exit-neutrality of `N-I57` (byte-identical stdout after ablation, identical exit
+codes on a differing pair), the live-guard prohibition (no `return`/`raise`/`sys.exit`/write in any
+of the ten blocks), and archive silence — which is non-vacuous, because `mode_declared_missing` goes
+red at the shipping stamp.
+
+**The pre-existing crash the red team found IS fixed here** — that disclosure said it was not, and
+that sentence is corrected rather than left standing. A `units/<id>/` directory the validator cannot
+read raised an unguarded `PermissionError` in the `verify_p*` scan and aborted before any `RESULT:`
+line, silently disabling every predicate after it. It now yields a FAIL row **naming the unit** and
+the validator still reaches its summary (`validate_run.py:696-717`, fixture
+`scripts/tests/unit_dir_unreadable/`).
+
+The fix was produced by a **dag run on this branch**, dogfooding the machinery above end to end
+(`.wip/2026-08-10_072606_permission-crash-fix/`, `manual` mode, signed off at `DONE`, validator
+clean). Cartography found a second failure mode the crash report did not name: `os.path.exists`
+returns a **silent False** on an unreadable directory, so the unit read as *empty* **before** the
+crash was reached — guarding only the raising line would have traded a loud crash for a quiet lie.
+The guard therefore sits at the top of the loop and catches `OSError`, not `PermissionError` alone.
+
+**Bounded, not absolute:** mode `444` (listable but not traversable) still drops a unit silently,
+byte-identically pre- and post-guard. That is disclosed in the run's `SYNTHESIS.md` as a residual and
+debted, not claimed closed.
+
 ## [1.13.0] — 2026-08-06
 
 **The frozen case-set contract (`I48`).** A brief may now freeze a `case_set[]` — named checks, each

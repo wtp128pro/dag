@@ -159,6 +159,9 @@ the per-unit `retrieval_coverage`/`guardrail_compliance` blocks above).
 - `defects[]` — `PASS ⇒ no blocker/major` (minor observations allowed — I6 revised, PR1); `FAIL ⇒ ≥1`, each `{severity (required; blocker|major|minor), criterion
   (required; verbatim from brief.acceptance_criteria — cross-checked by the validator), minimal_repro
   (optional), fix_direction (optional)}`
+- `socratic.horizon{...}` — OPTIONAL (1.14.0, I49), same shape and same rules as the debrief's.
+- `consequence{measured_at, ...}` — OPTIONAL (1.14.0). What this unit's findings turned out to
+  DECIDE. **No predicate reads it**; it is the recording slice for the deferred `I55`.
 - `socratic{premise, counter, pivot, confidence}` — the verifier's own 4-key block on its verdict
 - `premise_check{executor_premise_quoted, is_load_bearing, counter_reran_independently, outcome}`
 

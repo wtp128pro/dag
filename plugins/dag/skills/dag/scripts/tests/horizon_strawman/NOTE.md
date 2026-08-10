@@ -1,0 +1,1 @@
+RED on I49-3, the anti-strawman join. Differs from horizon_ok in ONE STRING: the DS-2 instance's horizon.expedient is a sentence appearing in no question's `recommended`. If BOTH this and horizon_ok went red, the test would be measuring JSON validity, not the join.

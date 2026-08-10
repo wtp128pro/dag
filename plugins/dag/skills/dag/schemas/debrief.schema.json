@@ -50,7 +50,50 @@
         "premise": { "type": "string", "minLength": 1 },
         "counter": { "type": "string", "minLength": 1 },
         "pivot": { "type": "string", "minLength": 1 },
-        "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" }
+        "confidence": { "type": "string", "pattern": "^(high|medium|low)\\b" },
+        "horizon": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "I49 (1.14.0, Ask 1) — OPTIONAL fifth key; the four-key `required` list above is UNCHANGED, so no archived debrief becomes invalid. Same shape as dialogues.schema.json's `horizon`. In SELF-interrogation mode there is no prior offered string to join against, so I49-3's anti-strawman join does NOT apply here and strawman detection degrades to OBSERVABLE — stated rather than claimed away.",
+          "required": ["expedient", "durable", "durable_cost", "choice"],
+          "properties": {
+            "expedient": { "type": "string", "minLength": 1, "pattern": "\\S" },
+            "durable": { "type": "string", "minLength": 1, "pattern": "\\S" },
+            "durable_cost": { "type": "string", "minLength": 1, "pattern": "\\S" },
+            "choice": { "type": "string", "enum": ["durable", "expedient"] },
+            "debt": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["revisit_condition", "decisions_ref"],
+              "properties": {
+                "revisit_condition": { "type": "string", "minLength": 1, "pattern": "\\S" },
+                "decisions_ref": { "type": "string", "minLength": 1, "pattern": "\\S" }
+              }
+            }
+          },
+          "allOf": [
+            { "$comment": "I49-2 strict iff, forward half: debt REQUIRED when choice == expedient.",
+              "if":   { "properties": { "choice": { "const": "expedient" } }, "required": ["choice"] },
+              "then": { "required": ["debt"] } },
+            { "$comment": "I49-2 strict iff, backward half: debt FORBIDDEN when choice == durable.",
+              "if":   { "properties": { "choice": { "const": "durable" } }, "required": ["choice"] },
+              "then": { "not": { "required": ["debt"] } } }
+          ]
+        }
+      }
+    },
+    "consumed_upstream": {
+      "type": "array",
+      "description": "OPTIONAL. U08 RECORDING SLICE ONLY (1.14.0) — the executor declares which upstream unit outputs it ACTUALLY used: the machine-readable inverse of a citation count, authored by the CONSUMER, after the fact. NO PREDICATE READS THIS FIELD and none is intended to: the consequence-proportional-depth ESCALATION arm (I55) is DEFERRED, priced at 89.8% of the whole ten-recommendation bill, and its own verification panel ruled the price not earned. This field exists so the deferral is an ORDER TO MEASURE rather than a burial — write it for one full run, convene nothing extra, then measure the real firing rate. See references/state-machine.md 'Deferred mechanisms'.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "used_for"],
+        "properties": {
+          "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "used_for": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "artifact_ref": { "type": "string", "minLength": 1 }
+        }
       }
     },
     "acceptance_self_check": {

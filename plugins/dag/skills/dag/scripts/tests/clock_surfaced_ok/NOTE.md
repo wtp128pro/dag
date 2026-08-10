@@ -1,0 +1,1 @@
+GREEN control for clock_unsurfaced, differing by ONE added surfaced_at record. The audience field is 'human' here; note that a machine-AUDIENCE disclosure is NOT a machine-DECISION and must never land in machine-decisions.json (Collision 8) — I51 quantifies over decisions only, or the count of machine-made calls becomes uninterpretable.

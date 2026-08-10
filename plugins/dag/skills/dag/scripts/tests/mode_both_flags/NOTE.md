@@ -1,0 +1,1 @@
+RED on I51-2. Differs from mode_machine_ok by ONE ADDED BOOLEAN: the run claims BOTH a human and a machine closed sign-off. One gate, two deciders. This is the arm that stops the machine path reaching the human vocabulary even by mistake.

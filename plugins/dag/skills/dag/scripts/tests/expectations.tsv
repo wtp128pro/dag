@@ -373,7 +373,7 @@ i44_override_quiet_control	1	!(accepted-incomplete override)	--quiet
 i44_no_signoff_antecedent	0	RESULT: PASS
 i44_closed_current_fail	0	I44 sign-off closure (signoff_confirmed with 1 executed unit(s); all verified and current)
 i45_skew_note	0	N-I45 version-skew visibility
-i45_no_skew_overfire	0	suppressed 7 version-gated arm(s) whose other preconditions HELD: ['I27-T1', 'I35-I40-T1', 'I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1', 'I48-T1']
+i45_no_skew_overfire	0	suppressed 8 version-gated arm(s) whose other preconditions HELD: ['I27-T1', 'I35-I40-T1', 'I38-T1v', 'I39-4-semver1', 'I41-T1', 'I42-1b-T1', 'I48-T1', 'I51-1']
 i46_nonconverged_pass_at_signoff	1	I46 non-converged PASS (units/U01)
 i46_nonconverged_midloop_note	0	N-I46 non-converged PASS (units/U01)
 i46_converged_true_positive	0	I46 non-converged PASS (1 verify doc(s) declare converged
@@ -432,5 +432,47 @@ i46_nonconverged_fail_verdict	0	!I46 non-converged PASS (units/U01)
 # the FAIL->PASS move is attributable to the version gate alone. _green's NEGATIVE N-I45 pin is
 # load-bearing: it is the only thing that stops an armed green decaying into a suppressed green.
 i48_counterfactual_fires	1	I48 case-set contract (units/U01 C2): non_vacuity observation_ref multiset
-i48_counterfactual_suppressed	0	suppressed 1 version-gated arm(s) whose other preconditions HELD: ['I48-T1']
+i48_counterfactual_suppressed	0	suppressed 2 version-gated arm(s) whose other preconditions HELD: ['I48-T1', 'I51-1']
 i48_counterfactual_green	0	!N-I45 version-skew visibility
+
+# --- 1.14.0 drift & autonomy (I49, I50, I51, I52, I53, I54, I56, I58, I59) --------------------
+# Every row below is one HALF of a red/green pair built from the SAME base (i48_counterfactual_green)
+# by mutating exactly the field under test. A '!'-prefixed column 3 is a NEGATIVE pin: the substring
+# must be ABSENT, which is what makes a green control evidence rather than silence.
+horizon_ok	0	!  FAIL  I49 horizon record
+horizon_partial	1	I49 horizon record (units/U01/verify.json:socratic)
+horizon_strawman	1	I49 horizon record (dialogues.json[p2])
+horizon_debt_unresolved	1	debt.decisions_ref does not resolve
+horizon_debt_on_durable	1	I49 horizon record (units/U01/debrief.json:socratic)
+prose_over_bounds	0	NOTE  N-I50 prose bounds (DECISIONS.md): longest sentence 100 > 60 words
+prose_accepted	0	N-I50 prose bounds (DECISIONS.md) (ACKNOWLEDGED in fsm-state.accepted_prose)
+prose_accepted_malformed	1	I50 prose bounds (accepted_prose malformed)
+mode_machine_ok	0	closed by the MACHINE channel
+mode_both_flags	1	I51 machine-decision channel (I51-2 exclusivity, signoff)
+mode_critical_narrowed	1	I51-4 critical recomputation
+mode_declared_missing	1	I51 machine-decision channel (I51-1 mode declared)
+projection_ok	0	!  FAIL  I52 projection ceiling (units/U01)
+projection_absent	1	I52 projection ceiling (units/U01)
+projection_over_ceiling	1	> ceiling 200 B
+obligation_unsourced	1	I59 obligation source-naming (PROGRESS.md:3)
+directive_ok	0	!  FAIL  I53 directive provenance (amendments
+directive_unbacked	1	with no origin.directive_ref
+directive_selfpromoted	1	I53 directive provenance (graph.json units[U03])
+clock_ok	0	!  FAIL  I54 deliverable clock (I54-2
+clock_narrated	1	I54 deliverable clock (I54-2 recomputation)
+clock_unclassified	1	I54 deliverable clock (I54-1 classification)
+starvation_fires	1	I56 requirement-starvation disclosure ('DoD-A')
+starvation_reset	0	!  FAIL  I56 requirement-starvation disclosure ('DoD-A')
+starvation_disclosed	0	!  FAIL  I56 requirement-starvation disclosure ('DoD-A')
+starvation_disabled	0	N-I56 requirement-starvation disclosure
+clock_unsurfaced	1	I54 deliverable clock (I54-3 disclosure)
+clock_surfaced_ok	0	!  FAIL  I54 deliverable clock (I54-3
+resequence_ok	0	!  FAIL  I58 re-sequencing eligibility (amendments/A01.json)
+resequence_executing	1	I58 re-sequencing eligibility (amendments/A01.json)
+resequence_vacuous_and_silent	1	I58-4
+prose_short_corpus_ok	0	!N-I50 prose bounds
+obligation_vacuous_ok	0	I59 obligation source-naming (VACUOUS: 0 `O-<NN>` obligation tokens
+directive_class_drift	1	I53 directive provenance (units/U01)
+mode_ver_bypass	1	gate ordering
+mode_record_conflation	1	I51 machine-decision channel (I51-2 exclusivity by record, signoff)
+unit_dir_unreadable	0	!unit directory could not be read

@@ -11,6 +11,28 @@
 Each unit's `Tags` are mirrored into its `brief.md` and drive pattern-scoped learning
 propagation (a `"tag:<T>"`-scoped LEARNINGS entry force-injects into every unit carrying `T`).
 
+## Per-unit deliverable class (`deliverable` — emit on EVERY unit, 1.14.0)
+
+Every unit carries **`deliverable`**: `"ships"` or `"informs"`, written **here, by the planner**.
+
+- **`ships`** — the unit's `outputs[]` include at least one path **outside** the run directory: a
+  change to the thing the human asked about.
+- **`informs`** — it produces a finding, a measurement, a document section or a decision input, and
+  nothing the human asked for changes when it lands.
+
+Writing it at plan time is the whole point: the deliverable clock (`I54`) and the starvation cap
+(`I56`) are then computable **before** the units run and **without trusting the agent being
+counted**. Once any unit carries it, every unit must — a counter over a partly-labelled population
+reads LOW, which is worse than no counter.
+
+**Be honest here.** An `informs` unit is not a lesser unit, and the temptation runs the other way:
+labelling investigation `ships` disarms the only mechanism that can see a run spending itself on
+itself. Note what no predicate checks — the label's *correctness*. `I54-1` requires the value to be
+present and `I54-2` recomputes the counter from the same labels, so a **consistent mislabelling is
+invisible to both**. What the design buys is legibility, not enforcement: an `informs` streak that
+reaches the cap with no dossier is a detectable FAIL, and a mislabelled `ships` unit is a claim about
+the run's own deliverable that a maintainer reading `graph.json` can contradict.
+
 ## Per-unit DoD / non-goal binding (`dod_refs` / `non_goal_refs` — emit on EVERY unit)
 Every unit row above carries **`dod_refs`** and **`non_goal_refs`**, mirrored into `graph.json`'s
 unit objects and each unit's `brief.json` sidecar (the scaffolded default — do not delete them):

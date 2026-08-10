@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/machine-decisions.schema.json",
+  "title": "Machine-decision channel (I51, Ask 3 — fully automatic mode)",
+  "description": "Run-root machine-decisions.json. One record per gate (or DS-4 surface) closed by the MAIN AGENT under a recorded run_mode, having consulted an independent analyst sub-agent.\n\nWHY A SEPARATE FILE AT ALL. Today there is exactly one gate vocabulary and it means 'a human decided': SKILL.md states a gate flag 'is an attestation the human decided; setting it without a human is a defect the validator cannot detect but you must not commit.' But REQUIRED_GATES makes signoff_confirmed mandatory for DONE — so a run that HONOURS that sentence cannot finish. Honesty and completion are, today, mutually exclusive. This channel resolves that without editing the sentence: *_confirmed keeps its meaning byte for byte, and a machine-closed gate sets a DIFFERENT key (gates.<g>_machine_closed) backed by a record here.\n\nTHREE INDEPENDENT LAYERS make a machine call unmistakable for a human one: a different FILE (never dialogues.json, whose sixteen object levels are all closed and whose `answers[].a` is documented as 'the literal verbatim human answer; NEVER orchestrator-filled'), a different KEY (`decision`, never `answers[].a`), and a `const` DECIDER the schema makes it structurally impossible to type 'human'.\n\nWHAT IT DOES NOT DO. It detects CONFLATION, never FORGERY. Nothing here detects whether a human genuinely answered when *_confirmed is set, nor whether the analyst was actually consulted, was independent, or was fairly briefed — only the non-blank half of that conjunct is decidable from emitted artifacts. What the design buys is narrower and worth stating plainly: it removes the INCENTIVE to forge, by making the honest path the only one that reaches DONE.\n\nCOLLISION 8 — DISJOINTNESS. A machine-AUDIENCE disclosure is not a machine-DECISION. fsm-state.progress_clock.surfaced_at[] records carry audience:'machine' for a disclosure that asks nobody anything; they must NEVER land here, and I51 quantifies over decisions only. Letting them mix would destroy the one number a human reviewing an unattended run actually needs: the count of machine-made decisions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["decisions"],
+  "properties": {
+    "run_label": { "type": "string" },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gate", "phase", "question", "options", "orchestrator_recommendation", "decision", "critical", "mode", "analyst", "decided_by", "edits_anchor"],
+        "properties": {
+          "gate": {
+            "type": "string",
+            "enum": ["personas", "clarification", "signoff", "disagreement"],
+            "description": "Which gate this record closes. The two MECHANICAL flags (cartography_done, decomposition_approved) are absent by design: they are phase-completion flags with no human touchpoint, so they have nothing to record. 'disagreement' records a DS-4 surface reached in automatic mode — including a requirement-starvation trade (I56), whose automatic-mode sink is this channel and NOT a units/<id>/disagreement.* record, because that record's mere presence compels a DS-4 dialogues.json entry whose only decision slot is the reserved verbatim-human-answer field."
+          },
+          "surface_id": { "type": "string", "enum": ["DS-1", "DS-2", "DS-4", "DS-5", "DS-6"] },
+          "phase": { "type": "string", "minLength": 1 },
+          "question": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "Verbatim, as it would have been asked of a human." },
+          "options": { "type": "array", "minItems": 2, "items": { "type": "string", "minLength": 1 } },
+          "orchestrator_recommendation": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "decision": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "The chosen option. DELIBERATELY not named `a`: dialogues.json's `answers[].a` is reserved for the literal verbatim human answer, and a machine answer written there would be byte-indistinguishable from a human one." },
+          "critical": {
+            "type": "boolean",
+            "description": "RECOMPUTED by the validator from this record's own fields (I51-4), never trusted from it. Note the honest limit on how far that goes: clauses 1, 3 and 4 are re-derived from data the record cannot fake without contradicting itself, but clause 2 reads `edits_anchor`, which is the orchestrator's own declaration about its own question — requiring the field makes an omission visible; it does not make the declaration true. Comparison in clause 3 is whitespace- AND case-normalized. critical(q) holds iff surface_id in {DS-4, DS-5} OR the question edits definition_of_done/non_goals OR the analyst's verdict differs from orchestrator_recommendation (whitespace-normalized) OR the analyst abstained OR analyst.confidence < 0.7. This is an honest PROXY: it is measurable and re-derivable, and it is not a claim that every genuinely consequential question falls inside it."
+          },
+          "edits_anchor": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["definition_of_done", "non_goals"] },
+            "description": "Clause 2 of critical(): which scope anchor this question would move, if any. REQUIRED, because an explicit [] is a CLAIM and an omission is not — while it was optional, clause 2 could be narrowed by simply leaving the field out, and a question reading \"Should we DROP a non_goal and ADD a definition_of_done item?\" was recorded critical:false and passed. It is the SOLE input to clause 2 and nothing cross-checks it against the actual anchor lists, so the honest reading is: this records what the orchestrator DECLARES the question touches. Requiring the declaration is the cheapest thing that makes the omission visible."
+          },
+          "mode": { "type": "string", "enum": ["manual", "critical-only", "automatic"] },
+          "timestamp": { "type": "string", "minLength": 1 },
+          "decided_by": {
+            "const": "machine",
+            "description": "A const, not an enum: the schema makes it structurally impossible for this channel to claim a human decided."
+          },
+          "analyst": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["agent_id", "verdict", "confidence", "reasoning"],
+            "description": "The independent analyst sub-agent. It receives EXACTLY four things — the question verbatim, the option set, the orchestrator's RECOMMENDATION and the run-dir path — and never the orchestrator's REASONING: the same maker-is-never-the-checker line drawn for verifiers. A sub-agent cannot ask the human (AskUserQuestion belongs to the main agent at all ten of its sites), so 'automatic' can only ever mean the main agent deciding having consulted an analyst — never a sub-agent answering.",
+            "properties": {
+              "agent_id": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "verdict": { "type": "string", "minLength": 1, "pattern": "\\S", "description": "One of the options, or the literal 'abstain' on a tie or a refusal — which trips clause 4 and makes the question critical." },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+              "reasoning": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "dissent": { "type": "boolean" },
+              "dissent_detail": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
