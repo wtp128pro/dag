@@ -2,7 +2,7 @@
 """integrate.py — whole-run blast-radius integration check (Phase 8) for a dag run.
 
 Usage:
-  integrate.py <RUN_DIR> [--config <blast-config.json>]
+  integrate.py <RUN_DIR> [--config <blast-config.json>] [--replay-timeout SECONDS]
   integrate.py <RUN_DIR> --explain <mapping.json>
   integrate.py --self-test
 
@@ -33,7 +33,10 @@ Contract, restated so this file is self-describing (runtime inputs: the run dir,
 - replay[] {unit_id, case_id, command, exit_code}: every "passed command-form case_set check" — a brief.json
   case_set entry with check_form "command" whose row in the unit's CURRENT debrief.json case_set_discharge with
   origin "orchestrator" has outcome "discharged" — re-run under bash (else /bin/sh) from the workspace root with a
-  timeout (300 s; the process group is killed). A timeout or a check that cannot start is an errors[] row
+  per-command timeout (default 300 s; --replay-timeout SECONDS overrides it, and the same window bounds each census
+  command; regression commands keep their own timeout_s; the process group is killed). SECONDS must be a finite
+  number greater than 0 (an integer or a decimal), else the run is refused (exit 2, one line) before any file is
+  read or written. A timeout or a check that cannot start is an errors[] row
   and no replay row (the schema's exit_code is an integer), so the validator sees the check as not re-run. An
   executed unit (units/<U>/debrief.json present on disk; presence decides, never the parsed value) whose
   debrief.json is not a JSON object (null, boolean, number, string or list), whose brief.json is missing or not
@@ -1323,6 +1326,47 @@ def _self_test():
         put("units/U05/brief.json", {"case_set": [{"id": "C1", "check_form": "command", "check": "true"}]}, nrd)
         errs = []
         case("non_object_debrief", "neg", passed_command_checks(nrd, errs) == [] and errs == [])
+
+        # --replay-timeout through main(): a discharged check slower than the window is an errors[] row naming its
+        # unit and case and no replay row (exit 1); a longer window replays it; a bad value is refused untouched.
+        tws = os.path.join(tmp, "rt")
+        trd = os.path.join(tws, ".wip", "run")
+        os.makedirs(trd)
+        put("a.txt", "a\n", tws)
+        for args in (("init", "-q"), ("add", "-A"), ("commit", "-q", "-m", "base")):
+            subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+                           + list(args), cwd=tws, check=True, capture_output=True, stdin=subprocess.DEVNULL)
+        put(".wip/run/fsm-state.json", {"blast": {
+            "mode": "git", "workspace_root": tws, "base_tree_digest": footprint.tree_digest(tws, trd)["digest"],
+            "base_sha": subprocess.run(["git", "rev-parse", "HEAD"], cwd=tws, capture_output=True, text=True,
+                                       check=True).stdout.strip()}}, tws)
+        put(".wip/run/blast-config.json", {"censuses": [], "regression_commands": [],
+                                           "regression_none_reason": "self-test"}, tws)
+        put(".wip/run/units/U01/brief.json", {"case_set": [{"id": "C7", "check_form": "command",
+                                                            "check": "sleep 1"}]}, tws)
+        put(".wip/run/units/U01/debrief.json", {"case_set_discharge": [
+            {"id": "C7", "origin": "orchestrator", "outcome": "discharged"}]}, tws)
+        put(".wip/run/units/U01/footprint.json", fp("U01", []), tws)
+        tpath = os.path.join(trd, "integration.json")
+
+        def cli(*extra):
+            saved_err, sys.stderr = sys.stderr, io.StringIO()
+            try:
+                rc = main([trd] + list(extra))
+            finally:
+                sys.stderr = saved_err
+            return rc, open(tpath, "rb").read() if os.path.exists(tpath) else None
+
+        rc, out = cli("--replay-timeout", "0.3")
+        tdoc = json.loads(out or b"{}")
+        case("replay_timeout", "pos", rc == 1 and tdoc.get("replay") == [] and tdoc.get("errors") == [
+            "replay U01 C7: timed out after 0.3s (not re-run)"])
+        rc, out = cli("--replay-timeout", "5")
+        tdoc = json.loads(out or b"{}")
+        case("replay_timeout", "neg", rc == 0 and tdoc.get("errors") == [] and tdoc.get("replay") == [
+            {"unit_id": "U01", "case_id": "C7", "command": "sleep 1", "exit_code": 0}])
+        refused = [cli("--replay-timeout", bad) for bad in ("0", "-1", "nan", "inf", "abc", "9" * 400)]
+        case("replay_timeout", "pos", refused and all(r == (2, out) for r in refused))
     except Exception as exc:  # a crash is a failed self-test, reported, never swallowed
         print("self-test crashed: %s: %s" % (type(exc).__name__, exc))
         results.append(False)
@@ -1340,13 +1384,34 @@ def _self_test():
     return 0 if results and all(results) else 1
 
 
+def replay_timeout_arg(text):
+    """Seconds from a --replay-timeout value: a finite number greater than 0 written as an integer or a decimal.
+    Anything else (0, a negative number, nan, inf, a non-number) raises IntegrateError."""
+    value = float(text) if re.fullmatch(r"[0-9]+(?:\.[0-9]*)?|\.[0-9]+", text) else None
+    if value is None or not 0 < value < float("inf"):
+        raise IntegrateError("--replay-timeout must be a finite number greater than 0 (an integer or a decimal), "
+                             "got %.40r" % (text,))
+    return value
+
+
 def main(argv):
     ap = argparse.ArgumentParser(prog="integrate.py", description="Whole-run blast-radius integration check.")
     ap.add_argument("run_dir", nargs="?")
     ap.add_argument("--config")
     ap.add_argument("--explain")
+    ap.add_argument("--replay-timeout", metavar="SECONDS",
+                    help="per-command window for replayed case_set checks and census commands: a finite number "
+                         "greater than 0 (default %g s); regression commands keep their own timeout_s"
+                         % DEFAULT_REPLAY_TIMEOUT)
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
+    timeout = DEFAULT_REPLAY_TIMEOUT
+    if a.replay_timeout is not None:
+        try:
+            timeout = replay_timeout_arg(a.replay_timeout)
+        except IntegrateError as exc:  # refused before any file is read or written
+            sys.stderr.write("integrate.py: %s\n" % exc)
+            return 2
     if a.self_test:
         return _self_test()
     if not a.run_dir:
@@ -1355,7 +1420,7 @@ def main(argv):
         if a.explain:
             explain(a.run_dir, a.explain)
             return 0
-        doc = integrate(a.run_dir, a.config)
+        doc = integrate(a.run_dir, a.config, timeout)
         write_doc(a.run_dir, doc)
     except (IntegrateError, footprint.CaptureError) as exc:
         sys.stderr.write("integrate.py: %s\n" % exc)
