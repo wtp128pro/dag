@@ -1,0 +1,25 @@
+{
+  "base_sha": "ae1926a245df2b0c906bcbf373f484e51a490a88",
+  "base_tree_digest": "sha256:5b9b2294f498473d7017549a8938e9ab47faa6b1ddb6509616f12c5a72629f30",
+  "union_changes": {
+    "path": "src/app/parse.py"
+  },
+  "multi_writer_paths": [
+    "src/app/parse.py"
+  ],
+  "replay": "U01/C1",
+  "differential": {
+    "regression_id": "x"
+  },
+  "test_weakening": [
+    null
+  ],
+  "censuses": [
+    5,
+    {
+      "id": "crash-class",
+      "added": "1"
+    }
+  ],
+  "errors": "timeout"
+}

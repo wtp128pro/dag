@@ -1,0 +1,109 @@
+{
+  "run_label": "panel-fixture",
+  "ambiguity_register": [
+    {
+      "id": 1,
+      "ambiguity": "scope of X",
+      "materiality": "material",
+      "resolved": true,
+      "dimension": "scope-boundaries",
+      "resolution": "do X",
+      "resolution_source": "human-gate",
+      "round_ref": "p2.r1"
+    }
+  ],
+  "scope": {
+    "in_scope": [
+      "validator"
+    ],
+    "out_of_scope": [
+      "the live skill"
+    ]
+  },
+  "open_items": [],
+  "definition_of_done": [
+    "DoD-A",
+    "DoD-B"
+  ],
+  "non_goals": [
+    "NG-1"
+  ],
+  "dimension_sweep": {
+    "dimensions": [
+      {
+        "dimension": "terms",
+        "disposition": "probed-clear",
+        "search_statement": "sought load-bearing terms; each pinned by the prompt's own wording"
+      },
+      {
+        "dimension": "success-criteria",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "hunted for acceptance bars beyond the stated DoD; none found"
+      },
+      {
+        "dimension": "scope-boundaries",
+        "disposition": "ambiguity-found",
+        "search_statement": "walked the OUT list edges; one boundary was genuinely open",
+        "register_ids": [
+          1
+        ]
+      },
+      {
+        "dimension": "audience-format",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "looked for output-shape doubt; the schema fixes it"
+      },
+      {
+        "dimension": "constraints",
+        "disposition": "probed-clear",
+        "search_statement": "weighed the offline-only and no-live-guard rules; both explicit"
+      },
+      {
+        "dimension": "assumptions",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "named the tool commitments taken for granted; confirmed present"
+      },
+      {
+        "dimension": "failure-modes",
+        "disposition": "probed-clear",
+        "search_statement": "enumerated deadlock and version-skew hazards; each addressed"
+      },
+      {
+        "dimension": "sources",
+        "disposition": "none-after-genuine-search",
+        "search_statement": "checked which tiers are load-bearing; no new cartography needed"
+      },
+      {
+        "dimension": "stakes",
+        "disposition": "probed-clear",
+        "search_statement": "sized the blast radius of the edit; git history makes it reversible"
+      }
+    ],
+    "cartography_round": {
+      "status": "no-register-unknowns"
+    }
+  },
+  "item_confirmations": [
+    {
+      "item": "DoD-A",
+      "list": "definition_of_done",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    },
+    {
+      "item": "DoD-B",
+      "list": "definition_of_done",
+      "disposition": "confirmed",
+      "origin": "derived-orchestrator",
+      "transcript_ref": "p2.r2"
+    },
+    {
+      "item": "NG-1",
+      "list": "non_goals",
+      "disposition": "confirmed",
+      "origin": "elicited-forbid-round",
+      "transcript_ref": "p2.r1"
+    }
+  ]
+}

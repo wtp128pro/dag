@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/integration.schema.json",
+  "title": "Integration record (whole-run blast-radius check, base vs tip)",
+  "description": "The run-level integration.json artifact, written once all waves are done and carrying a .sha256 sidecar in `shasum -a 256` format. It compares the run's base (base_sha / base_tree_digest) with its tip (tip_tree_digest). union_changes[] is every path changed across the run with its base and tip content hashes (null where the path is absent on that side); the validator cannot hash repository files offline, so a path's final hash is read from sha256_tip here. unowned_writes[] are changed paths no unit's frame owns; multi_writer_paths[] are paths more than one unit wrote. replay[] re-runs unit case-set commands at the tip; differential[] runs each blast-config regression command at base and tip, with intended_change_ref naming the declared intended change that explains a difference (null when none is claimed) - or, when there are no regression commands, differential_none_reason states why (exactly one of the two). test_weakening[] records removed or loosened tests; censuses[] record gross added/closed/shipped counts, never the net. errors[] lists every step that could not run: fail closed and visible, never silent. Closed objects throughout.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["base_sha", "base_tree_digest", "tip_tree_digest", "union_changes", "unowned_writes", "multi_writer_paths", "replay", "test_weakening", "censuses", "errors"],
+  "properties": {
+    "base_sha": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$", "description": "The base commit; null when the run has no git base (snapshot mode)." },
+    "base_tree_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "tip_tree_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "union_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "status", "sha256_base", "sha256_tip"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["A", "M", "D", "R", "T"] },
+          "sha256_base": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+          "sha256_tip": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "unowned_writes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "multi_writer_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "units"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "units": { "type": "array", "minItems": 2, "items": { "type": "string", "pattern": "^U[0-9]{2,}$" } }
+        }
+      }
+    },
+    "replay": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["unit_id", "case_id", "command", "exit_code"],
+        "properties": {
+          "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+          "case_id": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "exit_code": { "type": "integer" }
+        }
+      }
+    },
+    "differential": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["regression_id", "base_exit", "tip_exit", "base_stdout_sha256", "tip_stdout_sha256", "intended_change_ref"],
+        "properties": {
+          "regression_id": { "type": "string", "minLength": 1 },
+          "base_exit": { "type": "integer" },
+          "tip_exit": { "type": "integer" },
+          "base_stdout_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "tip_stdout_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "intended_change_ref": { "type": ["string", "null"], "minLength": 1 }
+        }
+      }
+    },
+    "differential_none_reason": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "test_weakening": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "detail", "intended_change_ref"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string", "minLength": 1 },
+          "intended_change_ref": { "type": ["string", "null"], "minLength": 1 }
+        }
+      }
+    },
+    "censuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "base", "tip", "added", "closed", "shipped"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "base": { "type": "integer", "minimum": 0 },
+          "tip": { "type": "integer", "minimum": 0 },
+          "added": { "type": "integer", "minimum": 0 },
+          "closed": { "type": "integer", "minimum": 0 },
+          "shipped": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "errors": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  },
+  "oneOf": [
+    { "description": "Regression differential recorded (non-empty); no none-reason.", "required": ["differential"], "properties": { "differential": { "minItems": 1 } }, "not": { "required": ["differential_none_reason"] } },
+    { "description": "No differential: the reason is stated and any differential list is empty.", "required": ["differential_none_reason"], "properties": { "differential": { "maxItems": 0 } } }
+  ]
+}

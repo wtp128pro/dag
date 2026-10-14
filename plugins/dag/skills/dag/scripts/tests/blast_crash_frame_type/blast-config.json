@@ -1,0 +1,27 @@
+{
+  "source": "run",
+  "regression_commands": [
+    {
+      "id": "tests/test_parse.py::test_trailing_newline",
+      "command": "python3 -m pytest -q tests/test_parse.py::test_trailing_newline",
+      "timeout_s": 120,
+      "compare": "exit+stdout"
+    }
+  ],
+  "coupling_rules": [],
+  "censuses": [
+    {
+      "id": "crash-class",
+      "command_template": "python3 {root}/tools/crash_census.py --json",
+      "must_not_increase": true
+    }
+  ],
+  "test_surfaces": [
+    {
+      "id": "parse-tests",
+      "kind": "test-glob",
+      "path": "tests/test_*.py"
+    }
+  ],
+  "scan_excludes": []
+}

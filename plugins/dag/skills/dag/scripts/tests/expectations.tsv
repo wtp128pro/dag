@@ -521,3 +521,30 @@ blast_crash_impact_types	1	!Traceback (most recent call last)
 blast_crash_audit_types	1	I62 impact settled (I62-2 units/U01 blast_audit): malformed rows[] entry {'disposition': 'exercised'}
 blast_crash_audit_types	1	I62 impact settled (I62-4 units/U01 O3): owner_unit ['U03'] is not another unit
 blast_crash_audit_types	1	!Traceback (most recent call last)
+blast_green	0	N-I65 blast summary	--quiet
+blast_green	0	!blast_accepted malformed
+blast_replay_missing	1	I63 end re-run (I63-1 U01/C1): passed command-form check has no replay row
+blast_replay_red	1	I63 end re-run (I63-1 U01/C1): passed command-form check replayed with a non-zero exit
+blast_post_verify_mutation	1	I63 end re-run (I63-2 U01 src/app/parse.py)
+blast_integration_missing	1	I64 integration (I64-1 integration.json): absent on a signed-off armed run
+blast_integration_start_mismatch	1	I64 integration (I64-1 integration.json base_sha)
+blast_identical_control	1	I64 integration (I64-2 integration.json): base_tree_digest == tip_tree_digest
+blast_unowned_write	1	I64 integration (I64-3 integration.json 'lib/stray.py')
+blast_shared_path_uncovered	1	I64 integration (I64-4 src/app/parse.py U04)
+blast_delta_unexplained	1	I64 integration (I64-5 differential 'tests/test_parse.py::test_trailing_newline')
+blast_weakening_unlisted	1	I64 integration (I64-6 test_weakening 'test-file-deleted')
+blast_census_increase	1	I64 integration (I64-7 census 'crash-class'): added 1 != 0
+blast_override_malformed	1	!N-I64 blast accepted
+blast_override_malformed	1	I64 integration (I64-8 blast_accepted malformed: (5)
+blast_override_wellformed	0	N-I64 blast accepted: "I64-7:crash-class" downgraded
+blast_override_wellformed	0	!I64 integration (I64-7
+blast_override_partial	1	N-I64 blast accepted: "I64-7:crash-class" downgraded
+blast_override_partial	1	I64 integration (I64-3 integration.json 'lib/stray.py')
+blast_crash_integration_types	1	I64 integration (I64-1 integration.json): `replay` must be a list
+blast_crash_integration_types	1	I63 end re-run (I63-2 integration.json): final hashes unknown
+blast_crash_integration_types	1	!Traceback (most recent call last)
+blast_crash_override_types	1	I64 integration (I64-8 blast_accepted malformed: (2) items is not a list
+blast_crash_override_types	1	!Traceback (most recent call last)
+blast_no_config_control	0	!FAIL  I64 integration
+blast_no_config_control	0	N-I65 blast summary	--quiet
+blast_no_config_errors	1	I64 integration (I64-5 blast-config.json): no blast config (run dir or <workspace>/.dag/blast.json) and a non-empty integration errors[]

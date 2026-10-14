@@ -70,6 +70,9 @@ TOP_ARTIFACTS = {
     "sources.json": "sources.schema.json",
     "dialogues.json": "dialogues.schema.json",
     "machine-decisions.json": "machine-decisions.schema.json",
+    # 1.15.0 blast radius: whole-run integration record (integrate.py) and the run's blast config.
+    "integration.json": "integration.schema.json",
+    "blast-config.json": "blast-config.schema.json",
 }
 UNIT_ARTIFACTS = {
     "brief.json": "brief.schema.json",
@@ -563,6 +566,10 @@ LABELS = [
     {"key": "i61_wave_disjoint", "stem": "I61 wave write disjointness", "invariant": "I61", "emitted_via": "hoisted-var"},
     {"key": "note_i61", "stem": "N-I61 declared frame overlap", "invariant": "I61", "emitted_via": "print"},
     {"key": "i62_impact", "stem": "I62 impact settled", "invariant": "I62", "emitted_via": "hoisted-var"},
+    {"key": "i63_replay", "stem": "I63 end re-run", "invariant": "I63", "emitted_via": "hoisted-var"},
+    {"key": "i64_integration", "stem": "I64 integration", "invariant": "I64", "emitted_via": "hoisted-var"},
+    {"key": "note_i64", "stem": "N-I64 blast accepted", "invariant": "I64", "emitted_via": "print"},
+    {"key": "note_i65", "stem": "N-I65 blast summary", "invariant": "I65", "emitted_via": "print"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -8999,6 +9006,87 @@ def main(argv=None):
     # The audit is judged once the unit has a verify.json that is current (verify.iteration ==
     # debrief.iteration) — mid-loop staleness is legal and owned by I43/I44/I46 — and, from
     # P8_SYNTHESIS on, whatever its iteration.
+    # I64-8 blast_accepted — the ONE opt-out on an armed run: a NAMED, PER-ITEM override, the I44
+    # accepted_incomplete shape. fsm-state.blast_accepted = {items: [string], rationale: string,
+    # decision_ref: string naming DECISIONS.md}. ITEM GRAMMAR: "<clause>:<subject>" with <clause> one of
+    # I62-4, I64-3 .. I64-7 and <subject> the exact key a FAIL row of that clause prints in its
+    # "[accept via blast_accepted.items: ...]" suffix (copy it). Matching is exact string equality — no
+    # glob, prefix or clause-wide form — so an item downgrades only FAIL rows carrying exactly its key.
+    # ONE KEY, ONE SUBJECT: every acceptable key names exactly one subject, never a category —
+    #   I62-4  "<impact locus> <obligation id>"  one owned_by obligation of one unit
+    #   I64-3  "<path>"                          one changed path no frame owns
+    #   I64-4  "<path> <unit>"                   one shared path for one writer
+    #   I64-5  "<regression id>"                 one declared regression command
+    #   I64-6  "<kind> <detail>"                 one weakened-test row (integration test_weakening[]
+    #                                            kind + detail; detail names the surface and the file or row)
+    #   I64-7  "<census id>"                     one must_not_increase census
+    # A row that is not about such a subject prints no key and is NEVER acceptable: I60, I61, I63,
+    # I62-1..3, I64-1, I64-2 (identical start/end trees void the whole comparison) and I64-8; and every
+    # RECORD-STRUCTURE row — a wrong-typed or malformed entry of integration.json, and any finding about
+    # the blast config itself (absent, unreadable, wrong-typed, regression_commands empty without a
+    # reason). Those are repaired, not accepted: accepting one would silence the checks the record feeds,
+    # and the override never relies on a schema FAIL elsewhere to stay safe. If one key would downgrade
+    # two FAIL rows whose details differ, the second stays a FAIL with an "ambiguous" NOTE. A named
+    # finding becomes an exit-neutral, always-printed "N-I64 blast accepted" NOTE (downgraded and
+    # greppable, never suppressed); unnamed findings stay FAILs. A string item that matches no finding
+    # once I64 is judged — including a blanket or out-of-grammar string such as "*", "all", "I64" or
+    # "I64-3" — downgrades nothing and gets the over-broad advisory NOTE. MALFORMED — I44's six conditions
+    # adapted plus one, in order, the first unmet one named: (1) not an object; (2) items is not a list
+    # (an empty list is well-formed and accepts nothing); (3) rationale is not a non-blank string; (4)
+    # decision_ref is not a non-blank string; (5) decision_ref does not name DECISIONS.md; (6)
+    # <run>/DECISIONS.md is missing; (7) an item is not a string (REPORTED here, not silently ignored as
+    # I44 does) — gives exactly ONE FAIL on every armed run carrying the key, and downgrades NOTHING.
+    # Coupling semantics (I62-4): a coupling obligation records the TRIGGER file, not the file that
+    # satisfies the rule, and is settled by EXERCISING its required command; owned_by on a coupling
+    # means a later unit whose frame covers the trigger runs that command. An owned_by no single
+    # unit's frame can satisfy (e.g. a prose reference spanning files) stays an I62-4 FAIL until a
+    # named item accepts it here — loud, never silent.
+    _BA_CLAUSES = ("I62-4", "I64-3", "I64-4", "I64-5", "I64-6", "I64-7")
+    _ba_items, _ba_hit, _ba_unmet, _ba_ref = set(), {}, None, ""
+    if _blast_armed and isinstance(_blast_fsm, dict) and "blast_accepted" in _blast_fsm:
+        _ba = _blast_fsm["blast_accepted"]
+        if not isinstance(_ba, dict):
+            _ba_unmet = f"(1) blast_accepted is not an object (got {type(_ba).__name__})"
+        else:
+            _ba_l, _ba_r, _ba_d = _ba.get("items"), _ba.get("rationale"), _ba.get("decision_ref")
+            if not isinstance(_ba_l, list):
+                _ba_unmet = f"(2) items is not a list (got {type(_ba_l).__name__})"
+            elif not (isinstance(_ba_r, str) and _ba_r.strip()):
+                _ba_unmet = "(3) rationale is not a non-blank string"
+            elif not (isinstance(_ba_d, str) and _ba_d.strip()):
+                _ba_unmet = "(4) decision_ref is not a non-blank string"
+            elif "DECISIONS.md" not in _ba_d:
+                _ba_unmet = f"(5) decision_ref {_ba_d!r:.80} does not name DECISIONS.md"
+            elif not os.path.isfile(os.path.join(rd, "DECISIONS.md")):
+                _ba_unmet = "(6) DECISIONS.md is missing from the run directory"
+            else:
+                _ba_off = [_x for _x in _ba_l if not isinstance(_x, str)]
+                if _ba_off:
+                    _ba_unmet = (f"(7) {len(_ba_off)} item(s) not a string (grammar '<clause>:<subject>', clause "
+                                 f"one of {', '.join(_BA_CLAUSES)}), first {_ba_off[0]!r:.80}")
+                else:
+                    _ba_items, _ba_ref = set(_ba_l), _ba_d
+        if _ba_unmet:
+            rep.fail(f"{LABEL_STEM['i64_integration']} (I64-8 blast_accepted malformed: {_ba_unmet})",
+                     "the override fails closed and downgrades NOTHING; every named finding stays a FAIL")
+
+    def _ba_take(clause, item, detail):
+        """(accepted, hint): accepted iff a well-formed blast_accepted names this exact finding — then an
+        exit-neutral N-I64 NOTE is printed in place of the FAIL; hint is the copyable item suffix. `item`
+        None marks a row that is not about one subject (record structure): never acceptable, no hint."""
+        if item is None or clause not in _BA_CLAUSES:
+            return False, ""
+        _key = f"{clause}:{item}"
+        if _key in _ba_items:
+            if _ba_hit.setdefault(_key, detail) == detail:
+                print(f"  NOTE  {LABEL_STEM['note_i64']}: {json.dumps(_key)} downgraded from FAIL by "
+                      f"fsm-state.blast_accepted ({_ba_ref}) — {detail}")
+                return True, ""
+            print(f"  NOTE  {LABEL_STEM['note_i64']}: {json.dumps(_key)} is ambiguous — it names more than one "
+                  "different finding, so this one stays a FAIL (an item must name exactly one subject)")
+            return False, ""
+        return False, f" [accept via blast_accepted.items: {json.dumps(_key)}]"
+
     if _blast_armed:
         _i62 = LABEL_STEM["i62_impact"]
         _i62_bad = [False]
@@ -9006,7 +9094,9 @@ def main(argv=None):
 
         def _i62_fail(clause, locus, detail):
             _i62_bad[0] = True
-            rep.fail(f"{_i62} ({clause} {locus})", detail)
+            _ba_ok, _ba_hint = _ba_take(clause, locus, detail)  # only I62-4 (one obligation) is acceptable
+            if not _ba_ok:
+                rep.fail(f"{_i62} ({clause} {locus})", detail + _ba_hint)
 
         def _i62_sha(path):
             try:
@@ -9161,6 +9251,345 @@ def main(argv=None):
                         _i62_fail("I62-2", f"{_loc} {_oid}", "obligation has no blast_audit row (every id exactly once)")
         if not _i62_bad[0]:
             rep.ok(f"{_i62} ({_i62_n} executed ships unit(s): impact bound, every obligation settled)")
+
+    # I63 end re-run / I64 integration before sign-off (1.15.0 blast radius). OFFLINE and POST-HOC like
+    # I60-I62: both read the run-dir integration.json (written by scripts/integrate.py, with its
+    # `<hex>  integration.json` sidecar), the units' footprints/briefs/debriefs and the blast config
+    # RAW (json.load + isinstance), and take their antecedents (phase, gates) RAW from fsm-state.json
+    # exactly as the armed flag is, so a schema-invalid record — fsm-state.json included — still reaches
+    # its clause and a wrong-typed key is a FAIL row naming the key, never a traceback. Neither gates a
+    # transition nor guards the correction loop's back-edge LT7; both reuse I60's armed flag (no further
+    # version gate). I63 runs at P8_SYNTHESIS/DONE; I64's antecedent is the sign-off itself
+    # (gates.signoff_confirmed, or the machine-closed signoff_machine_closed, each by IDENTITY to True).
+    # No opt-out. An absent or unreadable integration.json is a FAIL wherever a clause needs it: I64-1 on
+    # every signed-off run, and at P8/DONE I63-1 for each passed command-form check plus I63-2 whenever a
+    # footprint wrote a file (no final hash is known). An absent blast config (neither <run>/blast-config.json nor
+    # <workspace>/.dag/blast.json) is an I64-5 FAIL UNLESS integration.differential is a non-empty list: a
+    # differential_none_reason never discharges it, because integrate.py writes one itself when it finds
+    # no config. An absent config is not a way out of the clauses that judge the RECORD: with no config
+    # visible, I64-7 judges EVERY integration censuses[] row as must_not_increase (added != 0 is a FAIL
+    # naming the census), I64-5 FAILs a non-empty integration errors[] (without the config a declared
+    # command that timed out or could not run cannot be told apart from an undeclared one), and every
+    # differential row is judged on exit AND stdout (no `compare` narrows it). This NARROWS the
+    # config-less gap, it does not close it: the declared-command coverage arm of I64-5 still has no
+    # declared command to judge, and the validator judges the config visible to IT now, never the one
+    # integrate.py was actually given (integrate.py accepts a config from any path).
+    # Integration contract restated: {base_sha, base_tree_digest, tip_tree_digest, union_changes[{path,
+    # status A|M|D|R|T, sha256_base, sha256_tip}] (a rename is a D row for the old path plus an A row
+    # for the new one), unowned_writes[path], multi_writer_paths[{path, units[]}], replay[{unit_id,
+    # case_id, command, exit_code}] (a replay that timed out or could not run is an errors[] row and NO
+    # replay row — so a missing replay row is a failure, never "not applicable"), differential[{
+    # regression_id, base_exit, tip_exit, base_stdout_sha256, tip_stdout_sha256, intended_change_ref}]
+    # or differential_none_reason, test_weakening[{kind, detail, intended_change_ref}], censuses[{id,
+    # base, tip, added, closed, shipped}], errors[]}. Blast config: the run-dir blast-config.json, else
+    # <workspace_root>/.dag/blast.json — {regression_commands[{id, command, timeout_s, compare}] or
+    # regression_none_reason, censuses[{id, command_template, must_not_increase}], ...}.
+    # A differential row is judged on its EXIT status always, and on its stdout hash ONLY when that
+    # command's declared `compare` names stdout in any letter case (e.g. "exit+stdout", "EXIT+STDOUT"):
+    # an exit-only command's stdout
+    # difference is not a difference (its stdout may embed a checkout path); a regression id the config
+    # does not declare is judged on both. Limitation: I64 judges what integrate.py RECORDED. An exit
+    # status that depends on the environment integrate.py gave the command (an optional package that
+    # is or is not importable there) can match on both sides while failing on both — equal exits mean
+    # "no recorded difference", never "no regression"; what must be 0 is each replayed check (I63-1).
+    if _blast_armed:
+        _i63 = LABEL_STEM["i63_replay"]
+        _i64 = LABEL_STEM["i64_integration"]
+        _i6x_f = _blast_fsm if isinstance(_blast_fsm, dict) else {}
+        _i6x_g = _i6x_f.get("gates") if isinstance(_i6x_f.get("gates"), dict) else {}
+        _i6x_ph = _i6x_f.get("phase")
+        _i63_on = isinstance(_i6x_ph, str) and _i6x_ph in ("P8_SYNTHESIS", "DONE")
+        _i64_on = _i6x_g.get("signoff_confirmed") is True or _i6x_g.get("signoff_machine_closed") is True
+        _i6x_bad = {"I63": False, "I64": _ba_unmet is not None}
+
+        def _i63_fail(clause, locus, detail):
+            _i6x_bad["I63"] = True
+            rep.fail(f"{_i63} ({clause} {locus})", detail)
+
+        def _i64_fail(clause, locus, detail, item=None):
+            # Every I64 FAIL passes through here: the one point where the per-item I64-8 override can
+            # downgrade a NAMED finding, never a whole clause. `item` is the "<subject>" half of the I64-8
+            # key and is passed ONLY by call sites whose row is about exactly one subject (a path, a
+            # path + writer, a regression id, one weakened-test row, a census id); the default None marks
+            # a record-structure row (a wrong-typed or malformed record entry, the blast config itself),
+            # which is never acceptable and prints no key.
+            _i6x_bad["I64"] = True
+            _ba_ok, _ba_hint = _ba_take(clause, item, detail)
+            if not _ba_ok:
+                rep.fail(f"{_i64} ({clause} {locus})", detail + _ba_hint)
+
+        def _i6x_list(obj, key, fail, clause, locus):
+            """obj[key] as a list ([] when obj is not an object or lacks the key — a missing required key
+            is the schema's FAIL); a present-but-non-list value is a FAIL row naming the key."""
+            if not isinstance(obj, dict) or key not in obj:
+                return []
+            _v = obj[key]
+            if not isinstance(_v, list):
+                fail(clause, locus, f"`{key}` must be a list, got {type(_v).__name__}")
+                return []
+            return _v
+
+        def _i6x_later(u, paths):
+            """Units in a strictly later graph wave than u whose footprint touched any of `paths`."""
+            _w = _blast_wave_of.get(u)
+            if _w is None:
+                return []
+            return sorted(_x for _x in _blast_fp if _x != u and _blast_wave_of.get(_x) is not None
+                          and _blast_wave_of[_x] > _w and _blast_fp[_x] & paths)
+
+        if _i63_on or _i64_on:
+            _ig_loc = "integration.json"
+            _ig, _ig_err = _blast_raw(os.path.join(rd, _ig_loc))
+            if _ig is not None and not isinstance(_ig, dict):
+                _ig, _ig_err = None, f"not a JSON object (got {type(_ig).__name__})"
+            _ig_fail, _ig_cl = (_i64_fail, "I64-1") if _i64_on else (_i63_fail, "I63-1")
+            # (unit_id, case_id) -> True iff every replay row for it exited 0; units with an exit-0 row.
+            _replay_ok = {}
+            _replay_units_ok = set()
+            for _r in _i6x_list(_ig, "replay", _ig_fail, _ig_cl, _ig_loc):
+                if not (isinstance(_r, dict) and isinstance(_r.get("unit_id"), str)
+                        and isinstance(_r.get("case_id"), str)):
+                    _ig_fail(_ig_cl, _ig_loc, f"malformed replay[] row {_r!r:.120}")
+                    continue
+                _ex = _as_int(_r.get("exit_code"))
+                _k = (_r["unit_id"], _r["case_id"])
+                _replay_ok[_k] = _replay_ok.get(_k, True) and _ex == 0
+                if _ex == 0:
+                    _replay_units_ok.add(_r["unit_id"])
+            # path -> [(unit, sha256_after, sha256_before)] from every parsed footprint (I60-3 owns shape
+            # FAILs); a rename's old path is recorded as deleted by the renaming unit.
+            _writes = {}
+            for _u in sorted(_blast_fp):
+                _fpd, _ = _blast_raw(os.path.join(units_dir, _u, "footprint.json"))
+                _chg = _fpd.get("changes") if isinstance(_fpd, dict) else None
+                if not isinstance(_chg, list):
+                    continue
+                for _c in _chg:
+                    if not (isinstance(_c, dict) and isinstance(_c.get("path"), str)):
+                        continue
+                    _writes.setdefault(_c["path"], []).append((_u, _c.get("sha256_after"), _c.get("sha256_before")))
+                    if isinstance(_c.get("from_path"), str):
+                        _writes.setdefault(_c["from_path"], []).append((_u, None, _c.get("sha256_before")))
+
+            if _i63_on:
+                # I63-1 — every passed command-form check (a brief case_set entry with check_form command
+                # whose orchestrator-origin row in the unit's current debrief is `discharged`) has a
+                # replay row, and every replay row for it exited 0.
+                for _u in sorted(unit_dirs_with_debrief):
+                    _bb, _ = _blast_raw(os.path.join(units_dir, _u, "brief.json"))
+                    _db, _ = _blast_raw(os.path.join(units_dir, _u, "debrief.json"))
+                    _disc = {}
+                    for _r in _i6x_list(_db, "case_set_discharge", _i63_fail, "I63-1", f"units/{_u}/debrief.json"):
+                        if isinstance(_r, dict) and _r.get("origin") == "orchestrator" and isinstance(_r.get("id"), str):
+                            _disc[_r["id"]] = _r.get("outcome")
+                    for _e in _i6x_list(_bb, "case_set", _i63_fail, "I63-1", f"units/{_u}/brief.json"):
+                        if not (isinstance(_e, dict) and _e.get("check_form") == "command"
+                                and isinstance(_e.get("id"), str) and _disc.get(_e["id"]) == "discharged"):
+                            continue
+                        _st = _replay_ok.get((_u, _e["id"]))
+                        if _st is True:
+                            continue
+                        _why = "replayed with a non-zero exit" if _st is False else (
+                            "has no replay row" + ("" if _ig is not None else f" (integration.json {_ig_err})"))
+                        _i63_fail("I63-1", f"{_u}/{_e['id']}",
+                                  f"passed command-form check {_why} — regressed unit {_u}; later-wave units "
+                                  f"whose footprints touched its files: {_i6x_later(_u, _blast_fp.get(_u, set())) or 'none'}")
+                # I63-2 — a unit's footprint sha256_after differs from the path's final hash only when a
+                # later-wave unit's footprint wrote that path. Final hash: integration union_changes
+                # sha256_tip; a path the union omits is unchanged base->tip (its earliest writer's
+                # sha256_before). With no readable union_changes there is NO final hash, so a footprint
+                # that wrote any file is an I63-2 FAIL ("final hashes unknown"), never a self-comparison.
+                _tip = {}
+                for _c in _i6x_list(_ig, "union_changes", _ig_fail, _ig_cl, _ig_loc):
+                    if isinstance(_c, dict) and isinstance(_c.get("path"), str):
+                        _tip[_c["path"]] = _c.get("sha256_tip")
+                _union_known = isinstance(_ig, dict) and isinstance(_ig.get("union_changes"), list)
+                if not _union_known and _writes:
+                    _i63_fail("I63-2", _ig_loc, f"final hashes unknown ({_ig_err or 'no union_changes list'}) — "
+                                                f"{len(_writes)} footprint-written path(s) cannot be shown unchanged after their unit")
+                for _p in (sorted(_writes) if _union_known else []):
+                    _ws = _writes[_p]
+                    _final = _tip[_p] if _p in _tip else min(_ws, key=lambda _t: _blast_wave_of.get(_t[0], -1))[2]
+                    for _u, _aft, _bef in _ws:
+                        if _aft != _final and not _i6x_later(_u, {_p}):
+                            _i63_fail("I63-2", f"{_u} {_p}",
+                                      f"footprint sha256_after {_aft!r:.24} != final hash {_final!r:.24} and no "
+                                      f"later-wave unit's footprint wrote it — the file changed after {_u} was verified")
+
+            if _i64_on:
+                # I64-1 — integration.json present, schema-valid, sidecar matching, start state = fsm-state.blast.
+                if _ig is None:
+                    _i64_fail("I64-1", _ig_loc, f"{_ig_err} on a signed-off armed run — the whole-run integration "
+                                                "must be recorded before sign-off; a missing record is a FAIL, never an opt-out")
+                else:
+                    if not isinstance(docs.get("integration"), dict):
+                        _i64_fail("I64-1", _ig_loc, "not schema-valid against integration.schema.json")
+                    try:
+                        with open(os.path.join(rd, _ig_loc), "rb") as _fh:
+                            _igsha = hashlib.sha256(_fh.read()).hexdigest()
+                        with open(os.path.join(rd, _ig_loc + ".sha256"), "r", encoding="utf-8") as _fh:
+                            _side = _fh.read().split()
+                        _side0 = _side[0].lower() if _side else None
+                    except Exception as _e:
+                        _igsha, _side0 = None, f"<unreadable sidecar: {type(_e).__name__}>"
+                    if _igsha is None or _side0 != _igsha:
+                        _i64_fail("I64-1", _ig_loc, f"integration.json.sha256 {_side0!r:.80} != sha256(integration.json) {_igsha!r}")
+                    for _k in ("base_sha", "base_tree_digest"):
+                        _want = _bl.get(_k) if isinstance(_bl, dict) else None
+                        if _ig.get(_k) != _want:
+                            _i64_fail("I64-1", f"{_ig_loc} {_k}", f"{_ig.get(_k)!r:.80} != fsm-state.blast.{_k} {_want!r:.80}")
+                    # I64-2 — identical start and end trees while a ships unit changed files: invalid control.
+                    _ships_chg = sorted(_u for _u in _blast_fp if _blast_fp[_u]
+                                        and _blast_units.get(_u, {}).get("deliverable") == "ships")
+                    if _ships_chg and _ig.get("base_tree_digest") == _ig.get("tip_tree_digest"):
+                        _i64_fail("I64-2", _ig_loc, f"base_tree_digest == tip_tree_digest while ships unit(s) "
+                                                    f"{_ships_chg[:5]} changed files — an identical-sides comparison is invalid")
+                    # I64-3 — every changed path is owned by some unit's frame.
+                    for _w in _i6x_list(_ig, "unowned_writes", _i64_fail, "I64-3", _ig_loc):
+                        _i64_fail("I64-3", f"{_ig_loc} {_w!r:.120}", "a changed path no unit's frame owns",
+                                  item=_w if isinstance(_w, str) and _w.strip() else None)
+                    # I64-4 — every path with >1 writer (footprints UNION integration multi_writer_paths) has,
+                    # for each writer, at least one replay row with exit 0.
+                    _mw = {}
+                    for _p, _ws in _writes.items():
+                        if len({_t[0] for _t in _ws}) > 1:
+                            _mw[_p] = {_t[0] for _t in _ws}
+                    for _m in _i6x_list(_ig, "multi_writer_paths", _i64_fail, "I64-4", _ig_loc):
+                        _mu = _m.get("units") if isinstance(_m, dict) else None
+                        if not (isinstance(_m, dict) and isinstance(_m.get("path"), str) and isinstance(_mu, list)):
+                            _i64_fail("I64-4", _ig_loc, f"malformed multi_writer_paths[] entry {_m!r:.120}")
+                            continue
+                        _mw.setdefault(_m["path"], set()).update(_x for _x in _mu if isinstance(_x, str))
+                    for _p in sorted(_mw):
+                        for _u in sorted(_mw[_p]):
+                            if _u not in _replay_units_ok:
+                                _i64_fail("I64-4", f"{_p} {_u}", f"multi-writer path has no exit-0 replay row for writer {_u}",
+                                          item=f"{_p} {_u}")
+                # I64-5 / I64-6 read the frozen intended changes and the blast config.
+                _intended = set()
+                for _bu in _blast_units.values():
+                    _fr = _bu.get("frame")
+                    _ics = _fr.get("intended_changes") if isinstance(_fr, dict) else None
+                    if isinstance(_ics, list):
+                        _intended.update(_x for _x in _ics if isinstance(_x, str))
+                _bc_loc = "blast-config.json"
+                _bc, _bc_err = _blast_raw(os.path.join(rd, _bc_loc))
+                if _bc is None and _bc_err == "absent" and isinstance(_bl_ws, str):
+                    _bc_loc = "<workspace>/.dag/blast.json"
+                    _bc, _bc_err = _blast_raw(os.path.join(_bl_ws, ".dag", "blast.json"))
+                _bc_absent = _bc is None and _bc_err == "absent"
+                if _bc_absent:
+                    # No config in the run dir nor the workspace: nothing declares regression commands or
+                    # explains their absence, so the ONLY accepted evidence is a NON-EMPTY recorded
+                    # differential (a regression command demonstrably ran). A differential_none_reason is NOT
+                    # accepted: integrate.py writes one itself when it finds no config ("no blast config, so
+                    # no regression commands to compare") — generated by the tool, not given by anyone.
+                    _ig_dif = _ig.get("differential") if isinstance(_ig, dict) else None
+                    if not (isinstance(_ig_dif, list) and _ig_dif):
+                        _i64_fail("I64-5", "blast-config.json", "no blast config (run dir or <workspace>/.dag/blast.json) "
+                                  "and no recorded differential row — without a config only a non-empty integration "
+                                  "differential shows a regression command ran; a differential_none_reason does not count")
+                    # ... and any recorded integration error is a FAIL: with no config, a declared command
+                    # that timed out or could not run (an errors[] row and no differential row) cannot be
+                    # told apart from an undeclared one. Deliberately not acceptable per item: the remedy
+                    # is a visible config that declares the commands or explains their absence.
+                    _ig_er0 = _ig.get("errors") if isinstance(_ig, dict) else None
+                    if _ig_er0 is not None and _ig_er0 != []:
+                        _i64_fail("I64-5", "blast-config.json", "no blast config (run dir or <workspace>/.dag/blast.json) "
+                                  "and a non-empty integration errors[] "
+                                  f"({len(_ig_er0) if isinstance(_ig_er0, list) else type(_ig_er0).__name__}: {_ig_er0!r:.120}) — "
+                                  "without the config a declared regression command that timed out or could not run "
+                                  "is indistinguishable from an undeclared one")
+                elif not isinstance(_bc, dict):
+                    _i64_fail("I64-5", _bc_loc, f"unreadable blast config ({_bc_err or 'not an object'}) — "
+                                                "regression commands must be declared or their absence explained")
+                    _bc = None
+                _rcs = _i6x_list(_bc, "regression_commands", _i64_fail, "I64-5", _bc_loc)
+                _rnr = _bc.get("regression_none_reason") if isinstance(_bc, dict) else None
+                if isinstance(_bc, dict) and not _rcs and not (isinstance(_rnr, str) and _rnr.strip()):
+                    _i64_fail("I64-5", _bc_loc, "regression_commands is empty and no non-blank regression_none_reason is given")
+                _cmp = {}
+                for _rc in _rcs:
+                    if isinstance(_rc, dict) and isinstance(_rc.get("id"), str):
+                        _cmp[_rc["id"]] = _rc.get("compare")
+                if _ig is not None:
+                    # I64-5 — every recorded old-vs-new difference cites a frozen intended change verbatim;
+                    # every declared regression command has a differential row (a timed-out one has none).
+                    _diff_ids = set()
+                    _dif_rows = _i6x_list(_ig, "differential", _i64_fail, "I64-5", _ig_loc)
+                    for _d in _dif_rows:
+                        if not (isinstance(_d, dict) and isinstance(_d.get("regression_id"), str)):
+                            _i64_fail("I64-5", _ig_loc, f"malformed differential[] row {_d!r:.120}")
+                            continue
+                        _rid = _d["regression_id"]
+                        _diff_ids.add(_rid)
+                        _cm = _cmp.get(_rid)
+                        _judge_out = not isinstance(_cm, str) or "stdout" in _cm.lower()
+                        _differs = _d.get("base_exit") != _d.get("tip_exit") or (
+                            _judge_out and _d.get("base_stdout_sha256") != _d.get("tip_stdout_sha256"))
+                        _ref = _d.get("intended_change_ref")
+                        if _differs and not (isinstance(_ref, str) and _ref in _intended):
+                            _i64_fail("I64-5", f"differential {_rid!r:.60}", item=str(_rid), detail=
+                                      f"base/tip differ (judged on {'exit+stdout' if _judge_out else 'exit'}) and "
+                                      f"intended_change_ref {_ref!r:.80} is no unit's frame.intended_changes entry verbatim")
+                    # Coverage applies unless fsm-state.blast.mode is "snapshot" AND the record carries no
+                    # differential row: integrate.py writes differential rows ONLY in git mode — a snapshot run
+                    # cannot rebuild the start tree and records exactly that as its differential_none_reason, so
+                    # its declared commands are never compared (stated in the record, not a timeout). A snapshot
+                    # record that nevertheless carries differential rows claims a comparison, so it is judged on
+                    # coverage like any other mode. Otherwise a declared command with no row is a FAIL: one that
+                    # timed out, could not run or was malformed leaves an errors[] row and no row here.
+                    _ig_dnr = _ig.get("differential_none_reason")
+                    _ig_ers = _ig.get("errors")
+                    for _rid in ([] if _bl_mode == "snapshot" and not _dif_rows else sorted(set(_cmp) - _diff_ids)):
+                        _i64_fail("I64-5", f"differential {_rid!r:.60}", item=str(_rid), detail=
+                                  f"declared regression command has no differential row in blast mode {_bl_mode!r} — "
+                                  + (f"the record says {_ig_dnr!r:.120}; " if isinstance(_ig_dnr, str) and _ig_dnr.strip() else "")
+                                  + "a command that timed out, could not run or was malformed leaves an integration "
+                                  f"errors[] row instead ({len(_ig_ers) if isinstance(_ig_ers, list) else 'no'} recorded)")
+                    # I64-6 — every weakened-test row cites a frozen intended change verbatim.
+                    for _t in _i6x_list(_ig, "test_weakening", _i64_fail, "I64-6", _ig_loc):
+                        _ref = _t.get("intended_change_ref") if isinstance(_t, dict) else None
+                        if not (isinstance(_ref, str) and _ref in _intended):
+                            _tk = _t.get("kind") if isinstance(_t, dict) else None
+                            _td = _t.get("detail") if isinstance(_t, dict) else None
+                            _i64_fail("I64-6", f"test_weakening {(_tk if isinstance(_t, dict) else _t)!r:.60}",
+                                      item=(f"{_tk} {_td}" if isinstance(_tk, str) and _tk.strip()
+                                            and isinstance(_td, str) and _td.strip() else None), detail=
+                                      f"intended_change_ref {_ref!r:.80} is no unit's frame.intended_changes entry verbatim")
+                    # I64-7 — a must_not_increase census added nothing (GROSS: closures never offset an addition).
+                    _cen = {}
+                    _cen_rows = []
+                    for _c in _i6x_list(_ig, "censuses", _i64_fail, "I64-7", _ig_loc):
+                        if isinstance(_c, dict) and isinstance(_c.get("id"), str):
+                            _cen[_c["id"]] = _c
+                            _cen_rows.append(_c)
+                    # With NO config visible nothing declares which census must not increase, so every recorded
+                    # census row is judged as must_not_increase (each row, so a duplicated id cannot mask one).
+                    for _c in (_cen_rows if _bc_absent else []):
+                        if _as_int(_c.get("added")) != 0:
+                            _i64_fail("I64-7", f"census {_c['id']!r:.60}", item=_c["id"], detail=f"added {_c.get('added')!r} "
+                                      "!= 0 with no blast config visible (run dir or <workspace>/.dag/blast.json), so every "
+                                      "recorded census is judged must_not_increase (gross, not net)")
+                    for _c in _i6x_list(_bc, "censuses", _i64_fail, "I64-7", _bc_loc):
+                        if not (isinstance(_c, dict) and _c.get("must_not_increase") is True and isinstance(_c.get("id"), str)):
+                            continue
+                        _row = _cen.get(_c["id"])
+                        if _row is None:
+                            _i64_fail("I64-7", f"census {_c['id']!r:.60}", "must_not_increase census has no integration censuses[] row",
+                                      item=_c["id"])
+                        elif _as_int(_row.get("added")) != 0:
+                            _i64_fail("I64-7", f"census {_c['id']!r:.60}", item=_c["id"], detail=f"added {_row.get('added')!r} != 0 on a "
+                                                                          "must_not_increase census (gross, not net)")
+        if _i63_on and not _i6x_bad["I63"]:
+            rep.ok(f"{_i63} (every passed command-form check replayed green; no file changed after its unit)")
+        if _i64_on and not _i6x_bad["I64"]:
+            rep.ok(f"{_i64} (integration recorded, owned, covered and explained before sign-off)")
+        if _i64_on and _ba_items - set(_ba_hit):
+            print(f"  NOTE  {LABEL_STEM['note_i64']}: over-broad — blast_accepted.items "
+                  f"{json.dumps(sorted(_ba_items - set(_ba_hit)))[:300]} match(es) no I62-4/I64 finding on this run "
+                  f"(an item downgrades only a FAIL row printing exactly that key, '<clause>:<subject>' with clause "
+                  f"one of {', '.join(_BA_CLAUSES)}); advisory, nothing downgraded")
 
     # Gate ordering: phase requires prior gates true. personas_confirmed is the FIRST
     # gate (Phase 1) and is required from P2 onward — the human persona gate is not skippable.
@@ -9329,6 +9758,59 @@ def main(argv=None):
           f"{_n57s(_n57_pan)} verify_p files, {_n57s(_n57_fbk)} feedback_iter rounds. "
           "ADVISORY: this makes the aggregate LEGIBLE and does not bound it, and it counts RECORDED "
           "artifacts only.")
+
+    # N-I65 blast summary (1.15.0) — EXIT-NEUTRAL BY CONSTRUCTION and printed even under --quiet (the
+    # N-I45 reasoning: a bare print touching neither rep.problems nor rep.checked). On an armed run with
+    # >= 1 footprint it makes the blast record LEGIBLE: changed paths (union of unit footprints),
+    # blast-audit obligations by disposition, shared (multi-writer) paths, census added / closed /
+    # still present PER CENSUS ID from integration.json (never summed across censuses, which may count
+    # different things; "still present" = the census's sites at tip, this run's additions included),
+    # plus two facts no I63/I64 clause judges — the count of integration errors[] rows, and, when the
+    # blast config declares regression commands, that a snapshot-mode run compared none of them
+    # (snapshot mode writes no differential rows). Only real integers are counted (a boolean is not 1).
+    # It checks declared, visible surfaces only: it never claims the run broke nothing.
+    if _blast_armed and _blast_fp:
+        _n65_fps = [_v for _v in _blast_fp.values() if isinstance(_v, (set, frozenset))]
+        _n65_all = set().union(*_n65_fps)
+        _n65_shared = sorted(_p for _p in _n65_all if sum(1 for _v in _n65_fps if _p in _v) > 1)
+        _n65_disp = {}
+        for _u in sorted(_blast_units):
+            _vf, _ = _blast_raw(os.path.join(units_dir, _u, "verify.json"))
+            _au = _vf.get("blast_audit") if isinstance(_vf, dict) else None
+            _rows = _au.get("rows") if isinstance(_au, dict) else None
+            if not isinstance(_rows, list):
+                continue
+            for _r in _rows:
+                _d = _r.get("disposition") if isinstance(_r, dict) else None
+                _d = _d if isinstance(_d, str) else "malformed"
+                _n65_disp[_d] = _n65_disp.get(_d, 0) + 1
+        _n65_ig, _ = _blast_raw(os.path.join(rd, "integration.json"))
+        _n65_ig = _n65_ig if isinstance(_n65_ig, dict) else {}
+        _n65_cen = _n65_ig.get("censuses")
+        _n65_cen = [_c for _c in _n65_cen if isinstance(_c, dict)] if isinstance(_n65_cen, list) else []
+        _n65_num = lambda _x: str(_x) if type(_x) is int else "?"
+        _n65_cs = "; ".join(f"{json.dumps(_c.get('id'))[:60]} added {_n65_num(_c.get('added'))}, closed (removed) "
+                            f"{_n65_num(_c.get('closed'))}, still present at tip {_n65_num(_c.get('tip'))}"
+                            for _c in _n65_cen[:8]) + (f"; +{len(_n65_cen) - 8} more" if len(_n65_cen) > 8 else "")
+        _n65_err = _n65_ig.get("errors")
+        _n65_bl = _blast_fsm.get("blast") if isinstance(_blast_fsm, dict) else None
+        _n65_snap = isinstance(_n65_bl, dict) and _n65_bl.get("mode") == "snapshot"
+        # The declared regression commands, read from the same config I64-5 reads (run dir, else workspace).
+        _n65_bc, _n65_bce = _blast_raw(os.path.join(rd, "blast-config.json"))
+        if _n65_bc is None and _n65_bce == "absent" and isinstance(_bl_ws, str):
+            _n65_bc, _ = _blast_raw(os.path.join(_bl_ws, ".dag", "blast.json"))
+        _n65_rc = _n65_bc.get("regression_commands") if isinstance(_n65_bc, dict) else None
+        _n65_nrc = len(_n65_rc) if isinstance(_n65_rc, list) else 0
+        print(f"  NOTE  {LABEL_STEM['note_i65']}: changed paths = {len(_n65_all)} (union of "
+              f"{len(_n65_fps)} footprint(s)); obligations by outcome = "
+              f"{json.dumps(dict(sorted(_n65_disp.items()))) if _n65_disp else 'none audited'}; shared "
+              f"(multi-writer) paths = {len(_n65_shared)} {json.dumps(_n65_shared[:5])[:200]}; census = "
+              + (f"{len(_n65_cen)} row(s), per census id (still present = sites at tip): {_n65_cs}"
+                 if _n65_cen else "no integration censuses[] rows")
+              + f"; integration errors[] = {len(_n65_err) if isinstance(_n65_err, list) else 'none recorded'}"
+              + (f"; snapshot mode: the {_n65_nrc} declared regression command(s) were NOT compared (no "
+                 "differential rows)" if _n65_snap and _n65_nrc else "")
+              + ". ADVISORY: checks declared, visible surfaces only.")
     return _finish(rep)
 
 def _finish(rep):

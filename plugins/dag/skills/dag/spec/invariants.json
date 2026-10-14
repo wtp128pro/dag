@@ -2107,6 +2107,78 @@
       "docs": [
         "references/state-machine.md#4"
       ]
+    },
+    {
+      "id": "I63",
+      "title": "End re-run of every unit's checks (blast radius). On a signed-off armed run, read from the run's integration.json: I63-1 every command-form case_set entry of every executed unit whose orchestrator-origin row in the unit's current debrief is discharged has a replay row, and every replay row for it exited 0 — a missing or non-zero row FAILs naming the regressed unit and the later-wave units whose footprints touched its files; I63-2 a path a unit's footprint wrote keeps that sha256_after as its final hash (integration union_changes sha256_tip, else unchanged since the earliest writer) unless a later-wave unit's footprint also wrote it — otherwise the file changed after the unit was verified. With no readable union_changes list there is no final hash, so any footprint-written path is an I63-2 FAIL ('final hashes unknown'), never a comparison of a value with itself. The antecedents (debrief, brief, integration record) are read raw, and wrong-typed or absent keys yield FAIL rows, never a traceback. No I63 finding is acceptable through blast_accepted. Same arming as I60 (stamp >= 1.15.0 and a graph with at least one unit); runs stamped below 1.15.0 are never newly failed. It checks declared, visible surfaces: the recorded replay of the declared checks and the recorded hashes, not whether an unchecked consumer still works.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I63 end re-run"
+      ],
+      "fixtures": [
+        "blast_green",
+        "blast_replay_missing",
+        "blast_replay_red",
+        "blast_post_verify_mutation",
+        "blast_integration_missing",
+        "blast_crash_integration_types"
+      ],
+      "provenance": [
+        "blast-radius-1.15.0"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I64",
+      "title": "Integration record before sign-off (blast radius; antecedent gates.signoff_confirmed, like I44). I64-1 integration.json exists, is schema-valid, matches its sha256 sidecar and its start state (base_sha, base_tree_digest) equals fsm-state.blast; I64-2 base and tip tree digests differ whenever a ships footprint changed a file — an identical-sides comparison is an invalid control, not a pass; I64-3 unowned_writes is empty; I64-4 every path with more than one writer (footprints union multi_writer_paths) has an exit-0 replay row for each writer; I64-5 every recorded old-vs-new difference cites a unit's frozen frame.intended_changes entry verbatim, the blast config (run-dir blast-config.json, else <workspace>/.dag/blast.json) declares regression_commands or a non-blank regression_none_reason, and every declared command has a differential row unless the blast mode is snapshot and the record carries no differential row (coverage is skipped there); stdout hashes are judged only when the declared compare names stdout, an undeclared row is judged on exit and stdout. With NO blast config in either location only a non-empty recorded differential counts (a differential_none_reason does not), a non-empty integration errors[] FAILs, and every recorded census is judged must_not_increase; I64-6 every weakened-test row cites a frozen intended change verbatim; I64-7 a must_not_increase census has added == 0 (gross, not net — closures never offset an addition). I64-8 fsm-state.blast_accepted {items[], rationale, decision_ref naming DECISIONS.md} is the one per-item override: an item '<clause>:<subject>' equal to the key printed in a FAIL row's accept suffix downgrades exactly that finding to an exit-neutral 'N-I64 blast accepted' NOTE; only I62-4 and I64-3..I64-7 findings are acceptable; an item that matches no finding gets an advisory NOTE and accepts nothing; a malformed override (not an object, items not a list, blank rationale or decision_ref, decision_ref not naming DECISIONS.md, the run's DECISIONS.md missing, a non-string item) is one I64-8 FAIL and downgrades nothing. Same arming as I60; runs stamped below 1.15.0 are never newly failed. It checks declared, visible surfaces: the recorded integration and the declared regression commands and censuses, not consumers nothing declared.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I64 integration",
+        "N-I64 blast accepted"
+      ],
+      "fixtures": [
+        "blast_green",
+        "blast_integration_missing",
+        "blast_integration_start_mismatch",
+        "blast_identical_control",
+        "blast_unowned_write",
+        "blast_shared_path_uncovered",
+        "blast_delta_unexplained",
+        "blast_weakening_unlisted",
+        "blast_census_increase",
+        "blast_override_malformed",
+        "blast_override_wellformed",
+        "blast_override_partial",
+        "blast_no_config_control",
+        "blast_no_config_errors",
+        "blast_crash_integration_types",
+        "blast_crash_override_types"
+      ],
+      "provenance": [
+        "blast-radius-1.15.0"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I65",
+      "title": "Blast summary — an EXIT-NEUTRAL ADVISORY NOTE and nothing else, the N-I57 shape: printed even under --quiet, touching neither the problem count nor the checked count. On an armed run it states the changed paths (union of the footprints), impact obligations by outcome, shared (multi-writer) paths, per census id the sites added, closed and still present at tip, and the integration errors[] count; when the blast mode is snapshot and regression commands are declared it says they were not compared. It makes the run's footprint legible; it checks declared, visible surfaces only and judges nothing.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "N-I65 blast summary"
+      ],
+      "fixtures": [
+        "blast_green"
+      ],
+      "provenance": [
+        "blast-radius-1.15.0"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
     }
   ]
 }

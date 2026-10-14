@@ -128,6 +128,51 @@ def _remove_impact(d):
     os.remove(os.path.join(d, "units/U01/impact.json.sha256"))
 
 
+_IG = "integration.json"
+
+
+def _ig(fn):
+    """integration.json edit; the sidecar is refreshed so the defect is the record, not its binding."""
+    return _edit(_IG, fn, sidecar=True)
+
+
+def _replay(unit, case, **repl):
+    def f(i):
+        if repl.pop("drop", False):
+            i["replay"] = [r for r in i["replay"] if (r["unit_id"], r["case_id"]) != (unit, case)]
+        else:
+            next(r for r in i["replay"] if (r["unit_id"], r["case_id"]) == (unit, case)).update(repl)
+    return f
+
+
+def _remove_integration(d):
+    os.remove(os.path.join(d, _IG))
+    os.remove(os.path.join(d, _IG + ".sha256"))
+
+
+def _census_up(i):
+    i["censuses"][0].update(tip=i["censuses"][0]["tip"] + 1, added=1)
+
+
+_ACCEPT = {"items": ["I64-7:crash-class"],
+           "rationale": "the one added crash-class site is a deliberate fixture of the census itself",
+           "decision_ref": "DECISIONS.md#D1"}
+
+
+def _override(*integration_edits):
+    """A well-formed blast_accepted naming ONLY census 'crash-class' (fsm-state.json + DECISIONS.md), plus the
+    integration.json edits that raise the findings. Necessarily multi-file: an override, the decision it cites
+    and the finding it names live in three artifacts, so these are not single-defect derivations."""
+    def run(d):
+        for fn in integration_edits:
+            _ig(fn)(d)
+        _edit("fsm-state.json", lambda s: s.update(blast_accepted=json.loads(json.dumps(_ACCEPT))))(d)
+        with open(os.path.join(d, "DECISIONS.md"), "w", encoding="utf-8") as fh:
+            fh.write("# Decisions\n\n## D1 — accept the crash-class census increase\n\n"
+                     "The census itself is under test; the one added site is intended. Accepted per item.\n")
+    return run
+
+
 # name -> (mutation, what it breaks). U01/U03 ship in wave 1 (frames src/app/**, docs/**);
 # U02 informs in wave 2 with an empty footprint and no impact.json.
 MUTATIONS = {
@@ -190,6 +235,45 @@ MUTATIONS = {
                                                   "exit_code": "0", "red_input": None},
               {"obligation_id": "O3", "disposition": "owned_by", "owner_unit": ["U03"]}])]),
                                 "I62-2..4 non-object rows, absent keys, wrong-typed fields"),
+    # I63 — end re-run (integration.json replay / union_changes), I64 — integration record and blast config.
+    # blast_green carries a COMPLETE run-dir blast-config.json (all keys: one regression command matching its
+    # differential row, a must_not_increase census, a test surface), so no fixture leans on the no-config arm.
+    "blast_replay_missing": (_ig(_replay("U01", "C1", drop=True)), "I63-1"),
+    "blast_replay_red": (_ig(_replay("U01", "C1", exit_code=1)), "I63-1"),
+    "blast_post_verify_mutation": (_ig(lambda i: next(c for c in i["union_changes"] if c["path"] == "src/app/parse.py")
+                                       .update(sha256_tip="e" * 64)), "I63-2"),
+    "blast_integration_missing": (_remove_integration, "I64-1"),
+    "blast_integration_start_mismatch": (_ig(lambda i: i.update(base_sha="1" * 40)), "I64-1"),
+    "blast_identical_control": (_ig(lambda i: i.update(tip_tree_digest=i["base_tree_digest"])), "I64-2"),
+    "blast_unowned_write": (_ig(lambda i: i.update(unowned_writes=["lib/stray.py"])), "I64-3"),
+    "blast_shared_path_uncovered": (_ig(lambda i: i.update(multi_writer_paths=[
+        {"path": "src/app/parse.py", "units": ["U01", "U04"]}])), "I64-4"),
+    "blast_delta_unexplained": (_ig(lambda i: i["differential"][0].update(
+        intended_change_ref="parse() was rewritten")), "I64-5"),
+    "blast_weakening_unlisted": (_ig(lambda i: i.update(test_weakening=[
+        {"kind": "test-file-deleted", "detail": "T2: tests/test_one.py test file deleted",
+         "intended_change_ref": None}])), "I64-6"),
+    "blast_census_increase": (_ig(_census_up), "I64-7"),
+    "blast_override_malformed": (_edit("fsm-state.json", lambda s: s.update(blast_accepted=dict(
+        _ACCEPT, decision_ref="NOTES.md#D1"))), "I64-8 (5) decision_ref names no DECISIONS.md"),
+    "blast_override_wellformed": (_override(_census_up), "N-I64 (exit 0): the named census finding downgraded"),
+    "blast_override_partial": (_override(_census_up, lambda i: i.update(unowned_writes=["lib/stray.py"])),
+                               "I64-3 still FAILs: the override names only the census"),
+    # No blast config anywhere (blast_green minus blast-config.json; its workspace_root does not exist, so no
+    # <workspace>/.dag/blast.json either): the fallback arm stays covered now that blast_green carries a config.
+    "blast_no_config_control": (lambda d: os.remove(os.path.join(d, "blast-config.json")),
+                                "no config, non-empty differential, census added 0, no errors (exit 0 today)"),
+    "blast_no_config_errors": (lambda d: [os.remove(os.path.join(d, "blast-config.json")), _ig(lambda i: i.update(
+        errors=["regression command 'tests/test_parse.py::test_trailing_newline' timed out after 120s"]))(d)],
+                               "I64-5 no config and a non-empty errors[] (not acceptable)"),
+    "blast_crash_integration_types": (_ig(lambda i: [i.update(replay="U01/C1", union_changes={"path": "src/app/parse.py"},
+                                                              multi_writer_paths=["src/app/parse.py"], test_weakening=[None],
+                                                              censuses=[5, {"id": "crash-class", "added": "1"}],
+                                                              differential={"regression_id": "x"}, errors="timeout"),
+                                                     i.pop("unowned_writes"), i.pop("tip_tree_digest")]),
+                                      "I63/I64 wrong types + absent unowned_writes/tip_tree_digest"),
+    "blast_crash_override_types": (_edit("fsm-state.json", lambda s: s.update(blast_accepted={
+        "items": "I64-7:crash-class", "rationale": 5, "decision_ref": None})), "I64-8 wrong types"),
 }
 
 
