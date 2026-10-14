@@ -12,7 +12,8 @@ written by a script (stdlib only) and judged offline, post-hoc, by `validate_run
 the exit-neutral `N-I65` summary); none of them is hand-written by an executor.
 
 ## The flow, in order (what the orchestrator runs)
-1. **Bootstrap** — `init_run.sh` writes `fsm-state.blast` once: `mode` (`git` | `snapshot` | `none`),
+1. **Bootstrap** — `init_run.sh` writes `fsm-state.blast` once: `mode` (`git` or `snapshot` only; it
+   exits 7 when the mode cannot be determined),
    `base_sha` (HEAD, or null with no first commit), `base_tree_digest` (from `tree_digest`, below),
    `workspace_root`, `dirty_at_start` (paths `git status` already showed at scaffold time, minus `.wip/**`
    and the run dir) and `tool_version`. The validator arms the blast predicates when the run's stamp is
@@ -225,7 +226,12 @@ Written once by `integrate.py` after the last wave. START state = `fsm-state.bla
 rename split into D of the old path plus A of the new); `unowned_writes[]` = changed paths in no unit's
 footprint; `multi_writer_paths[]` = paths in two or more footprints. `replay[]` re-runs, from the
 workspace root, every command-form `case_set` check whose orchestrator-origin row in the unit's current
-debrief is `discharged` (300 s timeout). `differential[]` runs each regression command at the start state
+debrief is `discharged`, each under a 300 s default timeout per replayed check;
+`integrate.py RUN_DIR --replay-timeout <seconds>` (a finite integer or decimal greater than 0; exponent forms
+such as `1e3` are refused) widens it for a slower check, and the same window also bounds each census command
+(regression commands keep their own `timeout_s`). A replay
+that times out is an `errors[]` row with no `replay[]` row, never a pass. `differential[]` runs each
+regression command at the start state
 (a detached `git worktree` of `base_sha` in the system temp directory, hooks off, always removed) and at
 the end state; no rows means `differential_none_reason` is stated. `test_weakening[]` compares each test
 surface between `base_sha` and the workspace; `censuses[]` publishes the gross `added`, `closed` and

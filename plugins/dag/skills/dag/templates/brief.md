@@ -62,8 +62,9 @@
 <!-- TEXT ONLY. The RULE — who derives it, when, how many entries, and what the executor may do
      with it — is stated in full in SKILL.md Phases 5 and 6; an orchestrator acts on it without
      opening this file. What follows is the wire shape and the strings that must be copied
-     byte-for-byte (SPEC: units/U01/SPEC.md §2, §4.1). Omit this section ONLY when the sidecar
-     carries neither `case_set` nor `case_set_none_reason`. -->
+     byte-for-byte (SPEC: units/U01/SPEC.md §2, §4.1), plus the left-alone scoping note after the
+     example: authoring guidance this template carries and SKILL.md does not repeat. Omit this
+     section ONLY when the sidecar carries neither `case_set` nor `case_set_none_reason`. -->
 - **Entry keys** (`brief.json` `case_set[].items`, `additionalProperties: false`) — REQUIRED:
   `id` (`^C[0-9]+$`, unique in the array), `check`, `check_form` (`"command"` | `"locator"`),
   `trigger_ref` (**VERBATIM** member of this brief's `acceptance_criteria[] ∪ dod_refs[] ∪
@@ -120,6 +121,16 @@
 ]
 ```
 
+**Scope a left-alone check to the unit's own window.** A check that asserts something was LEFT ALONE
+is scoped to the unit's own window: its captured footprint (`units/<id>/footprint.json`), or the file's
+content compared between the unit's window snapshots. The window is its wave's pre/post pair or, after a
+retry, the `<U>-i<k>` pre/post pair. A footprint lists in `changes[]` only the paths that match the unit's
+own frame, so a write outside the frame appears only in `unattributed[]` (and not even there when another
+unit of the same window claims the path through its frame); a footprint-scoped check therefore reads BOTH
+lists. It is never scoped to the run's base commit. Phase 8 re-runs every passed
+command-form check at the tip (`I63-1`), and there a later unit's legitimate edit of the same file turns a
+base-scoped check permanently red; the only route back to green is then the forbidden move itself. Base
+scope stays right only for a file that no unit other than the check's own may change.
 
 ## Evidence standard (see references/evidence-standards.md)
 - Claim types expected in this unit: <e.g., code-behavior, empirical-world-fact>

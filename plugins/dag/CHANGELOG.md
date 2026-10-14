@@ -42,12 +42,21 @@ malformed-stamped or older run is never newly failed by them.
 - Four standard-library scripts: `frame_match.py` (the one frame-pattern matcher), `footprint.py`
   (wave snapshots and per-unit footprints), `impact_scan.py` (out-of-frame consumers into
   `impact.json`), `integrate.py` (the sign-off record `integration.json`, with `--explain`).
+- `integrate.py --replay-timeout SECONDS` sets the per-command window for replayed checks and census
+  commands: a finite number greater than 0 written as an integer or a decimal (e.g. `900` or `0.5`;
+  exponent forms such as `1e3` are refused), default 300 s; regression commands keep their own
+  `timeout_s`. A check still running at the limit has its process group killed and becomes an
+  `errors[]` row with no replay row, so it counts as not re-run. An invalid value is refused with
+  exit 2 before any file is read or written.
 - Four new schemas — `footprint`, `impact`, `integration`, `blast-config` (the optional project config
   `.dag/blast.json`: regression commands, coupling rules, censuses, test surfaces, scan excludes) — and
-  `fsm-state.blast`, graph/brief `frame` and `deliverable`, and `verify.blast_audit` in the existing
-  schemas, with `normalize_artifacts.py`'s hand mirror updated to match.
-- The `blast-radius-sentinel` persona, `templates/blast.md`, and the new fields documented in the graph,
-  brief, debrief and verify templates.
+  `fsm-state.blast`, graph/brief `frame`, and `verify.blast_audit` in the existing schemas, with
+  `normalize_artifacts.py`'s hand mirror updated to match. The graph schema's `deliverable` key is
+  unchanged (it predates 1.15.0); what changes is that `I60-1` now requires it on runs stamped
+  ≥ 1.15.0 (see I54 under Guarantee classifications).
+- The `blast-radius-sentinel` persona, `templates/blast.md`, the new fields documented in the graph,
+  brief and verify templates, and a debrief-template note that the file footprint and the impact record
+  are orchestrator artifacts, not debrief fields.
 - 53 `blast_*` fixture runs, registered as 72 `blast_` rows in `tests/expectations.tsv`.
 
 ### Changed
@@ -59,10 +68,10 @@ malformed-stamped or older run is never newly failed by them.
   before HOME moves), so a user-site `jsonschema` backend is no longer silently hidden; it also gains a
   blast section.
 - `SKILL.md` walks the blast flow phase by phase; methodology, orchestrator conduct, self-learning loops
-  and evidence standards reference it; `references/state-machine.md` §5 gains the I60–I64 and N-I65
-  rows and Limitation AE.
-- **Documentation backfill, not a new predicate:** the 1.14.0 predicates `I49`–`I54` and `I56`–`I59` are
-  now documented in `references/state-machine.md`.
+  and evidence standards reference it; `references/state-machine.md` §4 gains the I60–I64 and N-I65
+  rows, and §5 gains their enumeration and Limitation AE.
+- **Documentation, not a new predicate:** `references/state-machine.md` §5 now also enumerates the
+  1.14.0 predicates `I49`–`I54` and `I56`–`I59`; their §4 rows were already there in 1.14.0.
 
 ### Guarantee classifications
 

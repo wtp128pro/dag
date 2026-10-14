@@ -13,8 +13,8 @@ Individual plugins also maintain their own changelogs.
   declared checks are replayed and declared census counts compared at base and tip. Four
   standard-library scripts (`frame_match.py`, `footprint.py`, `impact_scan.py`, `integrate.py`), four
   schemas, a persona, a template, 53 fixture runs, an `init_run.sh` blast stamp with a restamp refusal,
-  a test-harness fix that keeps a user-site `jsonschema` visible, and a documentation backfill of the
-  1.14.0 predicates.
+  a test-harness fix that keeps a user-site `jsonschema` visible, and a `state-machine.md` §5
+  enumeration of the 1.14.0 predicates, whose §4 rows already existed.
 - **Guarantee classifications.** I54 REVISES upward (`deliverable` required on runs stamped ≥ 1.15.0);
   I17 widened to anchor `frame` (PRESERVES below 1.15.0); Limitation AC boundary (iv) / Non-Goal 10
   REVISES — narrowed, not closed; Limitation AB narrowed for repository files; N-I45's `BLAST-T1` arm a

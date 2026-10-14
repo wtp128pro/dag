@@ -346,8 +346,11 @@ Three distinct hazards, one rule:
 
 Conduct: partition each wave by file ownership before dispatch and state the partition; keep
 verify-with-reproduction serialized against mutation; and hold repairs until the outstanding
-adjudication lands. Where the harness offers it, `isolation: 'worktree'` removes hazard 1 for
-executors but not hazards 2–3, which are ordering constraints, not isolation ones.
+adjudication lands. Do not give executors `isolation: 'worktree'`: the blast capture reads only
+`fsm-state.blast.workspace_root`, so an executor writing in a worktree copy leaves its unit an
+empty footprint and a blast audit that passes without checking anything. Executors write in the
+one shared working tree. Hazard 1 is handled by disjoint declared frames, checked afterwards by
+**I61**. Hazards 2–3 are ordering constraints that no isolation removes.
 
 ### R1 · Run the offline artifact normalizer before the validator
 
