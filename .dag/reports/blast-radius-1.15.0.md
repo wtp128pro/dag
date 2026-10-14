@@ -10,6 +10,7 @@ That window covers the full gate, M1's obligations and per-commit census, M2, an
 Figures measured outside the window carry their own as-of where they appear: the integration dry-run (04:34), the
 follow-up's workspace-deletion and I35 deltas (measured before 05:29 by the follow-up's verification), the U11 check
 timing (about 05:38), and the figures re-measured for this revision between 05:54 and 05:58 (`date -Iseconds`).
+The follow-up iteration (D66) section and the re-run Full gate carry their own as-of, 2026-10-14 between 10:45 and 10:51 -04:00 (`date -Iseconds`).
 `git rev-parse HEAD` printed `49c9bb50f366…`, the release base. The change set is still an **uncommitted
 working tree** (`git status --porcelain | wc -l` printed 99 in the window), so every tip figure below describes that
 working tree and not a commit.
@@ -106,7 +107,7 @@ The run that built this release is stamped 1.15.0, carries a seeded blast record
 - Blast rows: I60 judged 34 units and 32 footprints, I61 judged 18 waves, and I62 judged 30 executed shipping units, all PASS (`grep -E '^\s*PASS\s+I6[0-2]'` over the same output).
   I63 arms only at P8_SYNTHESIS and I64 only at sign-off, so **neither has judged this run yet**. This self-judgement is therefore partial.
 - A **labelled dry-run** of the whole-run integration step was run over a copy of the run, as of 2026-10-14T04:34:37-04:00 (before the window above, and not re-run for this report). It is not the final record: the final integration and sign-off happen after this report. It replayed 134 rows against base 49c9bb5 and found crash-class census base 207 and tip 207, with 0 added and 0 closed. It also found 10 multi-writer paths, all written by sequential waves (`python3 $S/integrate.py <COPY_OF_RUN_DIR>`).
-- In that dry-run (same as-of), I63-1 found that unit U07's frozen check C3 ends in a diff against the **run base** rather than U07's own window. A later unit legitimately appended to the file it checks, so the check can no longer go green. That I63-1 row is open and goes to the maintainer at the final gate (`python3 $S/integrate.py <COPY_OF_RUN_DIR>` replay row for U07/C3, exit 1).
+- In that dry-run (same as-of), I63-1 found that unit U07's frozen check C3 ends in a diff against the **run base** rather than U07's own window. A later unit legitimately appended to the file it checks, so the check can no longer go green (`python3 $S/integrate.py <COPY_OF_RUN_DIR>` replay row for U07/C3, exit 1). The follow-up decision D66 resolved that I63-1 row: the check was rescoped to U07's own window and U07 was re-verified at iteration 2 (see "Follow-up iteration (D66)" below). It does not stay open.
 
 ## Crash-class census across this run (gross)
 
@@ -121,38 +122,68 @@ python3 -c 'import json,glob,sys,hashlib,subprocess as sp,collections as C;S,R,O
 - Gross across the run: **added 0, closed 0, still present 207** against the base at every point (all base sites remain; the command above). The working tree also counts 207: `python3 $S/tests/i48_crash_class.py --provenance --base 49c9bb5 --file $S/validate_run.py` printed `census(worktree) = 207   census(49c9bb5) = 207   delta = +0`, with ADDED and REMOVED both `(none)`, at 2026-10-14T05:56:27-04:00. That command exits 1 whenever the two counts are equal, so its exit status is not a pass/fail signal here; read its printed delta and lists.
 - The control can tell the two sides apart: the base and working-tree `validate_run.py` hash differently, `64b7f1b85983…` against `1dfc4d8b7a43…` (`sha256sum`). An identical census is therefore a real result and not a file compared with itself. "Relocated rather than added" is untested, because nothing was added.
 
-## Full gate (working tree, as-of above)
+## Follow-up iteration (D66), 2026-10-14
 
-| Gate | Command | Result |
-|---|---|---|
-| Harness | `bash $S/run_tests.sh` | exit 0, "RESULT: PASS" |
-| Spec | `python3 $S/spec_check.py` | exit 0, PASS 8, NOTE 1, FAIL 0 |
-| Normalizer mirror | `python3 $S/normalize_artifacts.py --self-test` | exit 0, "self-test: 0 failure(s)" |
-| Version mirrors | `python3 $S/mirror_check.py 1.15.0 1.0.19` | exit 0 |
-| Formal | `bash $S/run_formal.sh` | exit 0, "8/8 commands as-expected" |
-| Validator never runs git | `grep -c subprocess $S/validate_run.py` | prints 0 (grep exits 1 on no match) |
+At the run's final sign-off gate the maintainer chose to iterate (decision D66): small fixes made inside the frames of
+the units that last wrote each file, each footprinted, impact-scanned and independently re-verified.
+As-of 2026-10-14T10:45:36-04:00 (`date -Iseconds`), HEAD was `bf37baf…` with the change set committed on the branch and the follow-up's edits uncommitted on top (`git rev-parse HEAD`; `git status --porcelain | wc -l` printed 8 before this revision of the report).
+Each item below names the command that shows it in that working tree, run between 10:48 and 10:52 (`date -Iseconds`).
+
+- R5 Conduct guidance: executors are not given worktree isolation and write in the one shared working tree; disjoint
+  frames are checked by I61 (`grep -n "Do not give executors" plugins/dag/skills/dag/references/orchestrator-conduct.md` prints line 349).
+- Root README blast clause: the plugin-table cell describes the blast-radius checks as "checks over declared, visible
+  surfaces only" and leaves Limitation AE open (`grep -c "checks over declared, visible surfaces only" README.md` prints 1).
+- integrate.py `--replay-timeout SECONDS`: a finite number greater than 0 that sets the replay window, default 300 s (`grep -n "DEFAULT_REPLAY_TIMEOUT = " $S/integrate.py` prints `109:DEFAULT_REPLAY_TIMEOUT = 300.0`).
+  The same window bounds each census command, and regression commands keep their own `timeout_s`. A bad value such as 0 is refused with a one-line reason and exit 2 (`python3 $S/integrate.py /nonexistent --replay-timeout 0`).
+  This replaces the fixed 300 s cap with no CLI option that the first version of this report listed as a design gap.
+  The measurement behind it stays dated: U11's check C4 takes 6 min 17 s on a near-idle host (load about 0.9), measured on 2026-10-14 at about 05:38 with `time` over the command recorded for U11's case C4, and not re-run (`python3 -c 'import json,sys;print([c["check"] for c in json.load(open(sys.argv[1]+"/units/U11/brief.json"))["case_set"] if c["id"]=="C4"][0])' <RUN_DIR>` prints that command).
+- Superseded statement: the first version of this report said the final integration "replays through the module API
+  with a 900 s per-check window". It is replaced by the shipped CLI, `python3 $S/integrate.py <RUN_DIR> --replay-timeout 900`.
+  The final integration runs after this report, and its result is recorded in the PR description's final-validation section, not here.
+- `templates/blast.md` documents the replay window and the option (`grep -n "replay-timeout" plugins/dag/skills/dag/templates/blast.md` prints line 230).
+- `templates/brief.md` gains a left-alone scoping rule: a check that asserts something was left alone is scoped to the
+  unit's own window (its footprint, or its window snapshots), with base scope kept only for a file no other unit may change (`grep -n "Scope a left-alone check" plugins/dag/skills/dag/templates/brief.md` prints line 124).
+  Its verifiers' residuals are under Known issues.
+- U07's check C3 was rescoped to U07's own footprint: it asserts that U07's footprint lists no change to `expectations.tsv`, instead of diffing against the run base.
+  `python3 -c 'import json,sys;print([c["check"] for c in json.load(open(sys.argv[1]+"/units/U07/brief.json"))["case_set"] if c["id"]=="C3"][0])' <RUN_DIR>` prints `python3 <RUN_DIR>/checks/u07_fallback.py && python3 <RUN_DIR>/checks/u07_window.py`, which exits 0 at 10:48:29.
+  U07 was re-verified at iteration 2 (`python3 -c 'import json,sys;v=json.load(open(sys.argv[1]+"/units/"+sys.argv[2]+"/verify.json"));print(sys.argv[2],v["verdict"],v["converged"],v["iteration"],len(v["defects"]))' <RUN_DIR> U07` prints `U07 PASS True 2 5` at 10:52:08).
+
+Round 2 of the follow-up fixed shipped-doc slips that the first version of this report listed as open:
+- `templates/blast.md` says init_run.sh writes mode `git` or `snapshot` only, and exits 7 when it cannot determine one (`grep -n "snapshot. only" plugins/dag/skills/dag/templates/blast.md` prints line 15).
+- The plugin CHANGELOG says the graph schema's `deliverable` key is unchanged, places the I60–I64/N-I65 rows in §4 of `state-machine.md`, and words I49–I59 as documentation of rows that already existed (`grep -n "deliverable. key is\|§4 gains the I60\|Documentation, not a new predicate" plugins/dag/CHANGELOG.md` prints lines 54, 71 and 73).
+- The plugin README lead says the verifier's guardrail lens settles consumers and integrate.py re-runs the checks (`grep -n "guardrail lens settles" plugins/dag/README.md` prints line 219).
+
+## Full gate (re-run after the D66 follow-up)
+
+The same six commands were re-run on 2026-10-14 from 10:45:41 to 10:48:03 -04:00 (`date -Iseconds` before and after), after the follow-up's edits, at HEAD `bf37baf` plus those edits (`git rev-parse HEAD`).
+The earlier column is this report's first window and is kept only as that earlier as-of; no result changed (`bash $S/run_tests.sh` and the rest, as listed).
+
+| Gate | Command | Result at the earlier as-of (05:31–05:40) | Result after D66 (10:45:41–10:48:03) |
+|---|---|---|---|
+| Harness | `bash $S/run_tests.sh` | exit 0, "RESULT: PASS" | exit 0, "RESULT: PASS" |
+| Spec | `python3 $S/spec_check.py` | exit 0, PASS 8, NOTE 1, FAIL 0 | exit 0, PASS 8, NOTE 1, FAIL 0 |
+| Normalizer mirror | `python3 $S/normalize_artifacts.py --self-test` | exit 0, "self-test: 0 failure(s)" | exit 0, "self-test: 0 failure(s)" |
+| Version mirrors | `python3 $S/mirror_check.py 1.15.0 1.0.19` | exit 0 | exit 0 |
+| Formal | `bash $S/run_formal.sh` | exit 0, "8/8 commands as-expected" | exit 0, "8/8 commands as-expected" |
+| Validator never runs git | `grep -c subprocess $S/validate_run.py` | prints 0 (grep exits 1 on no match) | prints 0 (grep exits 1 on no match) |
 
 ## Known issues found by this run (a selection; not fixed in this PR)
 
 This list is a selection, not the full record. The run's unit verifications recorded 369 defects, all minor, across the 32 aggregated unit verdicts other than this report's own unit, U27, which is excluded as self: `python3 -c 'import json,glob,sys,collections as C;ps=[p for p in glob.glob(sys.argv[1]+"/units/*/verify.json") if "/U27/" not in p];c=C.Counter(d.get("severity") for p in ps for d in (json.load(open(p)).get("defects") or []));print(len(ps),dict(c))' <RUN_DIR>` printed `32 {'minor': 369}` at 2026-10-14T05:56:00-04:00. The glob grows as units are verified, so the figure is dated. The full findings are in each `<RUN_DIR>/units/*/verify.json`.
 
-Verification that did not converge: the panels for U06 (`impact_scan.py`), U09 (`integrate.py`) and U31 (the
-retry-window and fail-closed repairs to `footprint.py`, `impact_scan.py` and `integrate.py`) each still found a new
-minor defect in their final round, and none found a blocker or a major. Each verdict is PASS with `converged` false,
-carrying 21, 29 and 12 minor defects (`python3 -c 'import json,sys,collections as C;[print(u,(lambda v:(v["verdict"],v["converged"],dict(C.Counter(d["severity"] for d in v["defects"]))))(json.load(open(sys.argv[1]+"/units/"+u+"/verify.json")))) for u in ("U06","U09","U31")]' <RUN_DIR>`, at the same as-of).
-Sign-off is to name these three units in `fsm-state.json` `accepted_incomplete`, which downgrades each named I44 or
+Verification that did not converge, re-measured at 2026-10-14T10:48:11-04:00 (`date -Iseconds`): three unit verdicts
+are PASS with `converged` false. They are U06 (`impact_scan.py`), U09 (`integrate.py`) and U21 (the templates, at its
+iteration-3 sweep, which found the left-alone paragraph's self-contradiction below). Each still found a new minor defect in its final round, none found a blocker or a major, and they carry 21, 29 and 10 minor defects (`python3 -c 'import json,glob,sys,collections as C;[print(p.split("/")[-2],v["verdict"],v["converged"],dict(C.Counter(d["severity"] for d in v["defects"]))) for p in sorted(glob.glob(sys.argv[1]+"/units/*/verify.json")) for v in [json.load(open(p))] if v.get("verdict")=="PASS" and v.get("converged") is False]' <RUN_DIR>`).
+That is the earlier fixed-list command widened to every unit. This report's own unit, U27, is in the glob at its iteration-2 verdict, which converged, so it is not listed.
+U31, listed here before, was re-verified at iteration 3 and converged with 11 minor defects (the one-unit `python3 -c` command under "Follow-up iteration (D66)" with `U31` prints `U31 PASS True 3 11` at 10:52:08).
+A sign-off that accepts these units names each in `fsm-state.json` `accepted_incomplete`, which downgrades each named I44 or
 I46 FAIL to a printed, greppable N-I44 NOTE; it suppresses nothing and covers no unit it does not name.
 
-Shipped-doc slips that verifiers recorded:
-- `templates/blast.md` says init_run.sh may write blast mode "none"; it writes only `git` or `snapshot`.
+Shipped-doc slips that verifiers recorded (the second-round fixes are under "Follow-up iteration (D66)"):
 - `templates/blast.md` says every blast artifact is written by a script; the project blast config is written by the project or the orchestrator.
 - `templates/blast.md` presents `blast_accepted` as the general way past a blast FAIL. Only I62-4 and I64-3..I64-7 items are acceptable, never I60, I61 or I63.
 - `templates/blast.md` examples are inconsistent: a frame example names a source path outside its graph, and an integration example's union of changes misses the renamed or added file. No shipped check validates these examples.
 - `templates/brief.md` "Known consumers" lacks the consumer map and per-read cost that SKILL.md's cartography phase describes.
-- `orchestrator-conduct.md` R5's Conduct sentence, unchanged from the base, still describes worktree isolation for executors. An isolated executor's writes never reach the captured workspace, so its footprint is empty and its blast audit is vacuously green.
-- The plugin CHANGELOG lists a `deliverable` schema field that this release did not add.
-- The plugin CHANGELOG places the I60–I64/N-I65 rows in the wrong section of `state-machine.md`. It also overstates the I49–I59 backfill: those rows existed, and only the version enumeration is new.
-- The plugin README lead says the predicates "settle" and "re-run". In fact integrate.py re-runs commands and verifiers settle obligations.
 - Line-number citations of SKILL.md in the wiki and references have drifted. The drift predates this release and the release widened it; the impact scan has no rule for line-offset consumers of a document.
 - The `spec/invariants.json` title for I63 says "On a signed-off armed run", but the validator arms I63 at P8_SYNTHESIS/DONE and I64 at sign-off.
 - `state-machine.md` wording: the Limitation AB bullet omits the I63-2 later-wave exemption, and the no-config bullet omits the I64-5 differential rule. Limitation AE says "I63 replays" (integrate.py replays; I63 judges), and the N-I45 PRESERVES and BLAST-T1 REVISES statements disagree.
@@ -160,8 +191,24 @@ Shipped-doc slips that verifiers recorded:
 - Wiki wording: there are arming gaps for I51/I52/I53 and in the confirmed-gate wording. I54 is described as blocking only at sign-off, but I54-1 and I54-2 fail at any phase. Some invariant counts are stale, and one schema list omits the directive and blast rows.
 - `graph.schema.json` describes a validator rule that no predicate enforces.
 
+Residuals of the follow-up itself (D66), as its verifiers recorded them:
+- `templates/brief.md`'s left-alone paragraph is inexact in three cases (U21's verifier). In tree mode `changes[]` lists
+  every change, so its sentence that a write outside the frame appears only in `unattributed[]` is false there. Across
+  retry iterations, a `<U>-i<k>` window cannot see an earlier iteration's out-of-frame write that was never reverted.
+  And a unit's first-iteration per-unit capture also uses a `<U>-i1` pair, not only a retry.
+- The same paragraph contradicts itself (U21's convergence sweep, `verify_p4`): it says a left-alone check "is never
+  scoped to the run's base commit", and then that base scope "stays right" for a file no other unit may change. U21's
+  own check C4 is such a check.
+- The blast-radius-sentinel persona's probe of undeclared writes diffs against the run base, the hazard that paragraph warns about: in a late wave that diff holds earlier units' legitimate writes (U21's verifier; `grep -n "Probe 6" plugins/dag/skills/dag/references/personas/blast-radius-sentinel.json` prints line 16).
+- `integrate.py --replay-timeout -inf`, and any other value starting with '-', is refused by argparse with a usage error instead of the one-line reason; it still exits 2 and reads nothing (U31's verifier; `python3 $S/integrate.py /nonexistent --replay-timeout -inf` printed the usage block and "expected one argument", exit 2, at 10:48:29).
+- The plugin CHANGELOG's schemas bullet omits `fsm-state.blast_accepted`, which 1.15.0 also added; the entry names it
+  under I64 (U26's verifier).
+- The follow-up's own frozen checks (`checks/d66_check.py` in the run directory) are keyword proxies with recorded blind
+  spots. Each blind spot is covered by an executor check or by the verifier's direct reading (the verifiers of U21, U24,
+  U26 and U31).
+
 Design gaps:
-- I63-1 cannot tell a regression from a frozen check scoped to the run base instead of the unit's own window. Such a check turns permanently red once a later unit legitimately edits the file. This run's own I63-1 row on unit U07's check C3 is open for that reason.
+- I63-1 cannot tell a regression from a frozen check scoped to the run base instead of the unit's own window. Such a check turns permanently red once a later unit legitimately edits the file. This run's instance of it, the I63-1 row on unit U07's check C3, was resolved by the follow-up decision D66, which scoped the check to U07's own footprint; the general gap stays open.
 - The blast `base_sha` field accepts SHA-1 object names only. In a SHA-256 repository, init_run.sh writes a longer name and the run fails its schema.
 - I60-2 coverage uses an un-normalised prefix match, so a brief output path that climbs out through `..` escapes it.
 - An archived run's verdict depends on its workspace, because integrate.py does not copy the blast config into the run directory.
@@ -169,8 +216,6 @@ Design gaps:
 - A run that is automatic from its very first phase cannot pass G-personas, I28 or I39, which have no machine-closed arm. I35 passes only with an honest empty dialogues file.
 - The impact scan's removed-identifier fallback turns a generic word into a high-hit obligation, and its obligation cap keeps references by hit count.
 - The run-level `verify.json` fails its own schema (a non-unit id, and an extra key), and no row flags it.
-- integrate.py replays each check under a fixed cap (`grep -n DEFAULT_REPLAY_TIMEOUT $S/integrate.py` prints 300.0 seconds) with no CLI option and no config key, so the shipped command can never replay a frozen check slower than 300 s, and I63-1 fails it as "no replay row". This is not a load effect: this run's U11 check C4 takes 6 min 17 s and passes on a near-idle host (load about 0.9), measured on 2026-10-14 at about 05:38 with `time` over the command recorded for U11's case C4 in `<RUN_DIR>/units/U11/brief.json`, and not re-run for this report.
-- So the final integration of this run, after this report, replays through the module API with a 900 s per-check window, the same replay set and judging as the CLI with only the window longer: `python3 -c 'import sys;sys.path.insert(0,sys.argv[1]);import integrate as I;I.write_doc(sys.argv[2],I.integrate(sys.argv[2],None,timeout=900))' $S <RUN_DIR>`. This is disclosed here and at sign-off.
 - A replay that times out cannot be recorded with a null exit code: `integration.schema.json` types `replay[].exit_code` as an integer (`grep -n '"exit_code"' plugins/dag/skills/dag/schemas/integration.schema.json`), so integrate.py writes an errors[] row and no replay row (`grep -n 'timed out' $S/integrate.py`).
 - impact_scan.py passes no `--no-color` to `git grep`, so under a user git config of `color.ui = always` every scan with a hit crashes with a ValueError and exit 1. Reproduced on 2026-10-14 between 05:54 and 05:56 by running the M2 recipe at `M=85d2591` with the scan prefixed by `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=color.ui GIT_CONFIG_VALUE_0=always`; without the prefix it exits 0. `run_tests.sh` stubs HOME, so the harness cannot see it.
 - The impact schema has no errors[] field, so scan errors are encoded as a scan-error symbol plus an error obligation.
