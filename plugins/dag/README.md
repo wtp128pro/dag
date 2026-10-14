@@ -215,7 +215,11 @@ Then: `/dag:dag <your task>`
 
 ## Versioning
 
-Current version: **1.14.0** — **drift and autonomy**: ten offline predicates (`I49`–`I54`, `I56`–`I59`) that let a run see what it is spending itself on, plus a disjoint machine-decision channel so an *honest* unattended run can reach `DONE`. See the changelog. Previously, **the frozen case-set contract**: a brief may freeze a `case_set[]` of
+Current version: **1.15.0** — **blast radius**: five offline post-hoc predicates (`I60`–`I64`) and one
+exit-neutral NOTE (`N-I65`) that compare each unit's captured file footprint with its declared write
+scope, settle the out-of-scope consumers a scan finds, and re-run the declared checks and censuses
+before sign-off; version-gated at `validator_version >= 1.15.0`, so no archived run arms them. They
+check declared, visible surfaces only. See the changelog. Previously, **1.14.0** — **drift and autonomy**: ten offline predicates (`I49`–`I54`, `I56`–`I59`) that let a run see what it is spending itself on, plus a disjoint machine-decision channel so an *honest* unattended run can reach `DONE`. See the changelog. Previously, **the frozen case-set contract**: a brief may freeze a `case_set[]` of
 named checks and a debrief must discharge each one back, row for row, with an outcome, its evidence
 and a non-vacuity statement. Enforced by **I48**, an **offline post-hoc** predicate in eight clauses
 over the emitted artifacts — no live guard on any transition — **version-gated on
