@@ -153,7 +153,7 @@ the human *genuinely* reviewed the deliverable stays semantic judgment (validity
 
 ---
 
-## 4. The invariant catalog — I1..I48 + I1b/I1c/I1d/I3b/I3c + I-dod
+## 4. The invariant catalog — I1..I65 (I55 deferred) + I1b/I1c/I1d/I3b/I3c + I-dod
 
 The primary table (§4 below) is the catalog of record, [`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md)
 (`:187-211`), mapped to its enforcement site in the validator and to the honest **A–K** limitation
@@ -771,6 +771,75 @@ honest, that an `asserted` tier was the best reachable, or that the frozen check
 freezing. **Never read a fully discharged case set as a complete or adequate one.** The canonical
 statement, with its five sub-boundaries, is Limitation **AC** in
 `plugins/dag/skills/dag/references/state-machine.md:545`, anchor *"Case-set coverage is made LEGIBLE, never ADEQUATE"* — the same register as **AA** and **AB** above.
+
+### 4.8 Blast radius (I60–I65) — write scope, impact, integration
+
+Six predicates, all **offline and post-hoc** over emitted artifacts. They are **armed** only when the
+run's `fsm-state.validator_version` is at least `1.15.0` (the `_BLAST_SHIP` constant in
+`validate_run.py`) **and** `graph.json` lists at least one unit; a run stamped below `1.15.0` is never
+newly failed by them. `init_run.sh` seeds `fsm-state.blast` (`mode`, `base_sha`, `base_tree_digest`,
+`workspace_root`, `dirty_at_start`, `tool_version`) at bootstrap, and `init_run.sh --restamp` refuses
+(exit 6, the file left byte-identical) to raise a stamp across `1.15.0` while that block is absent.
+Pattern matching everywhere goes through one module, `frame_match.py`.
+
+| Id | Label stem | What it checks |
+|---|---|---|
+| **I60** | `I60 write scope` | every graph unit names `deliverable: ships\|informs`; a ships unit declares a non-empty `frame.modifies` of valid patterns, mirrored in `brief.json`; every executed unit has a schema-valid `units/<U>/footprint.json` matching its sidecar, unit and iteration, with no `capture_error`; every changed path matches `frame.modifies` and no `frame.immutable` pattern; an informs unit changed nothing; `fsm-state.blast` is well formed. |
+| **I61** | `I61 wave write disjointness` | no two units of one wave captured overlapping paths, and every footprint's `unattributed[]` (changed paths no frame claims) is empty. `N-I61 declared frame overlap` is an exit-neutral NOTE for two same-wave units whose `frame.modifies` patterns can match a common path. |
+| **I62** | `I62 impact settled` | every executed ships unit has a schema-valid `impact.json` bound to its footprint's bytes and its debrief's iteration; the aggregated `verify.json` carries `blast_audit` bound to that impact record's bytes, dispositioning every obligation once (`exercised` with a check, exit 0 and a red input; `unaffected` with a rationale, never for a `coupling` obligation; `owned_by` another unit whose frame covers the path; `broken` never on a PASS). |
+| **I63** | `I63 end re-run` | from synthesis on (phase `P8_SYNTHESIS` or `DONE`), `integration.json` holds an exit-0 replay row for every discharged command-form check of every executed unit, and every path a unit wrote keeps its recorded hash to the end unless a later-wave unit also wrote it. |
+| **I64** | `I64 integration` | before sign-off, `integration.json` exists, matches its sidecar and starts from `fsm-state.blast`; base and tip differ when a ships unit changed a file; `unowned_writes` is empty; every multi-writer path has a replay row per writer; every recorded difference and weakened test cites a frozen `frame.intended_changes` entry verbatim; the blast config declares `regression_commands` (or a `regression_none_reason`) and each has a differential row; a `must_not_increase` census added nothing (gross, never net). |
+| **N-I65** | `N-I65 blast summary` | an exit-neutral NOTE, printed even under `--quiet`: changed paths, obligations by outcome, shared paths, census sites added/closed/present, and the integration `errors[]` count. It judges nothing. |
+
+**The one override.** `fsm-state.blast_accepted` (`items[]`, a `rationale`, a `decision_ref` naming
+`DECISIONS.md`) downgrades exactly the findings its items name to an exit-neutral `N-I64 blast accepted`
+NOTE. Only I62-4 and I64-3..I64-7 findings are acceptable; I63 findings never are; an item that matches
+no finding accepts nothing; a malformed override is one I64-8 FAIL and downgrades nothing.
+
+**With no blast config.** When neither the run's `blast-config.json` nor the workspace's
+`.dag/blast.json` exists, I64 still judges what was recorded: a non-empty integration `errors[]` FAILs,
+every recorded census is judged as `must_not_increase`, and only a non-empty recorded differential
+counts. That narrows the waiver; it does not close it — with no declared commands there is nothing for
+the coverage arm to judge, and where a config came from is not itself checked.
+
+**What these predicates do not see.** Each one checks declared, visible surfaces: captured paths
+against declared patterns, recorded obligations against written dispositions, recorded replays and
+hashes against declared checks and commands. Semantic conflicts between disjoint files, consumers the
+scanner did not find, regressions no declared command exercises, and whether an `unaffected` rationale
+is true are outside them.
+
+### 4.9 Drift & autonomy (1.14.0, I49–I59) — horizon, prose, machine decisions, clocks
+
+Ten checks shipped in 1.14.0, numbered I49–I59 with **I55 deferred**. All are **offline and post-hoc**
+over emitted artifacts; none writes `retries`/`fuel`, gates a transition, or guards LT7. They are
+numbered before the blast-radius block above but placed after it, so that existing links to "§4.8" for
+I60–I65 stay valid. Several only **report**, so the class column matters as much as the check. The full
+arms and migration notes are the I49–I58 rows of
+[`state-machine.md` §4](../plugins/dag/skills/dag/references/state-machine.md); the §5 entry there
+states the same postures.
+
+| Id | Label stem | Armed on | What it checks | Class |
+|---|---|---|---|---|
+| **I49** | `I49 horizon record` | the first `horizon` written **and** `validator_version ≥ 1.14.0` | once one Socratic dialogue instance or `socratic` block carries a `horizon`, every one does; an `expedient` choice owes a non-blank `revisit_condition` and a `decisions_ref` that resolves in `DECISIONS.md` (fails closed when that file is absent), a `durable` one carries no `debt`; at DS-2/DS-4 `horizon.expedient` equals some question's `recommended` verbatim | ENFORCED for shape; genuineness is attestation; the I49-3 join is only OBSERVABLE in self-interrogation mode |
+| **I50** | `I50 prose bounds` / `N-I50 prose bounds` | `validator_version ≥ 1.14.0` | prose lines (never tables or fenced blocks) of the seven ledger files: longest sentence ≤ 60 words, mean ≤ 18, ARI ≤ 14, prose-line share ≥ 0.50; each breach prints an `N-I50` NOTE, marked acknowledged when `fsm-state.accepted_prose` names the file | OBSERVABLE — reports, never fails; only a malformed `accepted_prose` or an unreadable ledger file FAILs. One arm of three ships |
+| **I51** | `I51 machine-decision channel` | **I51-1** by `validator_version ≥ 1.14.0` | `fsm-state.run_mode` declared from P2; never both `gates.<g>_confirmed` and `gates.<g>_machine_closed`; a machine-closed gate is backed by a `machine-decisions.json` record with `decided_by: "machine"` and non-blank `analyst.reasoning`; `critical` is recomputed from the record's clauses; mode consistency; channel disjointness. `REQUIRED_GATES` accepts `<g>_confirmed` **or** `<g>_machine_closed` | ENFORCED for the channel; detects conflation, never forgery. The set's one **REVISES**: an archived `signoff_confirmed: true` is now ambiguous |
+| **I52** | `I52 projection ceiling` | `fsm-state.context_contract` | every unit with a landed debrief and verify has `units/<U>/adjudication.json` within `projection_ceiling_bytes`, and any recorded `projection_bytes` matches the file | OBSERVABLE; ENFORCED explicitly disclaimed — whether the orchestrator read the file is not checkable |
+| **I53** | `I53 directive provenance` | a `directives/` dir, a `directive_ref` or a `priority_class` | a `human_request` amendment cites a resolving `origin.directive_ref` with `human_gate: true`; each `directives/H<NN>.json` has a non-blank `verbatim_request` and `transcript_ref` (fail-closed); `priority_class: "directive"` is derived from a directive-origin amendment's `units_added`; the class does not drift between `graph.json` and a frozen `brief.json`; append-only shape | ENFORCED for provenance and shape; genuineness is unenforceable (Limitation AD); a real directive never filed leaves nothing to fail |
+| **I54** | `I54 deliverable clock` | `fsm-state.progress_clock` | every graph unit carries `deliverable` (`ships` \| `informs`); `units_since_ship` / `last_ship_unit` equal the values recomputed from `graph.json` and `units/*/verify.json`; every threshold crossing has a `surfaced_at[]` record, judged only at P8/DONE | warns in flight, blocks only at sign-off, adds no human gate; counts declared shipping intent, not shipped reality |
+| **I56** | `I56 requirement-starvation disclosure` / `N-I56 …` | some unit carries `deliverable` | per DoD item, three consecutive non-shipping units need a disclosure: a `units/<U>/disagreement.json` with origin `requirement-starvation`, or a `machine-decisions.json` record on gate `disagreement` in automatic mode; with `gates.starvation_cap_enabled: false` an `N-I56` NOTE replaces the FAIL. No counter is stored | ENFORCED after the fact; a disclosure backfilled at P8 satisfies it; N = 3 is chosen, not measured |
+| **N-I57** | `N-I57 run composition` | — | an exit-neutral NOTE, printed even under `--quiet`: run-level ledger acts and already-bounded unit-loop artifacts as two groups, never summed; a missing input prints `n/a` | OBSERVABLE — makes the composition legible, bounds nothing |
+| **I58** | `I58 re-sequencing eligibility` | a `resequence` amendment record | only a `pending` unit holding no brief, debrief, verify or disagreement may move; `wave_to ≥ frontier_wave` and above every dependency's wave (a missing `frontier_wave` FAILs); non-vacuity; the `wave_snapshot` arms; adds and retires nothing; triggered only by `priority_change` or `human_request` | ENFORCED for the legality of a re-wave; fuel bounds it, no wave measure is monotone; the resulting order's quality is not judged |
+| **I59** | `I59 obligation source-naming` | `fsm-state.context_contract` | every `PROGRESS.md` entry that discharges a numbered orchestrator obligation names the run-directory file it read | OBSERVABLE — the path's form is mechanical, the reading is not |
+
+**I55 is deferred.** Consequence-proportional verification depth (raising a unit's panel to three or
+five lenses as the stakes rise) was designed and not built: it has no label stem, no predicate and no
+spec entry. `state-machine.md` §5 "Deferred mechanisms (1.14.0)" records its adoption trigger and the
+repair it needs first, beside the two other deferrals of this release — the `hk_fuel` counter (the
+enforced half of I57) and I50's term-coverage and anchor-resolution arms.
+
+**What these predicates do not see.** They check the shape and consistency of what a run records. They
+cannot tell whether a quotation is genuine, whether a horizon was weighed honestly, whether the
+orchestrator read a file it names, or whether a `ships` label matches what actually shipped.
 
 ---
 

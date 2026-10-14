@@ -3,6 +3,102 @@
 All notable changes to the `dag` plugin are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] — 2026-10-14
+
+**Blast radius — five offline predicates and one NOTE over what each unit actually wrote.** Before
+this release a unit declared its outputs and a verifier judged them, but nothing recorded which files
+the unit changed, nothing looked for a consumer outside the unit that the change affected, and nothing
+re-ran an earlier unit's checks after later units had edited the same tree. 1.15.0 records each unit's
+file footprint, compares it with a declared write scope, settles the out-of-scope consumers a scan
+finds, and re-runs the declared checks and census counts before sign-off. It checks declared, visible
+surfaces only; cross-unit and integration blindness beyond them stays open (Limitation AE).
+
+### Added — invariants (all OFFLINE, POST-HOC, none a live guard on `LT7`)
+
+Armed only when `fsm-state.validator_version >= 1.15.0` and the graph lists a unit, so an unstamped,
+malformed-stamped or older run is never newly failed by them.
+
+- **`I60` write scope.** Every graph unit names `deliverable` (`ships` or `informs`); a `ships` unit
+  declares a `frame` (`modifies`, `immutable`) that its brief mirrors, and its captured footprint stays
+  inside `frame.modifies` and off `frame.immutable`; an `informs` unit writes no repository file.
+- **`I61` wave write disjointness.** No two units of one wave write an overlapping path, and every
+  changed path is claimed by some unit's frame. An exit-neutral `N-I61` NOTE names same-wave units whose
+  declared frames can overlap.
+- **`I62` impact settled.** Every executed `ships` unit carries an `impact.json`, bound by sha256 to its
+  footprint, listing the out-of-frame consumers the scanner found; the verifier's `blast_audit` settles
+  every one.
+- **`I63` end re-run.** On a signed-off run every discharged command-form case-set check is replayed
+  against the final tree and must exit 0; a repository file edited after its footprint was captured is
+  now visible through the footprint's `sha256_after`.
+- **`I64` integration.** At sign-off `integration.json` records the whole-run diff, the replays, the
+  old-vs-new differential, weakened-test detection and the declared census counts at base and tip;
+  identical base and tip sides are an invalid control. A loud per-item `blast_accepted` override
+  (`I64-8`) downgrades only the findings it names.
+- **`N-I65` blast summary.** An exit-neutral NOTE, printed even under `--quiet`: changed paths, impact
+  obligations by outcome, shared paths, census sites added / closed / still present, integration errors.
+
+### Added — scripts, schemas, persona, template, fixtures
+
+- Four standard-library scripts: `frame_match.py` (the one frame-pattern matcher), `footprint.py`
+  (wave snapshots and per-unit footprints), `impact_scan.py` (out-of-frame consumers into
+  `impact.json`), `integrate.py` (the sign-off record `integration.json`, with `--explain`).
+- `integrate.py --replay-timeout SECONDS` sets the per-command window for replayed checks and census
+  commands: a finite number greater than 0 written as an integer or a decimal (e.g. `900` or `0.5`;
+  exponent forms such as `1e3` are refused), default 300 s; regression commands keep their own
+  `timeout_s`. A check still running at the limit has its process group killed and becomes an
+  `errors[]` row with no replay row, so it counts as not re-run. An invalid value is refused with
+  exit 2 before any file is read or written.
+- Four new schemas — `footprint`, `impact`, `integration`, `blast-config` (the optional project config
+  `.dag/blast.json`: regression commands, coupling rules, censuses, test surfaces, scan excludes) — and
+  `fsm-state.blast`, graph/brief `frame`, and `verify.blast_audit` in the existing schemas, with
+  `normalize_artifacts.py`'s hand mirror updated to match. The graph schema's `deliverable` key is
+  unchanged (it predates 1.15.0); what changes is that `I60-1` now requires it on runs stamped
+  ≥ 1.15.0 (see I54 under Guarantee classifications).
+- The `blast-radius-sentinel` persona, `templates/blast.md`, the new fields documented in the graph,
+  brief and verify templates, and a debrief-template note that the file footprint and the impact record
+  are orchestrator artifacts, not debrief fields.
+- 53 `blast_*` fixture runs, registered as 72 `blast_` rows in `tests/expectations.tsv`.
+
+### Changed
+
+- `init_run.sh` seeds `fsm-state.blast` (the workspace the footprints are captured against).
+  `init_run.sh --restamp` refuses, with exit 6 and the file left byte-identical, to raise a stamp across
+  1.15.0 on a run with no `fsm-state.blast`; exit 7 when the capture mode cannot be determined.
+- `run_tests.sh` keeps Python's user site visible under its HOME stub (`PYTHONUSERBASE` is resolved
+  before HOME moves), so a user-site `jsonschema` backend is no longer silently hidden; it also gains a
+  blast section.
+- `SKILL.md` walks the blast flow phase by phase; methodology, orchestrator conduct, self-learning loops
+  and evidence standards reference it; `references/state-machine.md` §4 gains the I60–I64 and N-I65
+  rows, and §5 gains their enumeration and Limitation AE.
+- **Documentation, not a new predicate:** `references/state-machine.md` §5 now also enumerates the
+  1.14.0 predicates `I49`–`I54` and `I56`–`I59`; their §4 rows were already there in 1.14.0.
+
+### Guarantee classifications
+
+`formal/` and `spec/fsm.json` are byte-unchanged and no FSM edge is added; the termination proof is
+PRESERVED. `bash scripts/run_formal.sh` at this tree: rc 0, TLC 853 states generated / 408 distinct /
+depth 36, "No error has been found"; Alloy "SUMMARY: 8/8 commands as-expected" — the same as 1.14.0.
+
+- **Limitation AC boundary (iv) / Non-Goal 10 — REVISES (doctrine): narrowed, not closed.** Integration
+  blindness narrows for undeclared writes, overlapping writes in a wave, replay differences and declared
+  census counts; a defect no declared check sees stays open. Runs below 1.15.0 are unaffected.
+- **I54 — REVISES upward.** `deliverable` is now required on every graph unit of a run stamped
+  ≥ 1.15.0 (`I60-1`); older runs keep I54's adoption arming.
+- **I17 — widened to anchor `frame`; PRESERVES below 1.15.0.** The frozen-content anchor also compares
+  an executed unit's graph `frame` with its brief `frame`, each as a set; an absent frame equals an
+  absent frame, so older runs are unaffected.
+- **Limitation AB — narrowed for repository files, unchanged for run-directory artifacts.** `I63-2`
+  compares a footprint's `sha256_after` with the path's final hash; a same-iteration edit to a debrief or
+  verify stays as invisible as before.
+- **N-I45 shadow arm `BLAST-T1` — REVISES, narrow.** It counts a suppression only when the graph has a
+  unit and the run carries a blast artifact — a disclosed exception to N-I45's upper bound.
+
+### Limits
+
+Limitation AE: gitignored files, commits made outside the run, writes outside the repository, external
+side effects, names built at run time, consumers in other repositories, and checks that cannot go red
+all pass these predicates.
+
 ## [1.14.0] — 2026-08-09
 
 **Drift and autonomy — ten offline predicates, and one declared REVISES.** The motivating incident:

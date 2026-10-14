@@ -1,0 +1,20 @@
+{
+  "source": "project",
+  "regression_commands": [
+    {"id": "run-tests", "command": "bash plugins/dag/skills/dag/scripts/run_tests.sh", "timeout_s": 900, "compare": "exit"},
+    {"id": "spec-check", "command": "python3 plugins/dag/skills/dag/scripts/spec_check.py", "timeout_s": 120, "compare": "exit"},
+    {"id": "normalizer-self-test", "command": "python3 plugins/dag/skills/dag/scripts/normalize_artifacts.py --self-test", "timeout_s": 120, "compare": "exit+stdout"}
+  ],
+  "coupling_rules": [
+    {"id": "schemas-need-normalizer-self-test", "when_paths": ["plugins/dag/skills/dag/schemas/*.schema.json"], "require": {"command": "python3 plugins/dag/skills/dag/scripts/normalize_artifacts.py --self-test"}},
+    {"id": "version-files-need-mirror-check", "when_paths": ["plugins/dag/.claude-plugin/plugin.json", "plugins/dag/CHANGELOG.md", "plugins/dag/README.md", ".claude-plugin/marketplace.json", "README.md", "CHANGELOG.md"], "require": {"command": "python3 plugins/dag/skills/dag/scripts/mirror_check.py"}},
+    {"id": "validator-needs-spec-check", "when_paths": ["plugins/dag/skills/dag/scripts/validate_run.py"], "require": {"command": "python3 plugins/dag/skills/dag/scripts/spec_check.py"}}
+  ],
+  "censuses": [
+    {"id": "crash-class", "command_template": "python3 {root}/plugins/dag/skills/dag/scripts/tests/i48_crash_class.py --census --file {root}/plugins/dag/skills/dag/scripts/validate_run.py --json", "must_not_increase": true}
+  ],
+  "test_surfaces": [
+    {"id": "expectations", "kind": "expectations-tsv", "path": "plugins/dag/skills/dag/scripts/tests/expectations.tsv"}
+  ],
+  "scan_excludes": []
+}

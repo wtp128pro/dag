@@ -40,6 +40,13 @@ should down-rank or reject it.
 | **Design/judgment** | "Approach A is better than B." | An argument grounded in the *clarified acceptance criteria*, with the tradeoff made explicit; not "facts" but must be *reasoned*, and the losing option's merits stated. Every load-bearing factual premise inside the argument is extracted as its own typed claim and listed in the row's `extracted_premises` (empty only with an explicit none-reason) | Assertion of superiority with no criteria linkage; a factual premise laundered inside the argument without its own evidence row |
 | **Provenance/quote** | "Author says '…'." | The exact source, verbatim, with locator; verify it exists before quoting | Paraphrase presented as a quote; unverifiable attributions |
 
+**Blast-audit dispositions, classed.** A `blast_audit` row is not a new claim type; its disposition
+says which row above it rests on. `exercised` is **executable evidence** — code-behavior evidence of
+the *run* kind: a named check that reached the obligation, exit code 0, and the `red_input` under
+which it fails (I62-3). `unaffected` is a **judgement** — a design/judgment claim carried by a written
+rationale, never a proof (I62-5), and never allowed on a `coupling` obligation (I62-7). Either way the
+row speaks only for an obligation the scanner recorded: it checks declared, visible surfaces.
+
 ## Source tiers & mandatory retrieval standard
 
 Externally-sourced evidence carries a **tier tag**; retrieval is **mandatory per claim type**,

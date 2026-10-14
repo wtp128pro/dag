@@ -221,8 +221,22 @@ so most are dead weight until their phase arrives.
    iterations without re-verifying satisfies I43 exactly (references/state-machine.md §5). **And
    Limitation AB:** I43's field is the `iteration` *number*, so a same-iteration edit to an
    **already-verified** debrief is invisible to it by construction — it detects staleness of numbers,
-   not of bytes. That case is governed by the Phase-6 rule below as **discipline**, never by a
-   predicate; a `sha256` before/after per edited file would make it decidable but **is not shipped**.
+   not of bytes. For **run-dir artifacts** (debriefs, verify files) that case is unchanged: it is
+   governed by the Phase-6 rule below as **discipline**, never by a predicate. **Narrowed in 1.15.0
+   for repository files only:** a unit's file footprints (`units/<U>/footprint.json`, a
+   `sha256_before`/`sha256_after` per changed path) make repo-file drift after verification
+   decidable — **I63-2** FAILs when a footprint's `sha256_after` differs from the path's final hash
+   and no later-wave unit's footprint wrote that path. An offline predicate over saved files; no FSM
+   edge and no live guard on `RETRY → EXECUTE` (the termination proof is untouched).
+9. **Every change carries a blast record; a broken consumer outside your frame is escalated, never
+   silently fixed.** On a run stamped 1.15.0 or later each unit declares a `frame` before it runs;
+   after its wave the orchestrator captures what actually changed (`footprint.py`), scans the
+   changed paths for out-of-frame consumers (`impact_scan.py`), and the verifier dispositions every
+   resulting obligation in `verify.blast_audit`. A consumer the change breaks outside the unit's
+   frame is never repaired in place by that unit: it is a FAIL routed to an `add_units` amendment
+   or to `ESCALATE`. These are **offline checks over declared, visible surfaces** (I60, I61, I62,
+   I63, I64 and the exit-neutral N-I65 summary), run afterwards on saved files; none gates a
+   transition. What they cannot see is Limitation AE (Scope note).
 
 ---
 
@@ -239,11 +253,22 @@ so most are dead weight until their phase arrives.
    Capture the `RUN_DIR=...` value from the last stdout line. All work files go here. `init_run.sh`
    also seeds the ledger, an initial `fsm-state.json` (phase `P0_BOOTSTRAP`), and the JSON-sidecar
    convention every later artifact follows (`<name>.md` + a machine-checkable `<name>.json`).
+   It also writes the **blast stamp** `fsm-state.json.blast` (`mode` git|snapshot, `base_sha`,
+   `base_tree_digest`, `workspace_root`, `dirty_at_start`) — the starting point every file
+   footprint is measured from. **Raise a dirty starting tree:** when `blast.dirty_at_start` is
+   non-empty, show the user those paths and log them in `PROGRESS.md` before Phase 1 — they are
+   pre-existing state, not the run's work (a wave's capture diffs against its own pre-wave
+   snapshot). `init_run.sh --restamp` refuses (exit 6) to raise a stamp to 1.15.0 or later while
+   `fsm-state.blast` is absent.
 4. **Record the input.** Write the verbatim prompt + parameters into `RUN_DIR/INPUT.md`.
 5. **Log** the start in `PROGRESS.md`. Announce `RUN_DIR` to the user.
 
-> If the working dir is a git repo and the run may write code, consider running
-> executors with `isolation: 'worktree'` (Agent tool) so parallel units don't collide.
+> **Blast-aware concurrency.** Captures read one workspace, `fsm-state.blast.workspace_root`, so
+> executors write in that shared working tree — not in an `isolation: 'worktree'` copy, whose
+> changes the capture cannot see. Parallel units are kept apart by declared frames instead:
+> same-wave units own disjoint `frame.modifies` (I61 checks the captured writes afterwards; an
+> `N-I61 declared frame overlap` NOTE flags overlapping declarations), and a file several units
+> must touch gets one owning integration unit (Phase 4, R19).
 
 ---
 
@@ -572,6 +597,19 @@ file listing.
    loop-back edge itself stays discretionary orchestrator conduct. I27
    checks the record offline; the FSM is unchanged — this rides the existing loop-back
    edge, adds no transition and no gate.
+4. **Blast config + consumer map** (every run with a blast stamp — `validator_version` 1.15.0 or
+   later). Write `RUN_DIR/blast-config.json` (schemas/blast-config.schema.json; with none, the blast
+   scripts fall back to the repository's `.dag/blast.json`, then to built-in defaults): `source`
+   (`run` for this run-dir file, `project` for `.dag/blast.json`), `regression_commands` (or
+   `regression_none_reason`), `coupling_rules`, `censuses`, `test_surfaces`, `scan_excludes`. A run
+   whose units change no repository file (units that only inform included) still writes it, with no
+   `regression_commands` (absent or empty) and a `regression_none_reason`: when neither this file nor
+   `.dag/blast.json` is visible, I64-5 FAILs at sign-off (unless `integration.json` records a
+   differential row), and that FAIL is a record-structure row no `blast_accepted` item can name.
+   Have the cartographer record a **consumer map** in `CARTOGRAPHY.md` — for each area the run may
+   change, what reads, imports or runs it — so Phase 4 can draw frames and Phase 5 can name known
+   consumers. The config only declares what the checks will run and scan; a consumer it does not
+   reach stays unseen.
 
 ---
 
@@ -619,12 +657,25 @@ file listing.
    over a partly-labelled population reads LOW, which is worse than no counter. Be honest here: an
    `informs` unit is not a lesser unit, and mislabelling investigation as `ships` disarms the only
    mechanism that can see a run spending itself on itself.
+   **`frame`** (blast radius): `modifies` (the only repo paths the unit may create, edit or delete,
+   as frame_match patterns), `immutable` (paths it must never touch), and `intended_changes` — the
+   changes it means to make, **frozen here at Phase 4** and mirrored into its `brief.json`
+   (`modifies_none_reason` for a unit that writes no repo file). I60 judges the captured writes
+   against it afterwards (I60-4: every changed path inside `modifies`, outside `immutable`).
 3. Build the **dependency DAG**; topologically sort into **waves** (units within a wave
    are independent → run in parallel). Reject cycles.
 4. **Critique pass:** a second persona checks for missing deps, cycles, over/under-
    atomization, any unit whose footprint would exceed budget (→ re-atomize), **that every
    DoD item is covered by ≥1 unit, and that no unit's scope crosses a Non-Goal**.
    Coverage is **clause-granular, not item-granular**: every CLAUSE of a multi-clause DoD item needs its own covering unit (`MU-L9`).
+   The critique first writes the draft `graph.json` (step 5's sidecar, frames included) — the
+   command reads only that file — then runs `python3 "${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/frame_match.py" overlap RUN_DIR/graph.json`.
+   It reports every pair of units with **no dependency path either way** whose `frame.modifies`
+   overlap, whatever their waves, and exits 1 while any pair is printed; re-waving alone therefore
+   clears nothing. Resolve each reported pair by making one unit depend on the other, by narrowing a
+   frame, or — under **R19** (orchestrator-conduct.md), when one file genuinely needs several units'
+   changes — by giving that file one **owning integration unit** whose frame holds it, and keeping it
+   out of the other units' `modifies`.
 5. Write `GRAPH.md` (template) **and its authoritative `graph.json` sidecar** — the moment `GRAPH.md`
    exists the validator REQUIRES a schema-valid `graph.json` and treats it as the authoritative DAG
    (I3 fail-closed; U7 — the sidecar instruction, previously only in `templates/graph.md`), so write
@@ -727,6 +778,14 @@ Each brief embeds or points to *exactly* what the unit needs and no more:
   MAY render `trigger_ref`/`requirement_ref` as a pointer to the byte-identical text already rendered
   **in the same `brief.md`** (e.g. "AC 1", "DoD 3") — never a pointer out of the file, and
   `brief.json` always keeps the verbatim strings the predicates read;
+- the **Frame** section: the unit's `frame` verbatim (`modifies`, `immutable`, the frozen
+  `intended_changes`), with the rule that a write outside `modifies` is an I60 FAIL and a consumer
+  broken outside it is reported, never fixed in place;
+- the **Known consumers** section: the out-of-frame consumers predicted for the planned frame —
+  `impact_scan.py RUN_DIR --unit <id> --predict` plus the Phase-3 consumer map — each with the read
+  the executor must make. **Predicted-consumer reads count against the unit's budget:** cost them
+  into `budget_tokens` now, while the unit is unexecuted; if they alone approach the cap,
+  re-atomize rather than dispatch a unit that cannot meet its budget;
 - the **evidence standard** for this unit's claim types (evidence-standards.md);
 - the **budget contract** (this unit's `brief.budget_tokens` — the ≤ 32K plan-side ceiling; "read only
   what this brief lists"). **Report-side honesty is relative to THIS budget (F2):** in the debrief,
@@ -749,6 +808,26 @@ call per unit, ideally in a single message). For **each unit**:
 (`run_in_background: false`) whenever you need the wave's results before continuing — for a dag wave,
 always; a background dispatch ends your turn there (U01). **Same-wave units own DISJOINT files; never
 run an evidence-reproducing verifier concurrent with an executor mutating what it reads; dispatch no repair while that unit's verification is in flight** (`MU-L25`, `MU-L40`; orchestrator-conduct.md §4).
+
+**Blast snapshot (runs with a blast stamp; the four blast scripts live in `${CLAUDE_PLUGIN_ROOT}/skills/dag/scripts/`).** Before the
+wave's first dispatch run `footprint.py snapshot RUN_DIR --wave N` → `blast/wave<N>.pre.json`. A
+per-unit capture (`capture --wave N --unit <U>`, iteration 1 included) also needs that unit's own pre
+snapshot, `footprint.py snapshot RUN_DIR --wave N --label <U>-i<k> [--window-units <ids>]` (k = the
+iteration being dispatched; `--window-units` names the units dispatched with it), taken **exactly
+once, when the unit is dispatched** — re-taking it moves the window start, and a per-unit capture
+without it fails closed with `capture_error`. A whole-wave capture (`capture --wave N`) needs only
+the wave's pre snapshot and attributes to that wave's own units.
+
+**After the wave** (every executor returned, before verification): `footprint.py capture RUN_DIR
+--wave N` (or per unit, `--unit <U>`) → `units/<U>/footprint.json`, then `impact_scan.py RUN_DIR
+--unit <U>` → `units/<U>/impact.json`, each with its `.sha256` sidecar. Two failure exits, both
+fail closed: **exit 1** — the record is written with the error in it (`capture_error` set and
+`changes` empty, or scan errors recorded as `error:<where>` obligations); **exit 2** — refused or
+fatal, **nothing written** (e.g. `impact_scan.py` with a missing or malformed `footprint.json`, a
+malformed blast config or no frame for the unit; a whole-wave capture whose `graph.json` gives no
+unit list; a usage error). Neither is a pass: a set `capture_error` is an I60-3 FAIL, and a missing
+`footprint.json` (any executed unit) or `impact.json` (an executed `ships` unit) is itself an I60-3
+or I62-1 FAIL.
 
 **Case-set derivation — `high-stakes` units only; ONE added dispatch, and it is not a verification.**
 Dispatch it in the SAME message as the executor, before any artifact exists, so blindness is a fact
@@ -783,6 +862,14 @@ labelled attestation.
    > fixture-only path or internal helper is `violated`, not `discharged`, even if every required
    > observation was seen. Do NOT restate `check`, `check_form`, `trigger_ref` or `requirement_ref`
    > on an `origin: "orchestrator"` row: a second copy can be quietly narrowed.
+   > **Stay inside your brief's Frame:** create, edit or delete only `frame.modifies` paths, never an
+   > `immutable` one. Before finishing, capture and preview your blast — `footprint.py capture
+   > RUN_DIR --wave N --unit <id>`, then `impact_scan.py RUN_DIR --unit <id> --preview` (prints the
+   > scan, writes no impact.json) — and report every out-of-frame consumer you break in
+   > `residual_risks` and `handoff_notes`; do not fix it. The capture takes the iteration k from
+   > `units/<id>/debrief.json`, so **on a retry write your debrief with `iteration: k` before you
+   > capture** (rewrite it in full afterwards): with the previous debrief still on disk the capture
+   > silently reuses iteration k−1's window and overwrites that iteration's post snapshot.
    > Before producing output, run the Socratic self-interrogation
    > (references/socratic-protocol.md, self-mode: FORK·COUNTER·ADMIT·PIVOT·RESIDUAL) on your
    > material claims and record the result in the debrief's `socratic` block; skip it only if
@@ -869,6 +956,13 @@ labelled attestation.
    to be pairwise DISTINCT and none equal to the executor (an independent panel, not clones behind
    distinct lenses). All three are shape/identity checks — a genuinely distinct *model* behind a
    distinct persona *label* stays unobservable to the validator (Limitation D).
+   **Blast audit** (runs with a blast stamp): the existing **guardrail** lens — no added dispatch,
+   no fourth lens — reads `units/<id>/impact.json`, cites its hash as `blast_audit.impact_sha256`, and
+   writes one `blast_audit.rows[]` entry per impact obligation (`obligation_id`) on the **aggregated**
+   `verify.json` only, with a disposition: `exercised` (a check reaching it was run — `check`,
+   `exit_code`, and the `red_input` under which it fails), `unaffected` (`rationale`), `owned_by`
+   (`owner_unit`), or `broken` (`rationale`; also a `defects[]` entry). I62 re-checks coverage,
+   citation and owners offline.
 5. **Adjudicate — the bounded correction loop** (req 12). The loop is a state machine
    `EXECUTE → VERIFY → ADJUDICATE → {DONE | RETRY | ESCALATE}` with an exhaustive,
    mutually-exclusive guard table (full spec + termination proof + invariants:
@@ -988,6 +1082,22 @@ labelled attestation.
      **trail by design**, which is why no currency predicate reads `verify_p*` — I43/I44/I46 judge
      the aggregated `verify.json` only.
 
+   **Blast routing.** A `reference` obligation for a changed name (`ref:<name>`) points at consumers
+   outside the unit's frame by construction (the scan drops every hit inside `frame.modifies`), so a
+   `broken` one is never fixed in place by widening the unit: route it to an `add_units` amendment
+   (BGA below) that gives the consumer an owning unit, or to **ESCALATE** → Phase 7. That holds for
+   reference obligations only. A `coupling` obligation is raised on the unit's own in-frame trigger
+   path and is settled by its rule: `exercised` by running the rule's `require.command`, or
+   `owned_by` a later unit whose frame covers the trigger (never `unaffected`, I62-7); a
+   `require.touch_any` rule raises none when the footprint already touches one of those paths. An
+   `error:<where>` obligation records a scan that could not finish and names no consumer.
+   **A retry re-captures:** before dispatching the retry at iteration k take its
+   `<U>-i<k>` pre snapshot (Phase 6, Blast snapshot), and never dispatch it while a later wave's
+   executors are running (a capture attributes only to its own wave's units); after it returns —
+   once `units/<U>/debrief.json` records `iteration: k`, the k the capture reads — run
+   `footprint.py capture RUN_DIR --wave N --unit <U>`, a fresh `impact_scan.py`, and a fresh
+   `blast_audit` — the prior iteration's impact and audit no longer describe the work on disk.
+
 6. **In-run learning discipline (prose steps — not validator-gated).** The adjudicator also runs three
    learning-loop steps around the table above. **None gates the FSM** (they add no edge to the §1.3
    transition table, so termination is untouched); the validator's job stays post-hoc.
@@ -1102,6 +1212,11 @@ seed `graph.json.fuel_initial` is written once at T6 and immutable, and I18 requ
    have `wave ≥ since_wave`; per-tag FAIL tallies for panel escalation include amended units).
 5. Log to `PROGRESS.md` (always) and `DECISIONS.md` (when human-gated).
 
+**A frame grows only through an amendment.** A unit's `frame` (with its frozen `intended_changes`)
+is part of the approved graph: to widen what a unit may write, or to give a broken out-of-frame
+consumer an owner, record an amendment (`add_units` / `split_unit`) — never edit an executed unit's
+brief or frame in place (I17 keeps the executed prefix frozen).
+
 Every new invariant (I3b/I3c/I17/I18/I19) is an **offline validator predicate** over the emitted
 records — **never a live guard on any transition** (the 02/P1 deadlock lesson). The per-unit
 correction-loop termination proof is **PRESERVED verbatim**; only the pipeline-level unit-count bound is
@@ -1162,9 +1277,27 @@ invariant, not a bug to widen) — **PRESERVES**. Full rationale: references/sel
    honest residual). It also hunts the **production-path signature** as a backstop: any
    `production_path: true` case-set entry discharged through a shim, fixture-only path or internal
    helper is `violated`. A backstop only — it never licenses skipping the per-unit check.
+   **Integration (runs with a blast stamp):** run `integrate.py RUN_DIR` → `integration.json` (+
+   `.sha256`) — the declared `regression_commands` run at the base and at the tip and compared (the
+   differential, in a detached worktree), plus the declared censuses; every step that could not
+   run is an `errors[]` row (exit 1). The whole-run verifier reviews `integration.json`. For each
+   differential or test-weakening row the run meant to cause, map it to a frozen
+   `intended_changes` entry with `integrate.py RUN_DIR --explain <mapping.json>` (each ref must equal
+   an entry verbatim; anything else is refused, exit 2). I64 judges the result offline.
 3. **Final sign-off gate** (`AskUserQuestion`): present the result, a decision-log
    summary, **the Definition-of-Done checklist with each item's met/unmet status and any
-   non-goal that slipped in,** unmet criteria (if any), and residual risks. Ask to accept or iterate. Use
+   non-goal that slipped in,** unmet criteria (if any), and residual risks. With a blast stamp the
+   sign-off message also carries the **blast summary** (the validator's exit-neutral `N-I65 blast
+   summary` row) and each named `blast_accepted` item verbatim with its rationale. The **only**
+   downgrade past a blast FAIL on a gated run is the per-item `fsm-state.json.blast_accepted` override
+   (`items`, `rationale`, `decision_ref` naming `DECISIONS.md`): each finding it names becomes a
+   greppable `N-I64 blast accepted` NOTE, and it covers no finding it does not name. Its reach is
+   narrow. Each item is the `<clause>:<subject>` key copied verbatim from one FAIL row's
+   `[accept via blast_accepted.items: "<clause>:<subject>"]` suffix, and only I62-4 rows (one
+   `owned_by` obligation) and I64-3..I64-7 rows print one. I60, I61, I62-1..3, I62-5..7 (a `broken`
+   row included), I63, I64-1, I64-2, I64-8 and record-structure rows (a missing or unreadable blast
+   config among them) are never acceptable: they are repaired, or routed to `add_units` or
+   **ESCALATE**. Ask to accept or iterate. Use
    elicitation mode (references/socratic-protocol.md). **Surface the req-1 tension:** confirm
    Socratic questioning was applied *selectively* (material surfaces only), not literally to
    every prompt. **Only once the human accepts, record the sign-off: set
@@ -1341,3 +1474,15 @@ checks the recorded tier's floors against the emitted artifacts post-hoc (offlin
 live guard). The persona gate remains mechanically enforced by `validate_run.py`
 (`personas_confirmed` required from Phase 2 on; a confirmed flag with no `personas.json` is
 rejected), so a run that skips it fails validation.
+
+**Blast radius checks declared, visible surfaces — nothing more (Limitation AE).** File footprints,
+impact scans, `blast_audit`, the end re-run and `integration.json` judge only what the run declared
+and could see: the paths a capture recorded in the one captured workspace, the consumers the scan
+rules and the declared `coupling_rules`, `censuses` and `regression_commands` reach, and the
+verifier's written dispositions. A consumer no rule reaches, code outside the workspace, behaviour no
+declared command exercises, and a disposition argued wrongly in good faith all stay unseen; with no
+blast config the coverage arm has no declared command to judge. A green blast record means no
+declared, visible check found a problem — not that the change broke nothing; cross-unit and
+integration blindness stays open (Limitation AC). Every blast predicate (I60, I61, I62, I63, I64,
+N-I65) runs offline over saved files, version-gated at 1.15.0; none gates an FSM transition or
+guards `RETRY → EXECUTE`.

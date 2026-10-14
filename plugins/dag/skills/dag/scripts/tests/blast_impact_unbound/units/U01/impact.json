@@ -1,0 +1,72 @@
+{
+  "unit_id": "U01",
+  "iteration": 2,
+  "footprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "symbols": [
+    {
+      "id": "S1",
+      "name": "parse",
+      "kind": "function",
+      "change": "M",
+      "source_path": "src/app/parse.py"
+    }
+  ],
+  "obligations": [
+    {
+      "id": "O1",
+      "kind": "reference",
+      "symbol_ids": [
+        "S1"
+      ],
+      "rule_id": null,
+      "referencing_paths": [
+        "src/app/cli.py"
+      ],
+      "hit_count": 1,
+      "sample_hits": [
+        "src/app/cli.py:1"
+      ]
+    },
+    {
+      "id": "O2",
+      "kind": "reference",
+      "symbol_ids": [
+        "S1"
+      ],
+      "rule_id": null,
+      "referencing_paths": [
+        "tests/test_parse.py"
+      ],
+      "hit_count": 1,
+      "sample_hits": [
+        "tests/test_parse.py:1"
+      ]
+    },
+    {
+      "id": "O3",
+      "kind": "coupling",
+      "symbol_ids": [
+        "S1"
+      ],
+      "rule_id": "docs-follow-code",
+      "referencing_paths": [
+        "docs/guide.md"
+      ],
+      "hit_count": 1,
+      "sample_hits": [
+        "docs/guide.md:1"
+      ]
+    }
+  ],
+  "truncated_hits": 0,
+  "caps": {
+    "max_hits_per_symbol": 50
+  },
+  "scanner": {
+    "version": "impact_scan.py/1",
+    "extractors": [
+      "python",
+      "markdown"
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "unit_id": "U03",
+  "iteration": 2,
+  "footprint_sha256": "c566c21652bbcfa9677ff98347bb8c013b88e4fdb79ccfb6d762038e81aa818e",
+  "symbols": [
+    {
+      "id": "S1",
+      "name": "Trailing newlines",
+      "kind": "heading",
+      "change": "M",
+      "source_path": "docs/guide.md"
+    }
+  ],
+  "obligations": [
+    {
+      "id": "O1",
+      "kind": "reference",
+      "symbol_ids": [
+        "S1"
+      ],
+      "rule_id": null,
+      "referencing_paths": [
+        "README.md"
+      ],
+      "hit_count": 1,
+      "sample_hits": [
+        "README.md:1"
+      ]
+    }
+  ],
+  "truncated_hits": 0,
+  "caps": {
+    "max_hits_per_symbol": 50
+  },
+  "scanner": {
+    "version": "impact_scan.py/1",
+    "extractors": [
+      "python",
+      "markdown"
+    ]
+  }
+}

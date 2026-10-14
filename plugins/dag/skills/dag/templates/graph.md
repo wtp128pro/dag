@@ -47,6 +47,39 @@ Enforced offline post-hoc by validate_run.py **I20**/**I21** (adoption-closure):
 carries the field, EVERY unit must; each element must be verbatim-membership-checked against the
 register array; and when `units/<id>/brief.json` exists it must mirror the graph unit's set.
 
+## Per-unit write scope (`frame` — 1.15.0 blast radius; every `ships` unit declares one)
+A unit's **`frame`** is its declared write scope, frozen **here** at Phase 4 and mirrored verbatim
+into the unit's `brief.json` (and its brief.md "Frame" section). Schema-optional, so archived graphs
+stay valid; once present, the three lists are required and the object is closed. It carries no key
+that switches a blast check off.
+- **`modifies`** (array of path patterns, workspace-relative): the only repository paths the unit
+  may create, edit or delete. Patterns use the `frame_match.py` language: `*` and `?` never cross
+  `/`; a whole `**` segment matches zero or more segments; a glob-free pattern, or one ending in `/`
+  or `/**`, covers everything beneath it; absolute paths and `..` segments are invalid.
+- **`immutable`** (array of path patterns): paths the unit must never touch.
+- **`intended_changes`** (array of prose): the behaviour changes the unit is expected to cause — the
+  text an integration difference (a regression differential or a test-weakening row) must cite
+  **verbatim** via `integrate.py --explain`.
+- **`modifies_none_reason`** (string): why `modifies` is deliberately empty — an `informs` unit that
+  changes no repository path. No validator predicate reads it: it is the stated explanation, and
+  `I60-5` checks the observable part (an `informs` unit's footprint has no changes).
+
+Example: `"frame": {"modifies": ["src/parser.py", "docs/**"], "immutable": ["schemas/**"],
+"intended_changes": ["parse_row() is replaced by parse_rows(), which accepts a trailing comma"]}`.
+
+Enforced offline, post-hoc, by validate_run.py on runs stamped 1.15.0 or later: **`I60`** (a `ships`
+unit declares a non-empty `modifies` of valid patterns, `brief.json` carries the same frame
+(compared with each list sorted), its repo-path `outputs[]` lie inside `modifies`, and every path its captured
+`units/<id>/footprint.json` changed matches `modifies` and no `immutable` pattern) and **`I61`** (no
+two units of one wave share a captured path; `unattributed` is empty; the exit-neutral `N-I61` NOTE
+names two same-wave units whose `modifies` patterns can match a common path). Before dispatch,
+`python3 frame_match.py overlap <graph.json>` prints every pair of units with no dependency path
+either way whose `modifies` overlap — keep such pairs out of one wave or add an edge. These checks
+compare what a capture recorded with what a frame declared: declared, visible surfaces, not
+semantic conflicts between files that never share a path. A consumer outside the frame that the
+unit breaks is a finding routed to an amendment or ESCALATE, never an in-place edit beyond the
+frame. Artifact formats: templates/blast.md.
+
 ## Tag vocabulary (`V_tag` — the enumerated registry; extend only by editing this list)
 ```
 V_tag = { research, schema, validator, code, template-edit, prose-edit,

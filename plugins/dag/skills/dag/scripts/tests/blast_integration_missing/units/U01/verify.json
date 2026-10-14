@@ -1,0 +1,85 @@
+{
+  "unit_id": "U01",
+  "verifier_persona": "Skeptic",
+  "verdict": "PASS",
+  "iteration": 2,
+  "executor_reasoning_seen": false,
+  "inputs_reviewed": [
+    {
+      "path": "units/U01/brief.json",
+      "bytes": 1702,
+      "sha256": "5d54c36d9bbee1a8c2fcad9d20095f0a628e513dc41756e27021ee9632896438"
+    },
+    {
+      "path": "units/U01/debrief.json",
+      "bytes": 4073,
+      "sha256": "99ba8c257b7b913a69a9631c1b602a83d31e9fe912939546f1618cf85189f75a"
+    }
+  ],
+  "feedback": {
+    "actionable_changes": [],
+    "do_not_touch": [
+      "the maker!=checker mandate framing",
+      "the disclosed search-summary caveat"
+    ]
+  },
+  "defects": [],
+  "socratic": {
+    "premise": "On independent re-check the executor's 13 findings meet every acceptance criterion.",
+    "counter": "Re-resolved each cited source independently and sought a broken/undated locator; none found, so the PASS HOLDS.",
+    "pivot": "If a single cited primary source failed to resolve, the verdict would flip to FAIL.",
+    "confidence": "high - sources re-resolved; the one search-summary figure was already disclosed."
+  },
+  "premise_check": {
+    "executor_premise_quoted": "13 findings, each with a dated primary source, satisfy the research acceptance criteria.",
+    "is_load_bearing": true,
+    "counter_reran_independently": true,
+    "outcome": "Re-ran COUNTER on the premise from the sources directly (not the executor's reasoning): it holds."
+  },
+  "panel": [
+    {
+      "lens": "correctness",
+      "verdict": "PASS",
+      "verifier_persona": "Adversarial Verifier (correctness)",
+      "summary": "criteria met, sources resolve"
+    },
+    {
+      "lens": "reproduce",
+      "verdict": "PASS",
+      "verifier_persona": "Reproducibility Auditor",
+      "summary": "re-resolved every locator; holds"
+    },
+    {
+      "lens": "guardrail",
+      "verdict": "PASS",
+      "verifier_persona": "Scope Red-Team",
+      "summary": "no out-of-scope / gold-plating"
+    }
+  ],
+  "verify_rounds": 2,
+  "converged": true,
+  "blast_audit": {
+    "impact_sha256": "07dccc95dffd37f1dfcba4208c3d493805663748ae50913f01b5753ffaeff20b",
+    "rows": [
+      {
+        "obligation_id": "O1",
+        "disposition": "exercised",
+        "check": "python3 src/app/cli.py --help",
+        "exit_code": 0,
+        "red_input": "the parse.py of the base revision (rejects a trailing newline)"
+      },
+      {
+        "obligation_id": "O2",
+        "disposition": "exercised",
+        "check": "python3 -m pytest -q tests/test_parse.py",
+        "exit_code": 0,
+        "red_input": "the parse.py of the base revision (rejects a trailing newline)"
+      },
+      {
+        "obligation_id": "O3",
+        "disposition": "owned_by",
+        "owner_unit": "U03"
+      }
+    ]
+  }
+}

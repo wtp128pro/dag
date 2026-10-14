@@ -59,6 +59,18 @@
             "type": "string",
             "enum": ["directive", "normal"],
             "description": "I53 (1.14.0, Drift fix 1) — whether this unit exists because a human ASKED for it or because the run generated it for itself. Absent => 'normal'. DERIVED, NEVER ASSERTED: a unit may carry 'directive' only if it appears in the units_added of an amendment whose origin.trigger == 'human_request' and whose origin.directive_ref RESOLVES to a directives/H<NN>.json on disk (I53-3). OPTIONAL, so this is a widening; making it `required` later would be a REVISES of the graph contract and should not be done. HONEST BOUNDARY: making a self-declared enum readable does not make it true — genuineness stays OBSERVABLE (Limitation AD), because no predicate over a run directory can tell a true quotation of the maintainer from a fabricated one."
+          },
+          "frame": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["modifies", "immutable", "intended_changes"],
+            "description": "OPTIONAL (1.15.0 blast radius). The unit's declared write scope, frozen at Phase 4 and mirrored verbatim into the unit's brief.json `frame`. `modifies[]` holds the repository path patterns (relative to the workspace root) the unit may create, edit or delete — a captured change that no unit's `modifies` matches is recorded as unattributed; `immutable[]` holds patterns the unit must never touch; `intended_changes[]` states, in prose, the behaviour changes the unit is expected to cause (what a differential or a broken consumer can be reconciled against); `modifies_none_reason` explains a deliberately empty `modifies` (a unit that changes no repository path). Deliberately NOT in the unit's `required`: whether a run of a given stamp must carry it is decided by the version-gated validator predicates, keeping archived graphs schema-valid. Inside, only the three lists are required so a present frame is always well-formed; the explicit-none rule for an empty `modifies` is the validator's to enforce. Carries no key that switches a blast check off.",
+            "properties": {
+              "modifies": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "immutable": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "intended_changes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "modifies_none_reason": { "type": "string", "minLength": 1 }
+            }
           }
         }
       }

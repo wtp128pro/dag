@@ -1,0 +1,26 @@
+{
+  "options": [
+    {
+      "name": "keep investigating",
+      "recommended": false,
+      "what_it_is": "Brief a fourth investigation unit against DoD-A.",
+      "consequences": "One more wave before anything ships."
+    },
+    {
+      "name": "accept partial",
+      "recommended": true,
+      "what_it_is": "Ship what is already verified and close DoD-A partially.",
+      "consequences": "DoD-A closes short of its full text."
+    },
+    {
+      "name": "drop it",
+      "recommended": false,
+      "what_it_is": "Retire DoD-A and say so in the synthesis.",
+      "consequences": "Nothing ships against DoD-A at all."
+    }
+  ],
+  "origin": "requirement-starvation",
+  "subject": "DoD-A has starved",
+  "question": "Three consecutive non-shipping units against DoD-A. Keep going, accept partial, or drop it?",
+  "why_material": "DoD-A is the thing the maintainer asked for."
+}

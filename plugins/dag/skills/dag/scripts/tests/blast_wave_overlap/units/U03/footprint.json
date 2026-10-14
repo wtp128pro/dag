@@ -1,0 +1,27 @@
+{
+  "unit_id": "U03",
+  "iteration": 2,
+  "mode": "git",
+  "base_ref": "ef7bc5edd27a0cc0060397e9046f24c83160e088",
+  "pre_snapshot_sha256": "d42dc60da0472108340d96c67e7b7f9eb38b552f4af540d2154d89343528ad30",
+  "post_snapshot_sha256": "935b12d5e6f152d42ef085bea60e294b42adac5db1aba9d65e093762ae07c9d3",
+  "changes": [
+    {
+      "path": "docs/guide.md",
+      "status": "M",
+      "from_path": null,
+      "sha256_before": "75808e7ee9fdda88be1eca03d69d59c5bcd62e9936e23179613888cdb73cb6ea",
+      "sha256_after": "21269115adb204b08a3b38578ae03dd34f9e87773a63924d0282aa7f3f80161f"
+    },
+    {
+      "path": "src/app/parse.py",
+      "status": "M",
+      "from_path": null,
+      "sha256_before": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256_after": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "unattributed": [],
+  "capture_error": null,
+  "tool_version": "footprint.py/1"
+}

@@ -26,6 +26,24 @@
 #
 # Prints the absolute path of the created run dir on the LAST line of stdout.
 # Idempotent-safe: refuses to clobber an existing directory.
+#
+# Blast-radius baseline (1.15.0): the seeded fsm-state.json also carries `blast` — the workspace the
+# run's file footprints are captured against (schema: schemas/fsm-state.schema.json `blast`):
+#   mode             "git" when `git -C <base_dir> rev-parse --show-toplevel` succeeds, else "snapshot"
+#   workspace_root   the repository top level (git) or the realpath'd <base_dir> (snapshot)
+#   base_sha         HEAD at scaffold time (null outside git, or before the first commit)
+#   base_tree_digest footprint.py's `digest` of workspace_root with this run dir excluded (null, with a
+#                    WARNING on stderr, when it cannot be computed — e.g. a repository with no commit yet)
+#   dirty_at_start   paths `git status --porcelain -z` already showed as modified/untracked (both sides of
+#                    a rename), minus this run dir and .wip/** ([] in snapshot mode)
+#   tool_version     "init_run.sh/1"
+# git runs through footprint.py's helpers (timeout, fail-closed), so the mode and exclusions recorded
+# here are exactly the ones footprint.py captures with later.
+#
+# Exit codes: 0 ok · 2 usage · 3 run dir exists · 4 --restamp: no fsm-state.json · 5 --restamp:
+# fsm-state.json not a JSON object · 6 --restamp REFUSED: it would arm the blast predicates (cross
+# BLAST_SHIP) on a run with no fsm-state.blast · 7 the blast capture mode could not be determined
+# (git failed other than "not a repository", e.g. a timeout); the empty run dir is removed.
 set -eu
 
 if [ "$#" -lt 1 ]; then
@@ -46,6 +64,10 @@ VALIDATOR_VERSION=$(python3 -c 'import json,sys
 try: print(json.load(open(sys.argv[1])).get("version",""))
 except Exception: pass' "$SCRIPT_DIR/../../../.claude-plugin/plugin.json" 2>/dev/null || true)
 
+# The plugin version whose validator arms the blast-radius predicates. MUST equal validate_run.py's
+# _BLAST_SHIP (run_tests.sh guard G7 compares the two literals).
+BLAST_SHIP="1.15.0"
+
 # U08 RE-STAMP mode:  init_run.sh --restamp <RUN_DIR>
 # The scaffold-time stamp above is written ONCE and, before this mode existed, was never refreshed —
 # so a run that AUTHORS an invariant carried the pre-release stamp for its whole life and was
@@ -62,6 +84,10 @@ except Exception: pass' "$SCRIPT_DIR/../../../.claude-plugin/plugin.json" 2>/dev
 # semver comparison and no unstamped archived run is newly penalized.
 # The stamp is a RATCHET: it is only ever raised, never lowered, so validating a run with an OLDER
 # installed plugin cannot silently disarm a floor the run already armed.
+# Blast refusal (exit 6): raising a stamp that is below BLAST_SHIP — or absent/malformed, which reads as
+# unarmed — to BLAST_SHIP or above ARMS the blast predicates, which fail any run without a
+# fsm-state.blast object. Such a restamp is refused and the file left byte-identical, so an archived
+# run is never newly failed by a restamp; seed `blast` first (see the message) or keep the old stamp.
 if [ "$RAW_LABEL" = "--restamp" ]; then
   if [ "$#" -lt 2 ]; then
     echo "ERROR: --restamp requires <RUN_DIR>" >&2
@@ -79,9 +105,9 @@ if [ "$RAW_LABEL" = "--restamp" ]; then
     echo "SKIP: plugin version unresolvable — validator_version left untouched (archive-safe)"
     exit 0
   fi
-  python3 - "$RESTAMP_STATE" "$VALIDATOR_VERSION" <<'PYRESTAMP'
+  python3 - "$RESTAMP_STATE" "$VALIDATOR_VERSION" "$BLAST_SHIP" <<'PYRESTAMP'
 import json, os, re, sys
-path, ver = sys.argv[1], sys.argv[2]
+path, ver, ship = sys.argv[1], sys.argv[2], sys.argv[3]
 def parse(v):
     # Same semantics as validate_run.py's _i27_semver_ge parser (malformed/absent -> None); this is a
     # WRITE-side ratchet guard only — the read-side predicate is untouched.
@@ -106,6 +132,17 @@ if pp is not None and pn is not None and pp > pn:
 if prev == ver:
     print("OK: validator_version already %r (%s)" % (ver, path))
     sys.exit(0)
+ps = parse(ship)
+if pn is not None and ps is not None and pn >= ps and (pp is None or pp < ps) \
+        and not isinstance(st.get("blast"), dict):
+    sys.stderr.write(
+        "REFUSED: raising validator_version %r -> %r crosses %s and would arm the blast-radius predicates on a\n"
+        "  run with no fsm-state.blast object; %s left byte-identical. To adopt blast, seed fsm-state.blast\n"
+        "  first: {mode, base_sha, workspace_root, dirty_at_start, tool_version} plus base_tree_digest from\n"
+        "  `python3 <skill>/scripts/footprint.py digest <workspace_root> --run-dir <RUN_DIR>` (the base it\n"
+        "  records is the workspace NOW, not at scaffold time), then re-run --restamp. Otherwise keep the\n"
+        "  current stamp (archive-safe).\n" % (prev, ver, ship, path))
+    sys.exit(6)
 st["validator_version"] = ver          # only key written; existing key order preserved
 tmp = path + ".tmp"
 with open(tmp, "w") as fh:
@@ -146,6 +183,67 @@ ABS_RUN_DIR=$(cd "$RUN_DIR" && pwd)
 # N-18: JSON-escape the path (it may contain " or \) so fsm-state.json is always valid JSON.
 # python3 is a hard skill dependency (validate_run.py); json.dumps emits the surrounding quotes too.
 ABS_RUN_DIR_JSON=$(python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1]))' "$ABS_RUN_DIR")
+
+# Blast-radius baseline (see the header): computed BEFORE any ledger file is written, through footprint.py's
+# own helpers (git timeout, fail-closed toplevel probe, exclusion patterns, digest) — never re-implemented
+# here. Prints the JSON-built `"blast": {...},` line. A mode that cannot be determined is fatal (exit 7) and
+# the still-empty run dir is removed (rmdir only: it cannot delete content).
+if ! BLAST_LINE=$(python3 - "$SCRIPT_DIR" "$BASE_DIR" "$ABS_RUN_DIR" <<'PYBLAST'
+import json, os, sys
+script_dir, base_dir, run_dir = sys.argv[1:4]
+sys.path.insert(0, script_dir)
+import footprint as fp
+
+def warn(what, exc):
+    sys.stderr.write("WARNING: fsm-state.blast.%s recorded as null: %s\n" % (what, fp._oneline(exc)))
+
+base = os.path.realpath(base_dir)
+try:
+    top = fp._git_toplevel(base)  # None only for "not a repository" / no git binary
+except (fp.CaptureError, OSError) as exc:
+    sys.stderr.write("ERROR: cannot determine the blast capture mode for %s: %s\n" % (base, fp._oneline(exc)))
+    sys.exit(7)
+mode = "git" if top is not None else "snapshot"
+ws = top if top is not None else base
+blast = {"mode": mode, "base_sha": None, "base_tree_digest": None, "workspace_root": ws,
+         "dirty_at_start": [], "tool_version": "init_run.sh/1"}
+if mode == "git":
+    try:
+        blast["base_sha"] = fp._decode(fp.git(ws, ["rev-parse", "--verify", "HEAD^{commit}"])).strip() or None
+    except fp.CaptureError as exc:
+        warn("base_sha", exc)  # e.g. no first commit yet
+    pats = fp.exclude_patterns(ws, run_dir)
+    try:
+        raw = fp.git(ws, ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
+                     extra_env={"GIT_OPTIONAL_LOCKS": "0"})
+    except fp.CaptureError as exc:
+        sys.stderr.write("ERROR: cannot list the workspace's pre-existing changes: %s\n" % fp._oneline(exc))
+        sys.exit(7)
+    fields, dirty, i = raw.split(b"\0"), set(), 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if len(entry) < 4:
+            continue  # the trailing empty field after the last NUL
+        paths = [entry[3:]]
+        if entry[:1] in (b"R", b"C") or entry[1:2] in (b"R", b"C"):
+            paths.append(fields[i])  # -z: the rename/copy SOURCE is the next field — both sides are dirty
+            i += 1
+        for p in paths:
+            p = fp._decode(p)
+            if not fp.is_excluded(p, pats):
+                dirty.add(p)
+    blast["dirty_at_start"] = sorted(dirty)
+try:
+    blast["base_tree_digest"] = fp.tree_digest(ws, run_dir)["digest"]
+except (fp.CaptureError, OSError) as exc:
+    warn("base_tree_digest", exc)
+sys.stdout.write('  "blast": %s,' % json.dumps(blast, ensure_ascii=True))
+PYBLAST
+); then
+  rmdir "$RUN_DIR/units" "$RUN_DIR" 2>/dev/null || true
+  exit 7
+fi
 
 cat > "$RUN_DIR/INPUT.md" <<EOF
 # Task Input
@@ -238,6 +336,7 @@ fi
 cat > "$RUN_DIR/fsm-state.json" <<EOF
 { "run_dir": ${ABS_RUN_DIR_JSON}, "phase": "P0_BOOTSTRAP", "updated_at": "${ISO}",
 ${VV_LINE}
+${BLAST_LINE}
   "gates": { "personas_confirmed": false, "clarification_resolved": false,
              "cartography_done": false, "decomposition_approved": false,
              "signoff_confirmed": false },

@@ -1,0 +1,22 @@
+{
+  "unit_id": "U01",
+  "iteration": 2,
+  "mode": "git",
+  "base_ref": "ef7bc5edd27a0cc0060397e9046f24c83160e088",
+  "pre_snapshot_sha256": "d42dc60da0472108340d96c67e7b7f9eb38b552f4af540d2154d89343528ad30",
+  "post_snapshot_sha256": "935b12d5e6f152d42ef085bea60e294b42adac5db1aba9d65e093762ae07c9d3",
+  "changes": [
+    {
+      "path": "src/app/parse.py",
+      "status": "M",
+      "from_path": null,
+      "sha256_before": "cd06a356bbd9b714b24f11752ca55acb1975c204d04233e9cc0a30f2ae9f9a2e",
+      "sha256_after": "19d29311c50420608a8804a98f17486210a103a003e1d63c2a9790e68a91c961"
+    }
+  ],
+  "unattributed": [
+    "scratch/notes.txt"
+  ],
+  "capture_error": null,
+  "tool_version": "footprint.py/1"
+}

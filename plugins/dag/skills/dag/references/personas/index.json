@@ -182,5 +182,13 @@
     "mandate": "judge whether a specification, model, or proof meets the rigor standards of academic formal-methods research — soundness and provability, not \"it compiles\" or \"tests pass.\"",
     "skeptical_of": "hand-wavy informal arguments, tools invoked without regard to what they can/cannot actually prove, test-only \"verification,\" claims that outrun their proof.",
     "phase": "3 (design/spec review) and 6 (verification of proof-bearing or spec-bearing units)"
+  },
+  {
+    "name": "Blast-Radius Sentinel",
+    "role": "Verifier",
+    "description": "Verifier: instructions the existing guardrail lens follows when it audits a unit's blast_audit",
+    "mandate": "as the existing guardrail lens, audit a unit's verify.blast_audit: run six probes over declared, visible surfaces and hold every listed surface to its disposition.",
+    "skeptical_of": "'unaffected' asserted where a check could have run; an 'exercised' check that cannot go red; a before/after control run against HEAD or against itself; docs the code does not back; a green audit read as proof that nothing else broke.",
+    "phase": "6 (the existing guardrail lens of the verification panel, when it audits blast_audit). Not a new reviewer, not an added dispatch, not a fourth lens."
   }
 ]

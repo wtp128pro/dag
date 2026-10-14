@@ -3,6 +3,28 @@
 All notable changes to this marketplace are documented here.
 Individual plugins also maintain their own changelogs.
 
+## [1.0.19] — 2026-10-14
+
+- **`dag` 1.14.0 → 1.15.0 — blast radius.** Five offline post-hoc predicates — `I60` write scope,
+  `I61` wave write disjointness, `I62` impact settled, `I63` end re-run, `I64` integration — and an
+  exit-neutral summary NOTE (`N-I65`), armed only on runs stamped 1.15.0 or later: a unit's captured
+  file footprint must stay inside its declared write scope, same-wave units must not write the same
+  path, every out-of-scope consumer a scan finds must be settled by the verifier, and at sign-off the
+  declared checks are replayed and declared census counts compared at base and tip. Four
+  standard-library scripts (`frame_match.py`, `footprint.py`, `impact_scan.py`, `integrate.py`), four
+  schemas, a persona, a template, 53 fixture runs, an `init_run.sh` blast stamp with a restamp refusal,
+  a test-harness fix that keeps a user-site `jsonschema` visible, and a `state-machine.md` §5
+  enumeration of the 1.14.0 predicates, whose §4 rows already existed.
+- **Guarantee classifications.** I54 REVISES upward (`deliverable` required on runs stamped ≥ 1.15.0);
+  I17 widened to anchor `frame` (PRESERVES below 1.15.0); Limitation AC boundary (iv) / Non-Goal 10
+  REVISES — narrowed, not closed; Limitation AB narrowed for repository files; N-I45's `BLAST-T1` arm a
+  narrow REVISES. The formal model and FSM spec are byte-unchanged (TLC 853 / 408 / depth 36, Alloy
+  8/8). The migration notes are in the plugin changelog.
+- **This repository's `.dag/blast.json`** declares three regression commands, three coupling rules, one
+  census and one test surface for its own runs.
+- **Limit:** the checks cover declared, visible surfaces only; cross-unit and integration blindness
+  beyond them is not closed.
+
 ## [1.0.18] — 2026-08-09
 
 - **`dag` 1.13.0 → 1.14.0 — drift and autonomy.** Ten offline post-hoc predicates (`I49`–`I54`,

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/impact.schema.json",
+  "title": "Impact record (blast-radius obligations derived from one unit's file footprint)",
+  "description": "The units/<UID>/impact.json artifact, written by the blast-radius scanner from the unit's footprint.json and carrying a .sha256 sidecar in `shasum -a 256` format. `symbols[]` are the changed definitions the scanner extracted from the footprint's changed paths; `obligations[]` are what those changes put at risk: a `reference` obligation names symbols whose other uses (referencing_paths) must be shown exercised, unaffected, owned by another unit or broken; a `coupling` obligation names the configured coupling rule (rule_id) a changed path triggered. Every obligation is adjudicated by a row of the aggregated verify.json `blast_audit`, which cites this file's sha256. hit_count is the full hit count; sample_hits[] is the capped excerpt; truncated_hits counts hits omitted by the caps, so truncation is visible rather than silent. Closed objects throughout; the scanner, not the executor, writes this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["unit_id", "iteration", "footprint_sha256", "symbols", "obligations", "truncated_hits", "caps", "scanner"],
+  "properties": {
+    "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+    "iteration": { "type": "integer", "minimum": 1 },
+    "footprint_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the units/<UID>/footprint.json this record was derived from (equals its .sha256 sidecar)." },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "kind", "change", "source_path"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1, "description": "Extractor-defined symbol kind, e.g. function, class, cli-flag, schema-key." },
+          "change": { "type": "string", "minLength": 1, "description": "How the symbol changed, e.g. added, removed, modified, renamed." },
+          "source_path": { "type": "string", "minLength": 1, "description": "Repository-relative path whose change produced the symbol." }
+        }
+      }
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "symbol_ids", "rule_id", "referencing_paths", "hit_count", "sample_hits"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["reference", "coupling"] },
+          "symbol_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "ids from symbols[]; at least one on a reference obligation." },
+          "rule_id": { "type": ["string", "null"], "minLength": 1, "description": "The blast-config coupling_rules[].id that raised a coupling obligation; null on a reference obligation." },
+          "referencing_paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "hit_count": { "type": "integer", "minimum": 0 },
+          "sample_hits": { "type": "array", "items": { "type": "string", "minLength": 1 }, "description": "Capped excerpt of hits, each `path:line:text`." }
+        },
+        "allOf": [
+          {
+            "description": "A reference obligation names at least one changed symbol.",
+            "if": { "properties": { "kind": { "const": "reference" } }, "required": ["kind"] },
+            "then": { "properties": { "symbol_ids": { "minItems": 1 } } }
+          },
+          {
+            "description": "A coupling obligation names the rule that raised it.",
+            "if": { "properties": { "kind": { "const": "coupling" } }, "required": ["kind"] },
+            "then": { "properties": { "rule_id": { "type": "string" } } }
+          }
+        ]
+      }
+    },
+    "truncated_hits": { "type": "integer", "minimum": 0, "description": "Number of hits found but omitted from sample_hits[] by the caps (0 = nothing truncated)." },
+    "caps": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "The scanner limits in force for this record, cap name -> non-negative integer (e.g. max_obligations, max_sample_hits). Cap names are scanner-defined, so names are open while every value must be a non-negative integer." },
+    "scanner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "extractors"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "extractors": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

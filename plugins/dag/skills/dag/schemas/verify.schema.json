@@ -359,6 +359,38 @@
           }
         }
       }
+    },
+    "blast_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OPTIONAL at the schema level; written on the AGGREGATED verify.json only (per-member verify_p<N>.json files do not carry it) by the existing guardrail lens, which audits the unit's blast-radius obligations - no extra verifier dispatch and no extra lens. impact_sha256 cites the units/<UID>/impact.json the rows adjudicate (equal to its .sha256 sidecar). One row per impact obligation: `exercised` = a check that reaches the obligation was run (check, exit_code, and the red_input under which it fails, all required); `unaffected` = the change cannot reach it (rationale required); `owned_by` = another unit's frame owns it (owner_unit required); `broken` = the change breaks it (rationale required) - a finding that also belongs in defects[]. The per-disposition requirements below are the first line of defence; the validator re-checks coverage, citation and owner offline.",
+      "required": ["impact_sha256", "rows"],
+      "properties": {
+        "impact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["obligation_id", "disposition"],
+            "properties": {
+              "obligation_id": { "type": "string", "minLength": 1 },
+              "disposition": { "type": "string", "enum": ["exercised", "unaffected", "owned_by", "broken"] },
+              "check": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "exit_code": { "type": "integer" },
+              "red_input": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "owner_unit": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+              "rationale": { "type": "string", "minLength": 1, "pattern": "\\S" }
+            },
+            "allOf": [
+              { "if": { "properties": { "disposition": { "const": "exercised" } }, "required": ["disposition"] }, "then": { "required": ["check", "exit_code", "red_input"] } },
+              { "if": { "properties": { "disposition": { "const": "unaffected" } }, "required": ["disposition"] }, "then": { "required": ["rationale"] } },
+              { "if": { "properties": { "disposition": { "const": "owned_by" } }, "required": ["disposition"] }, "then": { "required": ["owner_unit"] } },
+              { "if": { "properties": { "disposition": { "const": "broken" } }, "required": ["disposition"] }, "then": { "required": ["rationale"] } }
+            ]
+          }
+        }
+      }
     }
   },
   "allOf": [

@@ -476,3 +476,75 @@ directive_class_drift	1	I53 directive provenance (units/U01)
 mode_ver_bypass	1	gate ordering
 mode_record_conflation	1	I51 machine-decision channel (I51-2 exclusivity by record, signoff)
 unit_dir_unreadable	0	!unit directory could not be read
+blast_green	0	I60 write scope (3 unit(s), 3 footprint(s)
+blast_green	0	I61 wave write disjointness (2 wave(s)
+blast_green	0	!N-I61 declared frame overlap
+blast_green	0	!N-I45 version-skew visibility
+blast_version_gated_silent	0	['BLAST-T1']
+blast_version_gated_silent	0	!I60 write scope (
+blast_no_deliverable	1	I60 write scope (I60-1
+blast_ships_no_frame	1	I60 write scope (I60-2 graph.json units[U01]): a ships unit needs a non-empty frame.modifies
+blast_bad_pattern	1	I60 write scope (I60-2 graph.json units[U01]): invalid frame pattern
+blast_brief_frame_drift	1	I60 write scope (I60-2 units/U01/brief.json): brief.frame differs
+blast_output_outside_frame	1	I60 write scope (I60-2 units/U01/brief.json): outputs[] repo path 'lib/other.py'
+blast_footprint_missing	1	I60 write scope (I60-3 units/U02): executed unit has no footprint.json
+blast_footprint_stale	1	I60 write scope (I60-3 units/U02): footprint iteration 1 != debrief.json iteration
+blast_footprint_sha_mismatch	1	I60 write scope (I60-3 units/U02): footprint.json.sha256
+blast_capture_error	1	I60 write scope (I60-3 units/U02): capture_error set
+blast_write_outside_frame	1	I60 write scope (I60-4 units/U01): changed path 'lib/util.py' matches no frame.modifies
+blast_immutable_touched	1	I60 write scope (I60-4 units/U01): changed path 'src/app/generated/table.py' matches a frame.immutable
+blast_informs_wrote	1	I60 write scope (I60-5 units/U02)
+blast_mode_none_with_ships	1	I60 write scope (I60-6 fsm-state.blast.mode): mode none
+blast_stamp_missing	1	I60 write scope (I60-6 fsm-state.blast): absent
+blast_bad_base_sha	1	I60 write scope (I60-6 fsm-state.blast.base_sha)
+blast_wave_overlap	1	I61 wave write disjointness (I61-1 wave 1 U01/U03)
+blast_unattributed	1	I61 wave write disjointness (I61-2 units/U01)
+blast_frame_overlap_note	0	N-I61 declared frame overlap: wave 1 U01/U03	--quiet
+blast_crash_footprint_types	1	I60 write scope (I60-3 units/U01): footprint `changes` must be a list
+blast_crash_footprint_types	1	!Traceback (most recent call last)
+blast_crash_footprint_keys	1	I61 wave write disjointness (I61-2 units/U01): footprint `unattributed` must be a list
+blast_crash_footprint_keys	1	!Traceback (most recent call last)
+blast_crash_frame_type	1	I60 write scope (I60-2 graph.json units[U01]): `frame` must be an object
+blast_crash_frame_type	1	!Traceback (most recent call last)
+blast_green	0	I62 impact settled (2 executed ships unit(s): impact bound, every obligation settled)
+blast_impact_missing	1	I62 impact settled (I62-1 units/U01): executed ships unit has no impact.json
+blast_impact_unbound	1	I62 impact settled (I62-1 units/U01): impact footprint_sha256
+blast_audit_missing	1	I62 impact settled (I62-2 units/U01 blast_audit): absent from verify.json
+blast_audit_partial	1	I62 impact settled (I62-2 units/U01 O2): obligation has no blast_audit row
+blast_exercised_no_red	1	I62 impact settled (I62-3 units/U01 O1): exercised row has no non-blank `red_input`
+blast_owned_by_dangling	1	I62 impact settled (I62-4 units/U01 O3): owner_unit 'U99' is not another unit
+blast_unaffected_no_rationale	1	I62 impact settled (I62-5 units/U03 O1): unaffected row has no non-blank `rationale`
+blast_broken_on_pass	1	I62 impact settled (I62-6 units/U01 O2): a broken impact row on a PASS verdict
+blast_coupling_unaffected	1	I62 impact settled (I62-7 units/U01 O3): a coupling obligation dispositioned unaffected
+blast_crash_impact_types	1	I62 impact settled (I62-1 units/U01): impact `obligations` must be a list
+blast_crash_impact_types	1	!Traceback (most recent call last)
+blast_crash_audit_types	1	I62 impact settled (I62-2 units/U01 blast_audit): malformed rows[] entry {'disposition': 'exercised'}
+blast_crash_audit_types	1	I62 impact settled (I62-4 units/U01 O3): owner_unit ['U03'] is not another unit
+blast_crash_audit_types	1	!Traceback (most recent call last)
+blast_green	0	N-I65 blast summary	--quiet
+blast_green	0	!blast_accepted malformed
+blast_replay_missing	1	I63 end re-run (I63-1 U01/C1): passed command-form check has no replay row
+blast_replay_red	1	I63 end re-run (I63-1 U01/C1): passed command-form check replayed with a non-zero exit
+blast_post_verify_mutation	1	I63 end re-run (I63-2 U01 src/app/parse.py)
+blast_integration_missing	1	I64 integration (I64-1 integration.json): absent on a signed-off armed run
+blast_integration_start_mismatch	1	I64 integration (I64-1 integration.json base_sha)
+blast_identical_control	1	I64 integration (I64-2 integration.json): base_tree_digest == tip_tree_digest
+blast_unowned_write	1	I64 integration (I64-3 integration.json 'lib/stray.py')
+blast_shared_path_uncovered	1	I64 integration (I64-4 src/app/parse.py U04)
+blast_delta_unexplained	1	I64 integration (I64-5 differential 'tests/test_parse.py::test_trailing_newline')
+blast_weakening_unlisted	1	I64 integration (I64-6 test_weakening 'test-file-deleted')
+blast_census_increase	1	I64 integration (I64-7 census 'crash-class'): added 1 != 0
+blast_override_malformed	1	!N-I64 blast accepted
+blast_override_malformed	1	I64 integration (I64-8 blast_accepted malformed: (5)
+blast_override_wellformed	0	N-I64 blast accepted: "I64-7:crash-class" downgraded
+blast_override_wellformed	0	!I64 integration (I64-7
+blast_override_partial	1	N-I64 blast accepted: "I64-7:crash-class" downgraded
+blast_override_partial	1	I64 integration (I64-3 integration.json 'lib/stray.py')
+blast_crash_integration_types	1	I64 integration (I64-1 integration.json): `replay` must be a list
+blast_crash_integration_types	1	I63 end re-run (I63-2 integration.json): final hashes unknown
+blast_crash_integration_types	1	!Traceback (most recent call last)
+blast_crash_override_types	1	I64 integration (I64-8 blast_accepted malformed: (2) items is not a list
+blast_crash_override_types	1	!Traceback (most recent call last)
+blast_no_config_control	0	!FAIL  I64 integration
+blast_no_config_control	0	N-I65 blast summary	--quiet
+blast_no_config_errors	1	I64 integration (I64-5 blast-config.json): no blast config (run dir or <workspace>/.dag/blast.json) and a non-empty integration errors[]

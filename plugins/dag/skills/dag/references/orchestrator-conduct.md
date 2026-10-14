@@ -171,10 +171,15 @@ free at Phase 4; found at Phase 8 it costs an amendment or a residual.
 ### R19 · A shared integration point needs an owning unit — or a cross-unit criterion on every consumer
 
 **Sources:** `MU-L12` · **Strength:** T1 · **Binds at:** Phase 4 step 4 — for any unit whose
-deliverable is "add a new consumer of shared state X". · **Checked against:** `SKILL.md:584-585`,
+deliverable is "add a new consumer of shared state X". · **Checked against:** `SKILL.md:668-669`,
 anchor *"DoD item is covered by ≥1 unit"* —
 **ABSENT**. (Same paragraph as `R6`, different absence: `R6` is about how finely coverage is checked,
-`R19` is about an invariant that *no single unit's* acceptance criteria can express.)
+`R19` is about an invariant that *no single unit's* acceptance criteria can express.) The blast
+predicates check only the visible edge of it, after the fact: **I64** requires at sign-off that no
+captured write is unowned (I64-3) and that every path with more than one writer has an exit-0 replay
+row for each writer (I64-4); **I61** fails two same-wave units whose captured writes share a path.
+Neither checks the cross-consumer invariant itself. `SKILL.md:673-678`, anchor *"giving that file one
+owning integration unit"*, now names this rule as one resolution of a reported frame overlap.
 
 Disjoint-file ownership (`R5`) prevents units from overwriting each other. It does **not** protect an
 invariant that only holds across the union of them — a registration list, a shared enum, a
@@ -315,10 +320,14 @@ a default.
 
 **Sources:** `MU-L25` (primary), `MU-L40` · **Strength:** T1x (2 × music) · **Binds at:** dispatching
 a wave (Phase 6 head); dispatching a repair between adjudications (Phase 7). · **Checked against:**
-`SKILL.md:227-228`, anchor *"executors with `isolation: 'worktree'` (Agent tool)"* — **WEAKER**:
-worktree isolation is *"consider"*-ed and only for **executors**; `SKILL.md:704-705`, anchor
+`SKILL.md:266-271`, anchor *"same-wave units own disjoint `frame.modifies`"* — **WEAKER**: the
+old worktree-isolation suggestion is gone (executors write in the one shared tree the blast capture
+reads), and same-wave disjointness is stated over declared frames but checked only after the fact by
+**I61** (no two units of one wave have overlapping captured footprint paths; an `N-I61` NOTE flags
+overlapping declared `frame.modifies` patterns) — captured paths, not semantic conflicts between
+disjoint files, and that paragraph says nothing of hazards 2–3 below; `SKILL.md:804-805`, anchor
 *"Process waves in topological order"*, states wave parallelism with no shared-tree caveat at all;
-`SKILL.md:959-968`, anchor *"**Frozen executed prefix (I17) — the load-bearing rule.**"*, freezes
+`SKILL.md:1164-1173`, anchor *"**Frozen executed prefix (I17) — the load-bearing rule.**"*, freezes
 **graph** mutation during execution but says nothing about dispatching work onto artifacts under
 adjudication.
 
@@ -337,8 +346,11 @@ Three distinct hazards, one rule:
 
 Conduct: partition each wave by file ownership before dispatch and state the partition; keep
 verify-with-reproduction serialized against mutation; and hold repairs until the outstanding
-adjudication lands. Where the harness offers it, `isolation: 'worktree'` removes hazard 1 for
-executors but not hazards 2–3, which are ordering constraints, not isolation ones.
+adjudication lands. Do not give executors `isolation: 'worktree'`: the blast capture reads only
+`fsm-state.blast.workspace_root`, so an executor writing in a worktree copy leaves its unit an
+empty footprint and a blast audit that passes without checking anything. Executors write in the
+one shared working tree. Hazard 1 is handled by disjoint declared frames, checked afterwards by
+**I61**. Hazards 2–3 are ordering constraints that no isolation removes.
 
 ### R1 · Run the offline artifact normalizer before the validator
 

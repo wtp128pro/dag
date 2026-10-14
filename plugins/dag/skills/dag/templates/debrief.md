@@ -87,3 +87,5 @@ wire shape only, SPEC `units/U01/SPEC.md` §3):
 
 No `debrief.md` is written. `debrief.json` is authoritative and is what the verifier and every
 downstream brief read.
+
+Blast radius (1.15.0): the FILE footprint `units/<UNIT-ID>/footprint.json` (written by `footprint.py`) and the impact record are orchestrator artifacts, unrelated to the token-usage `footprint` object above — see templates/blast.md.

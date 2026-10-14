@@ -1,0 +1,81 @@
+{
+  "base_sha": "ae1926a245df2b0c906bcbf373f484e51a490a88",
+  "base_tree_digest": "sha256:5b9b2294f498473d7017549a8938e9ab47faa6b1ddb6509616f12c5a72629f30",
+  "tip_tree_digest": "sha256:9682af00713a073874da7deb9589f05d3c49b98968c227f9bf86b92dade768c0",
+  "union_changes": [
+    {
+      "path": "src/app/parse.py",
+      "status": "M",
+      "sha256_base": "cd06a356bbd9b714b24f11752ca55acb1975c204d04233e9cc0a30f2ae9f9a2e",
+      "sha256_tip": "19d29311c50420608a8804a98f17486210a103a003e1d63c2a9790e68a91c961"
+    },
+    {
+      "path": "docs/guide.md",
+      "status": "M",
+      "sha256_base": "75808e7ee9fdda88be1eca03d69d59c5bcd62e9936e23179613888cdb73cb6ea",
+      "sha256_tip": "21269115adb204b08a3b38578ae03dd34f9e87773a63924d0282aa7f3f80161f"
+    }
+  ],
+  "unowned_writes": [],
+  "multi_writer_paths": [],
+  "replay": [
+    {
+      "unit_id": "U01",
+      "case_id": "C1",
+      "command": "python3 -c \"import json;print(len(json.load(open('units/U01/debrief.json'))['evidence_table']))\"",
+      "exit_code": 0
+    },
+    {
+      "unit_id": "U01",
+      "case_id": "C2",
+      "command": "python3 -c \"import json,re;rows=json.load(open('units/U01/debrief.json'))['evidence_table'];print(all(re.search(r'[0-9]{4}', r['evidence']) for r in rows))\"",
+      "exit_code": 0
+    },
+    {
+      "unit_id": "U02",
+      "case_id": "C1",
+      "command": "python3 -c \"import json;print(len(json.load(open('units/U01/debrief.json'))['evidence_table']))\"",
+      "exit_code": 0
+    },
+    {
+      "unit_id": "U02",
+      "case_id": "C2",
+      "command": "python3 -c \"import json,re;rows=json.load(open('units/U01/debrief.json'))['evidence_table'];print(all(re.search(r'[0-9]{4}', r['evidence']) for r in rows))\"",
+      "exit_code": 0
+    },
+    {
+      "unit_id": "U03",
+      "case_id": "C1",
+      "command": "python3 -c \"import json;print(len(json.load(open('units/U01/debrief.json'))['evidence_table']))\"",
+      "exit_code": 0
+    },
+    {
+      "unit_id": "U03",
+      "case_id": "C2",
+      "command": "python3 -c \"import json,re;rows=json.load(open('units/U01/debrief.json'))['evidence_table'];print(all(re.search(r'[0-9]{4}', r['evidence']) for r in rows))\"",
+      "exit_code": 0
+    }
+  ],
+  "differential": [
+    {
+      "regression_id": "tests/test_parse.py::test_trailing_newline",
+      "base_exit": 1,
+      "tip_exit": 0,
+      "base_stdout_sha256": "09b5d58fa1b710dd7f2baea9ae3c829c9e58e7d48f60d75e614a201cd6a7ec90",
+      "tip_stdout_sha256": "696bc76623788e58cffe6d8ba62ec2e64709429a77b75e8ce9cebce5da172f2c",
+      "intended_change_ref": "parse() accepts a trailing newline instead of rejecting the record"
+    }
+  ],
+  "test_weakening": [],
+  "censuses": [
+    {
+      "id": "crash-class",
+      "base": 4,
+      "tip": 4,
+      "added": 0,
+      "closed": 0,
+      "shipped": 0
+    }
+  ],
+  "errors": []
+}
