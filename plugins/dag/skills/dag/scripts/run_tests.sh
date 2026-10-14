@@ -46,6 +46,11 @@ if [ ! -f "$EXP" ]; then echo "FATAL: expectations.tsv not found at $EXP" >&2; e
 
 # HOME isolation (IMP-16): make ~/.claude/dag/{learnings,tags.json} deterministically absent.
 if [ "$REAL_HOME" -eq 0 ]; then
+  # Python derives the user site from HOME, so the stub would hide user-site packages (e.g. a
+  # user-installed jsonschema) and silently demote the sweep to the mini backend. Pin the REAL user
+  # base (resolved before HOME moves; an explicit PYTHONUSERBASE wins; empty = Python's default).
+  # Only Python's import path is affected — ~/.claude/dag stays isolated in the stub.
+  export PYTHONUSERBASE="${PYTHONUSERBASE:-$(python3 -m site --user-base 2>/dev/null)}"
   DAG_TMP_HOME=$(mktemp -d 2>/dev/null || mktemp -d -t dagtests)
   export HOME="$DAG_TMP_HOME"
   trap 'rm -rf "$DAG_TMP_HOME"' EXIT INT TERM
