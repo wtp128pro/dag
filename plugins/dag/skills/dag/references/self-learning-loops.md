@@ -79,6 +79,16 @@ State × event/guard → action → next state. `↑retries` = increment.
 exactly one enabled transition (no deadlock, no non-determinism). `verdict == ⊥` cannot
 occur at `ADJUDICATE` because it is reachable only via LT2, which sets `verdict`.
 
+**Blast FAILs ride the existing edges.** On a run with a blast stamp, a defect the blast audit
+records — a `broken` consumer, an impact obligation the verifier cannot settle — is an ordinary
+verify `FAIL`: it leaves `ADJUDICATE` by LT4 (`RETRY`, while `retries < 2`) or LT5 (`ESCALATE`), like
+any other unmet criterion. A broken consumer *outside* the unit's frame is not repaired by widening
+the unit; it is routed to an `add_units` amendment that gives the consumer an owning unit, or to
+`ESCALATE`. The blast predicates I60–I64 are offline validator checks over emitted artifacts: they add
+no state, no edge and no condition on the `RETRY` out-edge, so the table above and §2 stand
+unchanged. They check declared, visible surfaces (captured paths, recorded obligations, declared
+regression commands), not every consumer that could break.
+
 > **Why no "non-actionable FAIL" branch is needed.** The verify contract (§3) makes a
 > `FAIL` *schema-invalid* unless it cites a specific unmet criterion and non-empty
 > `actionable_changes`. A verifier that cannot produce a concrete, retryable defect **must**

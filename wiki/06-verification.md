@@ -350,6 +350,39 @@ inherits I6's reach for free. The converse also bites: a defect filed under a *c
 verbatim acceptance criterion turns **I6** red, because I6's cross-check is byte-exact membership over
 the brief's `acceptance_criteria`.
 
+### 6.2 `blast_audit` — dispositioning every out-of-frame consumer the scanner recorded
+
+On a run stamped `1.15.0` or later (the `_BLAST_SHIP` gate in `validate_run.py`) whose graph lists a
+unit, a unit whose graph entry says `deliverable: ships` carries a second audit obligation: what its
+file changes can reach **outside** the paths it declared. The chain the verifier works from:
+
+1. **The declared frame.** `graph.json` gives each unit a `frame` — `modifies` (the only paths it may
+   write), `immutable`, `intended_changes` — mirrored into `brief.json`.
+2. **The captured footprint.** `footprint.py capture` records what the unit actually wrote into
+   `units/<U>/footprint.json` (+ a `.sha256` sidecar): every changed path with its before/after hash.
+3. **The impact scan.** `impact_scan.py <RUN_DIR> --unit <U>` searches the working repository for
+   consumers of what changed — textual references (`kind: reference`) and the blast config's
+   `coupling_rules` (`kind: coupling`) — and writes `units/<U>/impact.json` (+ sidecar), one obligation
+   per finding. The executor can run the same scan with `--preview` before finishing.
+4. **The audit.** The verifier writes `blast_audit` into the **aggregated** `verify.json`:
+   `impact_sha256` (the sha256 of the `impact.json` it judged) and one `rows[]` entry per obligation id,
+   each with a `disposition`:
+   - `exercised` — a `check` the verifier ran, its `exit_code` (must be `0`) and a `red_input` under
+     which that check fails;
+   - `unaffected` — a `rationale`; a judgement, not a proof, and never legal for a `coupling` obligation;
+   - `owned_by` — an `owner_unit`: another graph unit whose `frame.modifies` covers a referencing path
+     and which, from synthesis on, holds a current PASS;
+   - `broken` — the change breaks that consumer. A `broken` row on a PASS verdict is an I62 FAIL. A
+     consumer outside the unit's frame is never repaired in place: the FAIL is routed to `add_units`
+     (a graph amendment) or to `ESCALATE`.
+
+**I62** checks this chain offline (see page 14 §4.8): the impact record binds the footprint's bytes and
+the debrief's iteration, the audit binds the impact record's bytes, and every obligation id is
+dispositioned exactly once. A retry re-captures and re-scans, so an audit of the previous iteration's
+record no longer matches. What I62 judges is the **shape** of the disposition: that an `exercised` row
+names a check, an exit code and a red input — never that the check was run or that the rationale of an
+`unaffected` row is true. It checks declared, visible surfaces.
+
 ---
 
 ## 7. Premise-check — the backstop against premise deflection
@@ -670,6 +703,13 @@ This page would violate its own subject if it overstated the guarantee. The limi
   never that the counterfactual was genuinely constructed and genuinely run. `vacuous` is representable
   precisely so that an executor who *does* run it has somewhere truthful to land; nothing forces the
   honest reading over the flattering one.
+
+- **Blast-radius checks see declared, visible surfaces only.** I60–I65 compare what the capture
+  recorded with what the frame declared, what the scanner found with what `blast_audit` dispositioned,
+  and what the declared regression commands and censuses returned at base and tip. A consumer the
+  scanner cannot see (a name built at runtime, a caller outside the working repository), a regression
+  no declared command exercises, and a wrong `unaffected` rationale all pass them. They make a change's
+  reach legible and auditable; whether an unscanned consumer still works stays outside what they judge.
 
 - **Self-attestation (Limitation A).** `executor_reasoning_seen: false` is *machine-checked (in
   scope)* as a **field value** — the schema rejects any other value. But that the verifier *truly*

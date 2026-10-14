@@ -133,6 +133,32 @@ is SKILL.md Phase 6's panel step; SPEC `units/U01/SPEC.md` §6.2):
 - `vocabulary_containment` — `{"artifact_only_identifiers": ["<identifier>", …]}`, REQUIRED.
   There is no `note_emitted` key.
 
+## Blast-audit block (`blast_audit` — the aggregated `verify.json` ONLY; 1.15.0)
+Written by the **existing guardrail lens** — no extra verifier dispatch and no extra lens — on the
+verdict-bearing aggregated verify of every executed `ships` unit of a run stamped 1.15.0 or later.
+Per-member `verify_p<N>.json` files do not carry it; the lens holder supplies the rows, the
+aggregator writes them. It adjudicates `units/<UNIT-ID>/impact.json`, which `impact_scan.py`
+derived from the unit's captured footprint (format: templates/blast.md).
+- `blast_audit` — object, `additionalProperties: false`, both REQUIRED: `impact_sha256` (the
+  sha256 of the impact.json bytes, equal to its `.sha256` sidecar) and `rows`.
+- `rows[]` — exactly one row per impact obligation id, naming no unknown id: `obligation_id`,
+  `disposition`, plus what that disposition requires:
+  - `exercised` — a check that reaches the obligation was run: `check`, `exit_code` (an integer;
+    the validator requires 0) and `red_input` (an input under which that check fails).
+  - `unaffected` — the change cannot reach it: `rationale` (a judgement, not a proof). Never on a
+    `coupling` obligation.
+  - `owned_by` — another unit's frame owns it: `owner_unit`, a graph unit whose `frame.modifies`
+    covers at least one of the obligation's `referencing_paths` and which, from synthesis on, holds
+    a current PASS.
+  - `broken` — the change breaks it: `rationale`; it also belongs in `defects[]`, and a `broken`
+    row on a PASS verdict FAILs.
+
+Enforced offline, post-hoc, by validate_run.py **`I62`** (impact.json present, schema-valid,
+sidecar-matched, bound to the footprint bytes by `footprint_sha256` and to the debrief's iteration;
+`impact_sha256` equal to that file's sha256; every obligation dispositioned once, with the per-row
+rules above). It checks declared, visible surfaces: the obligations the scanner recorded and the
+dispositions this block wrote — not whether a consumer the scan never saw still works.
+
 
 ## Consequential-verbatim block (`consequential_verbatim_check` — the whole-run verify field, AF-19)
 On the **whole-run** `verify.json`, enumerate the consequential prompt-verbatim spot-checks:

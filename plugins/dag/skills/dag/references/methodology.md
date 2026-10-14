@@ -299,6 +299,15 @@ Rules for the adversarial verifier:
   Routine units may use a single verifier. `validate_run.py` **I16** enforces this post-hoc: a
   high-stakes unit's `verify.json` must carry a `panel[]` (≥3, trio covered) whose discrete majority
   equals the top-level `verdict`.
+- **The guardrail lens audits `blast_audit` — no added dispatch, no fourth lens.** On a run with a
+  blast stamp, each executed `ships` unit has a `units/<U>/impact.json` (obligations `impact_scan.py`
+  derived from the unit's captured `footprint.json`), and the **guardrail** lens — the sole verifier on
+  a routine unit — writes `blast_audit {impact_sha256, rows[]}` on the aggregated `verify.json` only,
+  dispositioning every obligation once: `exercised` (a check that reached it ran at exit 0, with the
+  `red_input` under which it fails), `unaffected` (a written rationale), `owned_by` (another unit), or
+  `broken` (a defect; never on a PASS). `validate_run.py` **I62** re-checks this afterwards. It checks
+  declared, visible surfaces — the obligations the scanner recorded — not whether an unscanned
+  consumer still works.
 
 ---
 

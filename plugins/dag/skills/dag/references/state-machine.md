@@ -590,9 +590,14 @@ doctrines, each with a migration argument (formal-classification.md).
   - **(iv) `production_path: true` closes ONE SIGNATURE of cross-unit blindness, not the class.** It
     makes one failure mode decidable — required observations seen only through a test-local shim, a
     fixture-only path, an internal helper called directly, or a hand-built input that bypasses the
-    real caller. Integration blindness **remains open** (Non-Goal 10): nothing here observes a
-    defect that lives *between* units, and Phase 8's whole-run hunt for the same signature is a
-    backstop for that one signature only. Measured instance of the wider class in this very run: the
+    real caller. Integration blindness **remains open** (Non-Goal 10) for every defect no declared
+    check can see: nothing here observes a defect that lives *between* units, and Phase 8's whole-run
+    hunt for the same signature is a backstop for that one signature only. **Revised at 1.15.0 (blast
+    radius): integration blindness narrows for four cases only.** The offline I60–I64 predicates now
+    check **undeclared writes** (a captured footprint path outside the unit's declared frame, I60),
+    **overlapping writes in a wave** (I61), **re-run and replay differences** (every discharged
+    command-form check re-run at the end, I63; base-versus-tip differential rows, I64) and **declared
+    census counts** (I64). A defect that no declared check can see stays open (Limitation AE). Measured instance of the wider class in this very run: the
     census of the iterate-over-`.get()` crash class that I48's own predicate polices is **190** at the
     last pre-run commit `f547aef`, **194** at `4fb475d`, **192** at `c9e5571` and **192** at
     `8bdf4d6` — four sha-pinned points, a **dated snapshot** re-measured 2026-08-06 at `1188a8a`
@@ -649,6 +654,87 @@ doctrines, each with a migration argument (formal-classification.md).
   `f5864a15…`) — true and evidentially empty; and a whole fixture family's green was **machine-local**,
   binding to a stale July `$TMPDIR/schemas` snapshot predating the run, red on a fresh `TMPDIR`. No
   backstop is claimed for any of the five boundaries above.
+
+For **drift & autonomy (1.14.0)** it also checks — same posture: post-hoc/offline, none a live guard,
+none a guard on LT7 — each arm with the enforcement class its §4 row states, because several only
+REPORT: **I49** horizon record (armed on adoption **and** `validator_version ≥ 1.14.0`; ENFORCED for
+adoption closure, the expedient debt's `revisit_condition` plus a `decisions_ref` that resolves in
+`DECISIONS.md`, and the DS-2/DS-4 anti-strawman join; genuineness stays attestation, and I49-3 is only
+OBSERVABLE in self-interrogation mode), **I50** prose bounds (version-gated; OBSERVABLE — a breach prints
+an exit-neutral `N-I50` NOTE and never fails the run; only a malformed `fsm-state.accepted_prose` or an
+unreadable ledger file FAILs; one arm of three ships), **I51** machine-decision channel (**I51-1**
+version-gated; ENFORCED for mode declaration, `<g>_confirmed`/`<g>_machine_closed` exclusivity, record
+backing, the recomputed `critical`, mode consistency and channel disjointness; it detects conflation,
+never forgery), **I52** projection ceiling and **I59** obligation source-naming (both adoption-armed on
+`fsm-state.context_contract`; OBSERVABLE with ENFORCED explicitly disclaimed — the size and the path
+form are mechanical, whether the orchestrator read the file is not), **I53** directive provenance
+(adoption-armed; ENFORCED for provenance and shape, OBSERVABLE for genuineness — Limitation AD),
+**I54** deliverable clock (adoption-armed on `fsm-state.progress_clock`; checks that every unit is
+classified and that the written counter equals the one recomputed from `graph.json` and
+`units/*/verify.json`; warns in flight and blocks only at sign-off; it counts declared shipping intent,
+not shipped reality), **I56** requirement-starvation disclosure (adoption-armed on
+`deliverable`; ENFORCED as an after-the-fact disclosure and prose-only at the instant it should fire;
+an `N-I56` NOTE replaces the FAIL when `gates.starvation_cap_enabled` is false), **N-I57** run
+composition (an exit-neutral NOTE; OBSERVABLE — it makes the run's composition legible and bounds
+nothing), and **I58** re-sequencing eligibility (adoption-armed on a `resequence` record; ENFORCED for
+the legality of a re-wave, never for the quality of the resulting order). **I55** (consequence-
+proportional verification depth) is **DEFERRED — not built, no label stem, no predicate**; its adoption
+trigger and the repair it needs first are recorded under §Deferred mechanisms below, beside the deferred
+`hk_fuel` half of I57 and I50's two unbuilt arms. None of these writes `retries`/`fuel`, gates a
+transition, or guards LT7, so Claims A–D, AO-1..7 and the TLC/Alloy properties are **PRESERVED**; the
+set's one **REVISES** is I51's widening of what a sign-off at `DONE` asserts, with its migration
+argument in the I51 row of §4.
+
+**For blast radius (1.15.0) it also mechanically enforces** — on a run stamped ≥ `_BLAST_SHIP` whose
+`graph.json` lists a unit, and only as OFFLINE post-hoc predicates over emitted artifacts: **I60** write
+scope (every unit names `deliverable` `ships` or `informs`; a `ships` unit declares a non-empty
+`frame.modifies`; the brief frame mirrors the graph frame; captured footprint paths lie inside the
+frame), **I61** wave write disjointness (no overlapping captured paths within one wave; **I61-2** an
+empty `unattributed[]`), **I62** impact settled (`impact.json` bound to the unit's footprint, and every
+obligation answered in the aggregated verify's `blast_audit` as `exercised`, `unaffected`, `owned_by` or
+`broken`), **I63** end re-run (replay rows in `integration.json`; **I63-2** each footprint's
+`sha256_after` against the path's final hash), **I64** the integration record before sign-off, and the
+exit-neutral **N-I65** blast summary NOTE (beside **N-I61** and **N-I64**). None writes `retries`/`fuel`,
+gates a transition, or is a guard on LT7, so Claims A–D and the TLC/Alloy properties are carried
+unchanged. Three contracts the predicates read, stated here because the doctrine depends on them:
+- **Per-unit capture window (I61-2).** Every per-unit capture `footprint.py capture <RUN_DIR> --wave N
+  --unit U` (iteration 1 included) needs a pre snapshot taken exactly once when U is dispatched,
+  `footprint.py snapshot <RUN_DIR> --wave N --label <U>-i<k> [--window-units <ids>]`; without it the
+  capture fails closed with a `capture_error`. Changes stay cumulative from the wave's original pre
+  snapshot, but unattributed paths are computed over the retry window only, so an unattributed path in a
+  retry footprint is a write in the retry's own window that neither the retried unit nor a recorded
+  window unit claims. A whole-wave capture attributes only to its own wave's units, so a retry must never
+  run inside another wave's window. In git mode any git stderr line outside a small allowlist also
+  yields a `capture_error`.
+- **Couplings and `owned_by` (I62-4).** For a `coupling` obligation `impact_scan.py` records the trigger
+  file, not the file that satisfies the rule, so a coupling is settled by **exercising** its required
+  command; `owned_by` on a coupling means a later unit runs it. **I62-4** requires the owner's frame to
+  cover the obligation's `referencing_paths`; an `owned_by` no single frame can satisfy (a prose
+  reference spanning files no unit owns) stays a FAIL unless a per-item `blast_accepted` entry names it —
+  loud, as an `N-I64 blast accepted` NOTE, never silent.
+- **No blast config visible (I64-5, I64-7).** With no config in the run directory and none at the
+  workspace's `.dag/blast.json`, **I64-7** judges every recorded census as `must_not_increase` and
+  **I64-5** fails a non-empty integration `errors[]`; the snapshot exemption holds only in snapshot mode
+  with no differential rows. This narrows the no-config waiver; the coverage arm still has no declared
+  commands to judge, and config provenance stays recorded debt.
+
+**Guarantee classifications (blast radius 1.15.0), each with its migration note.**
+- **Limitation AC boundary (iv) / Non-Goal 10 — REVISES (doctrine).** Integration blindness narrows for
+  undeclared writes, overlapping writes in a wave, re-run/replay differences and declared census counts;
+  defects no declared check sees stay open. Migration: a doctrine statement only; runs stamped below
+  1.15.0 are unaffected, because every blast predicate is version-gated on `_BLAST_SHIP`.
+- **I54 — REVISES upward.** `deliverable`, which I54 reads once a run adopts `fsm-state.progress_clock`,
+  is now required on every graph unit of a run stamped ≥ 1.15.0 (I60-1). Migration: version-gated; older
+  runs are unaffected and keep I54's adoption arming.
+- **I17 — widened to anchor `frame`; PRESERVES for runs below 1.15.0.** The `I17 frozen-content anchor`
+  now also compares an executed unit's graph `frame` with its brief `frame`, each list as a set.
+  Migration: not stamp-gated; it preserves because a run below 1.15.0 carries no frame on either side,
+  and an absent frame compares equal to an absent frame.
+- **Limitation AB — NARROWED for repo files, unchanged for run-dir artifacts.** A same-iteration edit to
+  a repository file after its footprint was captured is now visible: the footprint records
+  `sha256_after` and **I63-2** compares it with the path's final hash. Migration: version-gated with the
+  blast predicates; a same-iteration edit to a debrief, verify or other run-directory artifact stays
+  exactly as invisible to I43 as before, unchanged for archived runs.
 
 ### Verification currency — the escape-hatch class, worked member by member (verify-repair)
 
@@ -927,7 +1013,11 @@ attestation is invented. The same override applies, per unit and in one shape, t
   `print`, touching neither problem sink, so exit-neutral *by construction*). It counts the
   version-gated arms whose **non-version preconditions HELD** while this run's own stamp suppressed
   them, and says so: suppressed **arms** are an **upper bound** on suppressed FAILs — an armed clause
-  may well have passed. It must never be reworded as, or reconciled against, the measured
+  may well have passed. **One exception, disclosed (REVISES, narrow):** for the arm `BLAST-T1` the count
+  is not an upper bound. Its counting precondition (a graph unit AND a blast artifact) is narrower than
+  its arming condition (the stamp plus a graph unit), so on a pre-1.15.0 run that has a graph but never
+  adopted blast, the suppression is not counted. The narrowing keeps three pinned rows of the I48
+  counterfactual family byte-stable; it is recorded debt, not a fix. It must never be reworded as, or reconciled against, the measured
   `stamp 1.10.1 → 0 problems / stamp 1.11.0 → 8 problems` figure: those 8 are *failures*, the count
   is of *evaluation gates*, and publishing one as the other is the wrong-mechanism defect. The NOTE
   fires loudly on unstamped archives (every comparison against an absent stamp is `False`), which is
@@ -1100,6 +1190,13 @@ the version that scaffolded it — and this policy holds:
   only raised, never lowered — so validating a run under an older installed plugin cannot silently
   disarm a floor the run already armed. Fixture `panel_dissent_version_silent` continues to pin the
   archive-silent reading of a below-ship stamp.
+- **`_BLAST_SHIP` (1.15.0) arms the blast predicates I60–I64 and N-I65** only when
+  `fsm-state.validator_version` ≥ 1.15.0 and `graph.json` lists a unit; an unstamped, malformed-stamped
+  or below-1.15.0 run is never armed, so no archived run is newly failed by a blast predicate.
+  `init_run.sh --restamp` refuses (exit 6, file left byte-identical) to raise a stamp across 1.15.0 on a
+  run with no `fsm-state.blast` object. The N-I45 shadow arm `BLAST-T1` counts a suppression only when the
+  graph has a unit and the run carries a blast artifact (`fsm-state.blast`, a graph unit `frame`, or a
+  `units/<U>/footprint.json`) — the exception to N-I45's upper bound stated above.
 - **Dogfood/self-runs in THIS repo are the exception** (see F3 / CLAUDE.md): they must be validated
   with the repo's own `scripts/validate_run.sh`, contemporaneously, so they are held to the current
   bar rather than an installed plugin's stale copy.
@@ -1187,6 +1284,27 @@ disambiguating evidence lives outside the run directory. `I53` is therefore **EN
 and shape** and **OBSERVABLE for genuineness**, permanently. It is graded OBSERVABLE rather than
 PROSE-ONLY because the violation is legible from the run directory alone — the fabricated words sit in
 `directives/` for the maintainer to read.
+
+**Limitation AE — blast radius checks declared, visible surfaces.** I60–I64 and N-I65 judge what a
+run recorded: captured footprints, the impact obligations the scanner emits, replayed commands and
+declared censuses. Each check is offline and post-hoc; none observes the world. Named blind spots:
+(1) **gitignored files** — in git mode an untracked path the repository's ignore rules exclude never
+appears in a footprint (git's own rules); (2) **commits made outside the run** — a footprint compares
+working-tree states, so history another actor commits before or between waves is not attributed to any
+unit; (3) **writes outside the repository** — a footprint covers the workspace only; (4) **external side
+effects** — services, databases, network calls and installed state are not captured; (5) **runtime-built
+names** — `impact_scan.py` matches literal names, so a consumer that builds a name at run time is not
+found; (6) **users in other repos** — consumers outside this repository are never scanned; (7)
+**re-runs are only as good as the checks re-run** — I63 replays the declared command-form checks, and
+a check that cannot go red replays green just as well. The project's standing figure, as of 2026-08-06
+and excluding the measuring unit: 40 orchestrator-frozen case rows, 16 discharged / 21 vacuous / 3
+violated, **60% not discharged** (measured with `python3 -c "import json,glob,collections;
+c=collections.Counter(x['outcome'] for p in glob.glob('<RUN>/units/*/debrief.json') for x in
+(json.load(open(p)).get('case_set_discharge') or []) if x.get('origin')=='orchestrator');print(c)"`
+over that release's own run). One more: a blast config whose `scan_excludes` cover every consumer (for
+example `**`) silences the impact scan — the predicates check the obligations the scanner emits, not
+the adequacy of the excludes, and no shipped predicate judges a config's excludes, so a foreign config
+is trusted as written.
 
 ## 6. Phase→state coverage (no orphan phases)
 Every SKILL.md phase 0–8 maps to exactly one state (§1), with **one deliberately-unmodeled

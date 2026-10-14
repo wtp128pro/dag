@@ -97,6 +97,10 @@ skills/dag/
     ├── run_tests.sh               the CI: HOME-isolated fixture sweep on both backends + spec_check
     ├── spec_check.py              dev-time prose↔spec↔code drift checker (SC1–SC7)
     ├── run_formal.sh              one-command TLC + Alloy reproduction (fetches jars to /tmp)
+    ├── frame_match.py             the one frame-pattern matcher; `overlap <graph.json>` lists overlapping frames
+    ├── footprint.py               wave snapshots + per-unit file footprints (snapshot · capture · digest)
+    ├── impact_scan.py             out-of-frame consumers of a unit's changes → impact.json (--preview · --predict)
+    ├── integrate.py               Phase-8 blast integration record → integration.json (--explain)
     └── tests/                     fixtures proving each enforced rule (good/bad/amend_…)
 ```
 
@@ -129,6 +133,11 @@ skills/dag/
   TLC (a JRE re-runs them); the Alloy DAG/independence models are machine-checked with Alloy 6
   (Kodkod / bundled SAT4J, headless) — all `check`s report no counterexample and the witness run
   finds an instance.
+- **Blast radius checks declared, visible surfaces.** I60–I65 (1.15.0) compare captured file
+  footprints with declared frames, the consumers `impact_scan.py` found with the verifier's
+  `blast_audit`, and the declared regression commands and censuses `integrate.py` ran at base and
+  tip. A consumer the scan cannot see, a regression no declared command exercises, and a wrong
+  `unaffected` rationale pass them; snapshot mode (no git) records no differential or census.
 - The ≤32K per-subagent budget is now *partly* enforceable (a token-count check on structured
   artifacts); free prose remains disciplinary. See `skills/dag/DESIGN.md §6`.
 

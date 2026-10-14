@@ -129,6 +129,33 @@
 - **Inputs:** <artifacts consumed>
 - **Outputs:** write `units/<UNIT-ID>/debrief.json` (JSON-only) per templates/debrief.md; plus <artifacts, paths>.
 
+## Frame — your declared write scope (`frame`, mirrors `graph.json`; 1.15.0)
+- **modifies (the ONLY repository paths you may create, edit or delete):** <patterns, verbatim from `frame.modifies`>
+- **immutable (never touch):** <patterns, verbatim from `frame.immutable`>
+- **intended changes (frozen at Phase 4):** <entries, verbatim from `frame.intended_changes`>
+- (an `informs` unit: `modifies: []` plus the `modifies_none_reason`, verbatim)
+
+After your wave the orchestrator captures what actually changed (`footprint.py capture`) and
+attributes each changed path by these patterns: a write outside `modifies`, or into `immutable`, is
+an `I60` FAIL. If your change breaks a consumer OUTSIDE this frame, do not fix it in place — record
+it in `residual_risks` and `handoff_notes`; the orchestrator routes it to an amendment that adds a
+unit, or to ESCALATE. Other units may be writing in the same working tree: never edit, revert,
+format or stage files outside `modifies`.
+
+## Known consumers (from `impact_scan.py --predict`; known, not complete)
+Before dispatch the orchestrator runs `impact_scan.py <RUN_DIR> --unit <UNIT-ID> --predict`, which
+writes nothing and prints the known users, outside the planned frame, of the names that frame
+defines (file and module names plus the structured extractors' names), each with its
+`source_path`, `hit_count` and `referencing_paths`:
+- `<name>` (defined in `<source_path>`) — <hit_count> hit(s) in: <referencing paths>
+- _none found_ — the search saw no reference (a whole-word text search of tracked and untracked
+  files; ignored files are invisible), which is not evidence that none exists.
+
+These are the consumers to keep working; any you cannot keep working are findings for your
+debrief. After execution the authoritative list is `units/<UNIT-ID>/impact.json`, built from what
+actually changed, and the guardrail lens dispositions every obligation in it (templates/verify.md,
+`blast_audit`).
+
 ## Out of scope (do NOT do these)
 - <explicit non-goals to prevent scope creep / budget blowout>
 

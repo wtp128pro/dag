@@ -107,7 +107,7 @@ dag/
 │       │   │   ├── schemas/         # JSON Schemas (artifact sidecars)
 │       │   │   ├── spec/            # SSR registry: fsm.json, invariants.json (dev-time drift source)
 │       │   │   ├── templates/
-│       │   │   ├── scripts/         # init_run.sh, validate_run.sh/.py, run_tests.sh, run_formal.sh, spec_check.py
+│       │   │   ├── scripts/         # init_run.sh, validate_run.sh/.py, run_tests.sh, run_formal.sh, spec_check.py, frame_match.py, footprint.py, impact_scan.py, integrate.py
 │       │   │   └── formal/          # TLA+ / Alloy formal models (Pipeline, WorkGraph, Amendment) + AlloyRun.java
 │       │   └── personas/        # manages reusable persona JSON files
 │       │       └── SKILL.md
