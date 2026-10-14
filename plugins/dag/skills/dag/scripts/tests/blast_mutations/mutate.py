@@ -105,6 +105,29 @@ def _del(key):
     return f
 
 
+def _vf(uid):
+    return f"units/{uid}/verify.json"
+
+
+def _row(oid, **repl):
+    """Audit-row edit on an aggregated verify.json: replace=True swaps the whole row for repl,
+    otherwise repl's keys are updated into the existing row of obligation oid."""
+    replace = repl.pop("replace", False)
+
+    def f(v):
+        r = next(x for x in v["blast_audit"]["rows"] if x["obligation_id"] == oid)
+        if replace:
+            r.clear()
+            r["obligation_id"] = oid
+        r.update(repl)
+    return f
+
+
+def _remove_impact(d):
+    os.remove(os.path.join(d, "units/U01/impact.json"))
+    os.remove(os.path.join(d, "units/U01/impact.json.sha256"))
+
+
 # name -> (mutation, what it breaks). U01/U03 ship in wave 1 (frames src/app/**, docs/**);
 # U02 informs in wave 2 with an empty footprint and no impact.json.
 MUTATIONS = {
@@ -133,6 +156,24 @@ MUTATIONS = {
     "blast_unattributed": (_edit(_fp("U01"), lambda f: f.update(unattributed=["scratch/notes.txt"]), sidecar=True),
                            "I61-2"),
     "blast_frame_overlap_note": (_overlap_frames, "N-I61 (exit 0)"),
+    # I62 — impact obligations settled. U01 (ships) has O1/O2 exercised and O3 a coupling owned_by
+    # U03; U03 (ships) has O1 unaffected. A verify.json edit needs no sidecar (nothing hashes it);
+    # an impact.json edit refreshes impact.json.sha256 so the defect is the binding, not the sidecar.
+    "blast_impact_missing": (_remove_impact, "I62-1"),
+    "blast_impact_unbound": (_edit("units/U01/impact.json", lambda i: i.update(footprint_sha256="0" * 64),
+                                   sidecar=True), "I62-1"),
+    "blast_audit_missing": (_edit(_vf("U01"), _del("blast_audit")), "I62-2"),
+    "blast_audit_partial": (_edit(_vf("U01"), lambda v: v["blast_audit"].update(
+        rows=[r for r in v["blast_audit"]["rows"] if r["obligation_id"] != "O2"])), "I62-2"),
+    "blast_exercised_no_red": (_edit(_vf("U01"), _row("O1", red_input="  ")), "I62-3"),
+    "blast_owned_by_dangling": (_edit(_vf("U01"), _row("O3", owner_unit="U99")), "I62-4"),
+    "blast_unaffected_no_rationale": (_edit(_vf("U03"), _row("O1", rationale="  ")), "I62-5"),
+    "blast_broken_on_pass": (_edit(_vf("U01"), _row("O2", replace=True, disposition="broken",
+                                                    rationale="parse() now rejects the empty string the test feeds it")),
+                             "I62-6"),
+    "blast_coupling_unaffected": (_edit(_vf("U01"), _row("O3", replace=True, disposition="unaffected",
+                                                         rationale="the guide quotes the old heading only")),
+                                  "I62-7"),
     # Crash safety (absent / wrong-typed keys): each must yield FAIL rows, never a traceback.
     "blast_crash_footprint_types": (_edit(_fp("U01"), lambda f: f.update(changes="src/app/parse.py", iteration="2"),
                                           sidecar=True), "I60-3 wrong types"),
@@ -141,6 +182,14 @@ MUTATIONS = {
                                    "I60-3/I61-2 absent keys"),
     "blast_crash_frame_type": (_edit("graph.json", lambda g: _unit("U01")(g).update(frame="src/app/**")),
                                "I60-2 frame not an object"),
+    "blast_crash_impact_types": (_edit("units/U01/impact.json", lambda i: [i.update(obligations="O1", iteration="2"),
+                                                                           i.pop("footprint_sha256")], sidecar=True),
+                                 "I62-1 wrong types + absent footprint_sha256"),
+    "blast_crash_audit_types": (_edit(_vf("U01"), lambda v: [v["blast_audit"].pop("impact_sha256"), v["blast_audit"].update(
+        rows=["O1", {"disposition": "exercised"}, {"obligation_id": "O2", "disposition": "exercised", "check": 5,
+                                                  "exit_code": "0", "red_input": None},
+              {"obligation_id": "O3", "disposition": "owned_by", "owner_unit": ["U03"]}])]),
+                                "I62-2..4 non-object rows, absent keys, wrong-typed fields"),
 }
 
 

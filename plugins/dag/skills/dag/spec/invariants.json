@@ -2079,6 +2079,34 @@
       "docs": [
         "references/state-machine.md#4"
       ]
+    },
+    {
+      "id": "I62",
+      "title": "Impact obligations settled (blast radius). For every executed ships unit: I62-1 units/<U>/impact.json exists, is schema-valid, matches its sha256 sidecar, names the unit, binds footprint_sha256 to the bytes of the unit's footprint.json, carries the debrief's iteration and lists obligations with ids; I62-2 the aggregated verdict-bearing verify.json (current iteration, or any once synthesis has begun) carries blast_audit whose impact_sha256 is the sha256 of that impact.json and whose rows disposition every obligation id exactly once, naming no unknown id; I62-3 an exercised row has a non-blank check, an integer exit_code of 0 and a non-blank red_input (an input under which the check fails); I62-4 an owned_by row names another graph unit whose frame.modifies covers at least one of the obligation's referencing_paths and which, from synthesis on, holds a current PASS; I62-5 an unaffected row has a non-blank rationale (a judgement, not a proof); I62-6 a broken row on a PASS verdict fails; I62-7 a coupling obligation is never unaffected. Same arming as I60. It checks declared, visible surfaces: the obligations the scanner recorded and the dispositions the audit wrote, not whether an unscanned consumer still works.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I62 impact settled"
+      ],
+      "fixtures": [
+        "blast_green",
+        "blast_impact_missing",
+        "blast_impact_unbound",
+        "blast_audit_missing",
+        "blast_audit_partial",
+        "blast_exercised_no_red",
+        "blast_owned_by_dangling",
+        "blast_unaffected_no_rationale",
+        "blast_broken_on_pass",
+        "blast_coupling_unaffected",
+        "blast_crash_impact_types",
+        "blast_crash_audit_types"
+      ],
+      "provenance": [
+        "blast-radius-1.15.0"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
     }
   ]
 }

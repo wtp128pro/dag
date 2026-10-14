@@ -1,0 +1,50 @@
+{
+  "run_dir": "tests/blast_green",
+  "phase": "DONE",
+  "updated_at": "2026-07-03T09:30:00-0400",
+  "gates": {
+    "personas_confirmed": true,
+    "clarification_resolved": true,
+    "cartography_done": true,
+    "decomposition_approved": true,
+    "signoff_confirmed": true
+  },
+  "loop": {
+    "unit_id": "U01",
+    "state": "DONE",
+    "retries": 1,
+    "iteration": 2,
+    "last_verdict": "PASS"
+  },
+  "units": [
+    {
+      "unit_id": "U01",
+      "status": "passed"
+    },
+    {
+      "unit_id": "U02",
+      "status": "passed"
+    },
+    {
+      "unit_id": "U03",
+      "status": "passed"
+    }
+  ],
+  "validator_version": "1.15.0",
+  "run_mode": "manual",
+  "progress_clock": {
+    "units_since_ship": 1,
+    "last_ship_unit": "U03",
+    "surface_threshold": 3,
+    "enabled": true,
+    "surfaced_at": []
+  },
+  "blast": {
+    "mode": "git",
+    "base_sha": "ae1926a245df2b0c906bcbf373f484e51a490a88",
+    "base_tree_digest": "sha256:5b9b2294f498473d7017549a8938e9ab47faa6b1ddb6509616f12c5a72629f30",
+    "workspace_root": "/srv/blast-demo",
+    "dirty_at_start": [],
+    "tool_version": "footprint.py/1"
+  }
+}

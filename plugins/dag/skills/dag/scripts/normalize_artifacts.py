@@ -148,6 +148,10 @@ DISCHARGE_OUTCOMES = ["discharged", "violated", "infeasible", "vacuous"]
 EVIDENCE_TIERS = ["executable", "located", "asserted"]
 COUNTERFACTUAL_RESULTS = ["red", "not-run"]
 CHECK_FORMS = ["command", "locator"]
+# 1.15.0 verify.blast_audit.rows[].disposition. Same terms as the case_set enums above: a
+# mirror declaration only, deliberately NOT in ALL_VOCAB — `broken` vs `unaffected` is an
+# adjudication, and a normalizer that "repaired" a near-miss onto either would manufacture it.
+BLAST_DISPOSITIONS = ["exercised", "unaffected", "owned_by", "broken"]
 
 # Closed objects (additionalProperties:false in the schemas). Unknown keys inside
 # these are stripped — and the stripped key AND its value are reported verbatim.
@@ -220,6 +224,14 @@ HORIZON_CHOICES = ["durable", "expedient"]
 
 CLOSED_NOVELTY_RATE = {"derived", "absent_from_executor_evidence"}
 CLOSED_VOCABULARY_CONTAINMENT = {"artifact_only_identifiers"}
+# 1.15.0 verify.blast_audit (aggregated verify.json only). Inert at runtime like the sets
+# above; the runtime-LIVE half is the TOP_LEVEL_VERIFY entry, without which the normalizer
+# would advise folding blast_audit into audit_notes (and delete it under --write).
+CLOSED_BLAST_AUDIT = {"impact_sha256", "rows"}
+CLOSED_BLAST_AUDIT_ROW = {
+    "obligation_id", "disposition", "check", "exit_code", "red_input", "owner_unit",
+    "rationale",
+}
 
 # Documented key-name synonyms. Applied ONLY when the canonical key is absent, so no
 # real value is ever overwritten. Each entry quotes the lesson that RECORDS it; the
@@ -256,7 +268,7 @@ TOP_LEVEL_VERIFY = {
     "inputs_reviewed", "audit_notes", "panel", "panel_adjudication", "verify_rounds",
     "converged", "feedback", "defects", "socratic", "premise_check", "disagreement",
     "retrieval_coverage", "guardrail_compliance", "consequential_verbatim_check",
-    "case_set_audit", "consequence",
+    "case_set_audit", "consequence", "blast_audit",
 }
 
 # Required-key lists, mirrored from the schemas' own `required` arrays and asserted
@@ -320,6 +332,11 @@ REQUIRED_KEYS = {
         "$.case_set_audit.discharge_check": ["duplicate_ids", "extra_ids", "missing_ids",
                                              "tier_shortfall_ids"],
         "$.case_set_audit.novelty_rate": ["absent_from_executor_evidence", "derived"],
+        # 1.15.0 blast_audit. Only obligation_id + disposition are unconditionally required;
+        # the per-disposition requirements are schema if/then clauses, which _schema_index
+        # does not walk, so they have no mirror here (the validator re-checks them).
+        "$.blast_audit": ["impact_sha256", "rows"],
+        "$.blast_audit.rows[]": ["disposition", "obligation_id"],
         "$.case_set_audit.vocabulary_containment": ["artifact_only_identifiers"],
         # 1.14.0: I49 horizon + the U08 recording slice (verify side).
         "$.socratic.horizon": ["choice", "durable", "durable_cost", "expedient"],
@@ -368,6 +385,7 @@ SCALAR_TYPES = {
                              "commitment_match": "boolean"},
         "$.case_set_audit.novelty_rate": {"derived": "integer",
                                           "absent_from_executor_evidence": "integer"},
+        "$.blast_audit.rows[]": {"exit_code": "integer"},
     },
 }
 
@@ -2130,6 +2148,8 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
         ("debrief", "$.case_set_discharge[].check_form", CHECK_FORMS, "CHECK_FORMS"),
         ("debrief", "$.case_set_discharge[].non_vacuity[].counterfactual_result",
          COUNTERFACTUAL_RESULTS, "COUNTERFACTUAL_RESULTS"),
+        ("verify", "$.blast_audit.rows[].disposition", BLAST_DISPOSITIONS,
+         "BLAST_DISPOSITIONS"),
         ("debrief", "$.socratic.horizon.choice", HORIZON_CHOICES, "HORIZON_CHOICES"),
         ("verify", "$.socratic.horizon.choice", HORIZON_CHOICES, "HORIZON_CHOICES"),
     ]
@@ -2185,6 +2205,8 @@ def schema_mirror_test() -> list[tuple[str, bool, str]]:
         ("verify", "$.socratic.horizon"): ("CLOSED_HORIZON", CLOSED_HORIZON),
         ("verify", "$.socratic.horizon.debt"): ("CLOSED_HORIZON_DEBT", CLOSED_HORIZON_DEBT),
         ("verify", "$.consequence"): ("CLOSED_CONSEQUENCE", CLOSED_CONSEQUENCE),
+        ("verify", "$.blast_audit"): ("CLOSED_BLAST_AUDIT", CLOSED_BLAST_AUDIT),
+        ("verify", "$.blast_audit.rows[]"): ("CLOSED_BLAST_AUDIT_ROW", CLOSED_BLAST_AUDIT_ROW),
     }
     bad = [f"{n}@{k}{p}: mirror {sorted(v)} != schema {sorted(idx[k][1].get(p) or [])}"
            for (k, p), (n, v) in closed_map.items() if idx[k][1].get(p) != v]

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/blast-config.schema.json",
+  "title": "Blast-radius configuration",
+  "description": "What the blast-radius machinery runs and scans for a repository. `source: project` is the repository's own .dag/ configuration; `source: run` is a per-run configuration recorded in the run directory. regression_commands[] are run at the run's base and at its tip and compared (the integration record's differential[]); a repository with none states why in regression_none_reason - exactly one of the two, so an empty command list is never silently 'no regressions'. coupling_rules[] raise a coupling obligation when a changed path matches when_paths[]; the rule is satisfied by running `require.command` or by the same change set touching one of `require.touch_any[]` (exactly one form per rule). censuses[] count a defect class at base and tip; must_not_increase:true makes any added item a failure (gross additions, never the net). test_surfaces[] name where tests live so test weakening can be detected. scan_excludes[] are path globs the impact scanner skips. Closed objects throughout.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["coupling_rules", "censuses", "test_surfaces", "scan_excludes", "source"],
+  "properties": {
+    "regression_commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "command", "timeout_s", "compare"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "timeout_s": { "type": "integer", "minimum": 1 },
+          "compare": { "type": "string", "minLength": 1, "description": "What is compared between the base and tip runs, e.g. exit, exit+stdout." }
+        }
+      }
+    },
+    "regression_none_reason": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "coupling_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "when_paths", "require"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "when_paths": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "require": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "command": { "type": "string", "minLength": 1, "pattern": "\\S" },
+              "touch_any": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+            },
+            "oneOf": [
+              { "required": ["command"] },
+              { "required": ["touch_any"] }
+            ]
+          }
+        }
+      }
+    },
+    "censuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "command_template", "must_not_increase"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "command_template": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "must_not_increase": { "type": "boolean" }
+        }
+      }
+    },
+    "test_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "path"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["expectations-tsv", "test-glob"] },
+          "path": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "scan_excludes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "source": { "type": "string", "enum": ["project", "run"] }
+  },
+  "oneOf": [
+    {
+      "description": "Regression commands are declared (non-empty) and no none-reason is given.",
+      "required": ["regression_commands"],
+      "properties": { "regression_commands": { "minItems": 1 } },
+      "not": { "required": ["regression_none_reason"] }
+    },
+    {
+      "description": "No regression commands: the reason is stated and any regression_commands list is empty.",
+      "required": ["regression_none_reason"],
+      "properties": { "regression_commands": { "maxItems": 0 } }
+    }
+  ]
+}

@@ -80,6 +80,9 @@ UNIT_ARTIFACTS = {
     # whether it MUST exist is decided by the version-gated I60-3, which also raw-reads it so a
     # schema-invalid footprint still FAILs there.
     "footprint.json": "footprint.schema.json",
+    # 1.15.0 blast radius: the unit's impact scan (impact_scan.py). Validate-if-present, like the
+    # footprint; whether it MUST exist is decided by the version-gated I62-1, which raw-reads it too.
+    "impact.json": "impact.schema.json",
 }
 
 # counter values that do NOT record an outcome (I13). The mechanical sentinel is a
@@ -559,6 +562,7 @@ LABELS = [
     {"key": "i60_write_scope", "stem": "I60 write scope", "invariant": "I60", "emitted_via": "hoisted-var"},
     {"key": "i61_wave_disjoint", "stem": "I61 wave write disjointness", "invariant": "I61", "emitted_via": "hoisted-var"},
     {"key": "note_i61", "stem": "N-I61 declared frame overlap", "invariant": "I61", "emitted_via": "print"},
+    {"key": "i62_impact", "stem": "I62 impact settled", "invariant": "I62", "emitted_via": "hoisted-var"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
 
@@ -8977,6 +8981,186 @@ def main(argv=None):
             rep.ok(f"{_i60} ({len(_blast_units)} unit(s), {len(_blast_fp)} footprint(s): scoped and well formed)")
         if not _blast_bad["I61"]:
             rep.ok(f"{_i61} ({len(_by_wave)} wave(s): same-wave footprints disjoint, nothing unattributed)")
+
+    # I62 — every impact obligation settled (1.15.0 blast radius). OFFLINE and POST-HOC like I60/I61:
+    # it reads units/<U>/impact.json (+ its `<hex>  impact.json` sidecar), units/<U>/footprint.json,
+    # units/<U>/debrief.json and the aggregated, verdict-bearing units/<U>/verify.json (blast_audit),
+    # raw (json.load + isinstance), so a schema-invalid record still reaches its clause and a
+    # wrong-typed key is a FAIL row naming the key, never a traceback. It gates no transition and
+    # guards no back-edge; it reuses I60's armed flag (no further version gate).
+    # Impact contract restated (written by scripts/impact_scan.py): {unit_id, iteration,
+    # footprint_sha256, symbols[], obligations[{id, kind: reference|coupling, symbol_ids,
+    # rule_id, referencing_paths, hit_count, sample_hits}], truncated_hits, caps, scanner}. Symbol
+    # kinds are an OPEN set and a scan failure is itself an obligation (id `error:<where>`), so
+    # obligations are settled by id alone — no kind is ever a reason to skip one.
+    # Audit contract restated (verify.blast_audit): {impact_sha256, rows[{obligation_id,
+    # disposition: exercised|unaffected|owned_by|broken, check, exit_code, red_input, owner_unit,
+    # rationale}]}. No opt-out: on an armed run a missing impact.json or blast_audit is a FAIL.
+    # The audit is judged once the unit has a verify.json that is current (verify.iteration ==
+    # debrief.iteration) — mid-loop staleness is legal and owned by I43/I44/I46 — and, from
+    # P8_SYNTHESIS on, whatever its iteration.
+    if _blast_armed:
+        _i62 = LABEL_STEM["i62_impact"]
+        _i62_bad = [False]
+        _i62_late = phase in ("P8_SYNTHESIS", "DONE")
+
+        def _i62_fail(clause, locus, detail):
+            _i62_bad[0] = True
+            rep.fail(f"{_i62} ({clause} {locus})", detail)
+
+        def _i62_sha(path):
+            try:
+                with open(path, "rb") as _fh:
+                    return hashlib.sha256(_fh.read()).hexdigest()
+            except Exception:
+                return None
+
+        def _i62_blank(v):
+            return not (isinstance(v, str) and v.strip())
+
+        def _i62_it(doc):
+            return _as_int(doc.get("iteration")) if isinstance(doc, dict) else None
+
+        def _i62_current_pass(uid):
+            _odb, _ = _blast_raw(os.path.join(units_dir, uid, "debrief.json"))
+            _ovf, _ = _blast_raw(os.path.join(units_dir, uid, "verify.json"))
+            return (isinstance(_ovf, dict) and _ovf.get("verdict") == "PASS"
+                    and _i62_it(_ovf) is not None and _i62_it(_ovf) == _i62_it(_odb))
+
+        _i62_n = 0
+        for _u in sorted(unit_dirs_with_debrief):
+            _bu = _blast_units.get(_u)
+            if not (isinstance(_bu, dict) and _bu.get("deliverable") == "ships"):
+                continue
+            _i62_n += 1
+            _loc = f"units/{_u}"
+            _udir = os.path.join(units_dir, _u)
+            _db, _ = _blast_raw(os.path.join(_udir, "debrief.json"))
+            _dit = _i62_it(_db)
+            # I62-1 — the executed ships unit has a schema-valid impact.json bound to its footprint
+            # (footprint_sha256 == sha256(footprint.json bytes)), its sidecar, and its current iteration.
+            _ip = os.path.join(_udir, "impact.json")
+            _isha = _i62_sha(_ip)
+            _imp, _imperr = _blast_raw(_ip)
+            _obl = None                           # {obligation id: obligation}; None = unknown
+            if not os.path.isfile(_ip):
+                _i62_fail("I62-1", _loc, "executed ships unit has no impact.json (impact_scan.py) — "
+                                         "a missing impact record is a FAIL, never an opt-out")
+            elif not isinstance(_imp, dict):
+                _i62_fail("I62-1", _loc, f"impact.json is not a JSON object ({_imperr or 'wrong type'})")
+            else:
+                _ud = unit_docs.get(_u)
+                if not (isinstance(_ud, dict) and isinstance(_ud.get("impact"), dict)):
+                    _i62_fail("I62-1", _loc, "impact.json is not schema-valid against impact.schema.json")
+                if _imp.get("unit_id") != _u:
+                    _i62_fail("I62-1", _loc, f"impact unit_id {_imp.get('unit_id')!r:.60} != directory {_u!r}")
+                try:
+                    with open(_ip + ".sha256", "r", encoding="utf-8") as _fh:
+                        _side = _fh.read().split()
+                    _side0 = _side[0].lower() if _side else None
+                except Exception as _e:
+                    _side0 = f"<unreadable sidecar: {type(_e).__name__}>"
+                if _isha is None or _side0 != _isha:
+                    _i62_fail("I62-1", _loc, f"impact.json.sha256 {_side0!r:.80} != sha256(impact.json) {_isha!r}")
+                _fsha = _i62_sha(os.path.join(_udir, "footprint.json"))
+                if _fsha is None or _imp.get("footprint_sha256") != _fsha:
+                    _i62_fail("I62-1", _loc, f"impact footprint_sha256 {_imp.get('footprint_sha256')!r:.80} != "
+                                             f"sha256(footprint.json) {_fsha!r} (re-scan after every capture)")
+                _iit = _i62_it(_imp)
+                if _iit is None or _dit is None or _iit != _dit:
+                    _i62_fail("I62-1", _loc, f"impact iteration {_imp.get('iteration')!r:.40} != debrief.json "
+                                             f"iteration {_dit!r} (a retry re-scans)")
+                _ol = _imp.get("obligations")
+                if not isinstance(_ol, list):
+                    _i62_fail("I62-1", _loc, f"impact `obligations` must be a list, got {type(_ol).__name__}")
+                else:
+                    _obl = {}
+                    for _o in _ol:
+                        if not (isinstance(_o, dict) and isinstance(_o.get("id"), str) and _o["id"]):
+                            _i62_fail("I62-1", _loc, f"malformed obligations[] entry {_o!r:.120}")
+                            _obl = None
+                            break
+                        _obl[_o["id"]] = _o
+            # I62-2 — the aggregated verdict-bearing verify.json carries a blast_audit bound to this
+            # impact.json and settling every obligation id exactly once.
+            _vf, _vferr = _blast_raw(os.path.join(_udir, "verify.json"))
+            if _vf is None and _vferr == "absent":
+                continue                          # not verified yet: nothing adjudicated to audit
+            if not isinstance(_vf, dict):
+                _i62_fail("I62-2", _loc, f"verify.json is not a JSON object ({_vferr or 'wrong type'})")
+                continue
+            if not (_i62_late or (_i62_it(_vf) is not None and _i62_it(_vf) == _dit)):
+                continue                          # a stale verdict mid-loop: re-verification pending
+            _ba = _vf.get("blast_audit")
+            if not isinstance(_ba, dict):
+                _i62_fail("I62-2", f"{_loc} blast_audit",
+                          "absent from verify.json — a missing audit is a FAIL, never an opt-out" if _ba is None
+                          else f"must be an object, got {type(_ba).__name__}")
+                continue
+            if _isha is not None and _ba.get("impact_sha256") != _isha:
+                _i62_fail("I62-2", f"{_loc} blast_audit", f"impact_sha256 {_ba.get('impact_sha256')!r:.80} != "
+                                                          f"sha256(impact.json) {_isha!r} (the audit judged another scan)")
+            _rows = _ba.get("rows")
+            if not isinstance(_rows, list):
+                _i62_fail("I62-2", f"{_loc} blast_audit", f"`rows` must be a list, got {type(_rows).__name__}")
+                continue
+            _seen = {}
+            _verdict = _vf.get("verdict")
+            for _r in _rows:
+                _oid = _r.get("obligation_id") if isinstance(_r, dict) else None
+                if not (isinstance(_oid, str) and _oid):
+                    _i62_fail("I62-2", f"{_loc} blast_audit", f"malformed rows[] entry {_r!r:.120} (needs obligation_id)")
+                    continue
+                _seen[_oid] = _seen.get(_oid, 0) + 1
+                _rl = f"{_loc} {_oid}"
+                _disp = _r.get("disposition")
+                _ob = _obl.get(_oid) if isinstance(_obl, dict) else None
+                if _disp == "exercised":
+                    # I62-3 — a check that ran green, plus the input that would turn it red.
+                    if _i62_blank(_r.get("check")):
+                        _i62_fail("I62-3", _rl, "exercised row has no non-blank `check`")
+                    if type(_r.get("exit_code")) is not int or _r.get("exit_code") != 0:
+                        _i62_fail("I62-3", _rl, f"exercised row exit_code {_r.get('exit_code')!r:.40} != 0")
+                    if _i62_blank(_r.get("red_input")):
+                        _i62_fail("I62-3", _rl, "exercised row has no non-blank `red_input` (an input that makes the check fail)")
+                elif _disp == "owned_by":
+                    # I62-4 — another graph unit whose frame.modifies covers an affected path, and
+                    # which (from P8_SYNTHESIS on) holds a current PASS.
+                    _own = _r.get("owner_unit")
+                    _paths = _ob.get("referencing_paths") if isinstance(_ob, dict) else None
+                    if not isinstance(_paths, list):
+                        _paths = []
+                    if not isinstance(_own, str) or _own == _u or _own not in _blast_units:
+                        _i62_fail("I62-4", _rl, f"owner_unit {_own!r:.40} is not another unit of graph.json")
+                    elif not any(frame_match.match_any_pattern(_p, _blast_mod.get(_own, [])) for _p in _paths):
+                        _i62_fail("I62-4", _rl, f"owner {_own}'s frame.modifies covers none of the obligation's "
+                                                f"referencing_paths {_paths[:5]!r:.160}")
+                    elif _i62_late and not _i62_current_pass(_own):
+                        _i62_fail("I62-4", _rl, f"owner {_own} holds no current PASS (verify.verdict PASS with "
+                                                "verify.iteration == debrief.iteration) at synthesis")
+                elif _disp == "unaffected":
+                    # I62-5 — a judgement, so it must say why; I62-7 — a coupling cannot be unaffected.
+                    if _i62_blank(_r.get("rationale")):
+                        _i62_fail("I62-5", _rl, "unaffected row has no non-blank `rationale`")
+                    if isinstance(_ob, dict) and _ob.get("kind") == "coupling":
+                        _i62_fail("I62-7", _rl, "a coupling obligation dispositioned unaffected — it must be exercised")
+                elif _disp == "broken":
+                    # I62-6 — DECIDABLE BITE (the I22 precedent): a broken row on a PASS verdict.
+                    if _verdict == "PASS":
+                        _i62_fail("I62-6", _rl, "a broken impact row on a PASS verdict: a known breakage is a FAIL")
+                else:
+                    _i62_fail("I62-2", _rl, f"disposition must be exercised|unaffected|owned_by|broken, got {_disp!r:.40}")
+            for _oid in sorted(_seen):
+                if _seen[_oid] > 1:
+                    _i62_fail("I62-2", f"{_loc} {_oid}", f"obligation dispositioned {_seen[_oid]} times (exactly once)")
+                if isinstance(_obl, dict) and _oid not in _obl:
+                    _i62_fail("I62-2", f"{_loc} {_oid}", "audit row names no obligation of impact.json")
+            if isinstance(_obl, dict):
+                for _oid in sorted(_obl):
+                    if _oid not in _seen:
+                        _i62_fail("I62-2", f"{_loc} {_oid}", "obligation has no blast_audit row (every id exactly once)")
+        if not _i62_bad[0]:
+            rep.ok(f"{_i62} ({_i62_n} executed ships unit(s): impact bound, every obligation settled)")
 
     # Gate ordering: phase requires prior gates true. personas_confirmed is the FIRST
     # gate (Phase 1) and is required from P2 onward — the human persona gate is not skippable.

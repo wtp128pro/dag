@@ -506,3 +506,18 @@ blast_crash_footprint_keys	1	I61 wave write disjointness (I61-2 units/U01): foot
 blast_crash_footprint_keys	1	!Traceback (most recent call last)
 blast_crash_frame_type	1	I60 write scope (I60-2 graph.json units[U01]): `frame` must be an object
 blast_crash_frame_type	1	!Traceback (most recent call last)
+blast_green	0	I62 impact settled (2 executed ships unit(s): impact bound, every obligation settled)
+blast_impact_missing	1	I62 impact settled (I62-1 units/U01): executed ships unit has no impact.json
+blast_impact_unbound	1	I62 impact settled (I62-1 units/U01): impact footprint_sha256
+blast_audit_missing	1	I62 impact settled (I62-2 units/U01 blast_audit): absent from verify.json
+blast_audit_partial	1	I62 impact settled (I62-2 units/U01 O2): obligation has no blast_audit row
+blast_exercised_no_red	1	I62 impact settled (I62-3 units/U01 O1): exercised row has no non-blank `red_input`
+blast_owned_by_dangling	1	I62 impact settled (I62-4 units/U01 O3): owner_unit 'U99' is not another unit
+blast_unaffected_no_rationale	1	I62 impact settled (I62-5 units/U03 O1): unaffected row has no non-blank `rationale`
+blast_broken_on_pass	1	I62 impact settled (I62-6 units/U01 O2): a broken impact row on a PASS verdict
+blast_coupling_unaffected	1	I62 impact settled (I62-7 units/U01 O3): a coupling obligation dispositioned unaffected
+blast_crash_impact_types	1	I62 impact settled (I62-1 units/U01): impact `obligations` must be a list
+blast_crash_impact_types	1	!Traceback (most recent call last)
+blast_crash_audit_types	1	I62 impact settled (I62-2 units/U01 blast_audit): malformed rows[] entry {'disposition': 'exercised'}
+blast_crash_audit_types	1	I62 impact settled (I62-4 units/U01 O3): owner_unit ['U03'] is not another unit
+blast_crash_audit_types	1	!Traceback (most recent call last)

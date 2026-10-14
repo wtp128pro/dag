@@ -1,0 +1,25 @@
+{
+  "unit_id": "U01",
+  "iteration": "2",
+  "symbols": [
+    {
+      "id": "S1",
+      "name": "parse",
+      "kind": "function",
+      "change": "M",
+      "source_path": "src/app/parse.py"
+    }
+  ],
+  "obligations": "O1",
+  "truncated_hits": 0,
+  "caps": {
+    "max_hits_per_symbol": 50
+  },
+  "scanner": {
+    "version": "impact_scan.py/1",
+    "extractors": [
+      "python",
+      "markdown"
+    ]
+  }
+}
