@@ -1,0 +1,75 @@
+{
+  "unit_id": "U01",
+  "title": "Modern-research landscape",
+  "wave": 1,
+  "depends_on": [],
+  "persona": "Researcher",
+  "budget_tokens": 32000,
+  "acceptance_criteria": [
+    "10-14 findings",
+    "each with >=1 dated primary source"
+  ],
+  "context_pointers": [
+    "INPUT.md",
+    "CARTOGRAPHY.md"
+  ],
+  "outputs": [
+    "units/U01/debrief.json",
+    "src/app/parse.py",
+    "lib/other.py"
+  ],
+  "socratic_protocol": "references/socratic-protocol.md",
+  "tags": [
+    "research",
+    "core",
+    "high-stakes"
+  ],
+  "learnings_applied": [
+    "L1"
+  ],
+  "case_set": [
+    {
+      "id": "C1",
+      "check": "python3 -c \"import json;print(len(json.load(open('units/U01/debrief.json'))['evidence_table']))\"",
+      "check_form": "command",
+      "trigger_ref": "10-14 findings",
+      "required_observations": [
+        "the finding count is reported and is inside the 10-14 band"
+      ],
+      "forbidden_observations": [
+        "a count read off the prose result line instead of counted from evidence_table[]"
+      ],
+      "production_path": true,
+      "requirement_ref": "DoD-A"
+    },
+    {
+      "id": "C2",
+      "check": "python3 -c \"import json,re;rows=json.load(open('units/U01/debrief.json'))['evidence_table'];print(all(re.search(r'[0-9]{4}', r['evidence']) for r in rows))\"",
+      "check_form": "command",
+      "trigger_ref": "each with >=1 dated primary source",
+      "required_observations": [
+        "every evidence_table row carries a dated primary source"
+      ],
+      "forbidden_observations": [
+        "a row whose evidence resolves only to a search summary and is counted as primary"
+      ],
+      "production_path": true,
+      "requirement_ref": "DoD-A"
+    }
+  ],
+  "dod_refs": [
+    "DoD-A"
+  ],
+  "frame": {
+    "modifies": [
+      "src/app/**"
+    ],
+    "immutable": [
+      "src/app/generated/**",
+      "src/vendor/**"
+    ],
+    "intended_changes": [
+      "parse() accepts a trailing newline instead of rejecting the record"
+    ]
+  }
+}

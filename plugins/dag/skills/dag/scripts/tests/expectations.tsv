@@ -476,3 +476,33 @@ directive_class_drift	1	I53 directive provenance (units/U01)
 mode_ver_bypass	1	gate ordering
 mode_record_conflation	1	I51 machine-decision channel (I51-2 exclusivity by record, signoff)
 unit_dir_unreadable	0	!unit directory could not be read
+blast_green	0	I60 write scope (3 unit(s), 3 footprint(s)
+blast_green	0	I61 wave write disjointness (2 wave(s)
+blast_green	0	!N-I61 declared frame overlap
+blast_green	0	!N-I45 version-skew visibility
+blast_version_gated_silent	0	['BLAST-T1']
+blast_version_gated_silent	0	!I60 write scope (
+blast_no_deliverable	1	I60 write scope (I60-1
+blast_ships_no_frame	1	I60 write scope (I60-2 graph.json units[U01]): a ships unit needs a non-empty frame.modifies
+blast_bad_pattern	1	I60 write scope (I60-2 graph.json units[U01]): invalid frame pattern
+blast_brief_frame_drift	1	I60 write scope (I60-2 units/U01/brief.json): brief.frame differs
+blast_output_outside_frame	1	I60 write scope (I60-2 units/U01/brief.json): outputs[] repo path 'lib/other.py'
+blast_footprint_missing	1	I60 write scope (I60-3 units/U02): executed unit has no footprint.json
+blast_footprint_stale	1	I60 write scope (I60-3 units/U02): footprint iteration 1 != debrief.json iteration
+blast_footprint_sha_mismatch	1	I60 write scope (I60-3 units/U02): footprint.json.sha256
+blast_capture_error	1	I60 write scope (I60-3 units/U02): capture_error set
+blast_write_outside_frame	1	I60 write scope (I60-4 units/U01): changed path 'lib/util.py' matches no frame.modifies
+blast_immutable_touched	1	I60 write scope (I60-4 units/U01): changed path 'src/app/generated/table.py' matches a frame.immutable
+blast_informs_wrote	1	I60 write scope (I60-5 units/U02)
+blast_mode_none_with_ships	1	I60 write scope (I60-6 fsm-state.blast.mode): mode none
+blast_stamp_missing	1	I60 write scope (I60-6 fsm-state.blast): absent
+blast_bad_base_sha	1	I60 write scope (I60-6 fsm-state.blast.base_sha)
+blast_wave_overlap	1	I61 wave write disjointness (I61-1 wave 1 U01/U03)
+blast_unattributed	1	I61 wave write disjointness (I61-2 units/U01)
+blast_frame_overlap_note	0	N-I61 declared frame overlap: wave 1 U01/U03	--quiet
+blast_crash_footprint_types	1	I60 write scope (I60-3 units/U01): footprint `changes` must be a list
+blast_crash_footprint_types	1	!Traceback (most recent call last)
+blast_crash_footprint_keys	1	I61 wave write disjointness (I61-2 units/U01): footprint `unattributed` must be a list
+blast_crash_footprint_keys	1	!Traceback (most recent call last)
+blast_crash_frame_type	1	I60 write scope (I60-2 graph.json units[U01]): `frame` must be an object
+blast_crash_frame_type	1	!Traceback (most recent call last)

@@ -416,6 +416,10 @@ def behaviour():
     AND a real `RESULT:` line. Neither an uncaught TypeError nor a SILENT SKIP satisfies it.
     """
     tmp = tempfile.mkdtemp(prefix="i48bh-")
+    # validate_run.py imports frame_match from ITS OWN directory and exits 3 without it, so each
+    # patched copy written into tmp needs the matcher beside it — or every verdict below is about
+    # the import, not about the patched code.
+    shutil.copy2(os.path.join(SCRIPTS, "frame_match.py"), tmp)
     verdicts = []
 
     run = make_base(os.path.join(tmp, "landed"))

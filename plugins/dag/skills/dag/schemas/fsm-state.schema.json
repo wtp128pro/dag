@@ -36,6 +36,10 @@
       "description": "OPTIONAL, ADDITIVE (I50-3, 1.14.0). The recorded per-file override for the plain-language prose bounds: a decision to ship a named ledger file knowingly over one of the three bounds. DELIBERATELY UNCONSTRAINED here — any JSON value is schema-valid — so a MALFORMED override reaches validate_run.py's fail-closed arm instead of being intercepted by the schema layer, exactly as accepted_incomplete does. Well-formed shape: {files:[<run-relative filename>,...], rationale:<non-blank str>, decision_ref:<str containing 'DECISIONS.md'>}. A named file is DOWNGRADED from FAIL to a greppable N-I50 NOTE — never suppressed, never covering a file it does not name, and fails closed if malformed. NOT in the source recommendation: added by the implementing run because I50-3 is a HARD FAIL on prose style with no other recorded way out, and this repository's own idiom for 'available but loud' is accepted_incomplete. Disclosed rather than smuggled.",
       "$comment": "Intentionally schema-unconstrained; see the accepted_incomplete precedent above."
     },
+    "blast_accepted": {
+      "description": "OPTIONAL, ADDITIVE, VALIDATOR-OWNED (I64, 1.15.0 blast radius). The recorded per-item blast-radius override: a human decision to sign off knowingly while NAMED blast-radius findings stay open. It is the ONLY sanctioned way past a blast FAIL on a gated run, and it is per item, never a switch: it can only DOWNGRADE each finding it names from FAIL to a greppable NOTE — it never suppresses a finding, never covers an item it does not name, and never turns a blast check off. Well-formed shape: {items:[<named finding>,...], rationale:<non-blank str>, decision_ref:<str containing 'DECISIONS.md'>}; that shape is owned and checked by validate_run.py, which fails closed on a malformed value. DELIBERATELY UNCONSTRAINED here — any JSON value is schema-valid — so a MALFORMED override reaches the validator's fail-closed arm instead of being intercepted by the schema layer, exactly as accepted_incomplete does. DECLARED so the top-level additionalProperties:false is not violated; NEVER required, so no archived fsm-state.json becomes invalid.",
+      "$comment": "Intentionally schema-unconstrained; see the accepted_incomplete precedent above."
+    },
     "run_mode": {
       "type": "string",
       "enum": ["manual", "critical-only", "automatic"],
@@ -196,6 +200,30 @@
             }
           }
         }
+      }
+    },
+    "blast": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "OPTIONAL (1.15.0 blast radius). The run's blast-radius baseline, written once by init_run.sh when it scaffolds the run. `mode` is how file footprints are captured for this run: 'git' (content-addressed tree ids of the workspace minus the run directory and .wip/), 'snapshot' (no git: per-file sha256 entries plus a content store under the run directory), 'none' (no capture mechanism). `base_sha` is the HEAD commit at scaffold time (40-hex; null without git or without a first commit). `base_tree_digest` is 'sha256:<64-hex>' over the workspace CONTENT at scaffold time (git: sha256 of 'tree:<tree id>\\n'; snapshot: sha256 over the sorted '<path>\\t<sha256>\\n' lines), or null. `workspace_root` is the absolute, realpath'd workspace the captures read. `dirty_at_start[]` lists the paths the workspace already showed as modified or untracked at scaffold time — pre-existing state, not the run's work. `tool_version` names the writer. Absent => mechanism not adopted (archive-safe); whether a run of a given stamp MUST carry it is decided by the version-gated validator predicates, never by `required` here. Carries no key that switches a blast check off; the only override is the per-item top-level `blast_accepted`.",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["git", "snapshot", "none"] },
+        "base_sha": {
+          "anyOf": [
+            { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            { "type": "null" }
+          ]
+        },
+        "base_tree_digest": {
+          "anyOf": [
+            { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            { "type": "null" }
+          ]
+        },
+        "workspace_root": { "type": "string", "minLength": 1 },
+        "dirty_at_start": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "tool_version": { "type": "string", "minLength": 1 }
       }
     }
   }

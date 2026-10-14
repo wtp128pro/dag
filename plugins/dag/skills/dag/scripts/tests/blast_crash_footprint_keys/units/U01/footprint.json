@@ -1,0 +1,8 @@
+{
+  "unit_id": "U01",
+  "mode": "git",
+  "base_ref": "ef7bc5edd27a0cc0060397e9046f24c83160e088",
+  "pre_snapshot_sha256": "d42dc60da0472108340d96c67e7b7f9eb38b552f4af540d2154d89343528ad30",
+  "post_snapshot_sha256": "935b12d5e6f152d42ef085bea60e294b42adac5db1aba9d65e093762ae07c9d3",
+  "tool_version": "footprint.py/1"
+}

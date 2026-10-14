@@ -188,6 +188,9 @@ def survivors():
     import subprocess
     import tempfile
     tmp = tempfile.mkdtemp(prefix="i48sv-")
+    # validate_run.py imports frame_match from ITS OWN directory and exits 3 without it, so the
+    # patched copies written into tmp need the matcher beside them — or S2/GREEN judge the import.
+    shutil.copy2(os.path.join(os.path.dirname(DEFAULT_TARGET), "frame_match.py"), tmp)
     src = open(DEFAULT_TARGET).read()
 
     def run(vr, run_dir):

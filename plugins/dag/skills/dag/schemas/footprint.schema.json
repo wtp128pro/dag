@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dag/footprint.schema.json",
+  "title": "Unit file footprint (units/<Uxx>/footprint.json)",
+  "description": "1.15.0 (blast radius). The FILE footprint of one unit: the repository paths that actually changed while the unit ran, captured by scripts/footprint.py from two workspace snapshots (or two tree-ishes) and written next to a footprint.json.sha256 sidecar in `shasum -a 256` format (`<hex>  footprint.json`). NOT the TOKEN footprint: debrief.json's required `footprint` object ({tokens_consumed, within_budget}) is an unrelated token-usage report that only shares the word. Field contract (restated here so the schema is self-describing): `mode` is how the capture was taken — 'git' (content-addressed tree ids of the workspace minus excludes), 'snapshot' (no git: per-file sha256 entries plus a write-once content store under the run directory), 'none' (no capture mechanism available). `base_ref` is what BEFORE content is read from: the PRE tree id in git wave mode, the pre tree-ish exactly as given in tree mode, null in snapshot mode. `pre_snapshot_sha256`/`post_snapshot_sha256` are the sha256 of the two snapshot files the capture compared, null in tree mode (no snapshot files). `changes[]` is the content diff between the two states: status A (added), M (modified), D (deleted), R (renamed: `path` is the new path, `from_path` the old one), T (type change); `sha256_before`/`sha256_after` are the sha256 of the path's bytes before/after, null when the path is absent on that side. `unattributed[]` lists changed paths that no unit of the capturing wave claims through its frame.modifies patterns (recorded in every footprint that capture writes). FAIL-CLOSED: any capture error (git error, timeout, unsafe path, unreadable snapshot) sets `capture_error` to a one-line reason and `changes` to [] — never a partial list; a clean capture has `capture_error: null`. `tool_version` names the writer (e.g. 'footprint.py/<ver>'). Every object is closed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unit_id", "iteration", "mode", "base_ref", "pre_snapshot_sha256", "post_snapshot_sha256",
+    "changes", "unattributed", "capture_error", "tool_version"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "pattern": "^U[0-9]{2,}$" },
+    "iteration": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The unit iteration this capture belongs to (debrief.json.iteration of the unit; 1 when no debrief exists yet). A retry re-captures and rewrites the footprint for its own iteration."
+    },
+    "mode": { "type": "string", "enum": ["git", "snapshot", "none"] },
+    "base_ref": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ],
+      "description": "Where BEFORE content is read from: the PRE tree id (git wave mode), the pre tree-ish as given (tree mode), null (snapshot mode — BEFORE bytes come from the content store keyed by sha256_before)."
+    },
+    "pre_snapshot_sha256": {
+      "anyOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "post_snapshot_sha256": {
+      "anyOf": [
+        { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        { "type": "null" }
+      ]
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "status", "from_path", "sha256_before", "sha256_after"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "description": "POSIX path relative to the workspace root (the NEW path for a rename)." },
+          "status": { "type": "string", "enum": ["A", "M", "D", "R", "T"] },
+          "from_path": {
+            "anyOf": [
+              { "type": "string", "minLength": 1 },
+              { "type": "null" }
+            ],
+            "description": "The OLD path of a rename (status R); null for every other status."
+          },
+          "sha256_before": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              { "type": "null" }
+            ]
+          },
+          "sha256_after": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "$comment": "A rename carries its old path; nothing else does.",
+            "if": { "properties": { "status": { "const": "R" } }, "required": ["status"] },
+            "then": { "properties": { "from_path": { "type": "string" } } },
+            "else": { "properties": { "from_path": { "type": "null" } } }
+          },
+          {
+            "$comment": "An added path has no BEFORE bytes.",
+            "if": { "properties": { "status": { "const": "A" } }, "required": ["status"] },
+            "then": { "properties": { "sha256_before": { "type": "null" } } }
+          },
+          {
+            "$comment": "A deleted path has no AFTER bytes.",
+            "if": { "properties": { "status": { "const": "D" } }, "required": ["status"] },
+            "then": { "properties": { "sha256_after": { "type": "null" } } }
+          }
+        ]
+      }
+    },
+    "unattributed": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "capture_error": {
+      "anyOf": [
+        { "type": "string", "minLength": 1 },
+        { "type": "null" }
+      ],
+      "description": "null on a clean capture; otherwise a one-line reason, and then `changes` MUST be [] (enforced by the allOf below)."
+    },
+    "tool_version": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "$comment": "Fail-closed capture: an errored capture records NO change list, never a partial one.",
+      "if": { "properties": { "capture_error": { "type": "string" } }, "required": ["capture_error"] },
+      "then": { "properties": { "changes": { "maxItems": 0 } } }
+    },
+    {
+      "$comment": "Snapshot mode has no git object to read BEFORE content from.",
+      "if": { "properties": { "mode": { "const": "snapshot" } }, "required": ["mode"] },
+      "then": { "properties": { "base_ref": { "type": "null" } } }
+    }
+  ]
+}

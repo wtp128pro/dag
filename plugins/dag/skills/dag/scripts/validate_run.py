@@ -48,6 +48,19 @@ import json, os, re, sys, argparse, datetime, fnmatch, hashlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SCHEMAS = os.path.normpath(os.path.join(HERE, "..", "schemas"))
 
+# Sibling import (1.15.0 blast radius): frame_match.py is the ONE path matcher (the frame-pattern
+# language and the pattern-overlap check); this file must never hold a copy of it. HERE is put on
+# sys.path explicitly (idempotently) so the import also resolves under `python3 -I` / -P /
+# PYTHONSAFEPATH, which do not prepend the script's directory. A missing or broken matcher is an
+# environment error (exit 3), never a traceback.
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+try:
+    import frame_match
+except ImportError as _fm_err:
+    sys.stderr.write(f"validate_run.py: cannot import frame_match from {HERE}: {_fm_err}\n")
+    sys.exit(3)
+
 TOP_ARTIFACTS = {
     "personas.json": "personas.schema.json",
     "clarifications.json": "clarifications.schema.json",
@@ -63,6 +76,10 @@ UNIT_ARTIFACTS = {
     "debrief.json": "debrief.schema.json",
     "verify.json": "verify.schema.json",
     "disagreement.json": "disagreement.schema.json",
+    # 1.15.0 blast radius: the unit's captured FILE footprint (footprint.py). Validate-if-present here;
+    # whether it MUST exist is decided by the version-gated I60-3, which also raw-reads it so a
+    # schema-invalid footprint still FAILs there.
+    "footprint.json": "footprint.schema.json",
 }
 
 # counter values that do NOT record an outcome (I13). The mechanical sentinel is a
@@ -535,8 +552,33 @@ LABELS = [
     {"key": "note_i57", "stem": "N-I57 run composition", "invariant": "I57", "emitted_via": "print"},
     {"key": "i58_resequence", "stem": "I58 re-sequencing eligibility", "invariant": "I58"},
     {"key": "i59_obligation_source", "stem": "I59 obligation source-naming", "invariant": "I59"},
+    # FSM invariants — blast radius (1.15.0). Every one is an OFFLINE, POST-HOC predicate over
+    # emitted artifacts (graph frames, brief frames, units/<U>/footprint.json, fsm-state.blast):
+    # none appears in a transition-admission path and none is a live guard on the correction loop's
+    # sole back-edge LT7 (RETRY->EXECUTE). Armed only on runs stamped >= _BLAST_SHIP.
+    {"key": "i60_write_scope", "stem": "I60 write scope", "invariant": "I60", "emitted_via": "hoisted-var"},
+    {"key": "i61_wave_disjoint", "stem": "I61 wave write disjointness", "invariant": "I61", "emitted_via": "hoisted-var"},
+    {"key": "note_i61", "stem": "N-I61 declared frame overlap", "invariant": "I61", "emitted_via": "print"},
 ]
 LABEL_STEM = {e["key"]: e["stem"] for e in LABELS}
+
+
+def _frame_canon(frame):
+    """Canonical, order-insensitive form of a unit `frame` (graph.json units[].frame / brief.json frame)
+    for equality tests: None when absent; every list value becomes its members sorted by their JSON
+    text; any other value is kept as-is. Never raises on a wrong-typed frame (a non-object compares by
+    its JSON text), so a drifted or malformed frame is a mismatch, not a traceback."""
+    if frame is None:
+        return None
+    if not isinstance(frame, dict):
+        return ("<non-object>", json.dumps(frame, sort_keys=True, default=str))
+    canon = {}
+    for key, val in frame.items():
+        if isinstance(val, list):
+            canon[key] = sorted(json.dumps(x, sort_keys=True, default=str) for x in val)
+        else:
+            canon[key] = val
+    return canon
 
 # N-I45 version-skew visibility (P3) — shadow accumulator of version-gated ARMS that THIS run's own
 # `validator_version` stamp suppressed while the arm's non-version precondition HELD. Module-level per
@@ -2042,6 +2084,9 @@ def main(argv=None):
                     _mism.append(f"tags {sorted(gu.get('tags', []) or [])} != brief {sorted(b.get('tags', []) or [])}")
                 if list(gu.get("acceptance_criteria", []) or []) != list(b.get("acceptance_criteria", []) or []):
                     _mism.append("acceptance_criteria differ from brief")
+                # 1.15.0: the declared write scope is frozen content too (each list compared as a set).
+                if _frame_canon(gu.get("frame")) != _frame_canon(b.get("frame")):
+                    _mism.append("frame differs from brief frame")
                 if _mism:
                     rep.fail(f"{LABEL_STEM['i17_anchor']} (units/{uid})",
                              "executed unit's graph entry diverges from its frozen brief.json: " + "; ".join(_mism)
@@ -8699,6 +8744,239 @@ def main(argv=None):
         if not _n14_r_bad:
             rep.ok(f"{_n14_r_stem} ({len(_n14_rs)} resequence record(s): eligible, non-vacuous, "
                    "snapshot-complete; wave MINIMALITY is deliberately NOT enforced)")
+
+    # -------------------------------------------------------------------------------------------
+    # Blast radius (1.15.0) — I60 write scope / file footprint, I61 no overlapping writes in a wave.
+    # OFFLINE, POST-HOC predicates over emitted artifacts only: graph.json units[].deliverable and
+    # units[].frame, units/<U>/brief.json frame + outputs[], units/<U>/footprint.json (+ its
+    # footprint.json.sha256 sidecar in `shasum -a 256` form, `<hex>  footprint.json`) and
+    # fsm-state.blast. Nothing here runs git or any other process, gates a transition, or guards LT7.
+    # Footprint contract restated (written by scripts/footprint.py): {unit_id, iteration, mode,
+    # base_ref, pre_snapshot_sha256, post_snapshot_sha256, changes[{path, status, from_path,
+    # sha256_before, sha256_after}], unattributed[], capture_error, tool_version}; a failed capture
+    # sets capture_error and changes [] (fail-closed). Every read is RAW (json.load + isinstance), so
+    # a schema-invalid artifact still reaches its clause, and a wrong-typed key is a FAIL row naming
+    # the key, never a traceback. Paths and patterns are matched by frame_match only.
+    # Version gate: armed iff fsm-state.validator_version >= _BLAST_SHIP AND graph.json lists at least
+    # one unit (structural: before Phase 4 there is nothing to scope; from then on every clause runs).
+    # There is NO opt-out on an armed run: a missing blast record / footprint is a FAIL, never a reason
+    # to skip a clause. Stamp and graph are read raw, so a schema-invalid fsm-state.blast or graph is
+    # still judged. Archive-safe: an unstamped, malformed-stamped or < 1.15.0 run is never armed. The
+    # N-I45 shadow arm BLAST-T1 is counted when the graph has a unit AND the run carries a blast
+    # artifact (fsm-state.blast, a graph unit frame, or a units/<U>/footprint.json) that the stamp
+    # leaves unjudged — so a pre-1.15.0 run that never adopted the mechanism is not reported as
+    # suppressing it (a deliberate UNDER-count of N-I45's upper bound for such runs).
+    _BLAST_SHIP = "1.15.0"
+
+    def _blast_raw(path):
+        try:
+            return load_json(path), None
+        except FileNotFoundError:
+            return None, "absent"
+        except Exception as _e:
+            return None, f"unreadable ({type(_e).__name__}: {_e})"
+
+    _blast_fsm, _ = _blast_raw(os.path.join(rd, "fsm-state.json"))
+    _blast_ver = _blast_fsm.get("validator_version") if isinstance(_blast_fsm, dict) else None
+    _blast_graph, _ = _blast_raw(os.path.join(rd, "graph.json"))
+    _blast_units = {}
+    _blast_wave_of = {}
+    if isinstance(_blast_graph, dict):
+        _bg_units = _blast_graph.get("units")
+        if isinstance(_bg_units, list):
+            for _bu in _bg_units:
+                if isinstance(_bu, dict) and isinstance(_bu.get("id"), str):
+                    _blast_units[_bu["id"]] = _bu
+        _bg_waves = _blast_graph.get("waves")
+        if isinstance(_bg_waves, list):
+            for _bw in _bg_waves:
+                _bwn = _as_int(_bw.get("wave")) if isinstance(_bw, dict) else None
+                _bwu = _bw.get("units") if isinstance(_bw, dict) else None
+                if _bwn is None or not isinstance(_bwu, list):
+                    continue
+                for _u in _bwu:
+                    if isinstance(_u, str):
+                        _blast_wave_of[_u] = _bwn
+    _blast_fp_present = any(os.path.isfile(os.path.join(units_dir, _u, "footprint.json"))
+                            for _u in sorted(unit_subdirs))
+    _blast_structure = (isinstance(_blast_fsm, dict) and "blast" in _blast_fsm) or _blast_fp_present \
+        or any(isinstance(_bu, dict) and "frame" in _bu for _bu in _blast_units.values())
+    _blast_armed = _i27_semver_ge(_blast_ver, _BLAST_SHIP) and bool(_blast_units)
+    _skew_record("BLAST-T1", bool(_blast_units) and _blast_structure, _BLAST_SHIP, _blast_ver)
+
+    if _blast_armed:
+        _i60 = LABEL_STEM["i60_write_scope"]
+        _i61 = LABEL_STEM["i61_wave_disjoint"]
+        _blast_bad = {"I60": False, "I61": False}
+
+        def _blast_fail(stem, clause, locus, detail):
+            _blast_bad["I60" if stem == _i60 else "I61"] = True
+            rep.fail(f"{stem} ({clause} {locus})", detail)
+
+        def _blast_list(obj, key, stem, clause, locus):
+            """obj[key] as a list of str; a present-but-wrong-typed value is a FAIL row naming the key."""
+            if not isinstance(obj, dict) or key not in obj:
+                return []
+            _v = obj[key]
+            if not isinstance(_v, list) or not all(isinstance(_x, str) for _x in _v):
+                _blast_fail(stem, clause, locus, f"`{key}` must be a list of strings, got {_v!r:.120}")
+                return []
+            return _v
+
+        # I60-6 — the run's blast baseline (fsm-state.blast) is present and well formed.
+        _bl = _blast_fsm.get("blast") if isinstance(_blast_fsm, dict) else None
+        _bl_mode = _bl.get("mode") if isinstance(_bl, dict) else None
+        _bl_ws = _bl.get("workspace_root") if isinstance(_bl, dict) else None
+        _n_ships = sum(1 for _bu in _blast_units.values() if _bu.get("deliverable") == "ships")
+        if _bl is None:
+            _blast_fail(_i60, "I60-6", "fsm-state.blast",
+                        "absent on a run stamped >= 1.15.0 — init_run.sh records the baseline at scaffold; "
+                        "a missing blast record is a FAIL, never an opt-out")
+        elif not isinstance(_bl, dict):
+            _blast_fail(_i60, "I60-6", "fsm-state.blast", f"must be an object, got {type(_bl).__name__}")
+        elif _bl_mode not in ("git", "snapshot", "none"):
+            _blast_fail(_i60, "I60-6", "fsm-state.blast.mode", f"must be git|snapshot|none, got {_bl_mode!r}")
+        elif _bl_mode == "none" and _n_ships:
+            _blast_fail(_i60, "I60-6", "fsm-state.blast.mode",
+                        f"mode none (no capture mechanism) with {_n_ships} ships unit(s) — a run that changes "
+                        "the repository must capture what it changed")
+        elif _bl_mode == "git" and not (isinstance(_bl.get("base_sha"), str)
+                                        and re.fullmatch(r"[0-9a-f]{40}", _bl["base_sha"])):
+            _blast_fail(_i60, "I60-6", "fsm-state.blast.base_sha",
+                        f"git mode requires a 40-hex lowercase base_sha, got {_bl.get('base_sha')!r:.60}")
+
+        # Per-unit declared frame (graph is authoritative), validated once.
+        _blast_mod = {}
+        _blast_imm = {}
+        for _u, _bu in _blast_units.items():
+            _loc = f"graph.json units[{_u}]"
+            # I60-1 — every graph unit says whether it ships.
+            if _bu.get("deliverable") not in ("ships", "informs"):
+                _blast_fail(_i60, "I60-1", _loc, f"deliverable must be ships|informs, got {_bu.get('deliverable')!r}")
+            _fr = _bu.get("frame")
+            if _fr is not None and not isinstance(_fr, dict):
+                _blast_fail(_i60, "I60-2", _loc, f"`frame` must be an object, got {type(_fr).__name__}")
+                _fr = None
+            _blast_mod[_u] = _blast_list(_fr, "modifies", _i60, "I60-2", _loc)
+            _blast_imm[_u] = _blast_list(_fr, "immutable", _i60, "I60-2", _loc)
+            # I60-2 — a ships unit declares a valid, non-empty write scope.
+            if _bu.get("deliverable") == "ships":
+                if not _blast_mod[_u]:
+                    _blast_fail(_i60, "I60-2", _loc, "a ships unit needs a non-empty frame.modifies")
+                for _pat in _blast_mod[_u] + _blast_imm[_u]:
+                    if not frame_match.is_valid_pattern(_pat):
+                        _blast_fail(_i60, "I60-2", _loc, f"invalid frame pattern {_pat!r:.120}")
+            # I60-2 — brief.json mirrors the graph frame; a ships unit's repo outputs lie inside it.
+            _bp = os.path.join(units_dir, _u, "brief.json")
+            if not os.path.isfile(_bp):
+                continue
+            _bb, _berr = _blast_raw(_bp)
+            if not isinstance(_bb, dict):
+                _blast_fail(_i60, "I60-2", f"units/{_u}/brief.json", f"not a JSON object ({_berr or 'wrong type'})")
+                continue
+            if _frame_canon(_bu.get("frame")) != _frame_canon(_bb.get("frame")):
+                _blast_fail(_i60, "I60-2", f"units/{_u}/brief.json",
+                            "brief.frame differs from graph.json frame (each list compared as a set)")
+            if _bu.get("deliverable") == "ships":
+                for _o in _blast_list(_bb, "outputs", _i60, "I60-2", f"units/{_u}/brief.json"):
+                    _op = _o.strip()
+                    if os.path.isabs(_op):
+                        _rp = os.path.realpath(_op)
+                        if _rp == os.path.realpath(rd) or _rp.startswith(os.path.realpath(rd) + os.sep):
+                            continue                       # a run-dir artifact, not a repo path
+                        if isinstance(_bl_ws, str) and _rp.startswith(os.path.realpath(_bl_ws) + os.sep):
+                            _op = os.path.relpath(_rp, os.path.realpath(_bl_ws))
+                    elif "/" not in _op or _op.startswith(("units/", ".wip/")):
+                        continue                           # run-dir artifact (DECISIONS.md, units/<U>/...)
+                    if not frame_match.match_any_pattern(_op, _blast_mod[_u]):
+                        _blast_fail(_i60, "I60-2", f"units/{_u}/brief.json",
+                                    f"outputs[] repo path {_o!r:.120} matches no frame.modifies pattern")
+
+        # I60-3..5 per executed unit (has a debrief); footprints feed I61.
+        _blast_fp = {}
+        for _u in sorted(unit_dirs_with_debrief):
+            _loc = f"units/{_u}"
+            _fpp = os.path.join(units_dir, _u, "footprint.json")
+            if not os.path.isfile(_fpp):
+                _blast_fail(_i60, "I60-3", _loc, "executed unit has no footprint.json (footprint.py capture)")
+                continue
+            _fp, _fperr = _blast_raw(_fpp)
+            if not isinstance(_fp, dict):
+                _blast_fail(_i60, "I60-3", _loc, f"footprint.json is not a JSON object ({_fperr or 'wrong type'})")
+                continue
+            _ud = unit_docs.get(_u)
+            if not (isinstance(_ud, dict) and isinstance(_ud.get("footprint"), dict)):
+                _blast_fail(_i60, "I60-3", _loc, "footprint.json is not schema-valid against footprint.schema.json")
+            if _fp.get("unit_id") != _u:
+                _blast_fail(_i60, "I60-3", _loc, f"footprint unit_id {_fp.get('unit_id')!r} != directory {_u!r}")
+            try:
+                with open(_fpp, "rb") as _fh:
+                    _fpsha = hashlib.sha256(_fh.read()).hexdigest()
+                with open(_fpp + ".sha256", "r", encoding="utf-8") as _fh:
+                    _side = _fh.read().split()
+                _side0 = _side[0].lower() if _side else None
+            except Exception as _e:
+                _fpsha, _side0 = None, f"<unreadable sidecar: {type(_e).__name__}>"
+            if _fpsha is None or _side0 != _fpsha:
+                _blast_fail(_i60, "I60-3", _loc, f"footprint.json.sha256 {_side0!r:.80} != sha256(footprint.json) {_fpsha!r}")
+            _db, _ = _blast_raw(os.path.join(units_dir, _u, "debrief.json"))
+            _dit = _as_int(_db.get("iteration")) if isinstance(_db, dict) else None
+            _fit = _as_int(_fp.get("iteration"))
+            if _fit is None or _dit is None or _fit != _dit:
+                _blast_fail(_i60, "I60-3", _loc,
+                            f"footprint iteration {_fp.get('iteration')!r} != debrief.json iteration "
+                            f"{_db.get('iteration') if isinstance(_db, dict) else None!r} (a retry re-captures)")
+            if _fp.get("capture_error") is not None:
+                _blast_fail(_i60, "I60-3", _loc, f"capture_error set: {_fp.get('capture_error')!r:.160}")
+            _chg = _fp.get("changes")
+            if not isinstance(_chg, list):
+                _blast_fail(_i60, "I60-3", _loc, f"footprint `changes` must be a list, got {type(_chg).__name__}")
+                _chg = []
+            _paths = set()
+            for _c in _chg:
+                if not isinstance(_c, dict) or not isinstance(_c.get("path"), str):
+                    _blast_fail(_i60, "I60-3", _loc, f"malformed changes[] entry {_c!r:.120}")
+                    continue
+                _cps = [_c["path"]] + ([_c["from_path"]] if isinstance(_c.get("from_path"), str) else [])
+                for _cp in _cps:
+                    _paths.add(_cp)
+                    # I60-4 — every write lies inside modifies and outside immutable.
+                    if not frame_match.match_any_pattern(_cp, _blast_mod.get(_u, [])):
+                        _blast_fail(_i60, "I60-4", _loc, f"changed path {_cp!r:.120} matches no frame.modifies pattern")
+                    if frame_match.match_any_pattern(_cp, _blast_imm.get(_u, [])):
+                        _blast_fail(_i60, "I60-4", _loc, f"changed path {_cp!r:.120} matches a frame.immutable pattern")
+            # I60-5 — an informs unit changed nothing outside the run directory.
+            if _chg and _blast_units.get(_u, {}).get("deliverable") == "informs":
+                _blast_fail(_i60, "I60-5", _loc, f"informs unit has {len(_chg)} footprint change(s); it must be empty")
+            # I61-2 — every captured change is claimed by some unit's frame.
+            _una = _fp.get("unattributed")
+            if not isinstance(_una, list):
+                _blast_fail(_i61, "I61-2", _loc, f"footprint `unattributed` must be a list, got {type(_una).__name__}")
+            elif _una:
+                _blast_fail(_i61, "I61-2", _loc, f"{len(_una)} unattributed changed path(s) no unit's frame claims: "
+                                                 f"{_una[:5]!r:.200}")
+            _blast_fp[_u] = _paths
+
+        # I61-1 (FAIL) / I61-3 (NOTE) — pairwise within each graph wave.
+        _by_wave = {}
+        for _u, _wn in sorted(_blast_wave_of.items()):
+            _by_wave.setdefault(_wn, []).append(_u)
+        for _wn in sorted(_by_wave):
+            _wu = _by_wave[_wn]
+            for _i, _a in enumerate(_wu):
+                for _b in _wu[_i + 1:]:
+                    _both = sorted(_blast_fp.get(_a, set()) & _blast_fp.get(_b, set()))
+                    if _both:
+                        _blast_fail(_i61, "I61-1", f"wave {_wn} {_a}/{_b}",
+                                    f"same-wave footprints overlap on {len(_both)} path(s): {_both[:5]!r:.200}")
+                    _fov = frame_match.set_overlaps(_blast_mod.get(_a, []), _blast_mod.get(_b, []))
+                    if _fov:
+                        print(f"  NOTE  {LABEL_STEM['note_i61']}: wave {_wn} {_a}/{_b} declare overlapping "
+                              f"frame.modifies {_fov[:3]!r:.200} — the two units can write the same path")
+        if not _blast_bad["I60"]:
+            rep.ok(f"{_i60} ({len(_blast_units)} unit(s), {len(_blast_fp)} footprint(s): scoped and well formed)")
+        if not _blast_bad["I61"]:
+            rep.ok(f"{_i61} ({len(_by_wave)} wave(s): same-wave footprints disjoint, nothing unattributed)")
 
     # Gate ordering: phase requires prior gates true. personas_confirmed is the FIRST
     # gate (Phase 1) and is required from P2 onward — the human persona gate is not skippable.

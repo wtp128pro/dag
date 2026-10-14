@@ -2021,6 +2021,64 @@
       "docs": [
         "references/state-machine.md#4"
       ]
+    },
+    {
+      "id": "I60",
+      "title": "Write scope and file footprint (blast radius). I60-1 every graph unit names deliverable ships|informs; I60-2 a ships unit declares a non-empty frame.modifies of valid patterns, brief.json.frame mirrors the graph frame and a ships unit's repo-path outputs[] lie inside frame.modifies; I60-3 every executed unit carries a schema-valid units/<U>/footprint.json whose sha256 sidecar matches, whose unit_id and iteration match the unit and its debrief, with no capture_error; I60-4 every changed path matches the unit's frame.modifies and no frame.immutable pattern; I60-5 an informs unit's footprint has no changes; I60-6 fsm-state.blast is present and well formed (mode git|snapshot|none, not none while a unit ships, a 40-hex base_sha in git mode). OFFLINE and post-hoc over emitted artifacts; armed iff the stamp is >= 1.15.0 and graph.json lists a unit (N-I45 shadow arm BLAST-T1). It checks declared, visible surfaces: what the capture recorded against what the frame declared.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I60 write scope"
+      ],
+      "fixtures": [
+        "blast_green",
+        "blast_version_gated_silent",
+        "blast_no_deliverable",
+        "blast_ships_no_frame",
+        "blast_bad_pattern",
+        "blast_brief_frame_drift",
+        "blast_output_outside_frame",
+        "blast_footprint_missing",
+        "blast_footprint_stale",
+        "blast_footprint_sha_mismatch",
+        "blast_capture_error",
+        "blast_write_outside_frame",
+        "blast_immutable_touched",
+        "blast_informs_wrote",
+        "blast_mode_none_with_ships",
+        "blast_stamp_missing",
+        "blast_bad_base_sha",
+        "blast_crash_footprint_types",
+        "blast_crash_footprint_keys",
+        "blast_crash_frame_type"
+      ],
+      "provenance": [
+        "blast-radius-1.15.0"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
+    },
+    {
+      "id": "I61",
+      "title": "Wave write disjointness (blast radius). I61-1 no two units of one graph wave have overlapping captured footprint paths; I61-2 every footprint's unattributed[] (changed paths no unit's frame claims) is a list and empty; N-I61 is an exit-neutral NOTE naming two same-wave units whose frame.modifies patterns can match a common path. Same arming as I60. It checks declared, visible surfaces: captured paths and declared patterns, not semantic conflicts between disjoint files.",
+      "tier": "mechanical",
+      "validator_label_prefixes": [
+        "I61 wave write disjointness",
+        "N-I61 declared frame overlap"
+      ],
+      "fixtures": [
+        "blast_green",
+        "blast_wave_overlap",
+        "blast_unattributed",
+        "blast_frame_overlap_note",
+        "blast_crash_footprint_keys"
+      ],
+      "provenance": [
+        "blast-radius-1.15.0"
+      ],
+      "docs": [
+        "references/state-machine.md#4"
+      ]
     }
   ]
 }

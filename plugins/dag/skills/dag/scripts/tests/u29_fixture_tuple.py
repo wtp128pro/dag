@@ -89,6 +89,8 @@ def patched_vr(drop_key):
     d = tempfile.mkdtemp(dir="/private/tmp", prefix="u29vr.")
     p = os.path.join(d, "validate_run.py")
     open(p, "w").write(out)
+    # the copy imports frame_match from its own directory (exit 3 without it): put it beside
+    shutil.copy2(os.path.join(os.path.dirname(VR), "frame_match.py"), d)
     return p, d
 
 
